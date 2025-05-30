@@ -1,0 +1,68 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    tabu_list = torch.zeros(n)
+    velocity = torch.zeros_like(distance_matrix)
+    position = torch.zeros_like(distance_matrix)
+    best_position = torch.zeros_like(distance_matrix)
+    best_cost = float('inf')
+    
+    # Problem-specific Local Search
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                total_demand = demands[i] + demands[j]
+                if total_demand > 1.0:
+                    heuristics[i, j] = -1  # Undesirable edge due to overcapacity
+                else:
+                    heuristics[i, j] = (1.0 - total_demand) / 1.0
+    
+    # Adaptive PSO with Adaptive Population Management
+    for iteration in range(100):
+        # Update position
+        position += velocity
+        
+        # Update velocity with dynamic adjustment
+        inertia_weight = 0.7 + (0.3 * (iteration / 100))
+        cognitive_component = 0.3 * (position - best_position)
+        social_component = 0.3 * (torch.rand_like(position) - 0.5)
+        velocity = inertia_weight * velocity + cognitive_component + social_component
+        
+        # Update best position and cost
+        cost = torch.sum(position * distance_matrix)
+        if cost < best_cost:
+            best_cost = cost
+            best_position = position
+            best_position[tabu_list != 0] = 0  # Exclude tabu edges
+        
+        # Update heuristics based on PSO
+        heuristics = best_position / (best_position ** 2)
+    
+    # Dynamic Tabu Search with Adaptive Cost Function
+    for iteration in range(100):
+        # Find the best edge to move
+        load_penalty = heuristics / (heuristics ** 2)
+        best_edge = torch.argmin(load_penalty)
+        
+        # Check if the edge is in the tabu list
+        if tabu_list[best_edge] > 0:
+            continue
+        
+        # Move the edge
+        heuristics[best_edge] *= -1
+        tabu_list[best_edge] = 1
+        
+        # Update best position and cost
+        cost = torch.sum(heuristics * distance_matrix)
+        if cost < best_cost:
+            best_cost = cost
+            best_position = heuristics
+    
+    # Update heuristics based on Tabu Search
+    heuristics = best_position / (best_position ** 2)
+    
+    return heuristics
+```

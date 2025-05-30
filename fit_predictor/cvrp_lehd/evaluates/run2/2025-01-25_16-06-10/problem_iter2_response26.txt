@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improve upon the trivial heuristic by considering demand and distance."""
+    # Normalize the distance matrix to ensure the scale of distance and demand are comparable
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    
+    # Calculate the difference in demand between each node and the depot
+    demand_diff = demands - demands[0]
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Iterate over each node pair, exploiting symmetry
+    for i in range(distance_matrix.shape[0]):
+        for j in range(i+1, distance_matrix.shape[1]):  # Only compute for j > i
+            # Calculate the potential total demand of the route if i is included
+            potential_demand = demands[i] + demands[j]
+            
+            # If the potential demand exceeds the vehicle capacity, return to the depot
+            if potential_demand > 1:
+                return_distance = normalized_distance_matrix[j, 0]
+            else:
+                return_distance = 0
+            
+            # Calculate the heuristic value based on distance and demand
+            heuristic_value = -normalized_distance_matrix[i, j] + return_distance
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = -heuristic_value
+    
+    return heuristic_matrix
+```

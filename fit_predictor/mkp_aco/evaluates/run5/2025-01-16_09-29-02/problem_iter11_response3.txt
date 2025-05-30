@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_per_weight = prize / np.sum(weight, axis=1)
+    diversity_factor = np.sum(weight, axis=1) / (np.linalg.norm(weight, axis=1) + 1e-8)
+    normalized_prize = prize / np.sum(prize)
+    sparsity = 1 / (np.linalg.norm(weight, axis=1) + 1e-8)
+    heuristics = (value_per_weight * diversity_factor * normalized_prize * sparsity)
+    
+    # Cap the factors to avoid dominance of a single factor
+    cap_factor = 0.5
+    heuristics = np.clip(heuristics, 0, cap_factor)
+    
+    # Penalize sparsity to encourage diversity in selection
+    sparsity_threshold = 0.1
+    sparsity_penalty = (sparsity_threshold - sparsity) * 0.1
+    heuristics *= (1 - sparsity_penalty)
+    
+    # Adaptive scaling to balance utility and diversity
+    scaling_factor = 1 / np.max(heuristics)
+    heuristics *= scaling_factor
+    
+    return heuristics
+```

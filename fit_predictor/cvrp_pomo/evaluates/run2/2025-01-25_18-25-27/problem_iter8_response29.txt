@@ -1,0 +1,13 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands_sum = demands.sum()
+    normalized_demands = demands / demands_sum
+    # Compute the heuristics matrix using element-wise multiplication and subtraction
+    heuristics_matrix = distance_matrix - normalized_demands.unsqueeze(1) * distance_matrix.sum(dim=1, keepdim=True)
+    # Introduce randomness and a penalty for infeasibilities
+    random_factor = (torch.rand(n) * 2 - 1) * (heuristics_matrix > 0).float()
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    heuristics_matrix += random_factor + infeasibility_penalty
+    return heuristics_matrix
+```

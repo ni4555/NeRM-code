@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_sum = torch.sum(demands)
+    demand_mean = demand_sum / n
+    demand_balance = (demands - demand_mean).abs()
+    
+    # Normalize the demand balance by the total demand
+    demand_balance = demand_balance / demand_sum
+    
+    # Invert the balance to favor balanced demands
+    demand_balance = 1 - demand_balance
+    
+    # Incorporate distance into the heuristic with exponential decay to weigh closer nodes more
+    distance_heuristic = torch.exp(-distance_matrix / (torch.max(distance_matrix) + 1e-8))
+    
+    # Combine heuristics with a weighted sum
+    combined_heuristic = demand_balance * 0.6 + distance_heuristic * 0.4
+    
+    # Detect and penalize outliers by checking how far the demands are from the mean
+    outlier_mask = demand_balance < 0.1  # Assuming 0.1 as a threshold for outliers
+    outlier_penalty = -demand_balance[outlier_mask] * torch.log(demand_balance[outlier_mask] + 1e-8)
+    
+    # Apply the outlier penalty to the heuristic
+    combined_heuristic[outlier_mask] -= outlier_penalty
+    
+    # Cap the heuristics to ensure that they are positive and not too high
+    cap = torch.max(combined_heuristic)
+    combined_heuristic = torch.clamp(combined_heuristic, min=0, max=cap)
+    
+    return combined_heuristic
+```

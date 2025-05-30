@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    
+    # Normalize the distance matrix by the total demand to consider relative distances
+    normalized_distance_matrix = distance_matrix / total_demand
+    
+    # Calculate the balance of demands across nodes
+    demand_balance = demands.abs().mean() * (1 - demands.abs().sum() / total_demand)
+    
+    # Invert the normalized distance matrix to give higher weights to shorter paths
+    inverted_normalized_distance_matrix = 1 / (normalized_distance_matrix + 1e-6)
+    
+    # Combine the factors to generate a heuristic matrix
+    heuristic_matrix = -inverted_normalized_distance_matrix + demand_balance
+    
+    return heuristic_matrix
+```

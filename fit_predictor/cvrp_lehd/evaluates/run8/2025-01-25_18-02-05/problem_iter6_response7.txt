@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the distance matrix to prioritize short edges
+    distance_matrix_inv = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    # Calculate the product of demand and inverse distance for each edge
+    demand_distance_product = demands * distance_matrix_inv
+    
+    # Normalize the product by the total vehicle capacity to get a demand-based heuristic
+    normalized_demand = demands / demands.sum()
+    demand_based_heuristic = demand_distance_product * normalized_demand
+    
+    # Calculate the demand range to reflect importance
+    demand_range = torch.max(demands) - torch.min(demands)
+    
+    # Create a matrix of the same shape as the distance matrix with the demand range
+    demand_range_matrix = torch.full_like(distance_matrix, demand_range)
+    
+    # Add the demand range heuristic to the demand-based heuristic
+    heuristic_matrix = demand_based_heuristic + demand_range_matrix
+    
+    # Normalize the heuristic matrix by the sum of demands to ensure it's on a comparable scale
+    demand_sum = demands.sum()
+    normalized_heuristic_matrix = heuristic_matrix / demand_sum
+    
+    # Set thresholds to filter out bad edges based on a fraction of the maximum value
+    threshold_fraction = 0.8
+    threshold = torch.max(normalized_heuristic_matrix) * threshold_fraction
+    
+    # Apply the threshold to ensure all undesirable edges have negative values
+    heuristic_matrix = torch.where(normalized_heuristic_matrix < threshold, normalized_heuristic_matrix, 0)
+    
+    # Adjust the values to be within the range of [-1, 1]
+    min_value = torch.min(heuristic_matrix)
+    max_value = torch.max(heuristic_matrix)
+    scale_factor = (max_value - min_value) / (1 + 1)  # Scale between -1 and 1
+    adjusted_heuristic_matrix = (heuristic_matrix - min_value) / scale_factor
+    
+    return adjusted_heuristic_matrix
+```

@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot
+    cumulative_distance = torch.cumsum(distance_matrix[:, 0], dim=1)
+    
+    # Calculate the potential cost of including an edge as a heuristic value
+    potential_cost = (cumulative_demand - cumulative_demand[:, None]) * distance_matrix
+    
+    # Calculate the negative of the potential cost as a heuristic penalty
+    penalty = -torch.sum(potential_cost, dim=0)
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # For each non-zero edge, assign a heuristic value based on the penalty
+    heuristics_matrix[distance_matrix != 0] = penalty
+    
+    return heuristics_matrix
+```

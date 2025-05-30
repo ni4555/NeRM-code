@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Use exponential penalties to penalize larger demands and longer distances
+    capacity_penalty = -torch.log(1 + demands / total_capacity)
+    distance_penalty = -torch.log(1 + distance_matrix / (distance_matrix.max() + 1e-8))
+    demandAwareScaling = cumulative_demand * demands
+    capacityAwareScaling = (1 + (total_capacity - cumulative_demand) / total_capacity) * (1 + (cumulative_demand / total_capacity) ** 2)
+    # Dynamic penalties for edges with high demands and high distances
+    dynamic_penalty = capacity_penalty + distance_penalty * (demandAwareScaling * capacityAwareScaling)
+    heuristics = -dynamic_penalty
+    return heuristics
+```

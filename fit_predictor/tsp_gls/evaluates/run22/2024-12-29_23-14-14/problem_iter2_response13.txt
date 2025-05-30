@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Introduce a penalty for edges that are close to any optimal route
+    # Calculate the minimum distance from each edge to all optimal routes
+    min_distance = np.min(distance_matrix, axis=0)
+    min_distance_from_row = np.min(distance_matrix, axis=1)
+    
+    # Calculate a heuristic value based on the distance from the minimum distance
+    heuristic_value = np.where(distance_matrix == min_distance, 
+                               0, 
+                               np.where(distance_matrix == min_distance_from_row, 
+                                        1, 
+                                        2))
+    
+    # Apply a penalty to longer edges, making them less attractive
+    penalty = heuristic_value * (distance_matrix / np.min(distance_matrix))
+    
+    # Adjust penalty to avoid overpenalizing local optima
+    adjusted_penalty = penalty * (1 - np.arange(len(min_distance)) / (len(min_distance) - 1))
+    
+    return adjusted_penalty
+```

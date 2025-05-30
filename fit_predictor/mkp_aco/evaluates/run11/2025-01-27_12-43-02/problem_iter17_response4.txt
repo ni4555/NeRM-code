@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    # Normalize the prize based on the average prize to maintain a sense of scale
+    prize_normalized = prize / np.mean(prize)
+    
+    # Calculate the importance of each item considering its prize-to-weight ratio
+    ratio = prize_normalized / np.sum(weight, axis=1)[:, None]
+    
+    # Calculate the sparsity score by dividing the normalized prize by the sum of weights for each item
+    sparsity_score = prize_normalized / np.sum(weight, axis=1)
+    
+    # Calculate the average weight in each dimension and subtract from each item's weight
+    avg_weight = np.mean(weight, axis=0)
+    weight_diff = weight - avg_weight
+    
+    # Combine all scores, normalize, and ensure sparsity by setting a threshold
+    scores = ratio + sparsity_score - np.dot(weight_diff, avg_weight)
+    scores /= np.linalg.norm(scores)
+    
+    # Apply a threshold to sparsify the heuristics
+    threshold = np.percentile(scores, 20)  # 20th percentile as an example
+    importance_normalized = np.where(scores >= threshold, scores, 0)
+    
+    return importance_normalized
+```

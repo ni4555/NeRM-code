@@ -1,0 +1,44 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate diversity score as the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - normalized_prize.reshape(-1, 1)), axis=0)
+    
+    # Calculate a sparsity score based on the percentage of dimensions where the weight is zero
+    sparsity_scores = np.mean(weight == 0, axis=1)
+    
+    # Adjust the normalized prize value to account for high diversity and sparsity
+    adjusted_prize = normalized_prize * diversity_scores * (1 - sparsity_scores)
+    
+    # Combine the adjusted prize value with the diversity and sparsity scores to get a total score
+    total_score = adjusted_prize + diversity_scores - sparsity_scores
+    
+    # Integrate performance metrics: calculate the inverse of the total score to give a higher weight to better items
+    performance_metrics = 1 / (total_score + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    # Refine weighting of features for balanced influence
+    feature_weights = np.array([0.5, 0.3, 0.2])  # Example weights for prize, diversity, and sparsity
+    weighted_score = performance_metrics * feature_weights
+    
+    # Rank the items based on their weighted score
+    ranked_indices = np.argsort(weighted_score)[::-1]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    # Sparsify the heuristics by setting the top 50% of promising elements to 1
+    heuristics[ranked_indices[:len(ranked_indices)//2]] = 1
+    
+    # Mutation rate and selection criteria optimization
+    mutation_rate = 0.1  # Example mutation rate
+    random_indices = np.random.choice(len(ranked_indices), size=int(mutation_rate * len(ranked_indices)), replace=False)
+    heuristics[ranked_indices[random_indices]] = 1 - heuristics[ranked_indices[random_indices]]
+    
+    return heuristics
+```

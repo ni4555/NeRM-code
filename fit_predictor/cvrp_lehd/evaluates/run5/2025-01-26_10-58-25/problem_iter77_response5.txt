@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+
+    # Calculate penalty based on remaining capacity per node
+    capacity_remaining = 1 - demands / vehicle_capacity
+    capacity_penalty = -torch.abs(capacity_remaining - 1)
+
+    # Normalize distances to balance between demand and distance
+    normalized_distances = distance_matrix / distance_matrix.mean(dim=1, keepdim=True)
+
+    # Combine demand and distance penalties into a potential matrix
+    potential_matrix = capacity_penalty + normalized_distances
+
+    # Introduce randomness through Gaussian noise
+    noise_matrix = torch.randn_like(potential_matrix) * 1e-2
+
+    # Combine the original potential matrix with noise
+    combined_potential_matrix = potential_matrix + noise_matrix
+
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(combined_potential_matrix))
+
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / (emphasized_matrix.sum(dim=1, keepdim=True) + 1e-6)
+
+    # Introduce additional diversity by randomly perturbing some of the heuristics
+    perturbation_matrix = torch.rand_like(normalized_emphasized_matrix)
+    perturbation_matrix = torch.where(perturbation_matrix < 0.1, -torch.randn_like(normalized_emphasized_matrix) * 1e-3, perturbation_matrix)
+    mutated_matrix = normalized_emphasized_matrix + perturbation_matrix
+
+    # Combine the mutated matrix with the normalized distance penalty matrix
+    final_matrix = mutated_matrix + 0.5 * normalized_distances
+
+    # Apply a final transformation to ensure negative values represent undesirable edges
+    heuristics_matrix = -final_matrix
+
+    return heuristics_matrix
+```

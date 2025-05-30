@@ -1,0 +1,23 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Create a demand matrix with negative infinity for edges where demand exceeds vehicle capacity
+    demand_matrix = -torch.cumsum(demands, dim=0) / vehicle_capacity
+    demand_matrix = torch.clamp(demand_matrix, min=float('-inf'))
+    
+    # Add the demand matrix to the distance matrix to create a potential matrix
+    potential_matrix = distance_matrix + demand_matrix
+    
+    # Softmax over each row to normalize the potential matrix into a probability distribution
+    softmax_matrix = F.softmax(potential_matrix, dim=1)
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    # Negative values indicate undesirable edges, while positive values suggest promising ones
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

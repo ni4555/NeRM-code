@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    # Initialize the heuristic matrix with high values
+    heuristic_matrix = np.full(distance_matrix.shape, np.inf)
+    
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=1)
+    
+    # Calculate the usage of each edge
+    edge_usage = np.count_nonzero(distance_matrix, axis=0)
+    
+    # Calculate the mean and standard deviation of the distance matrix
+    mean_distance = np.mean(distance_matrix)
+    std_distance = np.std(distance_matrix)
+    
+    # Introduce a dynamic adjustment based on the edge structure
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Adjust based on node degree
+                if degrees[i] > degrees[j]:
+                    adjustment = (degrees[i] - degrees[j]) / 10
+                else:
+                    adjustment = -(degrees[i] - degrees[j]) / 10
+                
+                # Adjust based on edge usage
+                usage_penalty = (edge_usage[i] * edge_usage[j]) ** 0.5
+                
+                # Introduce a nuanced adjustment to avoid local minima
+                if (i, j) in zip(*np.argwhere(edge_usage == np.amax(edge_usage))):
+                    nuanced_adjustment = -0.5
+                else:
+                    nuanced_adjustment = 0
+                
+                # Adjust based on distance
+                distance_adjustment = 1 if distance_matrix[i][j] > mean_distance else -1
+                
+                # Combine the adjustments
+                heuristic_matrix[i][j] = distance_matrix[i][j] * (1 + adjustment + usage_penalty + nuanced_adjustment + distance_adjustment)
+    
+    # Ensure that no self-loops have a non-zero heuristic
+    np.fill_diagonal(heuristic_matrix, np.inf)
+    
+    return heuristic_matrix
+```

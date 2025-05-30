@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_matrix = (demands[:, None] > 0).float()  # Create a mask where demand is present
+    inverse_distance = 1 / (distance_matrix + 1e-8)  # Adding a small epsilon to avoid division by zero
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_diff = cumulative_demand[:, None] - cumulative_demand[None, :]
+    
+    # Calculate the heuristic based on the difference in cumulative demand and inverse distance
+    heuristics = demand_diff * inverse_distance * demand_matrix
+    
+    # Normalize the heuristics by the maximum value in the heuristics to ensure non-negative values
+    max_heuristic = heuristics.max()
+    normalized_heuristics = heuristics / max_heuristic
+    
+    # Enhance the weight of edges based on their contribution to the cumulative demand
+    cumulative_weight = torch.cumsum(normalized_heuristics, dim=1)
+    enhanced_heuristics = normalized_heuristics - (cumulative_weight[:, 1:] - cumulative_weight[:, :-1])
+    
+    # Ensure non-negative values and return the heuristics
+    heuristics = torch.clamp(enhanced_heuristics, min=0)
+    
+    return heuristics
+```

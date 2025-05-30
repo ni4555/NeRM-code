@@ -1,0 +1,46 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Introduce a penalty based on the distance relative to the shortest path to each node
+    for i in range(num_nodes):
+        shortest_path = np.argmin(distance_matrix[i, :])  # Find the node with the minimum distance
+        for j in range(num_nodes):
+            if i != j:
+                heuristics[i, j] = distance_matrix[i, j] - distance_matrix[i, shortest_path]
+    
+    # Balance penalties by considering the mean distance from each node
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                mean_distance = np.mean(distance_matrix[i, :])
+                heuristics[i, j] = heuristics[i, j] * (distance_matrix[i, j] / mean_distance)
+    
+    # Use context-aware metrics by adding a penalty for high-degree nodes
+    degree_penalty = np.sum(distance_matrix, axis=0)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                heuristics[i, j] += degree_penalty[j] / (num_nodes - 1)
+    
+    # Encourage diversity by penalizing edges that are part of the same shortest path cluster
+    clusters = np.zeros(num_nodes)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j and clusters[i] == 0 and clusters[j] == 0:
+                path = [i]
+                while path[-1] != j:
+                    next_node = np.random.choice(np.where(distance_matrix[path[-1], :].astype(bool))[0])
+                    path.append(next_node)
+                for node in path:
+                    clusters[node] = len(set(path))
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                heuristics[i, j] += (clusters[i] + clusters[j]) * 0.1
+    
+    return heuristics
+```

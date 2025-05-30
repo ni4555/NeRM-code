@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for CVRP that incorporates demand-based and distance-based heuristics."""
+    n = distance_matrix.shape[0]
+    # Calculate the sum of demands for each edge
+    sum_of_demands = torch.sum(demands[:, None] + demands[None, :], dim=0)
+    # Calculate the inverse of the distance matrix, adding a small value to avoid division by zero
+    inverse_distance = 1 / (distance_matrix + 1e-8)
+    # Calculate a weighted sum of the demand and the inverse distance, where demands are weighted
+    # by the capacity of the vehicle (which can be normalized by the sum of demands)
+    demand_weight = torch.sum(demands) / sum_of_demands
+    heuristics = demand_weight * sum_of_demands * inverse_distance
+    # Normalize the heuristics by the maximum value to ensure non-negative values
+    heuristics /= heuristics.max() + 1e-8
+    return heuristics
+```

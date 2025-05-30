@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Compute the potential for each edge based on distance and demand
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    alpha = 1 / (1 + torch.exp(-0.01 * distance_matrix))
+    beta = -torch.log(normalized_demands + epsilon)
+    gamma = torch.log1p(torch.sqrt(distance_matrix + epsilon))
+    edge_potential = alpha + gamma * beta
+    
+    # Introduce a diversity factor to avoid local optima
+    diversity_factor = (1 / (distance_matrix + epsilon)) * torch.sum(distance_matrix, dim=1) / 10
+    
+    # Apply a penalty for high demands and for edges leading to nodes with excess demand
+    high_demand_penalty = (demands > 2).float() * 0.1
+    edge_potential = edge_potential - high_demand_penalty
+    
+    # Combine the diversity factor and the potential, ensuring that the diversity factor is positive
+    edge_potential = torch.clamp(edge_potential + diversity_factor, min=0)
+    
+    return edge_potential
+```

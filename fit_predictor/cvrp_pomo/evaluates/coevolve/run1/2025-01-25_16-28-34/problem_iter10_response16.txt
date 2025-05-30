@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a dynamic penalty based on overloading and underloading
+    overload_penalty = torch.exp(-average_demand_per_edge / total_capacity)
+    underload_penalty = torch.exp(average_demand_per_edge / total_capacity)
+    
+    # Dynamic adjustment factor for the penalties based on solution space exploration
+    adjustment_factor = torch.where(average_demand_per_edge < total_capacity / 2, torch.abs(average_demand_per_edge - total_capacity / 2) * 0.1, 0)
+    
+    # Weighted combination of overloading and underloading penalties with adjustment factor
+    penalty = 0.5 * (overload_penalty + underload_penalty) + adjustment_factor
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Enhance diversity with exploration factors
+    exploration_factor = torch.log(distance_matrix) / (n - 2)
+    exploration_factor = (torch.abs(average_demand_per_edge) - 0.1) * exploration_factor
+    heuristics -= exploration_factor
+    
+    # Apply a penalty for highly loaded edges that are close to the vehicle capacity
+    capacity_penalty = torch.clamp(average_demand_per_edge / total_capacity, max=1) * (1 - torch.exp(-average_demand_per_edge / total_capacity))
+    heuristics -= capacity_penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

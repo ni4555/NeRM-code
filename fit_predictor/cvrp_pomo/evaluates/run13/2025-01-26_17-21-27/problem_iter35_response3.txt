@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_demand = demands[1:].sum()  # Exclude the depot node's demand
+
+    # Dynamic penalties
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty = capacity_penalty * (1 + (total_demand - cumulative_demand[1:]) / total_demand)
+
+    # Distance penalty adjusted by cumulative demand
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix[1:, 1:]) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand[1:] / total_demand)
+
+    # Overflow penalty
+    overflow_penalty = torch.where(
+        cumulative_demand[1:] + demands[1:] > total_capacity,
+        -torch.log1p((cumulative_demand[1:] + demands[1:]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand[1:])
+    )
+
+    # Load balance heuristic
+    load_balance = torch.abs(cumulative_demand[1:] - total_demand / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+
+    # High load balance penalty
+    high_load_balance_penalty = torch.where(
+        load_balance > total_demand / (3 * n),
+        -torch.log1p(load_balance - 1e-8),
+        torch.zeros_like(load_balance)
+    )
+
+    # Diversity in heuristic selection to escape local optima
+    diversity_heuristic = (distance_matrix[1:, 1:] / distance_matrix[1:, 1:].max(0)[0]) - \
+                           (distance_matrix[1:, 1:].min(1)[0] / distance_matrix[1:, 1:].min(1)[0])
+
+    # Combine heuristics with a balance between load distribution and overflow prevention
+    heuristics = (distance_scaling + dynamic_capacity_penalty + overflow_penalty +
+                  load_balance_penalty + high_load_balance_penalty + diversity_heuristic)
+
+    return heuristics
+```

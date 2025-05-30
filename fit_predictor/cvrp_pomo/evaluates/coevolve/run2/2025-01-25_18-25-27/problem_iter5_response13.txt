@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Normalize demands and calculate the normalized demands
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    # Compute the average demand per node to balance global and local criteria
+    avg_demand = normalized_demands.sum() / n
+    # Compute the heuristics matrix considering the average demand per node
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    # Penalize infeasibilities by adding a large negative number to edges that violate capacity constraints
+    for i in range(n):
+        for j in range(n):
+            if demands[j] > 1.0:  # Assuming demand is normalized by capacity
+                heuristics_matrix[i, j] -= 1000  # Large negative value to indicate infeasibility
+    return heuristics_matrix
+```

@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create penalty matrices for demand and distance constraints
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine the demand and distance penalties into a single potential matrix
+    potential_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Introduce randomness by adding Gaussian noise with a small standard deviation
+    noise_matrix = torch.randn_like(potential_matrix) * 1e-2
+    
+    # Combine the original potential matrix with noise
+    combined_potential_matrix = potential_matrix + noise_matrix
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(combined_potential_matrix))
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Introduce diversity by ensuring a minimum threshold for the potential values
+    diversity_threshold = torch.min(normalized_emphasized_matrix)
+    normalized_emphasized_matrix = torch.where(normalized_emphasized_matrix < diversity_threshold,
+                                              normalized_emphasized_matrix + diversity_threshold,
+                                              normalized_emphasized_matrix)
+    
+    # Introduce a second noise term for further randomness, but limit its impact
+    noise_limit = torch.clamp(1 - normalized_emphasized_matrix.sum(dim=1, keepdim=True), min=0)
+    limited_noise_matrix = noise_matrix * noise_limit
+    combined_matrix = normalized_emphasized_matrix + limited_noise_matrix
+    
+    # Ensure that the constraints are respected by adding a weighted sum of the distance penalties
+    combined_matrix = combined_matrix + 0.5 * distance_penalty_matrix
+    
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -combined_matrix
+    
+    return heuristics_matrix
+```

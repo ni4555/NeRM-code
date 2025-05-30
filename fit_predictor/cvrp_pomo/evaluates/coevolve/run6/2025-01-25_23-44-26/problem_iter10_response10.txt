@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the inverse of the distance matrix as a heuristic
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Use a demand-based heuristic, higher demand gets more negative weight
+    demand_heuristic = -torch.abs(normalized_demands.unsqueeze(1) - normalized_demands.unsqueeze(0))
+    
+    # Implement a load balancing factor using the absolute difference in demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Simulate dynamic conditions like time and traffic
+    time_of_day = torch.rand(distance_matrix.shape[0]) * 24
+    traffic_factor = torch.rand(distance_matrix.shape[0]) * 2 - 1
+    dynamic_time_factor = (1 / (1 + time_of_day.unsqueeze(1) * time_of_day.unsqueeze(0) + traffic_factor))
+    
+    # Weigh the heuristics according to their importance
+    weight_demand = 0.4
+    weight_distance = 0.3
+    weight_load_balance = 0.2
+    weight_time = 0.1
+    
+    # Combine the heuristics with a matrix dot product for efficiency
+    combined_heuristic = (
+        weight_demand * demand_heuristic +
+        weight_distance * distance_heuristic +
+        weight_load_balance * load_balance +
+        weight_time * dynamic_time_factor
+    )
+    
+    # Introduce diversity by adding a small random perturbation
+    diversity_factor = torch.rand(distance_matrix.shape) * 0.01
+    diversity_heuristic = combined_heuristic + diversity_factor
+    
+    return diversity_heuristic
+```

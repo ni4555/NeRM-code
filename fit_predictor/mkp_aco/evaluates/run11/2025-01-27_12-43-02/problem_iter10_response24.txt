@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    importance = score * ratio
+    importance_min = np.min(importance)
+    importance_max = np.max(importance)
+    importance_normalized = (importance - importance_min) / (importance_max - importance_min)
+    
+    # Set a sparsity threshold that is dynamic based on the distribution of importance
+    threshold = np.percentile(importance_normalized, 90)
+    heuristics = (importance_normalized >= threshold).astype(float)
+    
+    # Convert the heuristic scores to a binary representation
+    heuristics[heuristics > 0.5] = 1
+    heuristics[heuristics <= 0.5] = 0
+    
+    return heuristics
+```

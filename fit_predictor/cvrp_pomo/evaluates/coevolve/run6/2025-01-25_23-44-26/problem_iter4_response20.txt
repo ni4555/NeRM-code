@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Demand-based heuristic: penalize high demand edges
+    demand_penalty = torch.abs(normalized_demands.unsqueeze(1) - normalized_demands.unsqueeze(0))
+    
+    # Distance-based heuristic: favor shorter distances
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Load balancing heuristic: penalize imbalances in load between depot and customers
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Dynamic routing heuristic: consider cumulative demand to avoid early saturation
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    cumulative_demand_heuristic = cumulative_demand.unsqueeze(1) * cumulative_demand.unsqueeze(0)
+    
+    # Time-based heuristic: simulate real-time rerouting capabilities
+    time_constant = torch.rand(distance_matrix.shape[0])
+    time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0)))
+    
+    # Combine all heuristics with appropriate weights
+    combined_heuristic = 0.3 * demand_penalty + 0.4 * distance_heuristic + 0.2 * load_balance \
+                         + 0.1 * cumulative_demand_heuristic + 0.1 * time_heuristic
+    
+    # Normalize the combined heuristic to ensure non-negative values and a balanced distribution
+    combined_heuristic = combined_heuristic / combined_heuristic.sum()
+    
+    return combined_heuristic
+```

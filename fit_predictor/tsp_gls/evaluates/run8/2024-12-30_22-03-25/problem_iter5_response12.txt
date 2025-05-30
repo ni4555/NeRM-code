@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    min_distances = np.zeros((n, n))
+    
+    # Calculate shortest path using Dijkstra's algorithm
+    for start in range(n):
+        visited = [False] * n
+        distance_from_start = [float('inf')] * n
+        distance_from_start[start] = 0
+        priority_queue = [(0, start)]
+        
+        while priority_queue:
+            current_distance, current_node = heappop(priority_queue)
+            if visited[current_node]:
+                continue
+            visited[current_node] = True
+            
+            for neighbor, distance in enumerate(distance_matrix[current_node]):
+                if not visited[neighbor] and distance != 0:
+                    new_distance = current_distance + distance
+                    if new_distance < distance_from_start[neighbor]:
+                        distance_from_start[neighbor] = new_distance
+                        priority_queue.append((new_distance, neighbor))
+        
+        min_distances[start, :] = distance_from_start
+    
+    # Blend shortest path and edge length information
+    heuristic_values = distance_matrix - min_distances
+    heuristic_values[heuristic_values < 0] = 0  # Set negative values to zero
+    
+    # Apply domain knowledge: Penalize direct edges to the next node (for diversity)
+    for i in range(n):
+        for j in range(n):
+            if i != j and (i + 1) % n == j:
+                heuristic_values[i, j] *= 1.5
+    
+    return heuristic_values
+```

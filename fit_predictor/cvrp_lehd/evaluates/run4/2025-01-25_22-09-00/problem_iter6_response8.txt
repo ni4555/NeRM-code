@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic function for the CVRP with focus on scale invariance."""
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the demand ratio for each customer
+    demand_ratio = demands / total_demand
+    
+    # Calculate the attractiveness of each edge based on the demand ratio and distance
+    attractiveness = distance_matrix * demand_ratio
+    
+    # Apply a dampening factor to the attractiveness of longer distances
+    dampen = torch.exp(-distance_matrix / (torch.max(distance_matrix) + 1))
+    
+    # Combine the attractiveness and dampening factor
+    heuristic_matrix = attractiveness * dampen
+    
+    # Exclude the depot node from the heuristic matrix
+    heuristic_matrix[0, :] = 0
+    heuristic_matrix[:, 0] = 0
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand normalized by the vehicle capacity
+    total_demand = demands.sum()
+    # Calculate the negative of the distance matrix
+    negative_distance_matrix = -distance_matrix
+    # Add the demand of the customer to the cost of the edge to the depot
+    demand_adjusted_matrix = negative_distance_matrix + demands.unsqueeze(1)
+    # Calculate the cumulative sum of the demand adjusted matrix along the rows
+    cumulative_demand_matrix = torch.cumsum(demand_adjusted_matrix, dim=1)
+    # Calculate the cumulative sum of the demand adjusted matrix along the columns
+    cumulative_demand_transposed_matrix = torch.cumsum(demand_adjusted_matrix.t(), dim=1).t()
+    # Identify the edges that lead to a feasible route (demand does not exceed capacity)
+    feasible_edges = cumulative_demand_matrix <= total_demand.unsqueeze(0)
+    # Add a penalty for infeasible edges (demand exceeds capacity)
+    penalty = (1 - feasible_edges.float())
+    # Return the adjusted matrix with positive values for promising edges and negative values for undesirable edges
+    return penalty * cumulative_demand_transposed_matrix
+```

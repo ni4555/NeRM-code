@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the prize to total weight ratio per item
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity factor based on the number of zero weights
+    sparsity_factor = np.sum(weight == 0, axis=1) / weight.shape[1]
+    
+    # Calculate the variance of the normalized weight across all items for dimension
+    variance = np.sum((weight - np.mean(weight, axis=1))**2, axis=1) / weight.shape[1]
+    
+    # Incorporate the inverse variance into the heuristic value
+    inv_variance = 1 / (variance + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    # Calculate the overall average of sparsity factor and its inverse variance
+    avg_sparsity = np.mean(sparsity_factor)
+    avg_inv_variance = np.mean(inv_variance)
+    
+    # Create an heuristic that considers both sparsity and the ratio
+    heuristics = ratio * (1 - sparsity_factor) * inv_variance
+    
+    # Normalize the heuristics
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Balance the sparsity factor with its inverse, adjusting based on overall averages
+    balance_factor = avg_sparsity * inv_variance
+    heuristics *= (1 - balance_factor)
+    
+    # Adjust the heuristics based on the item-specific variance
+    variance_penalty = inv_variance * np.sqrt(avg_sparsity * (avg_sparsity + avg_inv_variance))
+    heuristics /= variance_penalty
+    
+    return heuristics
+```

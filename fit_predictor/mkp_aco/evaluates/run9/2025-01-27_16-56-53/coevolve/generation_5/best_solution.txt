@@ -1,0 +1,48 @@
+Fitness: inf
+
+Description:
+Develop an advanced metaheuristic algorithm tailored for solving the multi-dimensional knapsack problem by leveraging adaptive heuristics to identify optimal item clusters. The proposed solution should incorporate sophisticated stochastic sampling methods to rigorously traverse diverse solution landscapes, skillfully balancing the tension between exploration and convergence. Central to this approach are:
+
+- Employing a state-of-the-art adaptive heuristic framework that dynamically evaluates and prioritizes item combinations for inclusion in the knapsack.
+- Implementing a robust stochastic sampling methodology to systematically explore richly diverse solution spaces, ensuring a broad and thorough examination of potential rewards.
+- Utilizing a finely tuned balance between exploration and exploitation, with a focus on adaptive adjustments to enhance the rate of convergence towards peak performance.
+- Adhering to stringent weight constraints across dimensions through a sophisticated compliance mechanism that prevents knapsack overloading.
+- Mitigating the likelihood of local optima traps through a dynamic adjustment of the search algorithm, guided by real-time performance metrics and strategic adaptation.
+
+Code:
+import numpy as np
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape
+    heuristic_values = np.zeros(n)
+
+    # Adaptive heuristic framework
+    for i in range(n):
+        # Calculate initial heuristic as the ratio of prize to weight
+        heuristic_values[i] = prize[i] / weight[i].sum()
+
+    # Stochastic sampling and adaptive adjustments
+    while True:
+        # Randomly select items to adjust heuristic values
+        indices = np.random.choice(n, size=int(0.1 * n), replace=False)
+        for index in indices:
+            # Adjust heuristic based on diversity and performance
+            diversity_score = 1 / np.linalg.norm(weight[index] - weight)
+            performance_score = prize[index] / weight[index].sum()
+            heuristic_values[index] = 0.5 * diversity_score + 0.5 * performance_score
+
+        # Check compliance with weight constraints
+        selected_indices = np.argsort(heuristic_values)[::-1]
+        current_weight = np.zeros(m)
+        for index in selected_indices:
+            if current_weight < 1:
+                current_weight += weight[index]
+                if np.all(current_weight <= 1):
+                    break
+
+        # If constraints are met, break the loop
+        if np.all(current_weight <= 1):
+            break
+
+    return heuristic_values

@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the negative of the difference in cumulative demand for consecutive customers
+    demand_diff = -(cumulative_demand[1:] - cumulative_demand[:-1])
+    
+    # Calculate the cumulative sum of the demand differences as a heuristic value
+    cumulative_penalty = torch.cumsum(demand_diff, dim=0)
+    
+    # Calculate the inverse of the distance to weight the penalties
+    distance_inv = torch.where(distance_matrix != 0, 1.0 / distance_matrix, 0.0)
+    
+    # Apply the inverse distance as a weight to the cumulative penalties
+    weighted_penalty = cumulative_penalty * distance_inv
+    
+    # Generate a matrix of 1s for edges where the distance is non-zero
+    non_zero_edges = distance_matrix != 0
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # For each non-zero edge, assign a heuristic value based on the weighted penalty
+    heuristics_matrix[non_zero_edges] = weighted_penalty[non_zero_edges]
+    
+    return heuristics_matrix
+```

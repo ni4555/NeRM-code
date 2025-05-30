@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    
+    # Min-max normalize prize
+    min_prize = np.min(prize)
+    max_prize = np.max(prize)
+    normalized_prize = (prize - min_prize) / (max_prize - min_prize)
+    
+    # Calculate the diversity factor
+    diversity_factor = np.random.normal(0, 0.01, size=normalized_prize.shape)
+    
+    # Combine prize, weight variance, and diversity to form initial heuristics
+    initial_heuristics = normalized_prize * np.mean(weight, axis=1) + diversity_factor
+    
+    # Adjust for sparsity and balance
+    sparsity_adjustment = (weight.sum(axis=1) > 0).astype(float)
+    balance_adjustment = np.mean(weight ** 2, axis=1) / np.mean(weight, axis=1)
+    adjusted_heuristics = initial_heuristics * sparsity_adjustment * balance_adjustment
+    
+    # Introduce noise to explore different regions of the solution space
+    noise = np.random.normal(0, 0.02, size=adjusted_heuristics.shape)
+    heuristics = adjusted_heuristics + noise
+    
+    # Set a threshold for sparsity
+    sparsity_threshold = np.percentile(heuristics, 10)
+    
+    # Set low heuristics to zero for sparsity
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    # Amplify heuristics that are above a certain threshold
+    amplification_threshold = np.percentile(heuristics, 90)
+    heuristics[heuristics > amplification_threshold] *= 1.2
+    
+    # Normalize heuristics to ensure they sum to 1
+    heuristics /= np.sum(heuristics)
+    
+    # Iteratively adjust heuristics based on performance
+    for i in range(n):
+        if heuristics[i] > amplification_threshold and sparsity_adjustment[i] > 0.3:
+            heuristics[i] *= 1.1
+    
+    return heuristics
+```

@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Incorporate capacity constraints and feasibility penalties
+    # This time we penalize the demand matrix more heavily for exceeding the capacity
+    demand_matrix = -torch.cumsum(demands, dim=0)
+    penalty = (demand_matrix > vehicle_capacity).float() * vehicle_capacity ** 2
+    demand_matrix = torch.clamp(demand_matrix, min=-vehicle_capacity) + penalty
+    
+    # Add a small distance penalty for nodes that have zero demand to avoid them being visited unnecessarily
+    distance_penalty = torch.where(demands == 0, 0.1 * distance_matrix, 0)
+    
+    # Combine penalties with the distance matrix
+    potential_matrix = distance_matrix + demand_matrix + distance_penalty
+    
+    # Normalize the potential matrix to ensure the sum of each row is 1
+    normalized_matrix = torch.nn.functional.normalize(potential_matrix, p=1, dim=1)
+    
+    # Use log-sum-exp trick to stabilize the softmax calculation
+    max_val = torch.max(potential_matrix, dim=1)[0]
+    exp_vals = torch.exp(potential_matrix - max_val.unsqueeze(1))
+    softmax_matrix = exp_vals / torch.sum(exp_vals, dim=1).unsqueeze(1)
+    
+    # Invert the probabilities to favor lower values and penalize high values
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

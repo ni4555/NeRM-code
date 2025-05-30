@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Use a logarithmic function to penalize high demands
+    demand_penalty = -torch.log1p(torch.abs(demands - total_capacity / (n - 1)))
+    # Use a logarithmic function to penalize high distances
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    # Adjust the penalty based on the remaining capacity
+    adjusted_demand_penalty = demand_penalty * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    # Balance the effect of demand and distance
+    heuristics = adjusted_demand_penalty + distance_penalty
+    return heuristics
+```

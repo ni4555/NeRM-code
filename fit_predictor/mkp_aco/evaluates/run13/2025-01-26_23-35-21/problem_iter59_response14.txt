@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items based on normalized density
+    non_dominated = density > np.min(density)
+    
+    # Sparsify the weight array by setting weights that do not contribute to the total weight to zero
+    sparsity_mask = np.sum(weight, axis=1) > 0
+    weight[~sparsity_mask] = 0
+    
+    # Introduce randomness to diversify the heuristic values
+    random_factor = np.random.rand(len(density))
+    
+    # Normalize by the sum of density to introduce consistency
+    normalized_density = density / np.sum(density)
+    
+    # Create a heuristic by combining density, randomness, and sparsity
+    heuristic = density * (1 - np.mean(random_factor)) - np.sum(weight, axis=1)
+    
+    # Combine the heuristics with a weighted sum
+    combined_heuristic = 0.7 * normalized_density + 0.3 * heuristic
+    
+    # Set dominated items and weights with no contribution to a small value
+    combined_heuristic[~non_dominated] = 1e-8
+    combined_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return combined_heuristic
+```

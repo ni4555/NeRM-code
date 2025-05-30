@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Incorporate cumulative demand and capacity, balancing with edge penalties
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    edge_penalties = cumulative_demand - torch.arange(1, total_capacity + 1)
+
+    # Balance diversity and demand variance, normalize, and apply threshold constraints
+    demand_variance = torch.var(normalized_demands, dim=0)
+    diversity_score = 1 / (1 + demand_variance)
+    diversity_normalized = diversity_score / diversity_score.sum()
+
+    # Incorporate global network stats for heuristic stability
+    global_stat = torch.mean(torch.sqrt(torch.sum(distance_matrix ** 2, dim=1)))
+
+    # Combine the scores with a non-linear function
+    heuristic_matrix = -torch.mul(
+        torch.mul(distance_matrix, edge_penalties),
+        torch.mul(diversity_normalized, global_stat)
+    )
+
+    # Normalize, smooth, and penalize outliers
+    smoothed_heuristic_matrix = torch.relu(heuristic_matrix)  # ReLU for smoothing
+    outlier_penalty = torch.abs(smoothed_heuristic_matrix) > 0.5
+    outlier_penalty = outlier_penalty.float()
+    heuristic_matrix = torch.mul(heuristic_matrix, (1 - outlier_penalty))
+
+    # Apply a threshold to ensure all heuristics are within a specific range
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-threshold, max=threshold)
+
+    return heuristic_matrix
+```

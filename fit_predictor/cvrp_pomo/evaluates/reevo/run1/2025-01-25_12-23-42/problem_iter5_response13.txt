@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Incorporate domain-specific insights by penalizing longer routes and heavily loaded nodes
+    # Encourage exploration by adding a random noise to the heuristics
+    noise = torch.rand_like(norm_distances)
+    heuristics = norm_distances - (node_loads * norm_distances).sum(-1) - (norm_distances * noise)
+    
+    # Optimize computation by avoiding redundant operations
+    heuristics = heuristics - heuristics.min()
+    return heuristics
+```

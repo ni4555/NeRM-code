@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic for the CVRP that considers demand and distance."""
+    # Calculate the sum of demands to find the capacity threshold
+    total_demand = demands.sum()
+    
+    # Calculate the cumulative demand along each edge
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the negative distance for each edge
+    negative_distance = -distance_matrix
+    
+    # Calculate the score for each edge based on demand and distance
+    scores = negative_distance + (cumulative_demand[:, None] - cumulative_demand[None, :]) * (1 / total_demand)
+    
+    # Set scores for edges where the cumulative demand exceeds the capacity to a large negative value
+    scores[torch.any(cumulative_demand[:, None] + cumulative_demand[None, :] > total_demand, axis=1)] = -float('inf')
+    
+    return scores
+```

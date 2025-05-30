@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge
+    # The potential value now uses a combination of demand relaxation, balance factors,
+    # and non-linear transformations to optimize edge selection
+    potential_values = torch.where(
+        normalized_distances < 0.5,
+        (1 - normalized_distances) * (1 - normalized_demands) * torch.log(1 - normalized_demands),
+        normalized_distances * (1 - normalized_demands) * torch.log(normalized_distances)
+    )
+    
+    # Apply a demand balancing factor that discourages selecting edges with too high a load
+    balance_factor = 1 - torch.abs(normalized_demands - 0.5)
+    
+    # Apply a dynamic window approach that increases the potential value for underloaded edges
+    dynamic_window = 1 + torch.exp(-5 * torch.abs(normalized_demands - 0.5))
+    
+    # Combine the factors to get the final potential values
+    potential_values *= balance_factor * dynamic_window
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

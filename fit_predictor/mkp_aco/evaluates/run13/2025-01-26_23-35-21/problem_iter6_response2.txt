@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the utility based on prize per unit weight
+    utility = prize / np.sum(weight, axis=1)
+    # Normalize the utility
+    utility_normalized = utility / np.max(utility)
+    # Calculate the sparsity of the weight matrix (number of non-zero weights per item)
+    sparsity = np.sum(weight != 0, axis=1) / weight.shape[1]
+    # Normalize the sparsity
+    sparsity_normalized = sparsity / np.max(sparsity)
+    # Calculate the variance of the weights for each item
+    variance = np.var(weight, axis=1)
+    # Normalize the variance
+    variance_normalized = variance / np.max(variance)
+    # Combine the normalized utility, sparsity, and variance
+    combined_metrics = utility_normalized * 0.6 + sparsity_normalized * 0.2 + variance_normalized * 0.2
+    # Apply a logarithmic transformation to ensure non-negative values and to penalize items with very low heuristics
+    heuristics = np.log1p(combined_metrics)
+    # Normalize the heuristics to ensure all values are between 0 and 1
+    max_heuristic = np.max(heuristics)
+    min_heuristic = np.min(heuristics)
+    if max_heuristic > min_heuristic:
+        heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        heuristics = np.zeros_like(combined_metrics)
+    return heuristics
+```

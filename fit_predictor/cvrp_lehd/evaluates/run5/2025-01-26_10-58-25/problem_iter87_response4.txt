@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Define demand constraint violation penalties
+    demand_penalty = -torch.abs(demands - vehicle_capacity)
+    
+    # Incorporate distance penalties
+    distance_penalty = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties using a weighted sum
+    combined_penalty = 0.6 * demand_penalty + 0.4 * distance_penalty
+    
+    # Introduce controlled randomness
+    random_noise = torch.randn_like(combined_penalty) * 1e-1
+    
+    # Apply mutation to the penalties matrix to introduce variability
+    mutation_factor = torch.rand_like(combined_penalty)
+    mutated_penalty = combined_penalty + random_noise + mutation_factor * (combined_penalty - 1e-2)
+    
+    # Normalize the mutated penalty matrix
+    max_penalty = mutated_penalty.max()
+    min_penalty = mutated_penalty.min()
+    normalized_penalty = (mutated_penalty - min_penalty) / (max_penalty - min_penalty)
+    
+    # Add the distance penalty matrix back for additional information
+    final_potential = normalized_penalty + distance_penalty
+    
+    # Apply a non-linear transformation to emphasize certain constraints
+    emphasized_potential = torch.exp(-torch.abs(final_potential))
+    
+    # Introduce a second layer of noise to enhance diversity
+    second_noise = torch.randn_like(emphasized_potential) * 1e-2
+    
+    # Integrate the second noise and finalize the potential matrix
+    heuristics_matrix = emphasized_potential + second_noise
+    
+    return heuristics_matrix
+```

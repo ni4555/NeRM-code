@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= demand_matrix.diag()
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+
+    # Calculate normalized cumulative distance matrix
+    cumulative_distance_matrix = distance_matrix.cumsum(dim=1)
+    normalized_cumulative_distance_matrix = cumulative_distance_matrix / cumulative_distance_matrix.sum(dim=1, keepdim=True)
+
+    # Calculate demand variance penalty
+    demand_variance_penalty = torch.var(demands, dim=0)
+
+    # Combine normalized demand and normalized distance, and penalize high demand variance
+    heuristics = normalized_cumulative_distance_matrix * demand_matrix - demand_variance_penalty
+
+    # Normalize the heuristics matrix
+    heuristics /= heuristics.sum(dim=1, keepdim=True)
+
+    # Penalize edges that violate the capacity constraint by setting their heuristics to -infinity
+    capacity_constraint_matrix = (demand_matrix.sum(dim=0) > 1.0)
+    heuristics[capacity_constraint_matrix] = -torch.inf
+
+    # Clip negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+
+    return heuristics
+```

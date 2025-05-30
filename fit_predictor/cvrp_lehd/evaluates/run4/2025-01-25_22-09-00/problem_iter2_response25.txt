@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic function for CVRP that incorporates demand and distance effectively.
+    
+    It assigns higher weights to edges leading to nodes with high demand that are also relatively close
+    to the current position, as these represent good opportunities for saving route distance or
+    avoiding an early return to the depot.
+    
+    Args:
+    - distance_matrix (torch.Tensor): A 2D tensor with the distance between all pairs of nodes.
+    - demands (torch.Tensor): A 1D tensor with the demand of each node, including the depot.
+    
+    Returns:
+    - torch.Tensor: A 2D tensor with heuristics values indicating the desirability of each edge.
+    """
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Normalize the demands to be in the range [0, 1]
+    normalized_demands = demands / total_demand
+    
+    # Compute the heuristics for each edge
+    for i in range(num_nodes):
+        for j in range(1, num_nodes):
+            # Calculate the heuristic value considering the distance and demand
+            heuristic_matrix[i][j] = normalized_demands[j] * (1 / distance_matrix[i][j])
+    
+    return heuristic_matrix
+```

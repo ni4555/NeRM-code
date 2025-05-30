@@ -1,0 +1,44 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    edge_usage = np.zeros_like(distance_matrix)
+    for i in range(n):
+        for j in range(i+1, n):
+            edge_usage[i, j] += 1
+            edge_usage[j, i] += 1
+
+    # Calculate the usage density, which is the ratio of the usage count to the number of possible edges
+    usage_density = edge_usage / (n * (n - 1) / 2)
+
+    # Non-linear transformation of usage density
+    non_linear_density = np.sqrt(usage_density)
+
+    # Balance short/long edges by introducing a penalty for long edges
+    balance_factor = np.clip(non_linear_density / np.mean(non_linear_density), 0, 1)
+    edge_length_penalty = np.exp(-balance_factor)
+
+    # Refine penalties based on edge length
+    refined_penalties = edge_length_penalty * (distance_matrix / np.mean(distance_matrix))
+
+    # Normalize the refined penalties
+    normalized_penalties = (refined_penalties - np.min(refined_penalties)) / (np.max(refined_penalties) - np.min(refined_penalties))
+
+    # Apply the normalized penalties to the distance matrix
+    adjusted_distances = distance_matrix * (1 - normalized_penalties)
+
+    # Introduce controlled perturbations to avoid local minima
+    perturbation = np.random.normal(size=(n, n)) * 0.01
+    adjusted_distances += perturbation
+
+    # Ensure that the distances are within a reasonable range to avoid numerical issues
+    min_distance = 0.01
+    max_distance = distance_matrix.max() * 0.9
+    adjusted_distances = np.clip(adjusted_distances, min_distance, max_distance)
+
+    # Ensure non-negativity and incorporate feedback mechanisms
+    adjusted_distances = np.maximum(adjusted_distances, 0)
+
+    return adjusted_distances
+```

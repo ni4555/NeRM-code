@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges that are far from the depot
+    range_adjustment = 1.0 / (distance_matrix[:, None] + 1e-8) ** 2
+
+    # Load balancing strategy: penalize edges if adding a customer would exceed capacity
+    vehicle_load = torch.zeros(n)
+    edge_capacity_penalty = torch.zeros_like(distance_matrix)
+    for i in range(1, n):
+        for j in range(1, n):
+            vehicle_load[j] += normalized_demands[j]
+            if vehicle_load[j] > 1.0:
+                edge_capacity_penalty[i, j] = -vehicle_load[j]  # More negative, less desirable
+
+    # Combine heuristics with normalization and capacity constraints
+    combined_heuristic = (inverse_distance + demand_weight + range_adjustment - edge_capacity_penalty) / 3.0
+
+    return combined_heuristic
+```

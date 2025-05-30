@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    demands_cumsum = torch.cumsum(demands, dim=0)
+    
+    # Create a matrix of the cumulative demand at each node
+    demand_matrices = torch.zeros(n, n)
+    for i in range(n):
+        demand_matrices[i] = demands_cumsum[:i+1] - demands_cumsum[:i]
+    
+    # Calculate the potential reward for each edge, considering demand and distance
+    potential_reward = (1 / (distance_matrix ** 2)) * ((demand_matrices - demands) < 0)
+    
+    # Balance between global and local using a penalty for short edges
+    distance_penalty = distance_matrix < 0.5
+    potential_reward = potential_reward * ~distance_penalty
+    
+    return potential_reward
+```

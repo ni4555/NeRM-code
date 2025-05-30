@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    max_demand_sum = demands.sum() * vehicle_capacity
+    
+    # Adjust the distance matrix based on the demand
+    demand_adjusted_matrix = -torch.cumsum(torch.cat([torch.zeros((1, demands.size(0))), demands], dim=0), dim=1)
+    demand_adjusted_matrix = demand_adjusted_matrix / vehicle_capacity
+    
+    # Use softmax to balance the edge scores
+    # For edges with demand exceeding the vehicle capacity, the score will be zero (unpromising)
+    softmax_matrix = torch.nn.functional.softmax(distance_matrix + demand_adjusted_matrix, dim=1)
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    heuristics_matrix = 1 - softmax_matrix
+    
+    # Avoid infeasible paths with penalties by setting the scores to zero for such edges
+    for i in range(heuristics_matrix.size(0)):
+        for j in range(1, heuristics_matrix.size(1)):
+            if demands[j] > vehicle_capacity:
+                heuristics_matrix[i, j] = 0
+    
+    return heuristics_matrix
+```

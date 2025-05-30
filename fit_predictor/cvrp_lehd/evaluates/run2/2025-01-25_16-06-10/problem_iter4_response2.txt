@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand excluding the depot
+    total_demand = demands[1:].sum()
+    
+    # Subtract the distances from the depot to create a negative distance heuristic
+    negative_distance = -distance_matrix
+    
+    # Calculate the demand heuristic
+    demand_heuristic = demands[1:] * (1 - demands[1:] / total_demand)
+    
+    # Add the demand heuristic to the negative distance heuristic
+    heuristics = negative_distance[1:, 1:] + demand_heuristic
+    
+    # Replace edges where demand exceeds capacity with negative infinity
+    mask = demands[1:] > total_demand / demands[1:].sum()
+    heuristics[1:, 1:] = heuristics[1:, 1:] * ~mask
+    
+    # Clamp the heuristics within a reasonable range
+    heuristics = torch.clamp(heuristics, min=-1.0, max=1.0)
+    
+    # Make sure the diagonal (self-loops) has a heuristic value
+    heuristics[1:, 1:] = heuristics[1:, 1:] + heuristics[1:, 1:].transpose(0, 1)
+    
+    return heuristics
+```

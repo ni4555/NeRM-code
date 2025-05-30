@@ -1,0 +1,16 @@
+import numpy as np
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize a matrix of the same shape as the input distance matrix
+    heuristics_matrix = np.zeros_like(distance_matrix)
+    
+    # Calculate the diagonal of the distance matrix (distance from each node to itself)
+    diagonal = np.diag(distance_matrix)
+    
+    # For each edge in the distance matrix, calculate the heuristic value
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # The heuristic value is the difference between the edge cost and the minimum distance
+                heuristics_matrix[i, j] = distance_matrix[i, j] - (diagonal[i] + diagonal[j])
+    
+    return heuristics_matrix

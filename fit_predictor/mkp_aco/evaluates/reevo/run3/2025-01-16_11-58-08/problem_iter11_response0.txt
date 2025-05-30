@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Non-linear scaling by raising the ratio to the power of 1.5 and applying a threshold
+    non_linear_scaled_ratio = (value_to_weight_ratio ** 1.5) * (value_to_weight_ratio > 0.25)
+    # Incorporate diversity by penalizing items with lower diversity in dimensions
+    diversity_penalty = np.sum(weight ** 2, axis=1) / np.sum(weight, axis=1)
+    adjusted_ratio = non_linear_scaled_ratio - diversity_penalty
+    # Apply a non-linear transformation to the adjusted ratio
+    transformed_ratio = np.tanh(adjusted_ratio)
+    # Selective sparsity based on a non-linear transformation of the adjusted ratio
+    sparsified_ratio = np.where(np.abs(transformed_ratio) > 0.1, transformed_ratio, 0)
+    return sparsified_ratio
+```

@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Create a mask to indicate which nodes have not been visited yet
+    unvisited = torch.ones(n_nodes)
+    unvisited[0] = 0  # The depot is visited at the start
+    # Iterate until all nodes have been visited
+    while unvisited.sum() > 0:
+        # Find the node with the minimum remaining capacity
+        current_node = torch.argmin(demands * unvisited)
+        unvisited[current_node] = 0  # Mark the node as visited
+        # Iterate over all possible destination nodes
+        for destination_node in range(n_nodes):
+            if unvisited[destination_node] == 1:  # Only consider unvisited nodes
+                # Calculate the distance from the current node to the destination node
+                distance = distance_matrix[current_node, destination_node]
+                # Calculate the total demand from the current node to the destination node
+                total_demand = demands[destination_node]
+                # Check if the destination node is reachable without exceeding the vehicle capacity
+                if total_demand <= demands[current_node]:
+                    # Update the heuristic value for the edge between the current and destination nodes
+                    heuristics[current_node, destination_node] = 1 - distance
+                    # Update the demand of the current node
+                    demands[current_node] -= total_demand
+                    # Mark the destination node as visited
+                    unvisited[destination_node] = 0
+                    # Break the loop if the current node's demand is zero
+                    if demands[current_node] == 0:
+                        break
+    return heuristics
+```

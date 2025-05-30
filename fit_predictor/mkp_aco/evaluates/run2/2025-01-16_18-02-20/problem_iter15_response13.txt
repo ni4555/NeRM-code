@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Incorporate the sparsity score based on the sum of weights across dimensions
+    sparsity_scores = np.sum(weight, axis=1)
+    
+    # Calculate the variance of weights across dimensions for each item
+    weight_variance = np.var(weight, axis=1)
+    
+    # Combine normalized prize, sparsity score, and weight variance to form a heuristic score
+    heuristic_score = normalized_prize + sparsity_scores * 0.1 - weight_variance * 0.1
+    
+    # Dynamically adjust the heuristic score based on the total weight variance
+    total_weight_variance = np.var(total_weight)
+    if total_weight_variance > 1.5:
+        heuristic_score -= np.mean(heuristic_score) * 0.05
+    elif total_weight_variance < 1.0:
+        heuristic_score += np.mean(heuristic_score) * 0.05
+    
+    # Normalize the heuristic score to ensure they are on the same scale
+    heuristic_score /= np.max(heuristic_score)
+    
+    # Dynamically adapt the number of items to select based on the prize variance
+    prize_variance = np.var(prize)
+    num_items_to_select = max(1, int(prize_variance * 0.1))
+    
+    # Rank the items based on their heuristic score
+    ranked_indices = np.argsort(heuristic_score)[::-1]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    # Sparsify the heuristics by setting the top 20% of promising elements to 1
+    heuristics[ranked_indices[:num_items_to_select]] = 1
+    
+    return heuristics
+```

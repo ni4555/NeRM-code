@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Define a function to calculate the attractiveness of a customer
+    # based on its distance from the depot and its demand
+    def attractiveness(index, distance, demand):
+        return (1 / (distance + 1e-8)) * demand
+    
+    # Create a matrix of customer attractiveness
+    attractiveness_matrix = attractiveness(
+        torch.arange(distance_matrix.size(0)),
+        distance_matrix,
+        normalized_demands
+    )
+    
+    # Define a function to calculate the heuristic value for each edge
+    def edge_heuristic(source, destination):
+        if source == 0 or destination == 0:
+            return -float('inf')  # Avoid the depot in the heuristic calculation
+        return attractiveness_matrix[source] - attractiveness_matrix[destination]
+    
+    # Initialize a matrix to store the heuristic values for each edge
+    heuristic_matrix = torch.full_like(distance_matrix, fill_value=-float('inf'))
+    
+    # Compute the heuristic value for each edge
+    for source in range(distance_matrix.size(0)):
+        for destination in range(distance_matrix.size(1)):
+            heuristic_matrix[source, destination] = edge_heuristic(source, destination)
+    
+    return heuristic_matrix
+```

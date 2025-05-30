@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the average distance between all pairs of nodes
+    average_distance = (distance_matrix ** 2).sum() / (n * (n - 1))
+
+    # Iterate over all pairs of nodes
+    for i in range(1, n):
+        for j in range(1, n):
+            if demands[i] > 0 and demands[j] > 0:
+                # Calculate the potential heuristics value for this edge
+                edge_heuristic = (demands[j] - demands[i]) / (demands[i] + 1e-6)
+                # Scale the heuristic by the inverse of the demand for normalization
+                edge_heuristic /= (1 / demands[i] + 1 / demands[j])
+                # Adjust the heuristic by the distance and the average distance
+                edge_heuristic *= distance_matrix[i][j] / average_distance
+                # Apply the mask to keep only positive heuristics
+                heuristics[i][j] = torch.clamp(edge_heuristic, min=0)
+                heuristics[j][i] = heuristics[i][j]
+
+    return heuristics
+```

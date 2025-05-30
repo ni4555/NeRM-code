@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the distance matrix to ensure the scale of distance and demand are comparable
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    
+    # Calculate the difference in demand between each node and the depot
+    demand_diff = demands - demands[0]
+    
+    # Calculate the total demand to normalize the demand difference
+    total_demand = torch.sum(demands)
+    
+    # Normalize the demand difference to the total demand
+    normalized_demand_diff = demand_diff / total_demand
+    
+    # Create a heuristic value that combines distance, normalized demand difference, and interaction effects
+    # Avoiding the use of expensive trigonometric functions by using a simple linear combination
+    heuristic_values = -normalized_distance_matrix + normalized_demand_diff.abs()
+    
+    # Add a term that encourages balance in demands across the route to avoid early return
+    demand_balance = normalized_demand_diff.abs().mean()
+    heuristic_values += demand_balance
+    
+    return heuristic_values
+```

@@ -1,0 +1,47 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a random seed for reproducibility
+    np.random.seed(0)
+    
+    # Normalize weights by summing across dimensions
+    weight_normalized = np.sum(weight, axis=1)
+    
+    # Calculate the importance of each item based on prize to normalized weight ratio
+    item_importance = prize / weight_normalized
+    
+    # Introduce randomness by perturbing item importance
+    randomness_factor = np.random.normal(0, 0.05, size=item_importance.shape)
+    item_importance += randomness_factor
+    
+    # Calculate a diversity factor that encourages selecting a variety of items
+    diversity_factor = 1 / (1 + np.exp(-item_importance))
+    
+    # Calculate the sparsity factor for each item
+    sparsity_factor = 1 - (np.sum(weight**2, axis=1) / weight_normalized**2)
+    
+    # Use a domain insight: items with high variance in weights might be more promising
+    variance_factor = np.var(weight, axis=1)
+    
+    # Combine all factors to create a heuristic value for each item
+    combined_heuristic = (item_importance * diversity_factor * sparsity_factor * variance_factor)
+    
+    # Use a local measure for sparsity and balance
+    local_sparsity = np.min(sparsity_factor)
+    sparsity_weight = combined_heuristic * sparsity_factor + local_sparsity
+    
+    # Dynamically adjust the importance to balance between high-value items and diverse selection
+    average_heuristic = np.mean(combined_heuristic)
+    adjusted_importance = combined_heuristic * (1 + np.exp(-average_heuristic))
+    
+    # Introduce an adaptive threshold for heuristics
+    adaptive_threshold = np.percentile(adjusted_importance, 75)
+    adjusted_importance[adjusted_importance < adaptive_threshold] = adaptive_threshold
+    
+    # Normalize heuristics to encourage variety without uniformity
+    heuristics = adjusted_importance * sparsity_weight
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

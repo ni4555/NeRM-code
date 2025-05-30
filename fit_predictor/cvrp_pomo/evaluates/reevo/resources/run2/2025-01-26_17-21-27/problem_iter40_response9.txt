@@ -1,0 +1,54 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic scaling factor based on cumulative demand
+    scaling_factor_demand = (cumulative_demand / total_capacity_vector).clamp(0, 1)
+    
+    # Dynamic penalty based on remaining capacity
+    scaling_factor_capacity = (total_capacity - cumulative_demand) / total_capacity_vector
+    scaling_factor_capacity = scaling_factor_capacity.clamp(0, 1)
+    
+    # Enhanced distance penalty to account for cumulative load
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_penalty *= scaling_factor_demand
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balance load heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Introduce randomness for diversity
+    random_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Apply penalties and scale heuristics
+    heuristics = (
+        distance_penalty + 
+        overflow_penalty + 
+        load_balance_penalty + 
+        random_factor
+    )
+    
+    # Scale heuristics by demand and capacity scaling factors
+    heuristics *= (
+        scaling_factor_demand * 
+        scaling_factor_capacity
+    )
+    
+    # Apply a strong penalty to discourage the depot from returning to itself
+    depot_penalty = torch.ones_like(heuristics) * 1000
+    heuristics = heuristics - depot_penalty
+    
+    return heuristics
+```

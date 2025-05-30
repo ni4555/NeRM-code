@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distance matrix
+    normalized_distance = distance_matrix / torch.sum(distance_matrix, dim=1, keepdim=True)
+    
+    # Calculate the balance score for each customer, which is the difference in demands
+    balance_scores = torch.abs(demands) / demands.abs().sum()
+    
+    # Create a matrix that has negative values for edges with a higher demand than vehicle capacity
+    # (Note: we're assuming the vehicle capacity is 1 here, which is a normalized value)
+    negative_demand_penalty = -torch.min(0, (demands > 1))
+    
+    # Invert the normalized distance matrix
+    inverted_distance = 1 - normalized_distance
+    
+    # Combine the scores using a weighted sum where demand and distance balance is emphasized
+    heuristics = (inverted_distance * 0.5 + negative_demand_penalty * 2.5 + balance_scores * 2.0).clamp(min=-5, max=5)
+    
+    return heuristics
+```

@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot_demand = demands[0]
+    # Calculate the minimum distance from each customer to the depot
+    min_dist_to_depot = torch.min(distance_matrix[:, 1:], dim=0).values
+    # Calculate the minimum distance from each customer to the nearest neighbor
+    min_dist_to_neighbor = torch.min(distance_matrix[1:], dim=1).values
+    
+    # Calculate the total demand for each route if starting from the depot
+    total_demand = torch.cumsum(demands[1:], dim=0)
+    # Calculate the cost to visit each customer after visiting the first one
+    visit_cost = distance_matrix[1:] * (total_demand[1:] - demands[1:])
+    
+    # Create a matrix with the negative of the cost for each customer
+    neg_visit_cost = -visit_cost
+    
+    # Calculate the heuristic value for each edge
+    heuristics = torch.stack([
+        (depot_demand + neg_visit_cost[0]).unsqueeze(0),
+        (min_dist_to_depot + neg_visit_cost).unsqueeze(0)
+    ])
+    
+    # Add the nearest neighbor heuristic
+    heuristics = torch.cat([
+        heuristics,
+        (min_dist_to_neighbor + neg_visit_cost[0]).unsqueeze(0)
+    ], dim=0)
+    
+    # Normalize the heuristics matrix
+    heuristics /= heuristics.sum(dim=0, keepdim=True)
+    
+    return heuristics
+```

@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Compute the heuristic values using a combination of methods:
+    # 1. The distance from the node to the nearest neighbor
+    # 2. The distance from the node to the second nearest neighbor
+    # 3. A weighted sum of the above two to balance global and local search
+    # 4. A small penalty for edges that are longer than the average edge length
+    n = distance_matrix.shape[0]
+    average_edge_length = np.mean(np.sum(distance_matrix, axis=0))
+    
+    for i in range(n):
+        # Find the nearest and second nearest neighbors
+        nearest_neighbors = np.argsort(distance_matrix[i, :])
+        nearest_neighbor = nearest_neighbors[1]
+        second_nearest_neighbor = nearest_neighbors[2]
+        
+        # Calculate the heuristic as a weighted sum of the two nearest neighbors
+        weight_local = 0.7
+        weight_global = 0.3
+        heuristics[i, nearest_neighbor] = weight_local * distance_matrix[i, nearest_neighbor]
+        heuristics[i, second_nearest_neighbor] = weight_global * distance_matrix[i, second_nearest_neighbor]
+        
+        # Apply a penalty to longer edges
+        for j in range(n):
+            if distance_matrix[i, j] > average_edge_length:
+                heuristics[i, j] += distance_matrix[i, j] - average_edge_length
+    
+    return heuristics
+```

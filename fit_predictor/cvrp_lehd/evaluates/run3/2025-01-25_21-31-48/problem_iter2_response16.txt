@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand for each vehicle
+    total_demand = demands.sum()
+    
+    # Calculate the cumulative demand as we visit each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the maximum number of customers that can be visited by each vehicle
+    max_customers_per_vehicle = torch.ceil(cumulative_demand / total_demand)
+    
+    # Initialize the heuristic matrix with negative values for all edges
+    heuristic_matrix = -distance_matrix
+    
+    # Add 1 for the first customer from the depot to each vehicle
+    for i in range(1, max_customers_per_vehicle.shape[0]):
+        heuristic_matrix[i, 0] += 1
+    
+    # Add 1 for edges between consecutive customers that are within the vehicle's capacity
+    for i in range(1, max_customers_per_vehicle.shape[0]):
+        for j in range(1, min(i, int(max_customers_per_vehicle[i]))):
+            if demands[j] + demands[i] <= total_demand:
+                heuristic_matrix[i, j] += 1
+    
+    # Normalize the heuristic matrix to ensure all values are within the range of the problem (0 to 1)
+    max_val = heuristic_matrix.max()
+    min_val = heuristic_matrix.min()
+    heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    return heuristic_matrix
+```

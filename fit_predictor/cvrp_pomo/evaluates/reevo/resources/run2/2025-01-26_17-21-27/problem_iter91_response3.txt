@@ -1,0 +1,59 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Enhanced capacity penalty to promote early detection of potential overflows
+    dynamic_capacity_penalty = torch.where(
+        demands > total_capacity_vector,
+        -torch.log1p(demands - total_capacity_vector) - 0.1 * demands / total_capacity_vector,
+        0
+    )
+    
+    # Time-adaptive distance scaling with higher penalties for distant edges
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 2))
+    distance_scaling *= time_factor
+    
+    # Time-adaptive load balance to minimize capacity utilization discrepancies
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance / total_capacity * 3)
+    
+    # Reduced randomness to ensure better convergence and balance in the heuristic
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Apply scaling to emphasize core objectives like capacity and load balance
+    scaling_factor = 3
+    heuristics = (
+        scaling_factor * (
+            distance_scaling +
+            dynamic_capacity_penalty +
+            load_balance_penalty
+        ) +
+        randomness_factor
+    )
+    
+    # Diversity factor with adaptive control to maintain solution quality
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Adjust heuristics based on early overflow and imbalance
+    overflow_penalty = torch.where(
+        cumulative_demand > total_capacity,
+        -torch.log1p(cumulative_demand - total_capacity) - 0.2 * cumulative_demand / total_capacity,
+        0
+    )
+    heuristics += overflow_penalty
+    
+    # Final adjustments to encourage a better balance between exploitation and exploration
+    heuristics *= (1 + 0.5 * torch.where(early_overflow, 1, 0))
+    heuristics += diversity_factor
+    
+    return heuristics
+```

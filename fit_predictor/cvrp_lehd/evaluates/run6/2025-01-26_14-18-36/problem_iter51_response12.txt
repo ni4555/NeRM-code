@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Combine capacity and distance factors and normalize
+    capacity_distance_factor = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity / total_capacity
+
+    # Introduce a dampening factor to reduce the impact of high penalties
+    dampening_factor = 0.5
+
+    # Add a penalty for edges that lead to a node with demand greater than vehicle capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    capacity_distance_factor -= capacity_penalty * dampening_factor
+
+    # Add a dampened penalty for edges leading back to the depot (index 0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    capacity_distance_factor += depot_penalty * dampening_factor
+
+    # Introduce diversity factors based on the relative distances
+    diversity_factor = (distance_matrix / distance_matrix.max()).unsqueeze(1) * (distance_matrix / distance_matrix.max()).unsqueeze(0)
+    capacity_distance_factor *= diversity_factor
+
+    # Normalize the heuristic values to the range [0, 1] using min-max scaling
+    max_heuristic = capacity_distance_factor.max()
+    min_heuristic = capacity_distance_factor.min()
+    capacity_distance_factor = (capacity_distance_factor - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Apply a non-linear transformation to the heuristic values to avoid local optima
+    capacity_distance_factor = torch.tanh(capacity_distance_factor)
+
+    # Further balancing of penalties to promote a better heuristic distribution
+    capacity_distance_factor = torch.clamp(capacity_distance_factor, min=0.0, max=1.0)
+
+    return capacity_distance_factor
+```

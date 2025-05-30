@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # This heuristic function uses the Euclidean distance between the centers of gravity
+    # of the nodes to estimate the "badness" of each edge. The idea is that closer centers
+    # are more likely to form a shorter path.
+
+    # Compute the centers of gravity for each cluster of nodes
+    cluster_centers = np.apply_along_axis(lambda x: np.mean(x, axis=0), axis=0, arr=distance_matrix)
+
+    # Calculate the Euclidean distance between each pair of cluster centers
+    distance_centers = np.sqrt(((cluster_centers[:, np.newaxis] - cluster_centers) ** 2).sum(axis=2))
+
+    # Invert the distances to make them heuristic (shorter is better)
+    heuristic_matrix = 1 / (distance_centers + 1e-10)
+
+    # Normalize the heuristic matrix
+    row_sums = np.sum(heuristic_matrix, axis=1)
+    normalized_heuristic_matrix = heuristic_matrix / (row_sums[:, np.newaxis] + 1e-10)
+
+    return normalized_heuristic_matrix
+```

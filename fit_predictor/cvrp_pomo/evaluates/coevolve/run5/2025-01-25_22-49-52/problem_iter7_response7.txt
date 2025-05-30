@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Dynamic weight calculation based on a combination of distance and demand
+    distance_weight = 0.5
+    demand_weight = 2.0
+    average_demand = normalized_demands.mean()
+    
+    # Node partitioning based on demand to balance the loads
+    partitions = torch.bincount(normalized_demands)
+    partition_weights = 1 / (partitions + 1e-8)  # Avoid division by zero
+    
+    # Path decomposition heuristic by assigning higher weights to paths that connect
+    # partitions with high load differences
+    load_diff = torch.abs(partition_weights - partition_weights.mean())
+    path_decomposition_weight = 0.3
+    load_diff_weighted = load_diff * (path_decomposition_weight * (1 - normalized_demands))
+    
+    # Demand relaxation heuristic to encourage paths that can be extended by future
+    # relaxations without violating vehicle capacity constraints
+    relaxation_factor = 0.2
+    relaxation_weight = (1 - relaxation_factor) * normalized_demands
+    
+    # Combine heuristics
+    potential_values = (normalized_distances * relaxation_weight +
+                        distance_weight * normalized_distances +
+                        demand_weight * normalized_demands +
+                        load_diff_weighted).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

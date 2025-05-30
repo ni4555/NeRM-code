@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the sparsity factor based on the number of non-zero weight dimensions
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Calculate the inverse variance factor
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    
+    # Calculate the initial heuristics based on the product of normalized prize and sparsity factor
+    heuristics = normalized_prize * sparsity_factor * inv_variance_factor
+    
+    # Introduce diversity by adding a random perturbation to heuristics
+    np.random.seed(0)  # Ensure reproducibility
+    perturbation = np.random.normal(0, 0.01, size=heuristics.shape)
+    heuristics += perturbation
+    
+    # Adapt thresholds dynamically based on the current distribution of heuristics
+    threshold = np.percentile(heuristics, 60)  # 60% threshold for dynamic adjustment
+    heuristics[heuristics > threshold] *= 1.5
+    
+    # Iteratively refine heuristics to balance exploration and exploitation
+    for _ in range(3):  # Repeat the refinement process a few times
+        # Adjust heuristics based on the distance from the threshold
+        heuristics = np.clip(heuristics, threshold / 2, threshold * 2)
+        
+        # Sparsify heuristics by reducing elements that are too close to zero
+        sparsity_threshold = np.percentile(heuristics, 10)  # 10% threshold for sparsity
+        heuristics[heuristics < sparsity_threshold] = 0
+    
+    # Normalize heuristics to ensure sum is 1, for proportional selection
+    heuristic_sum = np.sum(heuristics)
+    if heuristic_sum > 0:
+        heuristics /= heuristic_sum
+    
+    return heuristics
+```

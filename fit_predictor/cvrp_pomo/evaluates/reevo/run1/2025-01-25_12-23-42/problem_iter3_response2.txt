@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Enhanced heuristic by considering demand, distance, avoiding revisits, and balancing load."""
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_threshold = total_demand / len(demands)
+    heuristics = (1 / (1 + distance_matrix)) * (1 - (demands / demand_threshold))
+    
+    # Normalize by total distance
+    total_distance = distance_matrix.sum().item()
+    heuristics /= total_distance
+    
+    # Avoid revisits by penalizing edges to nodes that have been visited recently
+    visited_mask = torch.zeros_like(distance_matrix, dtype=torch.bool)
+    for i in range(n):
+        for j in range(n):
+            if demands[i] > 0 or demands[j] > 0:
+                visited_mask[i, j] = True
+    
+    revisits_penalty = (1 - visited_mask) * distance_matrix
+    heuristics -= revisits_penalty
+    
+    # Balance load by rewarding short distance to high demand nodes
+    demand_balance = (demands - demand_threshold) * distance_matrix
+    heuristics += demand_balance
+    
+    return heuristics
+```

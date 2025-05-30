@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the potential cost by combining distance and demand
+    potential_cost = (distance_matrix * demands).unsqueeze(1) + (distance_matrix * demands).unsqueeze(0)
+    
+    # Calculate the negative of the potential cost to get a positive heuristic value
+    heuristic_matrix = -potential_cost
+    
+    # Normalize the heuristic matrix to ensure that the values are comparable
+    # The normalization is done by dividing by the sum of the row-wise maximum values
+    row_sums = heuristic_matrix.sum(dim=1, keepdim=True)
+    max_row_values = torch.max(heuristic_matrix, dim=1)[0]
+    normalized_heuristic = (heuristic_matrix / (row_sums + max_row_values)).clamp(min=0)
+    
+    return normalized_heuristic
+```

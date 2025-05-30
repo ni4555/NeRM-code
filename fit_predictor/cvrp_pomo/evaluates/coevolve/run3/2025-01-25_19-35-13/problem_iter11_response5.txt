@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Efficiently compute the lower bound using dynamic programming
+    lower_bound = torch.triu(torch.min(torch.cumsum(distance_matrix, 1), torch.cumsum(distance_matrix, 0)), 1)
+    edge_potential = lower_bound / (distance_matrix + 1e-8)
+
+    # Vectorized demand weight calculation
+    demand_weight = 0.8
+    edge_potential = edge_potential * torch.pow(normalized_demands, demand_weight)
+
+    # Vectorized distance weight calculation and adding penalties
+    distance_weight = 0.2
+    penalties_demand = torch.clamp(demands / total_demand, min=0.5) * 0.1
+    penalties_distance = torch.clamp(1 - distance_matrix / torch.max(distance_matrix), min=0.5) * 0.05
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + 1e-8)) * torch.pow(normalized_demands, 0.5) * distance_weight
+    edge_potential -= edge_potential * penalties_demand
+    edge_potential += edge_potential * penalties_distance
+
+    return edge_potential
+```

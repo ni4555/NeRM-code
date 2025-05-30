@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Log scaling to reduce the impact of large values and normalize the ratio
+    log_scaled_ratio = np.log(value_to_weight_ratio + 1) / np.log(1 + np.max(np.log(value_to_weight_ratio + 1)))
+    # Introduce randomness for diversity by adding Gaussian noise with a small standard deviation
+    random_factor = np.random.normal(0, 0.05, size=log_scaled_ratio.shape)
+    # Amplify high-value features by using a sigmoid function to map the ratio to [0, 1]
+    amplified_factor = 1 / (1 + np.exp(-log_scaled_ratio))
+    # Combine the amplified and random factors, and apply sparsification
+    combined_heuristics = amplified_factor + random_factor
+    sparsified_heuristics = np.where(combined_heuristics > 0.1, combined_heuristics, 0)
+    # Normalize the sparsified heuristics to ensure they sum to 1
+    heuristics = sparsified_heuristics / np.sum(sparsified_heuristics)
+    return heuristics
+```

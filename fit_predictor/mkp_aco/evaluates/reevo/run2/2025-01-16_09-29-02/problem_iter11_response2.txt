@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_per_weight = prize / np.sum(weight, axis=1)
+    diversity_factor = np.sum(weight, axis=1) / (np.linalg.norm(weight, axis=1) + 1e-8)
+    normalized_prize = prize / np.sum(prize)
+    sparsity = 1 / (np.linalg.norm(weight, axis=1) + 1e-8)
+    # Adding a cap to the factors to avoid extreme values
+    capped_value_per_weight = np.clip(value_per_weight, None, 1)
+    capped_diversity_factor = np.clip(diversity_factor, None, 1)
+    capped_normalized_prize = np.clip(normalized_prize, None, 1)
+    capped_sparsity = np.clip(sparsity, None, 1)
+    heuristics = (capped_value_per_weight * capped_diversity_factor * capped_normalized_prize * capped_sparsity)
+    sparsity_threshold = 0.1
+    heuristics[heuristics < sparsity_threshold] = 0
+    heuristics = heuristics / np.max(heuristics)
+    return heuristics
+```

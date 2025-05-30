@@ -1,0 +1,69 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Initialize a Deep Reinforcement Learning model
+    model_scores = np.random.rand(n)
+    reward_function = lambda x: -np.sum(x * np.log(1 + x))  # Minimize penalty for over-weighted items
+
+    # Initialize adaptive constraint-driven filtering
+    feasible_items = np.sum(weight, axis=1) <= 1
+
+    # Run a few episodes of DRL for exploration
+    for _ in range(10):  # Using a small number of episodes for demonstration
+        action = np.random.rand(n)
+        reward = reward_function(action)
+        # Update model scores based on the reward
+        model_scores = (1 - 0.1) * model_scores + 0.1 * reward
+
+    # Filter out infeasible items early
+    feasible_items = np.where(np.sum(weight, axis=1) <= 1)[0]
+
+    # Initialize Particle Swarm Optimization (PSO) with adaptive learning rate
+    pso_position = np.random.rand(len(feasible_items))
+    pso_velocity = np.zeros(len(feasible_items))
+    pso_personal_best = np.copy(pso_position)
+    pso_global_best = np.copy(pso_position)
+    pso_personal_best_scores = np.copy(model_scores[feasible_items])
+    pso_global_best_scores = np.copy(model_scores[feasible_items])
+
+    # Initialize PSO global best with RL scores
+    pso_global_best_scores = np.where(pso_global_best_scores == np.max(pso_global_best_scores))[0][0]
+
+    # Run PSO for a few iterations
+    for _ in range(10):  # Using a small number of iterations for demonstration
+        for i in range(len(feasible_items)):
+            # Update velocity and position
+            pso_velocity[i] = 0.5 * pso_velocity[i] + 0.5 * np.random.rand()
+            pso_position[i] = np.clip(pso_position[i] + pso_velocity[i], 0, 1)
+
+            # Update personal best
+            if model_scores[feasible_items[i]] > pso_personal_best_scores[i]:
+                pso_personal_best_scores[i] = model_scores[feasible_items[i]]
+
+            # Update global best
+            if pso_personal_best_scores[i] > pso_global_best_scores:
+                pso_global_best_scores = pso_personal_best_scores[i]
+
+    # Update heuristics based on PSO scores
+    heuristic[feasible_items] = pso_global_best_scores / (pso_global_best_scores.max() + 1e-6)
+
+    # Sparsify heuristics by setting low-value elements to zero
+    sparsity_threshold = np.percentile(heuristic, 10)
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    # Update the reward function with the most promising heuristics
+    new_reward_function = lambda x: np.sum(x * np.log(1 + x)) + np.sum(x * heuristic)
+    model_scores = np.exp(new_reward_function(model_scores) - np.max(new_reward_function(model_scores)))
+    model_scores /= np.sum(model_scores)
+
+    # Update heuristics based on the refined RL scores
+    heuristic = model_scores * prize / (prize[feasible_items].max() + 1e-6)
+
+    # Ignore non-feasible items in the final heuristic
+    heuristic[~feasible_items] = 0
+
+    return heuristic
+```

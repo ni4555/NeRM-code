@@ -1,0 +1,43 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the sum of distances to each node from the depot, excluding the depot itself
+    distances_from_depot = torch.sum(distance_matrix, dim=0, keepdim=True)
+    
+    # Calculate the sum of demands to each node from the depot, excluding the depot itself
+    demands_from_depot = demands
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands_from_depot - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Use a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(potential_matrix))
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = F.softmax(emphasized_matrix, dim=1)
+    
+    # Create a matrix to penalize large distances
+    distance_penalty_factor = 1.0 / (distances_from_depot + 1e-6)
+    
+    # Combine the normalized emphasized matrix with the distance penalty matrix to balance the scales
+    combined_matrix = normalized_emphasized_matrix * distance_penalty_factor
+    
+    # Apply a non-linear scaling to further emphasize the importance of meeting capacity constraints
+    heuristics_matrix = torch.relu(combined_matrix)
+    
+    # Scale the heuristics to ensure that all values are within a certain range
+    max_value = torch.max(heuristics_matrix)
+    heuristics_matrix /= max_value
+    
+    return heuristics_matrix
+```

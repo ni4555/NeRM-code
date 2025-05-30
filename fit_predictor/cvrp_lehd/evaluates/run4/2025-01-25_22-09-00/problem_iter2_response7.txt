@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic function that considers node attributes and interdependence."""
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # For each edge, calculate the weight based on demand and distance
+    heuristic_matrix = distance_matrix * (demands / total_demand)
+
+    # Apply a dampening factor to longer distances
+    dampen = torch.exp(-distance_matrix / 10)
+
+    # Combine the weights and dampening factor
+    heuristic_matrix *= dampen
+
+    # Normalize the heuristics to have a range between -1 and 1
+    min_val = heuristic_matrix.min()
+    max_val = heuristic_matrix.max()
+    heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+
+    return heuristic_matrix
+```

@@ -1,0 +1,53 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+
+    # Normalize the density
+    density = prize / np.sum(weight, axis=1) + 1e-8
+
+    # Normalize the sparsity
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1) + 1e-8
+
+    # Calculate the value-to-weight ratio
+    value_to_weight_ratio = prize / np.sum(weight**2, axis=1) + 1e-8
+
+    # Introduce randomness for diversity
+    random_factor = np.random.rand(n) + 1e-8
+
+    # Balance factor 1: Weighted combination of density and sparsity
+    balance_factor_1 = 0.6 * density + 0.4 * (1 - sparsity)
+
+    # Balance factor 2: Weighted value-to-weight ratio
+    balance_factor_2 = 0.5 * value_to_weight_ratio
+
+    # Diversity factor: Incentivize diversity
+    diversity_factor = 0.3 * (1 - np.mean(density)) / (np.max(1 - np.mean(density)) + 1e-8)
+
+    # Incorporate a balance between high density and low sparsity
+    balance_heuristic = (density - sparsity) / (density + sparsity + 1e-8)
+
+    # Incorporate a penalty for high sparsity
+    sparsity_penalty = 0.2 * sparsity
+
+    # Combine balance factors, diversity factor, and randomness
+    heuristic = balance_factor_1 + balance_factor_2 + diversity_factor + random_factor - sparsity_penalty
+
+    # Normalize heuristic values
+    max_heuristic = np.max(heuristic)
+    normalized_heuristic = heuristic / (max_heuristic + 1e-8)
+
+    # Ensure that the heuristic values are non-negative
+    refined_heuristic = np.maximum(normalized_heuristic, 0)
+
+    # If all items have zero density, set a minimum heuristic value to avoid dominance
+    if np.all(density == 0):
+        refined_heuristic = np.ones(n) * 1e-8
+
+    # Apply a balance heuristic to ensure diversity and fairness
+    balance_heuristic = (density - np.mean(density)) / (np.std(density) + 1e-8)
+    refined_heuristic = refined_heuristic * balance_heuristic
+
+    return refined_heuristic
+```

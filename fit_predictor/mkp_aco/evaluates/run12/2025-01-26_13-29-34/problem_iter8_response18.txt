@@ -1,0 +1,61 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning component (simplified)
+    model_scores = np.random.rand(n)
+
+    # Adaptive constraint-driven filtering to maintain multi-dimensional feasibility
+    constraint_violation = np.sum(weight, axis=1) > 1
+    feasible_items = ~constraint_violation
+
+    # Initialize Particle Swarm Optimization (PSO) parameters
+    w = 0.5  # Inertia weight
+    c1 = 1.5  # Cognitive parameter
+    c2 = 1.5  # Social parameter
+    pso_position = np.random.rand(n)  # Initialize positions randomly within [0, 1]
+    pso_velocity = np.zeros(n)
+    pso_personal_best_position = pso_position.copy()
+    pso_personal_best_value = -np.inf * np.ones(n)
+    pso_global_best_position = pso_position.copy()
+    pso_global_best_value = -np.inf
+
+    # Update PSO for a set number of iterations
+    for _ in range(20):
+        for i in range(n):
+            # Update the velocity
+            pso_velocity[i] = w * pso_velocity[i] + c1 * np.random.rand() * (pso_personal_best_position[i] - pso_position[i]) + \
+                               c2 * np.random.rand() * (pso_global_best_position[i] - pso_position[i])
+            # Update the position based on the velocity
+            pso_position[i] += pso_velocity[i]
+            pso_position[i] = np.clip(pso_position[i], 0, 1)
+
+            # Update personal best
+            if model_scores[i] + pso_position[i] > pso_personal_best_value[i]:
+                pso_personal_best_value[i] = model_scores[i] + pso_position[i]
+                pso_personal_best_position[i] = pso_position[i]
+
+            # Update global best
+            if pso_personal_best_value[i] > pso_global_best_value:
+                pso_global_best_value = pso_personal_best_value[i]
+                pso_global_best_position = pso_personal_best_position.copy()
+
+    # Update heuristics based on model scores, PSO scores, and feasibility
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            # Combine model scores with PSO scores
+            heuristic[i] = model_scores[i] + pso_position[i]
+
+    # Dynamic sparsity threshold based on a percentile of the feasible heuristic scores
+    sparsity_threshold = np.percentile(heuristic[feasible_items], 80)
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    return heuristic
+```

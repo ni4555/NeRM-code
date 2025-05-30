@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+
+    # Calculate the total demand excluding the depot
+    total_demand = demands[1:].sum()
+
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the maximum possible load a single vehicle can carry
+    vehicle_capacity = 1.0 / (1.0 / total_demand + 1.0 / demands[depot])
+
+    # Calculate the cost to the depot from each customer
+    cost_to_depot = distance_matrix[:, depot]
+
+    # Calculate the heuristic as the negative cost to the depot for each customer
+    heuristics[1:, depot] = -cost_to_depot
+
+    # Calculate the cost from each customer to each other customer
+    cost_from_customer = distance_matrix[1:, 1:]
+
+    # Calculate the demand of each customer
+    customer_demand = demands[1:]
+
+    # Calculate the heuristics for edges between customers
+    for i in range(1, n):
+        for j in range(i+1, n):
+            # Calculate the potential load after visiting customer j from i
+            potential_load = vehicle_capacity - (demands[i] / customer_demand[j]) * customer_demand[j]
+            if potential_load >= customer_demand[j]:
+                # Calculate the heuristic value as the negative of the cost to visit j from i
+                heuristics[i, j] = -cost_from_customer[i, j]
+
+    # Calculate the heuristic for the return to the depot from each customer
+    for i in range(1, n):
+        # Calculate the potential load after returning to the depot from i
+        potential_load = vehicle_capacity + demands[i]
+        if potential_load <= vehicle_capacity:
+            # Calculate the heuristic value as the negative of the cost to return to the depot from i
+            heuristics[i, depot] = -cost_from_customer[i, depot]
+
+    return heuristics
+```

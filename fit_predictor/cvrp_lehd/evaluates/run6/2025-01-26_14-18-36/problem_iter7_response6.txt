@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    distances_from_depot = distance_matrix[0, 1:]  # Distance from depot to customers
+    distances_to_customers = distance_matrix[1:, 0]  # Distance from customers to depot
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Calculate the potential of each edge based on the product of distances and the absolute difference in demand
+    heuristic_values = -torch.abs(demand_diff) * distances_from_depot * distances_to_customers
+    
+    # Incorporate a penalty for edges that are far from the depot and for high deviation from average demand
+    depot_penalty = (distances_from_depot + distances_to_customers) * -1000
+    demand_penalty = torch.abs(demand_diff) * -1000
+    
+    # Apply a diversification strategy by penalizing edges that have been visited frequently
+    # Assuming `edge_visit_counts` is a precomputed tensor that contains the count of visits for each edge
+    edge_visit_counts = torch.zeros_like(distance_matrix)
+    diversification_penalty = torch.log1p(edge_visit_counts) * -100
+    
+    # Combine the heuristic values and the penalties
+    combined_heuristic_values = heuristic_values + depot_penalty + demand_penalty + diversification_penalty
+    
+    # Update the heuristic matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    heuristic_matrix[0, 1:] = combined_heuristic_values
+    heuristic_matrix[1:, 0] = combined_heuristic_values
+    heuristic_matrix[0, 0] = -depot_heuristic_values.sum()  # Assuming depot_heuristic_values from heuristics_v1
+    
+    return heuristic_matrix
+```

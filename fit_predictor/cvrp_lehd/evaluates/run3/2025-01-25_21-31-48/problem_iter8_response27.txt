@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize the distance matrix to scale distances to a smaller range
+    normalized_distance = distance_matrix / torch.max(distance_matrix)
+    
+    # Normalize the demands by the total vehicle capacity
+    total_capacity = torch.sum(demands)
+    normalized_demand = demands / total_capacity
+    
+    # Invert the distances to give preference to shorter routes
+    inverse_distance = 1 / (normalized_distance + 1e-8)
+    
+    # Use a demand threshold to focus on more important nodes
+    demand_threshold = torch.max(demands) * 0.5
+    
+    # Create a mask for nodes that meet or exceed the demand threshold
+    demand_mask = (demands >= demand_threshold)
+    
+    # Create a mask for the depot to give additional preference to the start node
+    depot_mask = torch.ones_like(demands)
+    depot_mask[0] = 0
+    
+    # Calculate the heuristic values by combining distance and demand
+    # Higher demand and shorter distance should result in higher heuristic values
+    heuristic_matrix = (inverse_distance * normalized_demand * demand_mask) * depot_mask
+    
+    # Ensure the heuristic values are all positive
+    heuristic_matrix = heuristic_matrix + 1e-10
+    
+    return heuristic_matrix
+```

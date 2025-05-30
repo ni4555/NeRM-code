@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate the heuristics value for each edge based on scaled demand and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Introduce a dampening factor for global effects to avoid local optima
+    dampening_factor = 0.1
+    max_demand_diff = torch.max(scaled_demands).unsqueeze(0) - torch.min(scaled_demands).unsqueeze(0)
+    dampened_heuristics = heuristics * (1 - dampening_factor) + dampening_factor * max_demand_diff
+
+    # Introduce a penalty for edges that lead to a node with demand greater than vehicle capacity
+    penalty = (scaled_demands > 1.0).float() * 1000.0
+    dampened_heuristics -= penalty
+
+    # Add a small penalty for edges leading back to the depot (index 0)
+    penalty = torch.zeros_like(distance_matrix)
+    penalty[torch.arange(distance_matrix.shape[0]), 0] = -1
+    dampened_heuristics += penalty
+
+    # Introduce a balance factor to ensure that the feasibility is maintained
+    balance_factor = 0.2
+    balance_penalty = balance_factor * torch.max(dampened_heuristics)
+    dampened_heuristics = torch.clamp(dampened_heuristics, min=0, max=balance_penalty)
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = dampened_heuristics.max()
+    min_heuristic = dampened_heuristics.min()
+    if max_heuristic != min_heuristic:
+        dampened_heuristics = (dampened_heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        # Avoid division by zero
+        dampened_heuristics = torch.ones_like(dampened_heuristics)
+
+    return dampened_heuristics
+```

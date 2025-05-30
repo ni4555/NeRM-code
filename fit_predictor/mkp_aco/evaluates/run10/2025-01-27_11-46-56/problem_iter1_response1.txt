@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    max_utility = utility.max(axis=1)
+    # Factor in diversity by penalizing high density items
+    density_penalty = np.mean(utility, axis=0)
+    utility -= density_penalty
+    # Factor in sparsity by setting items with low utility to zero
+    sparsity_factor = 0.01
+    utility[utility < sparsity_factor] = 0
+    # Apply a weight to the original utility to balance between diversity and sparsity
+    adjusted_utility = utility * (1 - sparsity_factor) + sparsity_factor
+    # Return the adjusted utility as heuristics
+    return adjusted_utility
+```

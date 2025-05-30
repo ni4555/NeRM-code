@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Calculate the cumulative sum of demands to determine the demand threshold for each node
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Precompute the return to depot cost
+    return_to_depot_cost = distance_matrix[:, 0].unsqueeze(1)
+    
+    for start_node in range(n_nodes):
+        # Iterate over all possible destination nodes
+        for destination_node in range(1, n_nodes):
+            # Calculate the total demand from the start node to the destination node
+            total_demand = demand_cumsum[destination_node]
+            # Check if the destination node is reachable without exceeding the vehicle capacity
+            if total_demand <= demands[start_node]:
+                # Calculate the distance from the start node to the destination node
+                distance = distance_matrix[start_node, destination_node]
+                # Update the heuristic value for the edge between the start and destination nodes
+                heuristics[start_node, destination_node] = 1 - distance
+                # Update the heuristic value for the return to the depot
+                heuristics[start_node, 0] = 1 - return_to_depot_cost[start_node, 0]
+                # Break the loop since the vehicle can't carry more demand after this point
+                break
+    
+    return heuristics
+```

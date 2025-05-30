@@ -1,0 +1,68 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+    
+    # Vectorized calculation of edge demand sums
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Vectorized calculation of average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Calculate heuristics based on average demand per edge and total capacity
+    heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    # Problem-specific Local Search: Refine neighborhood exploration
+    heuristics = torch.clamp(heuristics, min=-1.0, max=0.0)  # Ensure non-positive heuristic values
+    
+    # Adaptive PSO with Adaptive Population Management: Update velocity and enhance exploration
+    velocity = torch.zeros_like(distance_matrix)
+    best_cost = float('inf')
+    best_position = heuristics.clone()
+    
+    for iteration in range(100):
+        # Update position based on velocity
+        position = best_position + velocity
+        
+        # Evaluate the cost of the new position
+        cost = torch.sum(position * distance_matrix)
+        
+        # Update velocity based on inertia, cognitive, and social components
+        inertia_weight = 0.7
+        cognitive_factor = 0.3
+        social_factor = 0.3
+        cognitive_velocity = (best_position - position) * cognitive_factor
+        social_velocity = (torch.rand_like(position) - 0.5) * social_factor
+        velocity = inertia_weight * velocity + cognitive_velocity + social_velocity
+        
+        # Update the best position and cost if the new position is better
+        if cost < best_cost:
+            best_cost = cost
+            best_position = position.clone()
+    
+    # Dynamic Tabu Search with Adaptive Cost Function: Promote efficient navigation
+    tabu_list = torch.zeros(n)
+    for iteration in range(100):
+        best_edge = torch.argmin(-heuristics)  # Select the best edge based on heuristic
+        if tabu_list[best_edge] > 0:
+            continue
+        tabu_list[best_edge] = 1
+        heuristics[best_edge] = float('inf')  # Mark the selected edge as tabu
+        
+        # Apply a load balancing heuristic to adjust the demands
+        # Placeholder for the load balancing heuristic
+        demands[best_edge] = -demands[best_edge]
+        
+        # Re-calculate heuristics
+        edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+        average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+        heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    # Ensure all edges with zero distance are set to zero in heuristics
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

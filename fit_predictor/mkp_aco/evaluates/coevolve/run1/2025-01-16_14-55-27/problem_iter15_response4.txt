@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Normalizing prizes and weights by their respective sums
+    normalized_prize = prize / prize.sum()
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+
+    # Using softmax for stability
+    def softmax(x):
+        exp_x = np.exp(x - np.max(x))  # Avoiding overflow by subtracting the max value
+        return exp_x / exp_x.sum()
+
+    # Sort items based on multiple criteria
+    combined_scores = -np.log(normalized_prize / normalized_weight)
+    sorted_indices = np.argsort(combined_scores)[::-1]
+
+    # Initialize heuristic values array
+    heuristics = np.zeros(n)
+
+    # Iterate over sorted items
+    for i in sorted_indices:
+        # Calculate heuristic based on weighted ratio, sparsity, and normalized weight
+        heuristic_value = softmax(normalized_prize[i] - normalized_weight[i, :].sum())
+
+        # Dynamic thresholding by considering 90% of the max heuristic encountered
+        heuristics_max = np.max(heuristics)
+        dynamic_threshold = heuristics_max * 0.9 if heuristics_max > 0 else 0.01
+
+        # Adjust heuristic value if below threshold
+        heuristics[i] = heuristic_value if heuristic_value > dynamic_threshold else 0
+
+    # Normalize heuristics
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

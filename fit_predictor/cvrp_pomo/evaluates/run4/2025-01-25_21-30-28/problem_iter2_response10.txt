@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: adaptively modify the search space based on the performance
+    # Here we use the range of normalized demands to adjust the heuristic range
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    demand_range = max_demand - min_demand
+    range_weight = 1.0 / (demand_range + 1e-8)
+
+    # Genetic algorithm inspired heuristic: use a binary string representation of each edge
+    # and assign higher weight to edges that have appeared more frequently in previous solutions
+    genetic_insight = torch.nn.functional.one_hot(torch.arange(n), num_classes=n).to(torch.float32)
+    genetic_insight = torch.matmul(genetic_insight, genetic_insight.T)
+    genetic_weight = (1.0 / (genetic_insight.sum(1) + 1e-8)) ** 2
+
+    # Combine heuristics with a weighted sum, where we may adjust the weights for each heuristic
+    # Weights are now dynamic and could be adjusted based on problem instance or performance of solutions
+    combined_weight = torch.tensor([0.4, 0.3, 0.2, 0.1], dtype=torch.float32)
+    combined_heuristic = (
+        combined_weight[0] * inverse_distance +
+        combined_weight[1] * demand_weight +
+        combined_weight[2] * range_weight +
+        combined_weight[3] * genetic_weight
+    )
+
+    return combined_heuristic
+```

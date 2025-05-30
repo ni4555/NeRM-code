@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Introduce adaptive scaling based on current vehicle load
+    adaptive_scaling = 1 + (cumulative_demand / total_capacity).unsqueeze(1) / 3
+    
+    # Core objective prioritization with a weight
+    core_objective_weight = 2.0
+    distance_scaling = core_objective_weight * -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic penalty based on remaining capacity with exponential decay
+    decay_factor = 0.8
+    dynamic_capacity_penalty = -torch.log1p(decay_factor * (demands - total_capacity / n))
+    
+    # Diversity heuristic by introducing a penalty for edges that are too similar
+    edge_similarity = torch.corrcoef(distance_matrix, rowvar=False)
+    similarity_penalty = torch.where(edge_similarity < 0.8, -torch.log1p(torch.abs(edge_similarity - 0.8) - 1e-8), torch.zeros_like(edge_similarity))
+    
+    # Apply penalties to core objective scaling
+    heuristics = distance_scaling + dynamic_capacity_penalty + similarity_penalty
+    
+    # Encourage diversity by adding a penalty for high similarity
+    diversity_penalty = torch.where(torch.abs(torch.sum(similarity_penalty, dim=0) - torch.sum(similarity_penalty, dim=1)) > 0.5,
+                                   -torch.log1p(1 - torch.abs(torch.sum(similarity_penalty, dim=0) - torch.sum(similarity_penalty, dim=1)) - 1e-8),
+                                   torch.zeros_like(heuristics))
+    
+    # Apply the adaptive scaling
+    heuristics *= adaptive_scaling
+    
+    # Return the computed heuristics
+    return heuristics
+```

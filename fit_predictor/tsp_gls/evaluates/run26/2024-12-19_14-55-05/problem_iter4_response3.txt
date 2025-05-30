@@ -1,0 +1,38 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Balance direct and loop penalties
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                loop_penalty = distance_matrix[i, j]
+                direct_distances = distance_matrix[i, :].copy()
+                direct_distances[j] = np.inf
+                direct_distance = np.min(direct_distances)
+                balance_factor = 0.5  # Factor to balance the penalties
+                heuristics[i, j] = balance_factor * (loop_penalty + direct_distance)
+
+    # Use context-aware metrics
+    center = num_nodes // 2
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                distance_to_center = np.abs(center - i) + np.abs(center - j)
+                context_penalty = distance_to_center * 1e-3  # Small multiplier for the penalty
+                heuristics[i, j] += context_penalty
+
+    # Encourage diversity
+    connectivity_matrix = np.bincount(distance_matrix.ravel(), minlength=num_nodes) - 1
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                connectivity_penalty = connectivity_matrix[i] + connectivity_matrix[j]
+                connectivity_penalty = max(connectivity_penalty, 0) * 1e-2  # Avoid negative penalties
+                heuristics[i, j] += connectivity_penalty
+
+    return heuristics
+```

@@ -1,0 +1,84 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    heuristic = np.zeros((prize.shape[0],))
+
+    # Deep reinforcement learning (DRL) model initialization (simplified for code clarity)
+    # This is a placeholder for the actual DRL model that would learn to make decisions
+    def rl_model(decision):
+        # Dummy model that returns a value based on a simple function
+        return np.exp(decision)
+
+    # Particle Swarm Optimization (PSO) model initialization (simplified for code clarity)
+    # This is a placeholder for the actual PSO algorithm
+    def pso_model(swarm, dimension, bounds):
+        # Dummy PSO that returns the best positions based on a simple function
+        return np.random.uniform(bounds[0], bounds[1], dimension)
+
+    # Define a fitness function that the PSO will try to maximize
+    def fitness(position):
+        index = int(position)
+        total_prize = 0
+        total_weight = 0
+        for j in range(index, prize.shape[0]):
+            for k in range(m):
+                total_weight += weight[j][k]
+            if total_weight > 1:
+                break
+            total_prize += prize[j]
+        return total_prize
+
+    # PSO swarm initialization (using dummy positions for each particle)
+    bounds = [0, prize.shape[0]]
+    num_particles = prize.shape[0]  # This would typically be much smaller in a real PSO
+    swarm = np.random.uniform(bounds[0], bounds[1], (num_particles, 1))
+
+    # PSO iteration
+    for _ in range(100):  # This would typically be many more iterations
+        new_swarm = np.zeros((num_particles, 1))
+        for i in range(num_particles):
+            # Randomly choose a direction (exploration vs. exploitation)
+            explore = np.random.rand() < 0.5
+            if explore:
+                direction = np.random.randn(1)
+            else:
+                direction = np.random.uniform(-1, 1, 1)
+
+            # Update position with new swarm member's best and global best
+            best_position = np.random.choice(swarm)  # Dummy global best
+            new_swarm[i] = swarm[i] + direction * (best_position - swarm[i])
+
+        # Enforce bounds
+        new_swarm = np.clip(new_swarm, bounds[0], bounds[1])
+
+        # Replace old swarm with new positions
+        swarm = new_swarm
+
+    # Extract the best particle's position
+    best_index = int(pso_model(swarm, 1, bounds)[0, 0])
+
+    # Calculate the heuristic based on the best decision made by the PSO
+    total_prize = 0
+    total_weight = 0
+    for j in range(best_index, prize.shape[0]):
+        for k in range(m):
+            total_weight += weight[j][k]
+        if total_weight > 1:
+            break
+        total_prize += prize[j]
+    heuristic[best_index] = rl_model(total_prize)
+
+    # Adaptive constraint-driven filtering
+    feasible_indices = np.where((total_weight <= 1)[::-1])[0][::-1]
+    feasible_prizes = np.extract(feasible_indices, prize)
+
+    # Normalize prizes for feasibility
+    if len(feasible_prizes) > 0:
+        normalized_prizes = feasible_prizes / feasible_prizes.sum()
+        heuristic[feasible_indices] = normalized_prizes
+
+    # Return sparsified heuristic with zeros for less promising items
+    return heuristic
+```

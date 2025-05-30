@@ -1,0 +1,52 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Dynamic item sorting based on multiple criteria
+    # Sort by weighted prize ratio, then by sparsity score
+    def get_sparsity_score(item_idx):
+        non_zero_weights = weight[item_idx, :].sum() > 0
+        return (np.count_nonzero(non_zero_weights) / m) ** 2
+
+    weighted_prize_ratio = prize / weight.sum(axis=1)
+    sorted_indices = np.argsort(-weighted_prize_ratio)
+    sorted_indices = np.argsort(-np.array([get_sparsity_score(i) for i in sorted_indices]))[sorted_indices]
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Initialize the accumulated weight for each dimension
+    accumulated_weight = np.zeros(m)
+
+    # Initialize the total score for sparsity across all dimensions
+    total_sparsity_score = 0
+
+    # Iterate over the sorted items and assign a heuristic value
+    for i in sorted_indices:
+        # Calculate the weighted ratio for the current item
+        current_weighted_ratio = prize[i] / weight[i, :].sum()
+
+        # Update the accumulated weight for each dimension
+        accumulated_weight += weight[i, :]
+
+        # Update the total sparsity score
+        total_sparsity_score += np.count_nonzero(accumulated_weight > 0)
+
+        # Calculate the sparsity score for the current item
+        current_sparsity_score = total_sparsity_score / m
+
+        # Update the heuristic for the current item based on the weighted ratio, sparsity, and accumulated weight
+        heuristics[i] = current_weighted_ratio + current_sparsity_score * np.log(total_sparsity_score / m)
+
+        # Set the accumulated weight back to zero after considering the current item
+        accumulated_weight = np.zeros(m)
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= np.sum(heuristics)
+
+    # Trim non-promising elements to sharpen focus
+    heuristics[heuristics < heuristics.max() * 0.1] = 0
+
+    return heuristics
+```

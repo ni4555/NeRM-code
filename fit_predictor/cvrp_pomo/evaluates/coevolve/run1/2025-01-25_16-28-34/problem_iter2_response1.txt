@@ -1,0 +1,49 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    edge_demand_per_vehicle = demands[:, None] + demands[None, :]
+    load_factor = edge_demand_per_vehicle * distance_matrix
+    
+    # Initialize heuristics matrix
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Local search to refine neighborhood exploration
+    for i in range(n):
+        for j in range(i + 1, n):
+            if load_factor[i, j] > 1 and load_factor[j, i] > 1:
+                # Swap to balance loads
+                distance_matrix[i, j], distance_matrix[j, i] = distance_matrix[j, i], distance_matrix[i, j]
+                demands[j] = demands[i]
+                demands[i] = 0
+                # Recalculate the load factor after swap
+                load_factor[i, j], load_factor[j, i] = load_factor[j, i], load_factor[i, j]
+                # Adjust heuristics after swap
+                heuristics[i, j], heuristics[j, i] = heuristics[j, i], heuristics[i, j]
+    
+    # Apply adaptive PSO with dynamic adjustments
+    swarm_size = 10  # Example swarm size
+    for _ in range(100):  # Example number of iterations
+        for i in range(swarm_size):
+            # Update velocity and position based on local and global best
+            # This is a simplified example and should be replaced with actual PSO logic
+            heuristics += (torch.rand_like(heuristics) - 0.5) * 0.1
+    
+    # Apply dynamic tabu search with adaptive cost function
+    tabu_list = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            if (i, j) not in tabu_list and load_factor[i, j] <= 1:
+                # Update heuristics based on tabu search
+                heuristics[i, j] *= 0.95
+                heuristics[j, i] *= 0.95
+                tabu_list.add((i, j))
+    
+    # Adjust the heuristics to ensure they are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0  # Avoid division by zero
+    heuristics[heuristics >= 0] = 0  # Set non-negative values to zero
+    
+    return heuristics
+```

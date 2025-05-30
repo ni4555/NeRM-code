@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Normalize the distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Normalize the demands
+    fractional_loads = demands / total_demand
+    
+    # Incorporate exploration using a Gaussian function for the load factor
+    # This encourages visiting nodes with high loads more frequently
+    load_exploration = torch.exp(-fractional_loads.pow(2) * 10)  # 10 is a tunable parameter for exploration
+    
+    # Incorporate exploitation using a linear function of the load factor
+    # This encourages visiting nodes with higher demands earlier
+    load_exploitation = fractional_loads * norm_distances
+    
+    # Combine exploration and exploitation
+    combined_load = load_exploration * load_exploitation
+    
+    # Incorporate a non-linear transformation to balance the load and distance
+    # Using a ReLU function to encourage edges with positive combined load
+    heuristics = torch.relu(combined_load - norm_distances)
+    
+    return heuristics
+```

@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    
+    # Introduce a randomness factor for perturbation
+    randomness_factor = (torch.rand(n, n) - 0.5) * 0.5
+    
+    # Calculate penalties for high demand deviation from average and for high deviation from symmetry
+    deviation_from_avg_penalty = ((normalized_demands - avg_demand) ** 2).sum()
+    symmetry_deviation_penalty = (distance_matrix - distance_matrix.t()) ** 2
+    
+    # Introduce a synergy factor to balance the penalties
+    synergy_factor = torch.rand(1) * 0.1
+    
+    # Adjust penalties based on the synergy factor
+    adjusted_penalty = (synergy_factor * (deviation_from_avg_penalty + symmetry_deviation_penalty) * (torch.rand(n, n) - 0.5) * 0.1)
+    
+    # Add penalties to the heuristics matrix
+    final_heuristics_matrix = heuristics_matrix + adjusted_penalty + randomness_factor
+    
+    # Ensure all entries are non-negative
+    final_heuristics_matrix = torch.clamp(final_heuristics_matrix, min=0)
+    
+    return final_heuristics_matrix
+```

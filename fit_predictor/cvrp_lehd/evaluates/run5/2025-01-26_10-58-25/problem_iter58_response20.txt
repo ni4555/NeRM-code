@@ -1,0 +1,31 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties using a weighted sum
+    combined_potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Use ReLU to emphasize constraints and make the potential non-negative
+    emphasized_matrix = torch.relu(combined_potential_matrix)
+    
+    # Normalize the emphasized matrix to avoid dominance
+    emphasized_matrix /= emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Use log-softmax to normalize the combined matrix and transform it into a heuristics matrix
+    log_prob_matrix = F.log_softmax(emphasized_matrix, dim=1)
+    
+    # Transform the log-probabilities into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -log_prob_matrix
+    
+    return heuristics_matrix
+```

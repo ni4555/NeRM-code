@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate cumulative demand for each node
+    cumulative_demand = demands.cumsum(0)
+    # Calculate the difference between cumulative demand and vehicle capacity
+    capacity = 1.0  # Assuming the vehicle capacity is 1 for normalization
+    demand_diff = (cumulative_demand - capacity).clamp(min=0)
+    # Normalize the distance matrix by the maximum distance in the matrix
+    max_distance = distance_matrix.max()
+    normalized_distance_matrix = distance_matrix / max_distance
+    # Apply non-linear transformations
+    heuristic_values = -torch.abs(demand_diff) * torch.log1p(normalized_distance_matrix)
+    # Ensure that all heuristic values are positive
+    heuristic_values = torch.clamp(heuristic_values, min=0)
+    return heuristic_values
+```

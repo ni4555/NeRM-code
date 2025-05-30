@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Introduce a loop penalty that considers the minimum distance in the matrix
+    min_distance = np.min(distance_matrix)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, (i + 1) % num_nodes] + distance_matrix[(i + 1) % num_nodes, i]
+                direct_distance = distance_matrix[i, (i + 1) % num_nodes]
+                loop_penalty_factor = 0.1
+                heuristics[i, j] += loop_penalty_factor * (loop_distance - direct_distance)
+
+    # Introduce a global penalty for large distances relative to the minimum distance in the matrix
+    global_large_distance_penalty = 1e6
+    large_distance_threshold = min_distance * global_large_distance_penalty
+    heuristics[distance_matrix > large_distance_threshold] += global_large_distance_penalty - min_distance
+
+    # Introduce a diversity factor that depends on the frequency of node pairs
+    diversity_factor = 1e-3
+    visited_count = np.sum(distance_matrix > 0, axis=0)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                heuristics[i, j] += diversity_factor / (visited_count[i] * visited_count[j])
+
+    # Normalize the heuristic values to ensure they are non-negative
+    heuristics = np.maximum(heuristics, 0)
+
+    return heuristics
+```

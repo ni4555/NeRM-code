@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot demand
+
+    # Calculate the heuristic for edges to the depot from all other nodes
+    depot_to_other = (average_demand - demands) * (1 / distance_matrix)
+
+    # Calculate the heuristic for edges between non-depot nodes
+    non_depot_to_non_depot = (demands.unsqueeze(1) - average_demand.unsqueeze(0)) * (1 / distance_matrix)
+
+    # Create the combined heuristic matrix
+    heuristic_matrix = torch.cat((depot_to_other, non_depot_to_non_depot), dim=1)
+    heuristic_matrix = torch.cat((heuristic_matrix, torch.zeros_like(heuristic_matrix[:, :1])), dim=1)
+    heuristic_matrix = torch.cat((heuristic_matrix, torch.zeros_like(heuristic_matrix[:, :1])), dim=0)
+
+    # Normalize the heuristics matrix
+    heuristic_matrix = heuristic_matrix / heuristic_matrix.sum(dim=1, keepdim=True)
+
+    return heuristic_matrix
+```

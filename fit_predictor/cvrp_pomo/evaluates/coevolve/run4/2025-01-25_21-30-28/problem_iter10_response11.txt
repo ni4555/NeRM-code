@@ -1,0 +1,60 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Exploration and exploitation balancing
+    exploration_factor = torch.rand(n)  # Random factor for exploration
+    exploitation_factor = torch.ones(n)  # Factor for exploitation
+
+    # Adjust heuristics for exploration
+    exploration_heuristics = (inverse_distance * (1 - exploration_factor) +
+                              heuristic_range * exploration_factor)
+
+    # Adjust heuristics for exploitation
+    exploitation_heuristics = (demand_weight * (1 - exploitation_factor) +
+                               load_balance * exploitation_factor)
+
+    # Combine exploration and exploitation
+    combined_heuristics = (exploration_heuristics + exploitation_heuristics) / 2
+
+    # Introduce a bonus for highly connected nodes (more customers)
+    connection_bonus = torch.exp(demands) / (demands + 1e-8)
+
+    # Mutation: Add a random factor to explore new solutions
+    mutation_factor = torch.rand_like(combined_heuristics)
+    mutated_heuristics = combined_heuristics + mutation_factor
+
+    # Mutation: Introduce a penalty for large deviations from the mean
+    penalty_factor = torch.clamp(torch.abs(mutated_heuristics - combined_heuristics) * 100, max=10.0)
+    mutated_heuristics -= penalty_factor
+
+    # Mutation: Introduce a bonus for large deviations from the mean if they lead to improvement
+    improvement_bonus = torch.clamp(torch.abs(mutated_heuristics - combined_heuristics) * 10, max=10.0)
+    mutated_heuristics += improvement_bonus
+
+    # Combine the connection bonus with the mutated heuristics
+    final_heuristics = (mutated_heuristics * connection_bonus) / (connection_bonus + 1e-8)
+
+    # Clamp the final heuristics to avoid extreme values
+    final_heuristics = torch.clamp(final_heuristics, min=-10.0, max=10.0)
+
+    return final_heuristics
+```

@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    demand_factors = (demands / total_demand).unsqueeze(1).expand(-1, n)
+    
+    # Calculate the scaled demands for each node
+    scaled_demands = demands * (distance_matrix[depot] / distance_matrix[depot]).unsqueeze(0).expand(n, -1)
+    
+    # Calculate the total distance for each node as a function of demand
+    total_dist_demand = distance_matrix.sum(dim=1) * demand_factors
+    
+    # Calculate a heuristic value based on the balance between local and global demand factors
+    heuristic = (total_dist_demand - scaled_demands).unsqueeze(1).expand(-1, n)
+    
+    # Normalize the heuristic to ensure it is in the range of [0, 1]
+    heuristic = (heuristic - heuristic.min()) / (heuristic.max() - heuristic.min())
+    
+    # Convert to negative values for undesirable edges
+    heuristic = -1 * (1 - heuristic)
+    
+    return heuristic
+```

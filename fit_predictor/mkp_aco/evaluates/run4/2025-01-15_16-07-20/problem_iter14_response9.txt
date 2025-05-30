@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Normalize the prize
+    normalized_prize = prize / max_prize
+    
+    # Calculate the sum of weights for items with zero weight in each dimension
+    non_zero_weight_sum = np.sum(weight[weight.sum(axis=1) > 0])
+    
+    # Calculate the sparsity bonus for the remaining items
+    sparsity_bonus = (np.sum(prize) - non_zero_weight_sum) / max_prize
+    
+    # Calculate the density for each item as the ratio of prize to the sum of weights
+    density = normalized_prize / np.sum(weight, axis=1)
+    
+    # Calculate the diversity score by considering the sum of squared weights
+    diversity_score = 1 / (np.sum(weight**2, axis=1) + 1e-6)
+    
+    # Calculate the constraint balance as the ratio of the sum of squared weights to the square of the sum of weights
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate the utility score by combining density, sparsity bonus, diversity, and constraint balance
+    utility_score = density * (1 - constraint_balance) * diversity_score
+    
+    # Adjust utility score with sparsity bonus
+    adjusted_utility = utility_score + sparsity_bonus
+    
+    # Normalize the adjusted utility scores
+    normalized_utility = adjusted_utility / np.sum(adjusted_utility)
+    
+    # Introduce a stochastic element to encourage diversity in the solution
+    random_factor = np.random.rand(len(normalized_utility))
+    normalized_utility *= (1 + random_factor - random_factor.mean())
+    
+    # Cap the heuristics scores to ensure they are within [0, 1]
+    heuristics = np.clip(normalized_utility, 0, 1)
+    
+    return heuristics
+```

@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate a demand-based heuristic by penalizing high demand edges
+    demand_heuristic = normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0)
+    
+    # Incorporate the distance matrix in logarithmic scale to favor shorter distances
+    distance_log = torch.log(distance_matrix + 1e-6)
+    
+    # Add a load balancing factor considering the absolute difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Include a dynamic routing factor using a simple time decay function
+    # Assuming a time factor that decays based on the distance from the depot
+    time_factor = 1 / (1 + torch.sum(distance_matrix, dim=1))
+    
+    # Combine the demand heuristic, distance log, load balance, and dynamic time factor
+    combined_heuristic = demand_heuristic + distance_log + load_balance * time_factor
+    
+    # Cap the values to ensure a positive heuristic for edge selection
+    heuristic_cap = 10
+    combined_heuristic = torch.clamp(combined_heuristic, min=0, max=heuristic_cap)
+    
+    return combined_heuristic
+```

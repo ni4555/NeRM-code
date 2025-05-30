@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    demand_scale = (demands / total_demand).unsqueeze(1)
+    
+    # Weigh cost and demand based on some parameter that could be tuned
+    cost_weight = 0.5  # Cost weight
+    demand_weight = 0.5  # Demand weight
+    
+    # Compute cost and demand components
+    cost_component = cost_weight * distance_matrix
+    demand_component = demand_weight * (demand_scale - demand_scale.transpose(0, 1))
+    
+    # Calculate total heuristic value for each edge
+    heuristic_values = cost_component + demand_component
+    
+    # Normalize by the maximum absolute value to ensure all values are within a bounded range
+    max_abs_value = torch.max(torch.abs(heuristic_values))
+    heuristic_values = heuristic_values / max_abs_value
+    
+    # Apply a penalty for edges leading to a node with demand greater than vehicle capacity
+    penalty = (demands > 1.0).float() * -1000.0
+    heuristic_values += penalty
+    
+    # Apply a penalty for returning to the depot (index 0)
+    penalty_depot = torch.zeros_like(distance_matrix)
+    penalty_depot[torch.arange(n), 0] = -1
+    heuristic_values += penalty_depot
+    
+    return heuristic_values
+```

@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Problem-specific local search: Adjust heuristics to account for vehicle capacities
+    edge_loads = (demands[:, None] + demands[None, :]) * distance_matrix
+    load_factor = edge_loads.sum() / (distance_matrix * total_capacity).sum()
+    
+    # Adaptive PSO with Adaptive Population Management: Introduce a diversity factor
+    diversity_factor = torch.clamp((torch.rand_like(distance_matrix) - 0.5) * 2, -1, 1)
+    
+    # Dynamic Tabu Search with Adaptive Cost Function: Adjust heuristics based on load factor
+    cost_adjustment = load_factor ** 0.5
+    heuristics = (1 - cost_adjustment) + diversity_factor
+    
+    # Normalize and apply penalties to maintain a balance between exploration and exploitation
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    penalty_factor = 0.5 * torch.ones_like(heuristics)
+    heuristics -= penalty_factor * (heuristics - 0.5)
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

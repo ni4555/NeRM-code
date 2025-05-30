@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate the heuristic value for each edge based on scaled demand and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Introduce a dampening factor to reduce the impact of high penalties
+    dampening_factor = 0.8
+
+    # Add a penalty for edges that lead to a node with demand greater than vehicle capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * dampening_factor
+
+    # Add a dampened penalty for edges leading back to the depot (index 0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(distance_matrix.shape[0]), 0] = -10
+    heuristics += depot_penalty * dampening_factor
+
+    # Add a dampened penalty for edges too far from the depot (local preference)
+    distance_penalty = torch.abs(distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+    heuristics += torch.clamp(distance_penalty, min=0.0) * dampening_factor
+
+    # Promote feasibility by normalizing the heuristics to a balanced range
+    feasible_heuristics = torch.clamp(heuristics, min=0.0)
+
+    # Scale the heuristics to be in the range [0, 1]
+    max_feasible = feasible_heuristics.max()
+    min_feasible = feasible_heuristics.min()
+    heuristics = (feasible_heuristics - min_feasible) / (max_feasible - min_feasible)
+
+    return heuristics
+```

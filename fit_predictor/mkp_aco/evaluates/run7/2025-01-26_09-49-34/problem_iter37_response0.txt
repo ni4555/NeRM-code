@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to ensure items are not dominated by high prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate a balance factor considering both sparsity and variance
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    balance_factor = sparsity_factor * inv_variance_factor
+    
+    # Introduce exploration and exploitation by sampling from Gaussian and uniform distributions
+    exploration = np.random.normal(0, 0.02, size=normalized_prize.shape)
+    exploitation = np.random.uniform(0, 0.02, size=normalized_prize.shape)
+    noise = exploration * 0.5 + exploitation * 0.5
+    noise = np.maximum(noise, 0)  # Ensure non-negative noise
+    noisy_prize = normalized_prize * balance_factor + noise
+    
+    # Dynamically adapt thresholds based on the distribution of the prize values
+    lower_threshold = np.percentile(noisy_prize, 20)  # 20% lower threshold
+    upper_threshold = np.percentile(noisy_prize, 80)  # 80% upper threshold
+    
+    # Amplify the heuristics of items within the thresholds
+    amplified_prize = np.where(noisy_prize > upper_threshold, noisy_prize * 1.2, 
+                                np.where(noisy_prize < lower_threshold, noisy_prize * 0.8, noisy_prize))
+    
+    # Introduce sparsity by zeroing out items that do not meet a minimum heuristic value
+    sparsity_threshold = np.percentile(amplified_prize[amplified_prize > 0], 10)  # 10% threshold for sparsity
+    amplified_prize[amplified_prize < sparsity_threshold] = 0
+    
+    # Normalize the final heuristics
+    heuristic_sum = np.sum(amplified_prize)
+    if heuristic_sum > 0:
+        amplified_prize /= heuristic_sum
+    
+    return amplified_prize
+```

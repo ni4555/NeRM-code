@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Use the Chebyshev distance as a non-linear transformation to emphasize closer nodes
+    distance_transform = torch.max(torch.abs(distance_matrix - vehicle_capacity), torch.zeros_like(distance_matrix))
+    
+    # Create a combined potential matrix with a weighted sum of the demand and distance penalties
+    combined_potential_matrix = penalty_matrix + 0.3 * distance_transform
+    
+    # Introduce a diversity element by using the negative of a sine wave transformation
+    diversity_element = -torch.sin(torch.acos(combined_potential_matrix / combined_potential_matrix.clamp(min=1)))
+    
+    # Normalize the combined potential matrix with the diversity element to ensure non-negativity
+    normalized_combined_matrix = combined_potential_matrix / (combined_potential_matrix + diversity_element)
+    
+    # Adjust the normalized matrix to ensure it has a good range for the heuristic function
+    adjusted_normalized_matrix = normalized_combined_matrix - torch.min(normalized_combined_matrix)
+    
+    # Convert the adjusted matrix to a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -adjusted_normalized_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the relative demand (demand / sum of demands)
+    relative_demand = demands / demands.sum()
+    
+    # Calculate the demand difference for self-comparison
+    demand_diff_matrix = (demands[:, None] - demands[None, :])
+    
+    # Normalize the demand difference matrix
+    demand_diff_matrix = demand_diff_matrix / demand_diff_matrix.sum(dim=1, keepdim=True)
+    
+    # Incorporate the distance matrix to form a composite metric
+    composite_metric = distance_matrix * demand_diff_matrix
+    
+    # Add the relative demand as a factor for demand-based preference
+    composite_metric = composite_metric * relative_demand[:, None]
+    
+    # Normalize the composite metric
+    composite_metric = composite_metric / composite_metric.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Calculate heuristic by combining the normalized composite metric and demand factor
+    heuristics = composite_metric + capacity_factor
+    
+    # Clip negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

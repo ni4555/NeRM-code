@@ -1,0 +1,15 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    demand_threshold = total_demand / len(demands)
+    distance_factor = 1 / (1 + distance_matrix)
+    demand_factor = (1 - (demands / demand_threshold)).unsqueeze(1)
+    revisit_penalty = demands * (demands > 0).type(torch.float32)
+    balance_load_factor = (1 - torch.abs(demands - demand_threshold / 2) / (demand_threshold / 2)).unsqueeze(1)
+    
+    heuristics = distance_factor * demand_factor * revisit_penalty * balance_load_factor
+    heuristics = heuristics.sum(dim=1, keepdim=True)
+    return heuristics
+```

@@ -1,0 +1,46 @@
+{
+  "generation": 3,
+  "description": "Optimizing the Traveling Salesman Problem (TSP) using a cutting-edge evolutionary algorithm that seamlessly integrates advanced guided local search mechanisms with adaptive tabu search strategies to achieve a balanced exploration and exploitation. This algorithm incorporates dynamic path optimization through intelligent parameter adaptation, leveraging a sophisticated distance matrix for heuristic computation. The hybrid approach aims to surpass existing fitness thresholds by synergizing the speed and efficiency of heuristic-driven guided local search with real-time, intelligent parameter adjustments, resulting in significantly enhanced TSP solutions with fitness values exceeding 10.617516362484723.",
+  "solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Assuming that the distance matrix is symmetric and has the same size as the number of nodes\n    # The heuristic function could be a simple function like the Manhattan distance from the origin\n    # to each node, which is a common heuristic for TSP problems.\n    # For simplicity, we'll use the sum of the row and column indices as a heuristic value,\n    # as it is a simple heuristic without needing additional computations.\n\n    # Calculate the Manhattan distance from the origin (0, 0) to each node\n    heuristic_values = np.sum(np.column_stack((np.arange(distance_matrix.shape[0]), np.arange(distance_matrix.shape[1]))), axis=1)\n\n    # We create a matrix of the same shape as the distance matrix, where each cell contains\n    # the heuristic value for the corresponding edge.\n    heuristic_matrix = np.zeros_like(distance_matrix)\n    for i in range(distance_matrix.shape[0]):\n        for j in range(distance_matrix.shape[1]):\n            if i != j:\n                heuristic_matrix[i, j] = heuristic_values[i] + heuristic_values[j] - distance_matrix[i, j]\n\n    return heuristic_matrix",
+      "fitness": 10.619991632775594,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_4.txt",
+      "code_file": "coevolve\\generation_3\\code_4.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # This function implements a heuristics for the TSP problem using a distance matrix\n    # For the sake of this example, we will use a simple heuristic that assigns a higher\n    # score to edges that are longer (this is not a real heuristic for TSP, just a placeholder)\n    # The actual implementation should use more sophisticated methods based on the problem requirements\n\n    # Invert the distance matrix for the heuristic (longer distances are penalized more)\n    # This is not a correct heuristic for TSP; in a real heuristic, you would find a way to estimate\n    # the cost of paths that is more informative about the TSP solution quality.\n    return 1 / (1 + distance_matrix)  # Using 1 + to avoid division by zero for the diagonal elements",
+      "fitness": 10.6341697262819,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_1.txt",
+      "code_file": "coevolve\\generation_3\\code_1.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Assuming a simple heuristic based on the maximum distance to a nearest neighbor\n    num_nodes = distance_matrix.shape[0]\n    heuristic_values = np.zeros_like(distance_matrix, dtype=np.float64)\n    \n    # Calculate the heuristic for each edge\n    for i in range(num_nodes):\n        for j in range(num_nodes):\n            if i != j:\n                # Find the minimum distance to any other node for the current node i\n                min_distance = np.min(distance_matrix[i])\n                # The heuristic for edge (i, j) is the maximum distance to any node from i\n                # (which would be the distance to the farthest node from i if i was the start of the tour)\n                heuristic_values[i, j] = np.max(distance_matrix[i])\n    \n    return heuristic_values",
+      "fitness": 10.63853312855801,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_2.txt",
+      "code_file": "coevolve\\generation_3\\code_2.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Initialize a matrix of the same shape as the distance matrix with zeros\n    heuristics_matrix = np.zeros_like(distance_matrix)\n    \n    # Compute the heuristics for each edge\n    for i in range(len(distance_matrix)):\n        for j in range(i+1, len(distance_matrix)):\n            # Example heuristic: the heuristic value is the negative of the distance\n            heuristics_matrix[i][j] = -distance_matrix[i][j]\n            heuristics_matrix[j][i] = heuristics_matrix[i][j]  # The matrix is symmetric\n    \n    return heuristics_matrix",
+      "fitness": 10.822793291731537,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_0.txt",
+      "code_file": "coevolve\\generation_3\\code_0.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Initialize a matrix to store the minimum distances from the MST\n    min_distances = np.full(distance_matrix.shape, np.inf)\n    min_distances[0, 1] = distance_matrix[0, 1]  # Start with the first edge\n    # Array to track which nodes have been included in the MST\n    in_mst = np.zeros(distance_matrix.shape[0], dtype=bool)\n    in_mst[0] = True\n\n    # Number of nodes not yet included in the MST\n    remaining_nodes = distance_matrix.shape[0] - 1\n\n    # While there are nodes not yet included in the MST\n    while remaining_nodes > 0:\n        # Find the edge with the smallest weight that connects a node in the MST to a node not in the MST\n        edge_indices = np.where(min_distances > 0)\n        min_edge_value = np.min(min_distances[edge_indices[1]] * min_distances[edge_indices[0]])\n        edge_from = edge_indices[0][np.argmin(min_distances[edge_indices[1]] * min_distances[edge_indices[0]])]\n        edge_to = edge_indices[1][np.argmin(min_distances[edge_indices[1]] * min_distances[edge_indices[0]])]\n\n        # Include the edge in the MST\n        min_distances[edge_from, :] = 0\n        min_distances[:, edge_from] = 0\n        min_distances[edge_to, :] = 0\n        min_distances[:, edge_to] = 0\n\n        # Update the minimum distances\n        for i in range(distance_matrix.shape[0]):\n            if not in_mst[i] and distance_matrix[i, edge_from] < min_distances[edge_from, i]:\n                min_distances[edge_from, i] = distance_matrix[i, edge_from]\n            if not in_mst[i] and distance_matrix[i, edge_to] < min_distances[edge_to, i]:\n                min_distances[edge_to, i] = distance_matrix[i, edge_to]\n\n        # Mark the new node as included in the MST\n        in_mst[edge_to] = True\n        # Update the number of remaining nodes\n        remaining_nodes -= 1\n\n    # Create the heuristic matrix\n    heuristic_matrix = np.where(min_distances == np.inf, 0, min_distances)\n    return heuristic_matrix",
+      "fitness": 10.822793291731537,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_3.txt",
+      "code_file": "coevolve\\generation_3\\code_3.py"
+    }
+  ]
+}

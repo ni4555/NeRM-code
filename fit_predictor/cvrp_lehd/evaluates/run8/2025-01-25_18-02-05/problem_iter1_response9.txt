@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand from the depot
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the potential additional demand for each edge
+    potential_demand = cumulative_demand[1:] - cumulative_demand[:-1]
+    
+    # Calculate the potential additional distance if this edge is taken
+    potential_distance = distance_matrix[1:, :-1]
+    
+    # Calculate the heuristic value for each edge as the negative of the ratio of potential demand to potential distance
+    heuristic_matrix = -potential_demand / potential_distance
+    
+    # To avoid division by zero, replace infinity with a large negative value
+    heuristic_matrix = torch.where(torch.isinf(heuristic_matrix), -torch.tensor(float('inf')), heuristic_matrix)
+    
+    return heuristic_matrix
+```

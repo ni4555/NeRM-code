@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic function that considers demand proximity to the depot and dampens distance
+    penalties."""
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the demand proximity factor, which is higher for nodes closer to the depot and
+    # with higher demand.
+    demand_proximity = (demands / total_demand) * (1.0 / distance_matrix)
+    
+    # Apply a dampening factor to the distance matrix to penalize longer distances.
+    dampen_factor = torch.exp(-distance_matrix / 10)
+    
+    # Combine demand proximity and dampening factor to get the heuristic values.
+    heuristic_matrix = demand_proximity * dampen_factor
+    
+    # Normalize the heuristic matrix to ensure values are between -1 and 1.
+    min_val = heuristic_matrix.min()
+    max_val = heuristic_matrix.max()
+    heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    return heuristic_matrix
+```

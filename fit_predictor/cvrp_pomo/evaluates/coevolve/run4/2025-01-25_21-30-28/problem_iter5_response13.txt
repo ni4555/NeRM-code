@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Dynamic adaptation of heuristics based on performance: use a weighted average of previous and new heuristics
+    previous_heuristics = torch.rand(n, n)
+    decay_factor = 0.5
+    combined_heuristic = (previous_heuristics * decay_factor +
+                          (inverse_distance * demand_weight * heuristic_range * load_balance) * (1 - decay_factor))
+
+    # Integrate domain-specific insights: adjust weights based on problem specifics dynamically
+    weight_inverse_distance = 0.5 * (1 + torch.rand(1))
+    weight_demand_weight = 0.3 * (1 + torch.rand(1))
+    weight_heuristic_range = 0.2 * (1 + torch.rand(1))
+    weight_load_balance = 0.4 * (1 + torch.rand(1))
+
+    # Normalize heuristics to balance global/local aspects and prioritize capacity constraints
+    combined_heuristic = torch.nn.functional.normalize(combined_heuristic, p=1, dim=1)
+
+    # Clamp values to a reasonable range to avoid extreme values
+    combined_heuristic = torch.clamp(combined_heuristic, min=-10.0, max=10.0)
+
+    return combined_heuristic
+```

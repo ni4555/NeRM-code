@@ -1,0 +1,47 @@
+```python
+import torch
+
+def sigmoid(x):
+    return 1 / (1 + torch.exp(-x))
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+    heuristics = demand_diff * remaining_capacity
+
+    # Limit the impact of exploration noise to avoid excessive randomness
+    exploration_noise = torch.randn_like(heuristics) * 0.01
+    heuristics += exploration_noise
+
+    # Normalize heuristic values to encourage exploration and avoid saturation
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Non-linear transformation to balance exploration and exploitation
+    heuristics = sigmoid(heuristics)
+
+    # Apply proportional penalties to ensure a balance between capacity constraints and other factors
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty
+
+    # Penalty for returning to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty
+
+    # Local preference for edges closer to the depot
+    distance_penalty = distance_matrix[:, 0] / distance_matrix[:, 0].max()
+    heuristics += distance_penalty
+
+    # Clamp to ensure a balanced heuristic distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

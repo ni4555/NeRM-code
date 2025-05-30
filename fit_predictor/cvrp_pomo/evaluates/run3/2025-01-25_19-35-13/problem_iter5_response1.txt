@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+    
+    # Use a greedy approach to initialize the potential
+    edge_potential = torch.zeros_like(distance_matrix)
+    for i in range(1, len(demands)):
+        for j in range(i + 1, len(demands)):
+            edge_potential[i, j] = normalized_demands[i] * normalized_demands[j] * distance_matrix[i, j]
+    
+    # Adjust potential based on the total demand and vehicle capacity
+    edge_potential = edge_potential * (1 - (demands > 1.5).float())
+    edge_potential = edge_potential + torch.log(1 + (1 / total_demand) * (demands * distance_matrix))
+    
+    # Apply a penalty for high distance edges
+    edge_potential = edge_potential - (edge_potential * 0.1 * (distance_matrix < 10).float())
+    
+    return edge_potential
+```

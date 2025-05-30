@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Prune dominated items by removing those with lower prize but same or higher weight in any dimension
+    dominance_matrix = np.sum(weight, axis=1)[:, None] < np.sum(weight, axis=1)
+    dominated_items = np.any(dominance_matrix, axis=1)
+    non_dominated_indices = np.where(~dominated_items)[0]
+    prize = prize[non_dominated_indices]
+    weight = weight[non_dominated_indices, :]
+    
+    # Normalize prize values to avoid dominance by high values
+    prize_normalized = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Normalize weight values to avoid dominance by light items
+    weight_normalized = (weight - np.min(weight, axis=1)[:, None]) / (np.max(weight, axis=1)[:, None] - np.min(weight, axis=1)[:, None])
+    
+    # Combine prize and weight normalized metrics to create a heuristic
+    heuristic = prize_normalized * np.prod(weight_normalized, axis=1)
+    
+    # Introduce randomness to maintain diversity
+    np.random.seed(42)  # Setting a seed for reproducibility
+    random_factor = np.random.rand(len(heuristic))
+    
+    # Normalize the combined heuristics
+    heuristic = (heuristic + random_factor) / np.sum(heuristic + random_factor)
+    
+    return heuristic
+```

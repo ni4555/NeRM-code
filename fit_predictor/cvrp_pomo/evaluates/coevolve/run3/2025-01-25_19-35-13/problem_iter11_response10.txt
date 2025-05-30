@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Integrate DP bounds and use them as a heuristic
+    dp = torch.zeros((len(demands), len(demands)))
+    for d in range(1, len(demands)):
+        dp[d, 0] = dp[0, d-1] + distance_matrix[0, d]
+        for s in range(1, d):
+            dp[d, s] = torch.min(dp[d-1, s], dp[s, d-1] + distance_matrix[s, d])
+
+    dp_bound = torch.min(dp[:, 0], dp[0, :])
+
+    # Apply a heuristic function that balances the demand and distance
+    epsilon = 1e-8
+    demand_heuristic = normalized_demands**2  # Using squared demand as a heuristic
+    distance_heuristic = 1 / (distance_matrix + epsilon)  # Inverse distance as a heuristic
+
+    # Combine heuristics with a weighted sum, and add dynamic penalties
+    edge_potential = demand_heuristic * distance_heuristic
+    edge_potential = edge_potential * (dp_bound / (dp_bound + epsilon))  # Incorporate lower bound
+
+    # Dynamic penalties for high demand and long distances
+    high_demand_penalty = 0.1 * (demands > 1.5).float()
+    distance_penalty = 0.05 * (distance_matrix < 10).float()
+
+    edge_potential = edge_potential - high_demand_penalty - distance_penalty
+
+    return edge_potential
+```

@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate cumulative demand and apply non-linear penalties for demand that exceeds vehicle capacity
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    penalty_threshold = torch.tensor(1.0, dtype=distance_matrix.dtype)
+    penalty = torch.clamp(torch.abs(cumulative_demand - penalty_threshold), min=0, max=1)
+
+    # Incorporate global network statistics to adjust weights dynamically
+    global_stats = torch.mean(distance_matrix[1:, 1:])  # Exclude the diagonal
+    adjusted_weights = distance_matrix / global_stats
+
+    # Combine the adjusted weights with the demand and apply non-linear penalties
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, adjusted_weights),
+        penalty
+    )
+
+    # Apply smoothing and normalize the heuristics
+    heuristic_matrix = torch.tanh(heuristic_matrix)  # Smooths and clamps between -1 and 1
+    normalized_heuristic_matrix = heuristic_matrix / (torch.abs(heuristic_matrix).max() + 1e-8)
+
+    # Enforce stability by penalizing outliers and ensuring non-negative values
+    outlier_penalty = torch.clamp(torch.abs(normalized_heuristic_matrix), min=0, max=1)
+    stable_heuristic_matrix = torch.mul(normalized_heuristic_matrix, outlier_penalty)
+
+    return stable_heuristic_matrix
+```

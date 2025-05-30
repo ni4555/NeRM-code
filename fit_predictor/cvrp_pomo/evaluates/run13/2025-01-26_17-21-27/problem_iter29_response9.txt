@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Integrate dynamic scaling for penalties
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Use a weighted sum of distance and load to create a load-based penalty
+    load_penalty = torch.abs(cumulative_demand - total_capacity / n)
+    load_penalty = -torch.log1p(load_penalty - 1e-8)
+    
+    # Early overflow detection with dynamic penalty
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Combine the penalties using adaptive weights
+    penalty_weights = torch.tensor([0.6, 0.2, 0.2], dtype=torch.float32)  # Distance, Load, Overflow
+    combined_penalty = penalty_weights[0] * distance_penalty + penalty_weights[1] * load_penalty + penalty_weights[2] * overflow_penalty
+    
+    # Encourage diversity by penalizing high load imbalances
+    high_load_balance_penalty = torch.where(
+        load_penalty > total_capacity / (2 * n),
+        -torch.log1p(load_penalty - 1e-8),
+        torch.zeros_like(load_penalty)
+    )
+    
+    # Final heuristics combining all factors
+    heuristics = combined_penalty + high_load_balance_penalty
+    return heuristics
+```

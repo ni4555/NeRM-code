@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Introduce randomness early to provide initial diversity
+    random_matrix = torch.rand_like(penalty_matrix)
+    randomized_penalty_matrix = penalty_matrix + random_matrix * 0.1
+    
+    # Combine demand penalties and distance penalties into a single potential matrix
+    potential_matrix = randomized_penalty_matrix + distance_penalty_matrix
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(potential_matrix))
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Blend the normalized emphasized matrix with the original penalty matrix
+    combined_matrix = normalized_emphasized_matrix + penalty_matrix * 0.5
+    
+    # Introduce a second non-linear transformation to further emphasize the most promising edges
+    second_emphasized_matrix = torch.tanh(combined_matrix)
+    
+    # Normalize the second emphasized matrix to ensure non-negativity and scale balance
+    normalized_second_emphasized_matrix = second_emphasized_matrix / second_emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Introduce a third non-linear transformation to ensure a balance between promising and undesirable edges
+    heuristics_matrix = torch.sigmoid(normalized_second_emphasized_matrix)
+    
+    return heuristics_matrix
+```

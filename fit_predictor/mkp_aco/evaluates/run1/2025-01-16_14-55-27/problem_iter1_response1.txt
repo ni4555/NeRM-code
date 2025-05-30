@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Dynamic item sorting based on a composite heuristic
+    sorted_indices = np.argsort(-prize / weight.sum(axis=1))
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Track the cumulative sum of heuristics to adjust the heuristic value
+    cumulative_sum = 0
+
+    # Iterate over the sorted items and assign a heuristic value
+    for i in sorted_indices:
+        # Calculate the weighted ratio for the current item
+        weighted_ratio = prize[i] / weight[i, :].sum()
+
+        # Calculate the heuristic value considering multiple factors
+        # Factor 1: Inverse of weighted ratio (promising items have high ratio)
+        # Factor 2: Negative cumulative sum (to avoid selecting items too early)
+        # Factor 3: Negative normalized weight sum (to consider the overall weight distribution)
+        heuristic_value = (1 / weighted_ratio) - cumulative_sum - (weight[i, :].sum() / weight.sum())
+
+        # Update the cumulative sum
+        cumulative_sum += heuristic_value
+
+        # Set the heuristic value for the current item
+        heuristics[i] = heuristic_value
+
+    # Sparsify the heuristics by setting values below a threshold to zero
+    threshold = np.max(heuristics) * 0.1  # Example threshold, 10% of the max heuristic value
+    heuristics[heuristics < threshold] = 0
+
+    return heuristics
+```

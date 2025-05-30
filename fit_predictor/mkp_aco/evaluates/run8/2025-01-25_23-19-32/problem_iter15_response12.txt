@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize weights by summing across dimensions
+    weight_normalized = np.sum(weight, axis=1)
+    
+    # Calculate the importance of each item based on prize to normalized weight ratio
+    item_importance = prize / weight_normalized
+    
+    # Introduce randomness to the diversity factor
+    diversity_factor = np.random.rand(len(item_importance)) * (1 / (1 + np.exp(-item_importance)))
+    
+    # Calculate variance to emphasize variance
+    variance = np.var(item_importance)
+    
+    # Calculate the sparsity factor for each item
+    sparsity_factor = 1 - (np.sum(weight**2, axis=1) / weight_normalized**2)
+    
+    # Use a weighted sum to combine factors
+    combined_value_diversity = (item_importance * diversity_factor * variance + sparsity_factor) / 3
+    
+    # Introduce a domain insight: high variance in importance suggests high potential for a diverse solution
+    domain_insight_weight = 0.5
+    domain_insight = combined_value_diversity * domain_insight_weight
+    
+    # Enforce sparsity by penalizing items that do not contribute to diversity
+    sparsity_penalty = 1 - diversity_factor
+    domain_insight *= sparsity_penalty
+    
+    # Adjust heuristics to balance between high-value items and diverse selection
+    adjusted_importance = domain_insight * (1 + np.random.normal(0, 0.1, len(item_importance)))
+    
+    # Normalize heuristics to encourage variety without uniformity
+    heuristics = adjusted_importance / np.sum(adjusted_importance)
+    
+    return heuristics
+```

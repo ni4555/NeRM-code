@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Define weights for different components
+    demand_weight = 0.5
+    distance_weight = 0.3
+    outlier_penalty_weight = 0.2
+
+    # Define outlier thresholds
+    max_demand_threshold = 0.8
+    high_demand_threshold = 1.1
+
+    # Create a mask for outlier penalties
+    high_demand_mask = (demands > demands.max() * max_demand_threshold).float()
+    outlier_mask = (demands > demands.max() * high_demand_threshold).float()
+
+    # Calculate the heuristic for each edge
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j and (i == 0 or j == 0):  # Skip the depot and ensure no self-loops
+                # Calculate the demand-based heuristic component
+                demand_component = -normalized_demands[i] * normalized_demands[j]
+
+                # Calculate the distance-based heuristic component
+                distance_component = distance_matrix[i, j]
+
+                # Calculate the demand outlier penalty
+                demand_penalty = outlier_penalty_weight * high_demand_mask[i] * high_demand_mask[j]
+
+                # Calculate the total heuristic for the edge
+                heuristic = demand_component * demand_weight + distance_component * distance_weight + demand_penalty
+
+                # Update the heuristic matrix
+                heuristic_matrix[i, j] = heuristic
+
+    # Normalize the heuristic matrix to ensure positive values for promising edges
+    heuristic_matrix = heuristic_matrix / (heuristic_matrix.abs().max() + 1e-8)
+
+    return heuristic_matrix
+```

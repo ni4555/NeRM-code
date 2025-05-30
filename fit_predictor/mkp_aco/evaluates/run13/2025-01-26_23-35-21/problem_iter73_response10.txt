@@ -1,0 +1,37 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a random seed for reproducibility in stochastic elements
+    np.random.seed(42)
+
+    # Calculate normalized density and sparsity
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Use a greedy selection heuristic where items are sorted by density
+    sorted_indices = np.argsort(-density)
+    greedy_heuristic = np.zeros_like(prize)
+    cumulative_weight = np.zeros_like(weight[0])
+    for i in sorted_indices:
+        if cumulative_weight + weight[i] <= 1:
+            greedy_heuristic[i] = 1
+            cumulative_weight += weight[i]
+    
+    # Introduce randomness for exploration in the heuristic
+    random_exploration = np.random.rand(*prize.shape)
+    random_heuristic = random_exploration / np.max(random_exploration)
+    
+    # Create a final heuristic by blending the greedy heuristic and random exploration
+    heuristic = 0.7 * greedy_heuristic + 0.3 * random_heuristic
+    
+    # Normalize the heuristic
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Prune dominated items by setting their heuristic to zero
+    for i in range(len(prize)):
+        if prize[i] / (np.sum(weight[i]) + 1e-8) < np.min(normalized_heuristic):
+            normalized_heuristic[i] = 0
+    
+    return normalized_heuristic
+```

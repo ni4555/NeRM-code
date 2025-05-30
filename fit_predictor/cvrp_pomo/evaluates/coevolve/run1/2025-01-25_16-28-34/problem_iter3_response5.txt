@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    adjusted_average_demand = average_demand_per_edge / total_capacity
+    
+    # Problem-specific Local Search: Implementing a load-based heuristic
+    load_based_heuristic = (adjusted_average_demand - 1) * (distance_matrix != 0)
+    load_based_heuristic = load_based_heuristic - load_based_heuristic.clamp(min=0) / total_capacity
+    
+    # Adaptive PSO with Adaptive Population Management: Adding exploration based on randomness
+    random_perturbation = torch.rand_like(adjusted_average_demand)
+    exploration_heuristic = random_perturbation * 0.1
+    pso_based_heuristic = exploration_heuristic + load_based_heuristic
+    
+    # Dynamic Tabu Search with Adaptive Cost Function: Incorporating tabu status into the heuristic
+    tabu_list = torch.rand_like(pso_based_heuristic) > 0.8  # Assuming tabu probability is 20%
+    tabu_based_heuristic = pso_based_heuristic * (1 - tabu_list)
+    
+    # Final heuristics matrix combining all elements
+    heuristics = tabu_based_heuristic - tabu_based_heuristic.clamp(min=0)
+    
+    heuristics[distance_matrix == 0] = 0
+    return heuristics
+```

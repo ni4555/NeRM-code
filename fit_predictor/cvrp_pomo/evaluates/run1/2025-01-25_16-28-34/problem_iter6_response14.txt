@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands = demands / total_capacity
+    
+    # Calculate the load factor for each edge
+    load_factor = demands[:, None] + demands[None, :] * distance_matrix
+    
+    # Problem-specific local search: Calculate the heuristic based on the demand distribution
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # PSO-inspired exploration: Use the average demand as a guide for promising edges
+    heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    # Tabu search-inspired exploitation: Penalize heavily overloading and underloading
+    overload_penalty = torch.clamp(heuristics, max=0)
+    underload_penalty = torch.clamp(1 - heuristics, max=0)
+    
+    # Combine penalties for a balanced heuristic
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

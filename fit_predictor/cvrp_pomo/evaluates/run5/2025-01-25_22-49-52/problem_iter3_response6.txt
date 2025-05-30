@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize weights based on the inverse of the node demands
+    weights = 1 / demands
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Apply weights to distance matrix
+    weighted_distances = normalized_distances * weights
+    
+    # Demand relaxation: Add the squared demand to the weighted distances
+    relaxed_potential = weighted_distances + (demands**2)
+    
+    # Adjust weights dynamically based on the total potential
+    total_potential = relaxed_potential.sum().item()
+    dynamic_weights = torch.clamp(weights * (1 + 0.01 * total_potential), min=0.0001)
+    
+    # Calculate the potential value for each edge
+    potential_values = relaxed_potential * dynamic_weights
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

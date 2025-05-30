@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    heuristics = torch.full_like(distance_matrix, fill_value=-float('inf'))
+
+    # Calculate the cumulative demand and cost without considering the return to the depot
+    cumulative_demand = torch.cat([torch.zeros(1), demand_cumsum.cumsum(dim=0)], dim=0)
+    cumulative_cost = distance_matrix.cumsum(dim=0)
+
+    # Calculate the return cost to the depot for each node
+    return_cost = distance_matrix[:, 0].unsqueeze(0)
+
+    # Iterate over each possible start node
+    for start_node in range(n_nodes):
+        remaining_capacity = demands[start_node]
+        # Iterate over each node as a potential destination
+        for destination_node in range(n_nodes):
+            if start_node != destination_node:
+                # Check if the destination node can be visited without exceeding the vehicle capacity
+                if cumulative_demand[destination_node + 1] <= remaining_capacity:
+                    # Calculate the heuristics value for the edge
+                    heuristics[start_node, destination_node] = cumulative_cost[destination_node + 1] - cumulative_demand[destination_node + 1]
+                    # Update the remaining capacity
+                    remaining_capacity -= cumulative_demand[destination_node + 1]
+                    # Check if the vehicle needs to return to the depot
+                    if remaining_capacity <= 0:
+                        heuristics[start_node, 0] = return_cost[start_node]
+                        break
+                else:
+                    # If the destination node cannot be visited, set the heuristics value to a large negative number
+                    heuristics[start_node, destination_node] = -float('inf')
+
+    # Apply the return cost to the depot to all feasible edges
+    heuristics[torch.arange(n_nodes), torch.arange(n_nodes)] = return_cost
+
+    return heuristics
+```

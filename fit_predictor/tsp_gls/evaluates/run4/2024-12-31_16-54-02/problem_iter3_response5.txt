@@ -1,0 +1,24 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize a matrix with the same shape as the distance_matrix to store heuristics
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Loop through each pair of nodes
+    for i in range(len(distance_matrix)):
+        for j in range(i + 1, len(distance_matrix)):
+            # Since the TSP is symmetric, the heuristic from i to j is the same as from j to i
+            heuristics[i, j] = heuristics[j, i] = distance_matrix[i, j]
+    
+    # Precompute the shortest paths between all pairs of nodes using Floyd-Warshall algorithm
+    # to leverage problem-specific knowledge and minimize redundant computations
+    all_pairs_shortest_paths = np.min(distance_matrix, axis=0)
+    shortest_paths_matrix = np.linalg.matrix_power(all_pairs_shortest_paths, 2)
+    shortest_paths_matrix += shortest_paths_matrix.T - np.diag(np.diag(shortest_paths_matrix))
+    
+    # Use the precomputed shortest paths to set the heuristic values
+    heuristics += shortest_paths_matrix
+    
+    return heuristics
+```

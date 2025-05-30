@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:]  # Exclude the depot node from capacity calculation
+    
+    # Vectorized version of the loop
+    for start_node in range(1, n_nodes):
+        total_demand_mask = (demand_cumsum - demand_cumsum[start_node]) <= remaining_capacity[start_node]
+        destination_nodes = torch.where(total_demand_mask)[0] + 1  # Adding 1 to get actual node indices
+        distances = distance_matrix[start_node, destination_nodes]
+        heuristics[start_node, destination_nodes] = distances
+        remaining_capacity[start_node] -= torch.sum(demands[destination_nodes] - demands[start_node])
+        
+        # Update the heuristic for the return to the depot
+        heuristics[start_node, 0] = distance_matrix[start_node, 0]
+        
+        # Break if no capacity left for further nodes
+        if remaining_capacity[start_node] <= 0:
+            break
+    
+    # Balance criteria: Normalize by total distance to depot
+    total_distance_to_depot = torch.sum(distance_matrix[:, 0])
+    heuristics = heuristics / total_distance_to_depot
+    return heuristics
+```

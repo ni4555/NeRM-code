@@ -1,0 +1,48 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize values
+    normalized_prize = prize / np.max(prize)
+    
+    # Sparsity factor for items with non-zero weight sum in any dimension
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Variance factor to promote diversity
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    
+    # Balance factor combining normalized prize, sparsity, and inverse variance
+    balance_factor = normalized_prize * sparsity_factor * inv_variance_factor
+    
+    # Introduce random diversity to avoid getting trapped in local optima
+    diversity = np.random.normal(0, 0.02, size=normalized_prize.shape)
+    diversity = np.maximum(diversity, 0)
+    balanced_prize = normalized_prize * balance_factor + diversity
+    
+    # Apply dynamic thresholds to promote sparsity and avoid domination
+    sparsity_threshold = np.percentile(balanced_prize, 30)
+    amplification_threshold = np.percentile(balanced_prize, 70)
+    balanced_prize[balanced_prize < sparsity_threshold] = 0
+    balanced_prize[balanced_prize > amplification_threshold] *= 1.2
+    
+    # Introduce a penalty for items that exceed the weight constraint by one unit
+    penalty_factor = (weight.sum(axis=1) > 1).astype(float)
+    penalty = penalty_factor * 0.1
+    balanced_prize *= (1 - penalty)
+    
+    # Refine heuristics by amplifying or diminishing based on the new balance
+    for _ in range(5):
+        # Amplify or diminish heuristics to promote diversity
+        refined_prize = np.copy(balanced_prize)
+        mid_threshold = np.percentile(balanced_prize, 50)
+        refined_prize[refined_prize < mid_threshold] *= 0.8
+        refined_prize[refined_prize > mid_threshold] *= 1.2
+        balanced_prize = np.maximum(balanced_prize, refined_prize)
+    
+    # Normalize the final heuristics
+    heuristic_sum = np.sum(balanced_prize)
+    if heuristic_sum > 0:
+        balanced_prize /= heuristic_sum
+    
+    return balanced_prize
+```

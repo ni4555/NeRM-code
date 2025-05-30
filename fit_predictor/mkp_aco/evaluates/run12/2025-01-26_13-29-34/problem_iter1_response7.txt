@@ -1,0 +1,54 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    n = prize.shape[0]
+    heuristic = np.zeros((n,))
+
+    # Initialize reinforcement learning model weights randomly
+    rl_weights = np.random.rand(n)
+
+    # Initialize adaptive constraint-driven filtering parameters
+    alpha = 0.1  # Learning rate for adaptive filtering
+    threshold = 0.95  # Threshold for feasibility
+
+    # Initialize particle swarm optimization parameters
+    particles = np.random.rand(n, n)
+    velocities = np.random.rand(n, n)
+    best_position = particles
+    best_fitness = heuristic
+
+    # Deep reinforcement learning for real-time decision-making
+    for episode in range(1000):
+        for i in range(n):
+            action = np.random.choice([0, 1], p=[1 - rl_weights[i], rl_weights[i]])
+            if action == 1:
+                for j in range(m):
+                    if weight[i][j] > threshold:
+                        rl_weights[i] *= (1 - alpha)
+                        break
+                heuristic[i] = np.sum(prize[i])
+            else:
+                heuristic[i] = 0
+
+    # Adaptive constraint-driven filtering to maintain multi-dimensional feasibility
+    for episode in range(1000):
+        for i in range(n):
+            if weight[i].any() > 1:
+                heuristic[i] = 0
+            else:
+                heuristic[i] *= (1 - alpha)
+
+    # Particle swarm optimization for evolutionary swarm intelligence
+    for iteration in range(100):
+        for i in range(n):
+            for j in range(n):
+                velocities[i][j] = 0.5 * velocities[i][j] + 0.1 * (best_position[i][j] - particles[i][j])
+                particles[i][j] += velocities[i][j]
+            if heuristic[i] > best_fitness[i]:
+                best_position[i] = particles[i]
+                best_fitness[i] = heuristic[i]
+
+    heuristic = best_fitness
+
+    return heuristic
+```

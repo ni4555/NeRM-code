@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the cumulative sum of demands from the start node
+    cum_demands = torch.cumsum(demands, dim=0)
+    # Create a binary mask where a 1 indicates the vehicle is still under capacity
+    capacity_mask = cum_demands < demands[0]
+    # Calculate the potential of each edge based on the capacity of the vehicle
+    potential = torch.exp(-distance_matrix * 0.1) * capacity_mask
+    # Apply a penalty to edges leading to nodes with high demand relative to capacity
+    high_demand_penalty = demands / (demands[0] + 1e-5)  # Avoid division by zero
+    # Use non-linear scaling to make high demands have a more significant penalty
+    heuristics = potential - torch.pow(high_demand_penalty, 2)
+    return heuristics
+```

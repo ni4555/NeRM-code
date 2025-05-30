@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Penalize infeasibilities
+    infeasibility_penalty = 1000  # A large number to discourage infeasible routes
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    
+    # Vectorized operations to balance global and local search
+    for i in range(n):
+        # Scale the heuristics based on the node's demand
+        heuristics_matrix[i] *= normalized_demands[i]
+        # Normalize the heuristics to ensure they are within a certain range
+        heuristics_matrix[i] /= heuristics_matrix[i].abs().max()
+    
+    # Apply a soft constraint to the demand balance
+    heuristics_matrix += (avg_demand - heuristics_matrix.sum(axis=1, keepdim=True)) * (1 - heuristics_matrix.sum(axis=1, keepdim=True))
+
+    # Ensure negative values for undesirable edges are still present
+    heuristics_matrix[heuristics_matrix > 0] = 0
+    heuristics_matrix[distance_matrix == 0] = infeasibility_penalty
+    
+    return heuristics_matrix
+```

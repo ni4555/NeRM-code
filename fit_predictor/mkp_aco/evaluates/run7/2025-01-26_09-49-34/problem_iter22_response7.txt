@@ -1,0 +1,38 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the variance of weights for each item
+    weight_variance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity factor based on the number of zero weight dimensions
+    sparsity_factor = (weight.sum(axis=1) == 0).astype(float)
+    
+    # Combine factors with balanced weights to create initial heuristics
+    initial_heuristics = normalized_prize * 0.5 * weight_variance * 0.5 * sparsity_factor
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(initial_heuristics)
+    if max_heuristic > 0:
+        initial_heuristics /= max_heuristic
+    
+    # Adjust heuristics to reward variance by decreasing values for high variance items
+    adjusted_variance = 1 / (1 + weight_variance)
+    heuristics_with_variance = initial_heuristics * adjusted_variance
+    
+    # Non-linearly enhance sparsity factor for items with more zero weight dimensions
+    heuristics_with_sparsity = heuristics_with_variance * (1 + np.log(1 + np.exp(-sparsity_factor)))
+    
+    # Combine weighted normalized prize, variance adjustment, and sparsity enhancement
+    final_heuristics = heuristics_with_sparsity * (normalized_prize + adjusted_variance)
+    
+    # Normalize final heuristics to ensure they are on a similar scale
+    max_final_heuristic = np.max(final_heuristics)
+    if max_final_heuristic > 0:
+        final_heuristics /= max_final_heuristic
+    
+    return final_heuristics
+```

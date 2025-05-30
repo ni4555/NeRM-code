@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize and average weight for each item
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    
+    # Calculate density based on prize and average weight
+    density = prize / average_weight
+    
+    # Calculate constraint balance for each item
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate utility considering both density and constraint balance
+    utility = density * (1 - constraint_balance)
+    
+    # Calculate sparsity based on the ratio of utility to maximum prize
+    sparsity = (utility > max_prize / np.sum(prize)) * 1.0
+    
+    # Adapt dynamically by considering the diversity of item selection
+    diversity = np.argsort(np.argsort(-prize))[:len(prize) // 2]
+    dynamic_weight = np.sum(weight[diversity], axis=0) / np.sum(weight[diversity])
+    dynamic_sparsity = (np.dot(weight, dynamic_weight) > 1) * 1.0
+    
+    # Combine relevant features effectively
+    combined_heuristics = utility * sparsity * dynamic_sparsity
+    
+    # Return the heuristics scores
+    return combined_heuristics
+```

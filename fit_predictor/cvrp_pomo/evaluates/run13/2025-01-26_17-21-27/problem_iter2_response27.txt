@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic that incorporates local search, exploits structure, and balances demand and distance."""
+    vehicle_capacity = demands.sum()
+    demand_diff = 2 * (vehicle_capacity - demands)  # Promote edges with high negative demand difference
+    
+    # Local search: Promote edges that connect high-demand nodes to high-demand nodes (clusters)
+    local_search_promotion = 0.1 * torch.abs(demands[:, None] - demands[None, :])
+    
+    # Exploit structure: Use diagonal elements to promote edges closer to the diagonal (further from the depot)
+    structure_promotion = torch.diag(distance_matrix)
+    
+    # Balance between demand and distance: Weights for demand and distance
+    demand_weight = 1.0
+    distance_weight = 0.2
+    
+    # Combine the elements for the final heuristic
+    heuristic_matrix = demand_diff * demand_weight + distance_weight * (structure_promotion - 0.5 * distance_matrix)
+    return heuristic_matrix + local_search_promotion
+```

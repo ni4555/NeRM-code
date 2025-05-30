@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)  # Adding a small constant to avoid division by zero
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    heuristic_range = 1.0 / (distance_matrix + distance_matrix.mean() + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Weights for each heuristic
+    weights = {
+        'inverse_distance': 0.5,
+        'demand_weight': 0.3,
+        'heuristic_range': 0.1,
+        'load_balance': 0.1
+    }
+
+    # Normalize the heuristics to a common scale
+    normalized_heuristics = {
+        'inverse_distance': (inverse_distance - inverse_distance.min()) / (inverse_distance.max() - inverse_distance.min()),
+        'demand_weight': (demand_weight - demand_weight.min()) / (demand_weight.max() - demand_weight.min()),
+        'heuristic_range': (heuristic_range - heuristic_range.min()) / (heuristic_range.max() - heuristic_range.min()),
+        'load_balance': (load_balance - load_balance.min()) / (load_balance.max() - load_balance.min())
+    }
+
+    # Combine heuristics with weightings for each heuristic
+    combined_heuristic = (
+        weights['inverse_distance'] * normalized_heuristics['inverse_distance'] +
+        weights['demand_weight'] * normalized_heuristics['demand_weight'] +
+        weights['heuristic_range'] * normalized_heuristics['heuristic_range'] +
+        weights['load_balance'] * normalized_heuristics['load_balance']
+    )
+
+    return combined_heuristic
+```

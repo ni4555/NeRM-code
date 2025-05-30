@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic incorporating demand balance, normalization, and non-linear transformations."""
+    # Normalize the distance matrix to ensure the scale of distance and demand are comparable
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    
+    # Calculate the difference in demand between each node and the depot
+    demand_diff = demands - demands[0]
+    
+    # Normalize the demand difference to the total demand
+    total_demand = torch.sum(demands)
+    normalized_demand_diff = demand_diff / total_demand
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the cost to return to the depot if the demand exceeds the vehicle capacity
+    exceeds_capacity = (demands - demands[0]).abs() > 1
+    return_distances = torch.where(exceeds_capacity, normalized_distance_matrix[:, 0], torch.zeros_like(normalized_distance_matrix[:, 0]))
+    
+    # Calculate the heuristic value based on distance, demand imbalance, and non-linear transformations
+    heuristic_matrix = -normalized_distance_matrix + return_distances + torch.sin(torch.pi * normalized_demand_diff) * torch.log(1 + normalized_demand_diff.abs())
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,23 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    diversity_factor = np.exp(-np.sqrt(utility))  # Non-linear diversity factor
+    exploration_factor = np.random.rand(*utility.shape)  # Exploration factor for randomness
+    exploitation_factor = np.exp(utility)  # Exploitation factor based on utility
+    heuristics = utility * diversity_factor * exploration_factor * exploitation_factor
+    heuristics = np.clip(heuristics, a_min=0, a_max=1)  # Ensure non-negative values for the heuristic
+    
+    # Incorporate a time-sensitive factor that emphasizes the dynamics of the MKP
+    time_factor = np.arange(1, n + 1) ** 2  # Squared time factor to amplify the effect over time
+    
+    heuristics *= time_factor  # Apply the time factor to emphasize the dynamics of the MKP
+    
+    # Normalize the heuristics to ensure that the sum of heuristics across items is consistent
+    normalized_heuristics = heuristics / heuristics.sum(axis=1, keepdims=True)
+    
+    return normalized_heuristics.sum(axis=1)
+```

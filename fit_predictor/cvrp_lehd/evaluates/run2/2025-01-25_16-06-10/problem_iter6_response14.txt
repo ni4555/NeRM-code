@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # Precompute the negative of the distance matrix
+    neg_distance_matrix = -distance_matrix
+    # Compute the cumulative sum of demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Create a mask to identify edges with total demand exceeding capacity
+    demand_exceeds_capacity = demand_cumsum[:, None] > demands[None, :]
+    
+    # Iterate over all possible destination nodes
+    for destination_node in range(n_nodes):
+        # For each destination node, find the start node that can be used without exceeding capacity
+        # and calculate the heuristic values
+        for start_node in torch.where(~demand_exceeds_capacity[:, destination_node])[0]:
+            # Calculate the distance from the start node to the destination node
+            distance = neg_distance_matrix[start_node, destination_node]
+            # Calculate the heuristic value
+            heuristics[start_node, destination_node] = distance
+            # Mark the edge from the destination node to the depot as the return edge
+            heuristics[destination_node, 0] = distance_matrix[destination_node, 0]
+            
+            # If this is the first edge for the start node, calculate the return-to-depot heuristic
+            if torch.sum(heuristics[start_node]) == 0:
+                heuristics[start_node, 0] = neg_distance_matrix[start_node, 0]
+                break  # No need to continue to other destination nodes
+    
+    return heuristics
+```

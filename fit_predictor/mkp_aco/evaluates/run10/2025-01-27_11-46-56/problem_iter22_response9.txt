@@ -1,0 +1,37 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    
+    # Adjust utility based on the logarithmic scale to ensure positive values
+    utility = np.log(utility + 1)
+    
+    # Diversity factor to encourage exploration of different solutions
+    diversity_factor = np.exp(-utility)
+    
+    # Exploration factor with a Gaussian distribution to avoid uniform selection
+    exploration_factor = np.random.normal(0, 0.1, size=utility.shape)
+    
+    # Sharpness factor to enhance peak selection
+    sharpness_factor = 1 / (1 + np.exp(-5 * utility))
+    
+    # Combination of utility, diversity, exploration, and sharpness factors
+    heuristics = utility * diversity_factor * exploration_factor * sharpness_factor
+    
+    # Refine the heuristics by applying a sigmoid function to enhance peak selection
+    heuristics = 1 / (1 + np.exp(-heuristics))
+    
+    # Enhanced normalization that balances exploration and exploitation
+    enhanced_normalization = (1 - utility / (1 + np.exp(-utility))) * (1 + utility / (1 + np.exp(-utility)))
+    
+    # Apply the enhanced normalization to the heuristics
+    normalized_heuristics = heuristics * enhanced_normalization
+    
+    # Normalize the heuristics to sum to 1
+    normalized_heuristics = normalized_heuristics / normalized_heuristics.sum(axis=1, keepdims=True)
+    
+    return normalized_heuristics.sum(axis=1)
+```

@@ -1,0 +1,11 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand)
+    heuristics = distance_scaling - (demands * total_capacity).unsqueeze(1) * (torch.arange(n) == 0).float().unsqueeze(0)
+    heuristics[heuristics < 0] = 0  # Only retain positive values, as negative values are undesirable
+    return heuristics
+```

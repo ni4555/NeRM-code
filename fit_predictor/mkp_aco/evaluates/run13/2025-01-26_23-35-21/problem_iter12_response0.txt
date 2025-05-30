@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize an array to hold heuristics for each item
+    heuristics = np.zeros_like(prize)
+
+    # Calculate the total weight of each item considering all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize prize considering total weight
+    normalized_prize = prize / (total_weight + 1e-8)
+    
+    # Calculate the density based on normalized prize
+    density = normalized_prize
+    
+    # Calculate the diversity based on inverse total weight, but ensuring no division by zero
+    diversity = 1 / (total_weight + 1e-8)
+    
+    # Sparsity calculation by checking if any dimension weight is below a certain threshold
+    sparsity_threshold = 0.1
+    sparsity = np.all(weight < sparsity_threshold, axis=1)
+    
+    # Combine density and diversity with an exponential blend to avoid dominance by either metric
+    blend_factor = 0.5
+    heuristic = (np.exp(density) + np.exp(blend_factor * diversity)) / (1 + np.exp(blend_factor * diversity))
+    
+    # Adjust sparsity elements to be less promising
+    heuristic[sparsity] = 1 / (1 + np.exp(heuristic[sparsity]))
+    
+    # Normalize heuristics to be non-negative
+    heuristics = np.clip(heuristic, 0, None)
+    
+    return heuristics
+```

@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    # Calculate the total vehicle capacity
+    vehicle_capacity = demands.sum()
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Create a vector of all node indices
+    node_indices = torch.arange(n_nodes)
+    # Calculate the cumulative sum of demands to determine the demand threshold for each node
+    demand_cumsum = torch.cumsum(demands, dim=0)
+
+    # For each node, find the next node to visit considering the demand and distance
+    for current_node in node_indices[1:]:
+        remaining_capacity = vehicle_capacity
+        for destination_node in node_indices[1:]:
+            if current_node != destination_node and not demands[destination_node] > remaining_capacity:
+                distance = distance_matrix[current_node, destination_node]
+                # Calculate the demand difference between the two nodes
+                demand_diff = demand_cumsum[destination_node] - demand_cumsum[current_node]
+                # Update heuristics for the edge (current_node, destination_node)
+                heuristics[current_node, destination_node] = -distance - 0.5 * demand_diff
+                if heuristics[current_node, destination_node] > 0:
+                    break
+
+    # The return to the depot for the last node should be handled differently
+    for i in range(n_nodes - 1):
+        if heuristics[node_indices[i], node_indices[i + 1]] <= 0:
+            # Set the return to the depot heuristic if the current edge is not promising
+            heuristics[node_indices[i], 0] = 1 - distance_matrix[node_indices[i], 0]
+            break
+
+    # The first edge should have a positive heuristic
+    heuristics[0, 1:] = torch.clamp(heuristics[0, 1:], min=0)
+
+    return heuristics
+```

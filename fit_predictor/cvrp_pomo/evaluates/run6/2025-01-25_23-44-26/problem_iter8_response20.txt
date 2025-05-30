@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Use a non-linear demand balancing heuristic, such as the exponential function
+    demand_balance = torch.exp(-torch.abs(normalized_demands.unsqueeze(1) - normalized_demands.unsqueeze(0)))
+    
+    # Inverse distance matrix heuristic with a small constant to avoid division by zero
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Dynamic load balancing factor considering current load and vehicle capacity
+    load_balance = torch.min(demands.unsqueeze(1), demands.unsqueeze(0)) / demands.sum()
+    
+    # Introduce a dynamic time factor considering real-time conditions with an exponential decay
+    time_constant = torch.rand(distance_matrix.shape[0])
+    time_heuristic = torch.exp(-time_constant.unsqueeze(1) * time_constant.unsqueeze(0))
+    
+    # Apply a penalty for edges that are part of the shortest path to the depot to avoid deadlocks
+    shortest_path_penalty = -torch.min(distance_matrix, dim=1)[0].unsqueeze(1)
+    
+    # Combine heuristics with adaptive weights based on problem specifics
+    weights = torch.tensor([0.2, 0.5, 0.2, 0.1], dtype=torch.float32)  # Example weights
+    combined_heuristic = weights[0] * demand_balance * distance_heuristic + \
+                          weights[1] * load_balance * time_heuristic + \
+                          weights[2] * shortest_path_penalty
+    
+    # Normalize the combined heuristic values to be between 0 and 1
+    max_heuristic = combined_heuristic.max()
+    min_heuristic = combined_heuristic.min()
+    combined_heuristic = (combined_heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    return combined_heuristic
+```

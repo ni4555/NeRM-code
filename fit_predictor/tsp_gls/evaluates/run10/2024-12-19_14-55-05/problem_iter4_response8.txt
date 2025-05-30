@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+    max_possible_loop = num_nodes * np.max(distance_matrix)
+    large_weight_penalty = 1e6
+
+    # Calculate the base penalty based on the loop distance
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, i]
+                heuristics[i, j] = loop_distance - distance_matrix[i, i]
+
+                # Apply additional penalty if the loop distance is very large
+                if loop_distance > max_possible_loop:
+                    heuristics[i, j] = max_possible_loop - loop_distance
+
+    # Normalize the penalties to a range where larger values represent worse edges
+    heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+
+    # Apply a large penalty to large weight edges to discourage their inclusion
+    heuristics[distance_matrix > large_weight_penalty] = large_weight_penalty - distance_matrix[distance_matrix > large_weight_penalty]
+
+    # Ensure that self-loops are not penalized
+    heuristics[distance_matrix == 0] = 0
+
+    return heuristics
+```

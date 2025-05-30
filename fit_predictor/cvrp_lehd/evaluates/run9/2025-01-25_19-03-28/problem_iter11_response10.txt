@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Normalize the demands
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic based on a balance of demand and distance
+    # where closer nodes are given higher priority, but not at the cost of a high demand
+    balance_factor = 0.5
+    demand_distance_ratio = (1 - balance_factor) * normalized_demands + balance_factor * distance_matrix
+
+    # Introduce a normalization for the scale invariance
+    demand_std = normalized_demands.std()
+    normalized_demand_distance_ratio = (demand_distance_ratio - demand_distance_ratio.mean()) / demand_std
+
+    # Adjust the weight dynamically based on the minimum distance from the depot
+    min_distance_from_depot = distance_matrix[0].min()
+    weight_adjustment = min_distance_from_depot / distance_matrix
+
+    # Calculate variance of normalized demand distance ratio for dynamic weight adjustment
+    normalized_demand_distance_variance = normalized_demand_distance_ratio.var()
+
+    # Introduce a penalty for high variance, capping it for stability
+    variance_penalty = normalized_demand_distance_variance * torch.min(1.0, normalized_demand_distance_variance / 10.0)
+
+    # Combine all factors to create the heuristic matrix
+    heuristic_matrix = normalized_demand_distance_ratio - variance_penalty
+
+    # Apply a threshold to cap the values, preventing extremely negative values
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-threshold, max=threshold)
+
+    # Multiply by weight adjustment to account for dynamic weights
+    heuristic_matrix *= weight_adjustment
+
+    return heuristic_matrix
+```

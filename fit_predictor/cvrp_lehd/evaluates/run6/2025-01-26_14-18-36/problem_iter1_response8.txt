@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot_demand = demands[0]
+    demand_threshold = 0.5 * demands.sum() / n  # Threshold for considering an edge promising
+
+    # Calculate the cumulative demand along the diagonal
+    cumulative_demand = torch.cumsum(demands[1:], 0)
+
+    # Initialize the heuristics matrix
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Apply a heuristic that assigns a negative value if the cumulative demand exceeds the threshold
+    for i in range(1, n):
+        for j in range(n):
+            heuristics[i, j] = -torch.abs(cumulative_demand[i] - (cumulative_demand[j] + demands[j]))
+
+    # For edges from the depot to customers, add a positive heuristic value
+    heuristics[0, 1:] = 1.0
+
+    # For edges from customers to the depot, add a positive heuristic value if the demand is high
+    heuristics[1:, 0] = torch.where(demands[1:] > demand_threshold, 1.0, 0.0)
+
+    return heuristics
+```

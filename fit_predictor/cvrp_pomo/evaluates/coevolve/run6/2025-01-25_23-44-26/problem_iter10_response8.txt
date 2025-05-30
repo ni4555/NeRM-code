@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Calculate the load balancing factor by considering the difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Use a time factor to simulate real-time rerouting capabilities
+    time_constant = torch.rand(distance_matrix.shape[0])
+    time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0)))
+    
+    # Combine the distance heuristic, load balance, and time heuristic with a weighted sum
+    combined_heuristic = distance_heuristic + 0.6 * load_balance * time_heuristic
+    
+    # Normalize the combined heuristic values to ensure they sum to 1 for each row (edge)
+    row_sums = combined_heuristic.sum(dim=1, keepdim=True)
+    normalized_combined_heuristic = combined_heuristic / row_sums
+    
+    # Ensure diversity without randomness by slightly penalizing identical edges
+    diversity_factor = torch.abs(torch.min(combined_heuristic, dim=1, keepdim=True)[0] - torch.max(combined_heuristic, dim=1, keepdim=True)[0])
+    diversity_factor = diversity_factor / torch.max(combined_heuristic) * 0.1
+    
+    # Combine the normalized heuristics with the diversity factor
+    final_heuristic = normalized_combined_heuristic + diversity_factor
+    
+    return final_heuristic
+```

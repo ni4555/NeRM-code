@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    def compute_capacity_penalty(demands, total_capacity):
+        early_overflow = (demands > total_capacity).float()
+        return -torch.log1p(torch.abs(demands - total_capacity) - 1e-8) * (1 + early_overflow)
+    
+    def compute_distance_scaling(distance_matrix, cumulative_demand, total_capacity):
+        time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+        return -torch.log1p(torch.abs(distance_matrix) - 1e-8) * (1 + cumulative_demand / total_capacity) * time_factor
+    
+    def compute_load_balance_penalty(cumulative_demand, total_capacity_vector):
+        load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+        return -torch.log1p(load_balance - 1e-8)
+    
+    def compute_randomness_and_diversity(demands, total_capacity):
+        randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+        randomness_factor *= (1 - cumulative_demand / total_capacity)
+        
+        diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+        diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+        diversity_factor *= (1 - cumulative_demand / total_capacity)
+        
+        return randomness_factor + diversity_factor
+    
+    # Compute sub-heuristics
+    capacity_penalty = compute_capacity_penalty(demands, total_capacity)
+    distance_scaling = compute_distance_scaling(distance_matrix, cumulative_demand, total_capacity)
+    load_balance_penalty = compute_load_balance_penalty(cumulative_demand, total_capacity_vector)
+    randomness_and_diversity = compute_randomness_and_diversity(demands, total_capacity)
+    
+    # Combine the sub-heuristics
+    heuristics_base = distance_scaling + capacity_penalty + load_balance_penalty
+    heuristics = heuristics_base + randomness_and_diversity
+    
+    # Adjust heuristics based on early overflow
+    early_overflow = (cumulative_demand > total_capacity_vector).float()
+    heuristics *= (1 + early_overflow)
+    
+    return heuristics
+```

@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Emphasize constraints with a non-linear transformation
+    emphasized_matrix = torch.exp(-torch.abs(potential_matrix))
+    
+    # Normalize after the non-linear transformation to avoid having all zero entries
+    # Adding an epsilon ensures there are no division by zero errors
+    epsilon = 1e-6
+    sum_emphasized_matrix = emphasized_matrix.sum(dim=1, keepdim=True) + epsilon
+    normalized_emphasized_matrix = emphasized_matrix / sum_emphasized_matrix
+    
+    # Combine the normalized emphasized matrix with the distance penalty matrix
+    combined_matrix = normalized_emphasized_matrix + 0.5 * distance_penalty_matrix
+    
+    # Introduce penalties for edges that would exceed vehicle capacity
+    demand_penalty = demands[:, None] + vehicle_capacity - demands[None, :]
+    demand_penalty = torch.relu(demand_penalty)
+    combined_matrix += demand_penalty
+    
+    # Apply a penalty to the edges leading back to the depot
+    depot_penalty_matrix = -torch.ones_like(distance_matrix) * 1000
+    combined_matrix = torch.min(combined_matrix, depot_penalty_matrix)
+    
+    # Scale the combined matrix to make sure we do not get negative values
+    # and ensure the heuristics have the same range
+    epsilon_scale = 1e-3
+    max_value = combined_matrix.max()
+    min_value = combined_matrix.min()
+    heuristics_matrix = (combined_matrix - min_value) / (max_value - min_value) + epsilon_scale
+    
+    return heuristics_matrix
+```

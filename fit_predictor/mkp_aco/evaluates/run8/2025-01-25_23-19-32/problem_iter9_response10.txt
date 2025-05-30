@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize weights by summing across dimensions
+    weight_normalized = np.sum(weight, axis=1)
+    
+    # Calculate the importance of each item based on prize to normalized weight ratio
+    item_importance = prize / weight_normalized
+    
+    # Calculate a diversity factor that encourages selecting a variety of items
+    diversity_factor = 1 / (1 + np.exp(-item_importance))
+    
+    # Calculate the sparsity factor for each item
+    sparsity_factor = 1 - (np.sum(weight**2, axis=1) / weight_normalized**2)
+    
+    # Introduce a balancing factor that considers both importance and sparsity
+    balance_factor = item_importance * sparsity_factor
+    
+    # Apply a dynamic threshold that increases as the importance increases
+    dynamic_threshold = item_importance * 0.5 + 0.1
+    
+    # Combine factors and apply dynamic threshold
+    combined_heuristics = balance_factor / (1 + np.exp(-dynamic_threshold))
+    
+    # Enforce diversity by setting a lower threshold for heuristics
+    lower_threshold = 0.1
+    combined_heuristics[combined_heuristics < lower_threshold] = lower_threshold
+    
+    # Apply a diversity threshold to enhance diversity in the selection
+    diversity_threshold = 0.4
+    heuristics = np.where(combined_heuristics >= diversity_threshold, combined_heuristics, 0)
+    
+    # Normalize the heuristics to ensure they sum to 1
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

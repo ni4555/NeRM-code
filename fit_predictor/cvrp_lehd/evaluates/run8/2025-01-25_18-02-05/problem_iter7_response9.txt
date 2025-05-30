@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    # Normalize the demands and distances to the range [0, 1]
+    normalized_demands = (demands - demands.min()) / (demands.max() - demands.min())
+    normalized_distances = (distance_matrix - distance_matrix.min()) / (distance_matrix.max() - distance_matrix.min())
+    
+    # Invert the normalized distances to give a preference to shorter paths
+    inverted_distances = 1 - normalized_distances
+    
+    # Apply a non-linear transformation to emphasize large differences in demand and distance
+    transformed = torch.exp(normalized_demands * inverted_distances)
+    
+    # Use thresholds to filter the edges based on the transformed values
+    threshold = transformed.mean()
+    filtered = transformed > threshold
+    
+    # Assign high values to the promising edges
+    heuristic_matrix = transformed * filtered.float()
+    
+    # Scale the heuristic matrix to ensure it has negative values for undesirable edges
+    # and positive values for promising ones
+    min_val = heuristic_matrix.min()
+    max_val = heuristic_matrix.max()
+    heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    # Clip the values to be within the desired range to ensure they are within [-1, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

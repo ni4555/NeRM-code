@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize a matrix of the same shape as the input distance matrix
+    heuristics_matrix = np.zeros_like(distance_matrix)
+    
+    # Calculate the all-pairs shortest path matrix using the Floyd-Warshall algorithm
+    all_pairs_distance = np.full_like(distance_matrix, np.inf)
+    np.fill_diagonal(all_pairs_distance, 0)
+    np.fill_diagonal(distance_matrix, 0)
+    np.linalg.solve(np.eye(distance_matrix.shape[0]) + distance_matrix, all_pairs_distance)
+    
+    # Calculate the total tour cost assuming all nodes are visited in order
+    total_cost = np.sum(np.min(distance_matrix, axis=0))
+    
+    # Calculate the initial heuristics matrix
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # The heuristic value is the potential improvement by swapping i and j
+                # This is the difference between the cost of the original path and the cost if i and j were swapped
+                original_cost = distance_matrix[i, j] + all_pairs_distance[i, j]
+                improved_cost = distance_matrix[i, j] + all_pairs_distance[j, i]
+                heuristics_matrix[i, j] = total_cost - original_cost + improved_cost
+    
+    return heuristics_matrix
+```

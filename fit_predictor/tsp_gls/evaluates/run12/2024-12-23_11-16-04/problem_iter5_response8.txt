@@ -1,0 +1,25 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the minimum distance from each node to any other node
+    min_distances = np.min(distance_matrix, axis=1)
+    # Calculate the mean distance to penalize edges that are on average longer than the minimum distance
+    mean_distance = np.mean(min_distances)
+    # Balance between the minimum distance penalty and the mean distance penalty
+    balance_factor = 0.5
+    # Use domain knowledge to add a heavier penalty for longer distances
+    distance_penalty_factor = 0.1
+    # Use a heuristic to increase the penalty for less frequent node pairs
+    less_frequent_penalty_factor = 0.5
+    
+    # Calculate the number of occurrences for each edge
+    edge_occurrences = np.sum(distance_matrix > 0, axis=1) / (len(distance_matrix) - 1)
+    # Calculate the penalty for each edge
+    penalties = distance_matrix - min_distances + 1e-6
+    penalties *= (penalties > mean_distance) * balance_factor + (penalties <= mean_distance) * (1 - balance_factor)
+    penalties *= distance_penalty_factor
+    penalties *= (1 / (1 + (edge_occurrences - 0.5) * less_frequent_penalty_factor))
+    
+    return penalties
+```

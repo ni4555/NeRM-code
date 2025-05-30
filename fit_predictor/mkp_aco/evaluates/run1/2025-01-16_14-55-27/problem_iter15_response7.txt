@@ -1,0 +1,33 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Dynamic item sorting based on weighted prize ratio, sparsity, and total weight
+    combined_scores = prize / (np.sum(weight, axis=1) + np.count_nonzero(weight, axis=1) + 1)
+    sorted_indices = np.argsort(combined_scores)[::-1]
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Use softmax to normalize scores and avoid overflow
+    exp_scores = np.exp(combined_scores - np.max(combined_scores))
+    normalized_scores = exp_scores / np.sum(exp_scores)
+
+    # Combine the normalized scores with sparsity and total weight considerations
+    heuristics[sorted_indices] = normalized_scores
+
+    # Set a dynamic threshold based on the sparsity and total weight of the most promising items
+    sparsity_threshold = np.mean(np.count_nonzero(weight[:, :])) * 0.1
+    weight_threshold = np.mean(np.sum(weight, axis=1)) * 0.1
+    for i in range(n):
+        if heuristics[i] > 0 and np.count_nonzero(weight[sorted_indices[i], :]) < sparsity_threshold and np.sum(weight[sorted_indices[i], :]) < weight_threshold:
+            heuristics[i] = 0
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

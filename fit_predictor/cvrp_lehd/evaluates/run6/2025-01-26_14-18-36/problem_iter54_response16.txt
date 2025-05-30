@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    dampening_factor = 0.5
+
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * dampening_factor
+
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * dampening_factor
+
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    diversity_factor = torch.rand_like(distance_matrix)
+    diversity_factor = diversity_factor / diversity_factor.sum(dim=0, keepdim=True)
+
+    feasible_penalty = torch.clamp((scaled_demands <= 1.0).float() * 1000.0, min=0.0)
+    heuristics += feasible_penalty * dampening_factor
+
+    heuristics = heuristics + diversity_factor * dampening_factor
+
+    heuristics = torch.sigmoid(heuristics)
+
+    infeasible_routes = (cumulative_demand > 1.0).float()
+    infeasible_penalty = infeasible_routes * 1000.0
+    heuristics -= infeasible_penalty * dampening_factor
+
+    randomness_factor = torch.rand_like(distance_matrix)
+    randomness_factor = randomness_factor / randomness_factor.sum(dim=0, keepdim=True)
+    heuristics = heuristics + randomness_factor * dampening_factor
+
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

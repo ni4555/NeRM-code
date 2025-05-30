@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Initialize a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Iterate over all nodes to calculate the heuristic for each edge
+    for i in range(distance_matrix.size(0)):
+        for j in range(distance_matrix.size(1)):
+            if i != j:
+                # Calculate the demand penalty
+                demand_penalty = torch.abs(demands[j] - vehicle_capacity)
+                # Calculate the distance penalty
+                distance_penalty = -torch.log(distance_matrix[i, j] + 1e-6)
+                # Combine the penalties
+                combined_penalty = demand_penalty + distance_penalty
+                # Introduce randomness with Gaussian noise
+                noise = torch.randn_like(combined_penalty) * 1e-2
+                # Apply a non-linear transformation
+                transformed_penalty = torch.exp(-torch.abs(combined_penalty + noise))
+                # Normalize the transformed penalty to ensure non-negativity
+                if transformed_penalty.sum() > 0:
+                    transformed_penalty /= transformed_penalty.sum()
+                # Add the transformed penalty to the heuristics matrix
+                heuristics_matrix[i, j] = transformed_penalty
+    
+    # Introduce mutation by adding a small random perturbation
+    mutation_factor = torch.rand_like(heuristics_matrix)
+    mutated_heuristics_matrix = heuristics_matrix + torch.randn_like(heuristics_matrix) * 1e-3 * mutation_factor
+    
+    # Final transformation into a heuristics matrix
+    heuristics_matrix = -mutated_heuristics_matrix
+    
+    return heuristics_matrix
+```

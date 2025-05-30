@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    vehicle_capacity = demands.max()
+
+    # Calculate the savings for each edge
+    savings = (distance_matrix**2 - torch.clamp(distance_matrix, min=1e-8)) * (demands[:, None] - demands[None, :])
+
+    # Calculate the cumulative demand at each node if visited
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Create a mask to check if adding a node exceeds the vehicle capacity
+    demand_mask = cumulative_demand <= vehicle_capacity
+
+    # Adjust the savings heuristic to consider demand
+    adjusted_savings = savings * demand_mask
+
+    # Initialize a matrix to store the heuristics values
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+
+    # Apply a penalty for edges that would exceed capacity
+    for i in range(1, n):
+        if adjusted_savings[i, i] > 0:
+            heuristics_matrix[i, i] = -adjusted_savings[i, i]
+
+    # Perform local neighborhood exploration
+    for i in range(1, n):
+        for j in range(i+1, n):
+            # Calculate the potential savings if both nodes are visited in the current route
+            if adjusted_savings[i, j] > 0:
+                # Check if the total demand after adding both nodes does not exceed the capacity
+                total_demand_with_both = cumulative_demand[i] + demands[j]
+                if total_demand_with_both <= vehicle_capacity:
+                    heuristics_matrix[i, j] = adjusted_savings[i, j]
+
+    # Normalize the heuristics to ensure all values are non-negative
+    heuristics_matrix = torch.clamp(heuristics_matrix, min=0)
+
+    return heuristics_matrix
+```

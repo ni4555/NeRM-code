@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Calculate the heuristics by combining the normalized distance and the load factor
+    # The load factor is subtracted from the heuristic to discourage visiting heavily loaded nodes
+    # Introduce a more aggressive normalization by the average node demand
+    average_demand = demands.mean()
+    heuristics = norm_distances - (node_loads * norm_distances).sum(-1)
+    heuristics /= average_demand
+    
+    # Add exploration by penalizing short paths to the start depot, encouraging the use of alternative routes
+    # The penalty is proportional to the inverse of the normalized distance
+    exploration_factor = 1 / (norm_distances + 1e-8)  # Adding a small constant to avoid division by zero
+    heuristics += (1 - exploration_factor)
+    
+    return heuristics
+```

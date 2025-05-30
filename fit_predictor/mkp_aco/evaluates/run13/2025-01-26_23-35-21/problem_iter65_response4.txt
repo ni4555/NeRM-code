@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a matrix to store heuristic values
+    heuristic_matrix = np.zeros_like(prize)
+    
+    # Iterate over each item to calculate heuristic
+    for i in range(len(prize)):
+        # Calculate normalized density
+        density = prize[i] / np.sum(weight[i] + 1e-8)
+        
+        # Calculate normalized sparsity
+        sparsity = np.sum(weight[i]) / np.max(weight[i] + 1e-8)
+        
+        # Calculate sum of weights
+        weight_sum = np.sum(weight[i])
+        
+        # Calculate balance metric
+        balance = (density - sparsity) / (density + sparsity + 1e-8)
+        
+        # Calculate diversity metric
+        diversity = density / (np.mean(prize) + 1e-8)
+        
+        # Combine metrics using a weighted sum
+        heuristic = 0.6 * density * (1 - sparsity) + 0.3 * balance + 0.1 * diversity
+        
+        # Assign the heuristic to the corresponding item
+        heuristic_matrix[i] = heuristic
+    
+    # Prune dominated items by setting their heuristic to zero
+    sorted_indices = np.argsort(heuristic_matrix)[::-1]
+    non_dominated_indices = sorted_indices[:len(sorted_indices) // 2]
+    heuristic_matrix[sorted_indices[len(sorted_indices) // 2:]] = 0
+    
+    return heuristic_matrix
+```

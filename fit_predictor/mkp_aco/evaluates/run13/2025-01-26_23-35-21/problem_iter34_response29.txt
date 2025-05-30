@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+
+    # Calculate normalized prize per unit weight for each item
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate diversity based on the variance of weights
+    diversity = np.var(weight, axis=1) / np.sum(weight, axis=1)
+    
+    # Combine density and diversity into a heuristic value
+    heuristic_value = density / (1 + diversity)
+    
+    # Normalize the heuristic values to ensure they are between 0 and 1
+    max_heuristic = np.max(heuristic_value)
+    if max_heuristic > 0:
+        heuristic_value /= max_heuristic
+    
+    # Introduce a positive incentive for higher diversity
+    incentive_factor = (1 + diversity) / (1 + np.min(diversity) + 1e-8)
+    
+    # Adjust the heuristic with the incentive factor
+    adjusted_heuristic = heuristic_value * incentive_factor
+    
+    # Ensure that the heuristics are non-negative
+    adjusted_heuristic[adjusted_heuristic < 0] = 0
+    
+    return adjusted_heuristic
+```

@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Add a penalty for edges to the depot
+    heuristics_matrix = -distance_matrix[:, 0].unsqueeze(1)
+    heuristics_matrix = torch.cat((heuristics_matrix, distance_matrix), dim=1)
+    heuristics_matrix = torch.cat((heuristics_matrix, -distance_matrix[0, :].unsqueeze(0)), dim=0)
+    # Compute the heuristics matrix using a combination of demand-based and distance-based weighting
+    heuristics_matrix += (normalized_demands.unsqueeze(1) * distance_matrix).sum(dim=2, keepdim=True)
+    # Adjust the matrix based on the distance to the depot to prioritize closer nodes
+    heuristics_matrix += distance_matrix[:, 0] * normalized_demands.unsqueeze(1)
+    return heuristics_matrix
+```

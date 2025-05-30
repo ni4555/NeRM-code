@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    demand_threshold = total_demand / len(demands)
+    
+    # Normalize the distance matrix
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Incorporate demand into the heuristic
+    demand_heuristic = (demands / demand_threshold).unsqueeze(-1)
+    
+    # Non-linear transformation using a softplus function
+    softplus = lambda x: torch.log1p(torch.exp(x))
+    distance_transformation = softplus(-norm_distances)
+    
+    # Combine demand and distance transformations
+    heuristics = distance_transformation * demand_heuristic
+    
+    # Scale the heuristic values to ensure negative values for undesirable edges
+    min_value = torch.min(heuristics)
+    heuristics -= min_value  # Shift the range to start at 0
+    
+    # Normalize the heuristic values to be between -1 and 1
+    heuristics /= torch.max(torch.abs(heuristics), torch.tensor(1.0))
+    
+    return heuristics
+```

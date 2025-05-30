@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the mean distance for each edge's neighbors
+    neighbors_mean = (distance_matrix[:, :-1].mean(axis=1) +
+                      distance_matrix[:, 1:].mean(axis=1)) / 2
+    
+    # Calculate the standard deviation of distances for each edge
+    std_distances = np.std(distance_matrix, axis=1)
+    
+    # Identify outliers using the IQR method
+    Q1 = np.percentile(std_distances, 25)
+    Q3 = np.percentile(std_distances, 75)
+    IQR = Q3 - Q1
+    outliers_mask = (std_distances < Q1 - 1.5 * IQR) | (std_distances > Q3 + 1.5 * IQR)
+    
+    # Penalize edges that are outliers (significantly longer than their neighbors' distances)
+    outliers_penalty = np.where(outliers_mask, 1, 0)
+    
+    # Normalize the distances to ensure they are within the range of [0, 1]
+    normalized_distances = (distance_matrix - neighbors_mean) / std_distances
+    
+    # Create a composite "badness" measure that balances outliers and relative distance
+    badness = normalized_distances + outliers_penalty
+    
+    # Ensure that the badness values are within the range of [0, 1]
+    badness = np.clip(badness, 0, 1)
+    
+    return badness
+```

@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the minimum distance to the depot for each customer
+    min_to_depot = torch.min(distance_matrix[:, 1:], dim=0)[0]
+    
+    # Calculate the minimum distance from each customer to the next customer
+    # excluding the depot
+    min_to_next = torch.min(distance_matrix[1:, 1:], dim=1)[0]
+    
+    # Calculate the total demand excluding the depot
+    total_demand = torch.sum(demands[1:])
+    
+    # Calculate the maximum distance a vehicle can travel without returning to the depot
+    max_travel_distance = total_demand / demands[0]
+    
+    # Calculate the heuristic value for each edge
+    heuristic_values = min_to_depot - min_to_next - max_travel_distance
+    
+    # Ensure that the heuristic values are within the specified range
+    heuristic_values = torch.clamp(heuristic_values, min=-1, max=1)
+    
+    return heuristic_values
+```

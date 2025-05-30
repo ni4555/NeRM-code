@@ -1,0 +1,31 @@
+```python
+import torch
+from torch.nn.functional import softplus
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Normalize the distance matrix to reduce the impact of larger distances
+    normalized_distance_matrix = distance_matrix / distance_matrix.max()
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + normalized_distance_matrix
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = softplus(potential_matrix)  # Using softplus for a smooth version of ReLU
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / (emphasized_matrix.sum(dim=1, keepdim=True) + 1e-6)
+    
+    # Scale the normalized emphasized matrix to balance with the demand penalties
+    scaled_emphasized_matrix = normalized_emphasized_matrix * torch.exp(penalty_matrix)
+    
+    # Transform the scaled emphasized matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -scaled_emphasized_matrix
+    
+    return heuristics_matrix
+```

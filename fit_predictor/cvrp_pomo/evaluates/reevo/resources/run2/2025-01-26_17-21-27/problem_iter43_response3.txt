@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Core objective: minimize distance and dynamic capacity
+    core_objective = torch.log1p(-distance_matrix) + torch.log1p(-torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Embrace diversity by introducing a noise factor
+    diversity_noise = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Adapt dynamically: penalize early overflow and imbalance
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector) - 1e-8)
+    
+    # Streamline complexity by combining penalties into a single heuristic
+    heuristics = core_objective - overflow_penalty - load_balance_penalty + diversity_noise
+    
+    # Apply a scaling factor to balance between the core objective and penalties
+    scaling_factor = 3.0
+    heuristics *= scaling_factor
+    
+    return heuristics
+```

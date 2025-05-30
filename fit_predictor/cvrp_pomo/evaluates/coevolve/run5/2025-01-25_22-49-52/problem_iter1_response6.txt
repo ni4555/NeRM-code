@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize the potential values matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Demand relaxation
+    demand_relaxed = (demands - 1) / demands
+    
+    # Calculate the potential value for each edge based on distance and demand relaxation
+    potential_values = distance_matrix - demand_relaxed
+    
+    # Introduce a node partitioning strategy
+    # Create a matrix where each row corresponds to the node, and each column represents the demand
+    partition_matrix = (demands / demands.sum()).unsqueeze(1).repeat(1, n)
+    partition_diff = torch.abs(distance_matrix - partition_matrix)
+    
+    # Add partitioning difference to the potential values
+    potential_values += partition_diff
+    
+    # Set the depot to a very low potential value to avoid it being chosen as a first visit
+    potential_values[0, :] = -float('inf')
+    potential_values[:, 0] = -float('inf')
+    
+    return potential_values
+```

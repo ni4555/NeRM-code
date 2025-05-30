@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize demands relative to the vehicle capacity
+    demand_normalized = demands / torch.max(demands)
+    
+    # Compute the cumulative distance and demand for each node from the depot
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    cumulative_demands = torch.cumsum(demand_normalized, dim=0)
+    
+    # Calculate the heuristic values using a non-linear transformation (e.g., logarithm)
+    with torch.no_grad():
+        heuristic_matrix = torch.log(cumulative_distances / (cumulative_demands + 1e-8))
+    
+    # Incorporate thresholding by limiting the values to be within a specific range
+    max_heuristic = torch.max(heuristic_matrix)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-max_heuristic, max=max_heuristic)
+    
+    # Transform the heuristic matrix such that lower heuristic values (more promising) are negative
+    heuristic_matrix = 1 - heuristic_matrix
+    
+    # Normalize the heuristic matrix to be within the range of [-1, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

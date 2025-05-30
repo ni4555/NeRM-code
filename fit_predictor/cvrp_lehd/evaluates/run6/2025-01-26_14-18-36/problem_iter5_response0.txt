@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Incorporate demand and distance patterns
+    # Positive values for shorter distances and lower demands
+    heuristic_matrix = -distance_matrix
+    
+    # Normalize by total vehicle capacity
+    demand_threshold = demands.sum()
+    heuristic_matrix /= demand_threshold
+    
+    # Incorporate constraints early
+    # Negative values for edges that exceed capacity
+    mask_exceeds_capacity = (demands > 1).to(torch.float32)
+    heuristic_matrix += mask_exceeds_capacity * (heuristic_matrix.max() + 1)
+    
+    return heuristic_matrix
+```

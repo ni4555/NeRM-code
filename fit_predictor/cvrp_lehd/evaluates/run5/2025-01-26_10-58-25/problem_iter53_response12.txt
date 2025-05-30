@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Apply a non-linear demand penalty that decreases as demand approaches capacity
+    demand_penalty_matrix = -torch.relu(vehicle_capacity - demands)
+    
+    # Create a distance-based penalty matrix that balances the distance to a node
+    distance_penalty_matrix = torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Use soft thresholds to balance the impact of demand and distance
+    combined_potential_matrix = torch.min(potential_matrix, torch.abs(potential_matrix))
+    
+    # Normalize the combined potential matrix to ensure a proper scale balance
+    normalized_combined_potential_matrix = F.softmax(combined_potential_matrix, dim=1)
+    
+    # Directly use the normalized matrix as the heuristic matrix
+    heuristics_matrix = normalized_combined_potential_matrix
+    
+    return heuristics_matrix
+```

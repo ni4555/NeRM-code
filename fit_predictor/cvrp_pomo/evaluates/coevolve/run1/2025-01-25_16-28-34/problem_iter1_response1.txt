@@ -1,0 +1,88 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Problem-specific Local Search
+    vehicle_capacities = demands.sum()
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                edge_load = demands[j]
+                if edge_load <= vehicle_capacities:
+                    heuristics[i, j] = -1  # Mark as promising
+                else:
+                    heuristics[i, j] = 0  # Mark as undesirable
+    
+    # Adaptive PSO with Adaptive Population Management
+    # Initialize PSO parameters
+    num_particles = 30
+    w = 0.5  # Inertia weight
+    c1, c2 = 1.5, 1.5  # Cognitive and social coefficients
+    max_iter = 100
+    best_solution = torch.zeros_like(heuristics)
+    best_cost = float('inf')
+    
+    # Initialize particles (positions and velocities)
+    particles = torch.rand((num_particles, n, n))
+    velocities = torch.zeros_like(particles)
+    
+    for _ in range(max_iter):
+        # Update velocities and positions
+        velocities = w * velocities + c1 * torch.rand_like(velocities) * (best_solution - particles) + c2 * torch.rand_like(velocities) * (torch.rand_like(particles) * best_solution + (1 - torch.rand_like(particles)) * particles)
+        particles += velocities
+        
+        # Evaluate cost for each particle
+        for i in range(num_particles):
+            current_cost = (particles[i] * distance_matrix).sum()
+            if current_cost < best_cost:
+                best_solution = particles[i]
+                best_cost = current_cost
+        
+        # Population management to maintain diversity
+        # Select the best solutions to create a new population
+        new_particles = torch.zeros_like(particles)
+        for i in range(num_particles):
+            new_particles[i] = best_solution + torch.rand_like(best_solution) * (particles[i] - best_solution)
+        
+        particles = new_particles
+    
+    # Dynamic Tabu Search with Adaptive Cost Function
+    tabu_list = []
+    max_tabu_size = 10
+    for i in range(max_iter):
+        current_solution = best_solution
+        best_new_solution = current_solution.clone()
+        best_new_cost = best_cost
+        
+        # Generate neighboring solutions
+        for j in range(n):
+            for k in range(n):
+                if i not in tabu_list and distance_matrix[j, k] != 0:
+                    new_solution = current_solution.clone()
+                    new_solution[j, k], new_solution[k, j] = new_solution[k, j], new_solution[j, k]
+                    new_cost = (new_solution * distance_matrix).sum()
+                    if new_cost < best_new_cost:
+                        best_new_solution = new_solution
+                        best_new_cost = new_cost
+        
+        # Update the tabu list
+        tabu_list.append(i)
+        if len(tabu_list) > max_tabu_size:
+            tabu_list.pop(0)
+        
+        # Update the best solution if a better one is found
+        if best_new_cost < best_cost:
+            best_solution = best_new_solution
+            best_cost = best_new_cost
+    
+    # Adjust heuristics based on the best solution
+    for i in range(n):
+        for j in range(n):
+            if distance_matrix[i, j] != 0:
+                heuristics[i, j] = -1 if best_solution[i, j] else 1
+    
+    return heuristics
+```

@@ -1,0 +1,28 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Create a matrix with negative infinity for edges where demand is greater than vehicle capacity
+    demand_matrix = torch.clamp(-torch.cumsum(demands, dim=0) / vehicle_capacity, min=float('-inf'))
+    
+    # Adjust the matrix for edges where the demand is exactly zero
+    demand_matrix[torch.where(demands == 0)] = float('-inf')
+    
+    # Add the distance matrix to the demand matrix to create a potential matrix
+    potential_matrix = distance_matrix + demand_matrix
+    
+    # Apply a non-linear transformation to the potential matrix, e.g., sigmoid, to normalize values
+    transformed_potential_matrix = torch.sigmoid(potential_matrix)
+    
+    # Normalize the transformed potential matrix to ensure the sum of each row is 1 (probability distribution)
+    normalized_matrix = transformed_potential_matrix / transformed_potential_matrix.sum(dim=1, keepdim=True)
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    # This will result in negative values for undesirable edges and positive values for promising ones
+    heuristics_matrix = 1 - normalized_matrix
+    
+    return heuristics_matrix
+```

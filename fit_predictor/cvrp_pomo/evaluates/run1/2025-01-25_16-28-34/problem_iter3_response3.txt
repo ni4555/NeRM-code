@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adjust the average demand per edge to be relative to the total capacity
+    adjusted_average_demand = average_demand_per_edge / total_capacity
+    
+    # Calculate the load for each vehicle starting from the depot
+    load = torch.cumsum(adjusted_average_demand, dim=1)
+    
+    # Apply the problem-specific local search
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Check if adding customer j to vehicle i would exceed the capacity
+                load[i] += adjusted_average_demand[j]
+                if load[i] > 1:
+                    # If the load exceeds capacity, reset the load and heuristics for customer j
+                    load[i] -= adjusted_average_demand[j]
+                    heuristics[i, j] = -1000  # Set to a negative value to indicate an undesirable edge
+                else:
+                    # Otherwise, calculate the heuristics value
+                    heuristics[i, j] = adjusted_average_demand[j]
+    
+    # Set edges leading to the depot with zero distance to zero heuristics
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

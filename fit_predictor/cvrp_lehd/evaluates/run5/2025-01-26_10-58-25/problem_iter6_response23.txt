@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = 1.0
+    
+    # Calculate the cumulative demand and penalize edges that exceed the vehicle capacity
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    penalty = (cumulative_demand - vehicle_capacity) / vehicle_capacity
+    demand_matrix = torch.where(penalty > 0, penalty, cumulative_demand)
+    
+    # Combine demand and distance to create a potential matrix
+    potential_matrix = distance_matrix + demand_matrix
+    
+    # Normalize the potential matrix to create a probability distribution using log_softmax
+    log_probs = torch.nn.functional.log_softmax(potential_matrix, dim=1)
+    
+    # Convert log probabilities to probabilities and then to heuristics
+    heuristics_matrix = -torch.exp(log_probs)
+    
+    return heuristics_matrix
+```

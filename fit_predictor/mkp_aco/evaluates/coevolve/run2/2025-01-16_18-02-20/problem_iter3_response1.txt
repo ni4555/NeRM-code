@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate diversity score as the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - np.repeat(normalized_prize, n, axis=0)), axis=0)
+    
+    # Calculate a sparsity score based on the percentage of dimensions where the weight is zero
+    sparsity_scores = np.mean(weight == 0, axis=1)
+    
+    # Combine the normalized prize value, diversity score, and sparsity score with domain knowledge
+    # Assume there is a minimum sparsity threshold and a preference for higher diversity and prize value
+    min_sparsity_threshold = 0.5
+    domain_factor = np.where(sparsity_scores >= min_sparsity_threshold, 0, 1)
+    
+    # Create a composite score
+    composite_score = normalized_prize * domain_factor + diversity_scores - sparsity_scores
+    
+    # Apply a dynamic threshold to the composite score
+    dynamic_threshold = np.percentile(composite_score, 75)
+    promising_indices = composite_score >= dynamic_threshold
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    # Sparsify the heuristics by setting the top 50% of promising elements to 1
+    heuristics[promising_indices] = 1
+    
+    return heuristics
+```

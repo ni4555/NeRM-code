@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = torch.clamp((demands[:, None] + demands[None, :]) * distance_matrix, min=0)
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adjust heuristics based on average demand and capacity
+    heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    # Vectorized local search to refine neighborhood exploration
+    # We calculate the load impact for each edge and update the heuristics
+    # only if it does not violate the capacity constraints
+    load_impact = demands[:, None] - demands[None, :]
+    edge_load_violation = load_impact < 0
+    edge_capacity_violation = load_impact > total_capacity
+    load_impact = torch.where(edge_load_violation, torch.tensor(-float('inf')), load_impact)
+    load_impact = torch.where(edge_capacity_violation, torch.tensor(float('inf')), load_impact)
+    heuristics = heuristics - load_impact
+    
+    # Penalize zero distance edges
+    heuristics[distance_matrix == 0] = 0
+    
+    # Return the heuristics matrix with edges with zero distance set to zero
+    return heuristics
+```

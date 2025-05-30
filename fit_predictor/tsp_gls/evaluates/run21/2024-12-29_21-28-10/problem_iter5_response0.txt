@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Calculate the distance to the nearest neighbor for both nodes
+                min_dist_i = np.min(distance_matrix[i, :])
+                min_dist_j = np.min(distance_matrix[j, :])
+                
+                # Subtract the minimum distance from the current edge's distance
+                heuristics[i, j] = distance_matrix[i, j] - (min_dist_i + min_dist_j)
+                
+                # Introduce a global connectivity heuristic: if the minimum distance is to a
+                # node that is also connected to a lot of other nodes, increase the heuristic value
+                if min_dist_i in distance_matrix[:, i]:
+                    neighbors_of_min_i = np.sum(distance_matrix[:, i] < min_dist_i)
+                    heuristics[i, j] += 0.5 * neighbors_of_min_i
+                
+                if min_dist_j in distance_matrix[:, j]:
+                    neighbors_of_min_j = np.sum(distance_matrix[:, j] < min_dist_j)
+                    heuristics[i, j] += 0.5 * neighbors_of_min_j
+
+                # Introduce a diversity metric: balance the heuristic with a random factor
+                heuristics[i, j] += np.random.rand() * 0.2
+
+    return heuristics
+```

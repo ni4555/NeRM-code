@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_distance_matrix = distance_matrix / total_demand
+    scaled_demands = demands / demands.max()
+
+    # Non-linear transformation for distances using a logarithmic function
+    non_linear_distance = torch.log(normalized_distance_matrix + 1)  # Adding 1 to avoid log(0)
+
+    # Non-linear transformation for demands using a square root function
+    non_linear_demand = torch.sqrt(scaled_demands)
+
+    # Combine the non-linear transformations by subtracting the demand term from the distance term
+    combined_heuristic = non_linear_distance - non_linear_demand
+
+    # Integrate symmetry by taking the minimum of the matrix to account for both directions
+    combined_heuristic = torch.min(combined_heuristic, torch.transpose(combined_heuristic, 0, 1))
+
+    # Invert the sign to get negative values for undesirable edges
+    return -combined_heuristic
+```

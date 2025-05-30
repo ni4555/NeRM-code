@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    
+    # Normalize demand by capacity to account for capacity constraint
+    normalized_demand = demands / demands.sum()
+    
+    # Use inverse demand to prevent dominated edges
+    demand_inverse = (1 / (demands + 1e-8)).unsqueeze(1) * normalized_demand
+    
+    # Apply a distance penalty to edges with large distances
+    distance_penalty = 1 / (distance_matrix + 1e-8)
+    
+    # Use logarithmic scale for a balance between distance and demand
+    balance_factor = torch.log(demand_inverse + distance_penalty)
+    
+    # Include a depot decay to reduce the attractiveness of depot edges
+    depot_decay = torch.log(torch.abs(distance_matrix[:, 0] + 1e-8))
+    balance_factor[:, 0] *= depot_decay
+    balance_factor[0, :] *= depot_decay
+    
+    # Normalize to prevent dominance
+    balance_factor /= balance_factor.max()
+    
+    # Adjust balance to prioritize edges that fill capacity more efficiently
+    capacity_balance = demands / (demands.sum() + 1e-8)
+    balance_factor *= capacity_balance
+    
+    # Minimize loops by ensuring the heuristic value for edges forming a loop is zero
+    loop_heuristics = balance_factor + balance_factor.T - torch.diag(balance_factor)
+    loop_heuristics[loop_heuristics > 0] = 0
+    balance_factor += loop_heuristics
+    
+    return balance_factor
+```

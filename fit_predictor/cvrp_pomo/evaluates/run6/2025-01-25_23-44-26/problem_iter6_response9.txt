@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Demand penalty: higher penalties for edges with high demands
+    demand_penalty = -torch.sqrt(normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0))
+    
+    # Distance heuristic: shorter distances get higher values
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Load balancing factor: balance the load across vehicles
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Time factor: simulate real-time rerouting capabilities
+    time_constant = torch.rand(distance_matrix.shape[0])  # Assuming uniform random time constants for simplicity
+    time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0)))
+    
+    # Combine all heuristics to form the final heuristic matrix
+    combined_heuristic = demand_penalty + distance_heuristic + load_balance * time_heuristic
+    
+    return combined_heuristic
+```

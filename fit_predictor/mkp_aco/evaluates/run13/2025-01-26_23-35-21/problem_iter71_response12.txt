@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Prune dominated items by filtering out items with lower density
+    dominance_filter = prize / np.sum(weight, axis=1) > np.min(prize / np.sum(weight, axis=1))
+    
+    # Normalize diverse metrics
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Balance exploration and exploitation using a sigmoid function
+    exploration_exploitation = 1 / (1 + np.exp(-density))
+    
+    # Foster diversity with randomization
+    random_factor = np.random.rand(*weight.shape)
+    
+    # Combine the metrics and factors to create the heuristic
+    heuristic = dominance_filter * density * exploration_exploitation * random_factor
+    
+    # Normalize the heuristic
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Sparsify the heuristic by setting dominated and non-promising elements to zero
+    normalized_heuristic[~dominance_filter] = 0
+    normalized_heuristic[density <= sparsity] = 0
+    
+    return normalized_heuristic
+```

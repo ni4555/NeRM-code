@@ -1,0 +1,49 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Introduce randomness by adding Gaussian noise with a small standard deviation
+    noise_matrix = torch.randn_like(penalty_matrix) * 1e-2
+    
+    # Combine demand, distance penalties, and noise into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix + noise_matrix
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(potential_matrix))
+    
+    # Introduce diversity by ensuring a minimum threshold for the potential values
+    diversity_threshold = torch.min(emphasized_matrix)
+    emphasized_matrix = torch.where(emphasized_matrix < diversity_threshold,
+                                   emphasized_matrix + diversity_threshold,
+                                   emphasized_matrix)
+    
+    # Limit noise to maintain structure and avoid overfitting
+    noise_limit = torch.clamp(1 - emphasized_matrix.sum(dim=1, keepdim=True), min=0)
+    limited_noise_matrix = noise_matrix * noise_limit
+    
+    # Introduce a second noise term for further randomness
+    second_noise_matrix = torch.randn_like(emphasized_matrix) * 1e-2
+    
+    # Adjust the emphasized matrix to account for additional randomness
+    adjusted_emphasized_matrix = emphasized_matrix + second_noise_matrix
+    
+    # Combine the adjusted emphasized matrix with the distance penalty matrix
+    combined_matrix = adjusted_emphasized_matrix + 0.5 * distance_penalty_matrix
+    
+    # Normalize the combined matrix to ensure non-negativity and scale balance
+    normalized_combined_matrix = combined_matrix / (combined_matrix.sum(dim=1, keepdim=True) + 1e-6)
+    
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -normalized_combined_matrix
+    
+    return heuristics_matrix
+```

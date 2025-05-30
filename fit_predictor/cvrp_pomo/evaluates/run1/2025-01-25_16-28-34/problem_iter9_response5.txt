@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a penalty for deviation from the average demand
+    demand_deviation_penalty = torch.abs(average_demand_per_edge - total_capacity / n)
+    
+    # Introduce a distance-based penalty that encourages closer node pairs
+    distance_penalty = 1 / (distance_matrix + 1)
+    
+    # Combine penalties into a heuristic
+    heuristics = -demand_deviation_penalty + distance_penalty
+    
+    # Adjust penalties dynamically based on the current load distribution
+    current_load = torch.zeros(n)
+    for i in range(n):
+        for j in range(n):
+            if i != j and distance_matrix[i, j] != 0:
+                current_load[i] += demands[j] * distance_matrix[i, j]
+    
+    overload_penalty = torch.abs(current_load - total_capacity)
+    underload_penalty = torch.abs(current_load)
+    
+    # Weighted combination of overload and underload penalties
+    dynamic_penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply dynamic penalties to the heuristics
+    heuristics -= dynamic_penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

@@ -1,0 +1,56 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Calculate the mean and standard deviation of the distance matrix
+    mean_distance = np.mean(distance_matrix)
+    std_dev = np.std(distance_matrix)
+    
+    # Define a Gaussian function to represent the influence of each node
+    def gaussian_influence(distance, mean, std):
+        return np.exp(-((distance - mean) ** 2) / (2 * std ** 2))
+    
+    # Define a distance-based penalty to account for longer distances
+    def distance_penalty(distance, mean, std):
+        return 1 - gaussian_influence(distance, mean, std)
+    
+    # Calculate the heuristics matrix
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                heuristics[i, j] = distance_penalty(distance_matrix[i, j], mean_distance, std_dev)
+    
+    # Introduce adaptive neighborhood strategies
+    # Adjust heuristics based on a simulated annealing approach to avoid local optima
+    def adaptive_neighborhood(heuristic, current_temp):
+        # Simulated annealing acceptance probability
+        return np.exp(-heuristic / current_temp)
+    
+    # Simulated annealing parameters
+    initial_temp = 1.0
+    cooling_rate = 0.99
+    final_temp = 0.01
+    
+    # Perform simulated annealing to refine the heuristics
+    current_temp = initial_temp
+    while current_temp > final_temp:
+        for i in range(distance_matrix.shape[0]):
+            for j in range(distance_matrix.shape[1]):
+                if i != j:
+                    # Calculate the change in heuristic
+                    delta_h = -adaptive_neighborhood(heuristics[i, j], current_temp)
+                    # Apply the change if it improves the heuristic
+                    if delta_h < 0:
+                        heuristics[i, j] += delta_h
+        current_temp *= cooling_rate
+    
+    # Normalize the heuristics to ensure a better distribution
+    max_val = np.max(heuristics)
+    min_val = np.min(heuristics)
+    heuristics = (heuristics - min_val) / (max_val - min_val)
+    
+    return heuristics
+```

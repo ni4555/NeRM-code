@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    initial_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic penalty based on remaining capacity
+    dynamic_capacity_penalty = initial_capacity_penalty * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Enhanced distance penalty to account for cumulative load
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balance load heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Use adaptive scaling for impact and efficiency
+    # Scaling factors for each component
+    scaling_factors = torch.tensor([0.5, 1.5, 0.8, 1.0, 0.6], dtype=torch.float)
+    heuristics = torch.sum(
+        torch.stack([
+            distance_scaling * scaling_factors[0],
+            dynamic_capacity_penalty * scaling_factors[1],
+            overflow_penalty * scaling_factors[2],
+            load_balance_penalty * scaling_factors[3],
+            (load_balance - total_capacity / (3 * n)) * scaling_factors[4]
+        ], dim=0), dim=0
+    )
+    
+    return heuristics
+```

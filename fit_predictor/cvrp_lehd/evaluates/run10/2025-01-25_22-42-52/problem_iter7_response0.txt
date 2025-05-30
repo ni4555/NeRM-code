@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize the matrix for storing heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Initialize the vehicle capacity vector
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    
+    # For each vehicle, find the farthest point within the capacity limit
+    for vehicle_id in range(1, len(demands)):
+        # Find the farthest node that can be included without exceeding the vehicle capacity
+        farthest_node = torch.argmax(cumulative_demand[:vehicle_id] - demands[:vehicle_id])
+        
+        # If the farthest node is feasible (demand does not exceed capacity), assign a positive heuristic
+        if cumulative_demand[farthest_node] <= vehicle_capacity[vehicle_id]:
+            heuristics_matrix[0, farthest_node] = distance_matrix[0, farthest_node]
+    
+    return heuristics_matrix
+```

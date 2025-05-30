@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic based on the reflection provided."""
+    
+    # Calculate the inverse of the distance matrix to emphasize shorter distances
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)  # Add a small value to avoid division by zero
+    
+    # Calculate the weight of each node based on its demand
+    total_demand = demands.sum()
+    node_weights = demands / total_demand
+    
+    # Calculate the weight of each edge based on the sum of the node weights at both ends
+    edge_weights = node_weights.unsqueeze(1) * node_weights.unsqueeze(0)
+    
+    # Combine the inverse distance and edge weights to form the heuristic matrix
+    heuristic_values = distance_matrix_inv - distance_matrix.sum(axis=1).unsqueeze(1) * edge_weights
+    
+    return heuristic_values
+```

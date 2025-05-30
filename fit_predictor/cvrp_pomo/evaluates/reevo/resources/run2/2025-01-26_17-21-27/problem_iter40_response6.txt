@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Dynamic scaling for distances based on load
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity)
+    
+    # Dynamic penalty based on remaining capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Early overflow penalty to avoid overflows and encourage returning to depot
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance penalty to encourage even distribution of the load
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Strong scaling factor for core objectives
+    scaling_factor = 3.0
+    
+    # Heuristics combining all factors
+    heuristics = scaling_factor * (distance_scaling + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty)
+    
+    # Encourage diversity to escape local optima
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Additional penalty to avoid selecting the depot as the next node
+    depot_penalty = torch.arange(n) == 0
+    heuristics = heuristics - depot_penalty.float().unsqueeze(0)
+    
+    # Combine diversity with the heuristics
+    heuristics += diversity_factor
+    
+    # Normalize heuristics to maintain a balance between penalties and rewards
+    heuristics /= (heuristics.abs().max() + 1e-8)
+    
+    return heuristics
+```

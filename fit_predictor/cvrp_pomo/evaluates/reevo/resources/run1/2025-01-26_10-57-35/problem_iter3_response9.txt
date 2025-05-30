@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristics function leveraging demand-driven heuristics."""
+    n = distance_matrix.shape[0]
+    depot = 0  # Depot node is at index 0
+    max_demand_sum = torch.full((n,), torch.tensor(float('inf')))  # Initialize to infinity
+    max_demand_sum[depot] = 0  # Set the max demand sum at the depot to 0
+    
+    # Use a dynamic programming-like approach to calculate maximum demand sum
+    # that can be served without exceeding capacity at each node.
+    for i in range(1, n):
+        demand_mask = (demands[:i] <= max_demand_sum[:i])
+        demand_sum = demands[:i][demand_mask].sum()
+        max_demand_sum[i] = demand_sum
+    
+    # Create the heuristic matrix using a function that promotes shorter
+    # distances (edges) and respects demand capacity.
+    heuristics = distance_matrix * (1 - (demands <= max_demand_sum))  # Negative for desirable edges
+    return heuristics
+```

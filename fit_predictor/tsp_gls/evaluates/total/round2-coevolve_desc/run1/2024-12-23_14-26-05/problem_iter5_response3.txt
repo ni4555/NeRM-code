@@ -1,0 +1,45 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=0)
+    
+    # Calculate the betweenness centrality for each edge
+    betweenness_centrality = np.zeros(distance_matrix.shape)
+    for k in range(distance_matrix.shape[0]):
+        for i in range(distance_matrix.shape[0]):
+            for j in range(distance_matrix.shape[0]):
+                if distance_matrix[i, j] != 0:
+                    betweenness_centrality[i, j] += (distance_matrix[i, k] * distance_matrix[k, j]) / (np.sum(distance_matrix[k, :] != 0))
+    
+    # Normalize the betweenness centrality
+    max_betweenness = np.max(betweenness_centrality)
+    betweenness_centrality = betweenness_centrality / max_betweenness
+    
+    # Adjust the distance matrix based on the betweenness centrality
+    adjusted_distance_matrix = distance_matrix.copy()
+    for i in range(adjusted_distance_matrix.shape[0]):
+        for j in range(adjusted_distance_matrix.shape[0]):
+            adjusted_distance_matrix[i, j] *= (1 - betweenness_centrality[i, j])
+    
+    # Introduce mutation with a non-linear function to maintain diversity and avoid local minima
+    mutation_strength = 0.05
+    mutation_indices = np.random.choice(range(distance_matrix.shape[0]), size=int(distance_matrix.shape[0] * mutation_strength), replace=False)
+    mutation_indices = np.random.choice(mutation_indices, size=int(distance_matrix.shape[0] * mutation_strength / 2), replace=False)
+    for i in mutation_indices:
+        j = np.random.randint(0, distance_matrix.shape[0])
+        # Non-linear mutation: use a sigmoid function to avoid sudden large changes
+        mutation_factor = 1 / (1 + np.exp(-np.random.randn()))
+        adjusted_distance_matrix[i, j] += mutation_factor * (np.random.rand() - 0.5)
+        adjusted_distance_matrix[i, j] = np.clip(adjusted_distance_matrix[i, j], 0, 1)
+    
+    # Additional global factor to encourage diversification
+    global_factor = np.random.rand(distance_matrix.shape[0], distance_matrix.shape[0])
+    adjusted_distance_matrix += global_factor * mutation_strength
+    
+    # Normalize to ensure that all values are between 0 and 1
+    adjusted_distance_matrix = adjusted_distance_matrix / np.max(adjusted_distance_matrix)
+    
+    return adjusted_distance_matrix
+```

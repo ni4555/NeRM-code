@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # Vectorized cumulative demand calculation
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cost of traveling from each node to every other node without exceeding capacity
+    feasible_cost = distance_matrix * (demands[:, None] + demands.T <= total_capacity - demand_cumsum)
+    
+    # Balance the heuristics
+    heuristics = feasible_cost - distance_matrix
+    heuristics[feasible_cost > 0] = 0
+    heuristics[feasible_cost <= 0] *= -1
+    
+    return heuristics
+```

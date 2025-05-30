@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Incorporate a potential function that rewards edges with high demand and short distances
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    edge_potential = normalized_demands * torch.log(1 / (distance_matrix + epsilon))
+    
+    # Introduce a soft constraint by applying a small penalty to longer distances
+    gamma = 0.1  # Penalty coefficient for long distances
+    edge_potential -= gamma * distance_matrix
+    
+    return edge_potential
+```

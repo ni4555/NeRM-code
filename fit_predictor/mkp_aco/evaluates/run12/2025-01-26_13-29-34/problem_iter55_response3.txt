@@ -1,0 +1,65 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep Reinforcement Learning (DRL) model for adaptive rewards
+    model = np.random.rand(n)
+    model_reward = lambda x: -np.sum(x * np.log(1 + x))  # Minimize penalty for over-weighted items
+    rewards = [model_reward(model)]
+
+    # Initialize Particle Swarm Optimization (PSO) for evolutionary swarm intelligence
+    pso_position = np.random.rand(n)
+    pso_velocity = np.zeros(n)
+    pso_personal_best = np.copy(pso_position)
+    pso_global_best = np.copy(pso_position)
+    pso_personal_best_scores = np.copy(model)
+    pso_global_best_scores = np.copy(model)
+
+    # Maintain multi-dimensional feasibility
+    feasible_items = np.sum(weight, axis=1) <= 1
+    pso_global_best_scores[~feasible_items] = float('-inf')
+    pso_global_best = pso_position[feasible_items]
+
+    # Run PSO for a small number of iterations for demonstration
+    for _ in range(10):
+        for i in range(n):
+            if i in feasible_items:  # Consider only feasible items
+                pso_velocity[i] = 0.01 * (pso_personal_best[i] - pso_position[i]) + 0.2 * np.random.rand()
+                pso_position[i] += pso_velocity[i]
+                pso_position[i] = np.clip(pso_position[i], 0, 1)
+
+                if pso_position[i] > model[i]:
+                    pso_personal_best[i] = pso_position[i]
+                    pso_personal_best_scores[i] = model[i]
+                if pso_position[i] > pso_global_best[i]:
+                    pso_global_best[i] = pso_position[i]
+                    pso_global_best_scores[i] = model[i]
+
+        # Update global best index and DRL scores
+        global_best_index = np.argmax(pso_global_best_scores)
+        rewards.append(model_reward(model))
+
+    # Balance between exploration and exploitation
+    exploration_rate = 0.1
+    for i in range(n):
+        heuristic[i] = rewards[-1] * prize[i] / (prize[global_best_index] + 1e-6)
+        heuristic[i] += exploration_rate * (model[i] - heuristic[i])
+
+    # Sparsify the heuristics by setting low values to zero
+    sparsity_threshold = np.percentile(heuristic, 50)
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    # Update the DRL model to reflect the most promising heuristic scores
+    model = np.exp(model_reward(model) + np.sum(model * heuristic))
+    model /= np.sum(model)
+
+    # Update heuristics based on the refined DRL model
+    heuristic = model * prize / (prize[global_best_index] + 1e-6)
+
+    # Ignore non-feasible items
+    heuristic[~feasible_items] = 0
+
+    return heuristic
+```

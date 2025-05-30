@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize demands by total capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Normalize distances by the maximum distance to prevent overfitting
+    max_distance = distance_matrix.max()
+    normalized_distances = distance_matrix / max_distance
+
+    # Calculate the demand variance and use it to encourage load balancing
+    demand_variance = (demands - normalized_demands.mean()) ** 2
+    normalized_demand_variance = demand_variance / demand_variance.max()
+
+    # Introduce dynamic weights for demand variance and distance
+    demand_variance_weight = torch.tensor(0.5, dtype=distance_matrix.dtype)
+    distance_weight = torch.tensor(0.5, dtype=distance_matrix.dtype)
+
+    # Calculate the heuristic using a weighted sum of normalized demand variance and distance
+    heuristic_matrix = -torch.mul(
+        torch.mul(
+            demand_variance_weight * normalized_demand_variance,
+            normalized_demands
+        ),
+        torch.mul(
+            distance_weight * normalized_distances,
+            distance_matrix
+        )
+    )
+
+    # Apply penalties to avoid overfitting
+    high_demand_threshold = normalized_demands.mean() + normalized_demand_variance.mean()
+    penalty_weight = torch.tensor(-1.0, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.where(normalized_demands > high_demand_threshold, penalty_weight, heuristic_matrix)
+
+    # Apply a threshold to ensure all heuristics are within a specific range
+    min_threshold = torch.tensor(-1.0, dtype=distance_matrix.dtype)
+    max_threshold = torch.tensor(1.0, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=min_threshold, max=max_threshold)
+
+    return heuristic_matrix
+```

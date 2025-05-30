@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improve upon the trivial implementation by considering the following heuristics:
+    1. Promote edges leading to high-demand nodes.
+    2. Promote edges leading from low-demand nodes.
+    3. Promote edges that are part of the shortest path to a high-demand node.
+    4. Promote edges that are part of the shortest path from a low-demand node.
+    """
+    # Calculate the shortest path to and from each node using Dijkstra's algorithm
+    n = distance_matrix.shape[0]
+    shortest_paths_to = torch.full_like(demands, float('inf'))
+    shortest_paths_from = torch.full_like(demands, float('inf'))
+    
+    for start in range(n):
+        shortest_paths_to[start] = torch.argmin(distance_matrix[start], dim=0)
+        shortest_paths_from[start] = torch.argmin(distance_matrix[:, start], dim=0)
+    
+    # Heuristic 1 and 2: Promote edges leading to and from high-demand and low-demand nodes
+    high_demand = demands > demands.mean()
+    low_demand = demands < demands.mean()
+    
+    heuristic_1 = (distance_matrix * high_demand).sum(dim=1)
+    heuristic_2 = (distance_matrix * low_demand).sum(dim=1)
+    
+    # Heuristic 3 and 4: Promote edges that are part of the shortest path to/from high-demand and low-demand nodes
+    heuristic_3 = (distance_matrix[:, shortest_paths_to[high_demand]] * high_demand).sum(dim=1)
+    heuristic_4 = (distance_matrix[shortest_paths_from[low_demand], :] * low_demand).sum(dim=1)
+    
+    # Combine all heuristics and normalize
+    combined_heuristics = heuristic_1 + heuristic_2 + heuristic_3 + heuristic_4
+    return combined_heuristics - combined_heuristics.mean()
+```

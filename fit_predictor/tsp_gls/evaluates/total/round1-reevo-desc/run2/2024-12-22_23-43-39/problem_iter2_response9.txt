@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the diagonal of the distance matrix (no distance to itself)
+    diag = np.diag(distance_matrix)
+    
+    # Calculate the distance matrix without self-loops
+    distance_matrix_no_diag = np.copy(distance_matrix)
+    np.fill_diagonal(distance_matrix_no_diag, np.inf)
+    
+    # Calculate the minimum distance for each edge (excluding self-loops)
+    min_distances = np.min(distance_matrix_no_diag, axis=0)
+    
+    # Normalize the distance to its respective minimum distance
+    normalized_distances = distance_matrix / min_distances
+    
+    # Use a sigmoid function to create a smooth transition between 0 and 1
+    # This encourages the search to prefer shorter edges early in the path
+    heuristics = 1 / (1 + np.exp(normalized_distances))
+    
+    # Avoid zero heuristic values to prevent the algorithm from considering
+    # any edge impossible, as they might still be useful in the context
+    heuristics[diag == 0] = 1
+    heuristics = np.clip(heuristics, 1e-5, 1)
+    
+    return heuristics
+```

@@ -1,0 +1,46 @@
+Fitness: 21.410755157470703
+
+Description:
+The problem is to develop a heuristic algorithm for solving a Mixed Vehicle Routing Problem (MVRP) with time windows and dynamic demand. In this scenario, a fleet of vehicles must deliver goods to a set of customers, each with a specific demand and a time window during which the delivery can occur. Each vehicle has a capacity limit, and the delivery schedule must respect the time windows and vehicle capacities.
+
+The MVRP with time windows and dynamic demand (MVRP-TWD) involves the following elements:
+
+1. **Nodes**: Represent customers, with each having a demand, a time window, and a service time.
+2. **Vehicles**: Each vehicle has a capacity and a fixed travel time between nodes.
+3. **Dynamic Demand**: Some demands may change during the execution of the algorithm, requiring re-optimization of routes.
+4. **Time Windows**: Each customer has a specific time window during which the delivery must be made, and the vehicle arrival must not exceed this window.
+5. **Capacity Constraints**: The total demand of nodes visited by any vehicle must not exceed its capacity.
+
+The goal is to design a heuristic that:
+- Determines an initial feasible solution that respects all time windows and capacity constraints.
+- Efficiently incorporates dynamic demand changes into the existing routes.
+- Minimizes the total travel time and maximizes the number of satisfied customer requests.
+- Uses techniques such as the savings algorithm, savings-based insertion, and genetic algorithms to optimize the routes, considering the trade-off between solution quality and computational efficiency.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the sum of demands to normalize
+    total_demand = demands.sum()
+    
+    # Normalize demands by the total vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the savings for each edge
+    savings = 2 * (distance_matrix ** 2) - (distance_matrix.sum(dim=1) ** 2) - (distance_matrix.sum(dim=0) ** 2)
+    
+    # Incorporate normalized demand into savings
+    savings = savings - normalized_demands.unsqueeze(1) * distance_matrix
+    
+    # Apply a penalty for edges that are part of the same route (self-loops)
+    savings = savings - (distance_matrix < 1e-6) * 1e6
+    
+    # Apply a positive heuristics for edges with savings
+    heuristics = savings * (savings > 0)
+    
+    return heuristics

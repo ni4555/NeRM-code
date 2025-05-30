@@ -1,0 +1,53 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a more refined heuristic that considers the balance between overloading and underloading
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Calculate penalties for overloading and underloading
+    overload_penalty = torch.abs(heuristics)
+    underload_penalty = torch.abs(1 - heuristics)
+    
+    # Introduce dynamic penalties based on the average demand per edge
+    dynamic_penalty = torch.where(average_demand_per_edge > total_capacity / n, 
+                                  torch.log1p(average_demand_per_edge / (total_capacity / n)), 
+                                  torch.zeros_like(average_demand_per_edge))
+    
+    # Weighted combination of static penalties and dynamic penalties
+    penalty = 0.5 * (overload_penalty + underload_penalty + dynamic_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    # Incorporate additional checks for edge validity and diversity
+    edge_validity = torch.ones_like(heuristics)
+    edge_validity[distance_matrix > total_capacity] = 0
+    edge_validity[distance_matrix < 0] = 0
+    
+    # Enhance diversity by penalizing highly similar edges
+    for i in range(n):
+        for j in range(i + 1, n):
+            similarity = torch.dot(demands[i], demands[j]) / (torch.norm(demands[i]) * torch.norm(demands[j]))
+            if similarity > 0.95:
+                edge_validity[i, j] = edge_validity[j, i] = 0
+    
+    # Combine edge validity with the heuristic values
+    heuristics *= edge_validity
+    
+    return heuristics
+```

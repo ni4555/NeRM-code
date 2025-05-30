@@ -1,0 +1,61 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Initialize the potential value matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Use a more complex partitioning technique, such as k-means or a modified version of it
+    # For simplicity, let's use a modified k-means with demand relaxation
+    # Step 1: Initialize centroids as random demands
+    centroids = torch.clone(demands).view(1, -1)
+    while centroids.shape[1] < n:
+        centroids = torch.cat((centroids, torch.clone(demands).view(1, -1)), dim=0)
+    
+    # Step 2: Assign nodes to the nearest centroid
+    assignments = torch.argmin(torch.cdist(demands, centroids), dim=1)
+    
+    # Step 3: Update centroids based on assigned nodes
+    for i in range(centroids.shape[0]):
+        centroid = centroids[i].unsqueeze(0)
+        points = demands[assignments == i]
+        centroids[i] = torch.mean(points, dim=0)
+    
+    # Step 4: Calculate the potential value for edges between clusters
+    for i in range(n):
+        for j in range(i + 1, n):
+            cluster_i = assignments[i]
+            cluster_j = assignments[j]
+            if cluster_i != cluster_j:
+                potential_values[i, j] = normalized_distances[i, j] - torch.sum(normalized_demands[assignments == cluster_i]) - torch.sum(normalized_demands[assignments == cluster_j])
+            else:
+                potential_values[i, j] = -float('inf')
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Integrate path decomposition to adjust the potential values
+    # For simplicity, let's use a basic path decomposition heuristic
+    for i in range(n):
+        for j in range(i + 1, n):
+            if i != 0 and j != 0:
+                path = torch.cat((i, j))
+                while path.shape[0] > 2:
+                    next_node = path[1]
+                    path = path[1:].unsqueeze(0)
+                    cluster_next = assignments[next_node]
+                    potential_values[i, j] += torch.sum(normalized_demands[assignments == cluster_next])
+    
+    return potential_values
+```

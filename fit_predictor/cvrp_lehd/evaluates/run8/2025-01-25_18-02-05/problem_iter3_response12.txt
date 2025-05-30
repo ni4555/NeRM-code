@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Invert the high scores to penalize edges with high demand-to-distance ratios
+    inverted_ratio = 1 / (demand_to_distance_ratio + 1e-6)  # Adding a small constant to avoid division by zero
+    
+    # Normalize the inverted ratios to have a meaningful range of values
+    max_inverted_ratio = torch.max(inverted_ratio)
+    normalized_inverted_ratio = inverted_ratio / max_inverted_ratio
+    
+    # Calculate the cumulative sum of the normalized inverted ratios to emphasize shorter edges
+    cumulative_normalized_inverted_ratio = torch.cumsum(normalized_inverted_ratio, dim=0)
+    
+    # Set a threshold based on the cumulative normalized inverted ratio to filter out edges
+    threshold = torch.max(cumulative_normalized_inverted_ratio)
+    
+    # Create a mask to identify edges above the threshold
+    mask = cumulative_normalized_inverted_ratio < threshold
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Assign negative values to edges that are below the threshold
+    heuristic_matrix[mask] = -cumulative_normalized_inverted_ratio[mask]
+    
+    return heuristic_matrix
+```

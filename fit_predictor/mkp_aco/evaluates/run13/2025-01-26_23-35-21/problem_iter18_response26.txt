@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prizes to avoid dominance by large prizes
+    max_prize = np.max(prize)
+    normalized_prize = prize / max_prize
+
+    # Normalize weights to handle the multi-dimensional nature of weights
+    max_weight = np.max(np.sum(weight, axis=1))
+    normalized_weight = weight / max_weight
+
+    # Calculate the density of each item, which combines value and weight
+    density = normalized_prize / np.sum(normalized_weight, axis=1)
+
+    # Introduce diversity by considering the sum of weights, encouraging selection of different items
+    diversity = 1 / (np.sum(normalized_weight, axis=1) + 1e-8)  # Add small epsilon to avoid division by zero
+
+    # Combine density and diversity, with an emphasis on density, but allowing for diversity to play a role
+    heuristic_value = density * (0.8 * diversity + 0.2)  # The constants can be tuned based on problem specifics
+
+    # Normalize the heuristic values to maintain a consistent scale and to avoid dominance by outliers
+    max_heuristic = np.max(heuristic_value)
+    normalized_heuristic = heuristic_value / (max_heuristic + 1e-8)
+
+    # Ensure the normalized heuristic values are non-negative
+    normalized_heuristic = np.maximum(normalized_heuristic, 0)
+
+    # Apply a penalty to items with too low density, to ensure better distribution across items
+    too_low_density_penalty = (heuristic_value < 0.5) * -10
+    normalized_heuristic += too_low_density_penalty
+
+    # Cap the normalized heuristic values to maintain a range for the selection process
+    capped_normalized_heuristic = np.clip(normalized_heuristic, 0, 1)
+
+    return capped_normalized_heuristic
+```

@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot demand
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Compute demand variance
+    demand_variance = ((demands - average_demand) ** 2).mean()
+
+    # Compute the cost and demand components
+    cost_component = distance_matrix
+    demand_component = demands - average_demand
+
+    # Normalize the edge weights by the variance
+    normalized_cost = cost_component / demand_variance
+    normalized_demand = demand_component / demand_variance
+
+    # Combine cost and demand components with a tunable weight
+    cost_weight = 0.5  # This can be adjusted to favor cost or demand
+    heuristic_values = cost_weight * normalized_cost + (1 - cost_weight) * normalized_demand
+
+    # Normalize by the maximum absolute value to ensure all values are within a bounded range
+    max_abs_value = torch.max(torch.abs(heuristic_values))
+    heuristic_values = heuristic_values / max_abs_value
+
+    # Apply penalties
+    # Penalty for returning to the depot (index 0)
+    return_penalty = torch.full_like(distance_matrix, -1)
+    heuristic_matrix[:, depot] += return_penalty
+    heuristic_matrix[depot, :] += return_penalty
+
+    # Penalty for exceeding vehicle capacity
+    # Since the demands are normalized by the total capacity, we apply a penalty when the normalized demand exceeds 1
+    capacity_penalty = torch.zeros_like(distance_matrix)
+    capacity_penalty[1:, 1:] += torch.where(demands[1:] > 1.0, -1000.0, 0.0)
+    heuristic_matrix += capacity_penalty
+
+    # Normalize the heuristic values to ensure non-negative values
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=0)
+
+    return heuristic_matrix
+```

@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True))
+    # Introduce a penalty for edges leading back to the depot to encourage diversification
+    penalty = -1e5
+    heuristics_matrix[torch.arange(n), torch.arange(n)] = penalty
+    # Introduce a bonus for edges that satisfy capacity constraints
+    capacity_bonus = 1e-3
+    heuristics_matrix += torch.where(demands[:, None] > demands[None], capacity_bonus, 0)
+    return heuristics_matrix
+```

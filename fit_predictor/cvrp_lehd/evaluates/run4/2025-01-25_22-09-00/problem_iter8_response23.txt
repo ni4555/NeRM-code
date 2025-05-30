@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    average_demand = demands.sum() / n
+
+    # Demand factor: higher factor for higher demands, but normalize by average demand
+    demand_factor = 2 * (demands - average_demand) / (demands.max() - average_demand)
+
+    # Distance dampening: penalize longer distances more
+    distance_dampening = 1 / (1 + torch.exp(-distance_matrix / (distance_matrix.abs().mean())))
+
+    # Avoid short paths with low demand: high demand factor on short edges
+    local_balance = -demands / (total_capacity + torch.abs(distance_matrix).mean())
+
+    # Normalize demand_factor by the maximum value to prevent domination
+    demand_factor = demand_factor / (demand_factor.abs().max() if demand_factor.abs().max() > 0 else 1)
+
+    # Combine factors into the heuristic matrix
+    heuristic_matrix = demand_factor * distance_dampening + local_balance
+
+    # Normalize the heuristics to be non-negative and prevent domination
+    heuristic_matrix = (heuristic_matrix - heuristic_matrix.min()) / (heuristic_matrix.max() - heuristic_matrix.min())
+
+    # Adjust for the depot to all other nodes: emphasize higher demands on incoming edges
+    depot_distance = distance_matrix[:, 0]
+    for i in range(1, n):
+        heuristic_matrix[i, 0] = demands[i] * depot_distance[i]
+
+    return heuristic_matrix
+```

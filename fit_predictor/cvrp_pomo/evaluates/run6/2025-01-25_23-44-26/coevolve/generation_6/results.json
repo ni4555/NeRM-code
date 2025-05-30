@@ -1,0 +1,38 @@
+{
+  "generation": 6,
+  "description": "Develop a novel heuristic approach for solving the Capacitated Vehicle Routing Problem (CVRP) that integrates a normalization process for customer demand and distance. The heuristic should initially utilize an Inverse Distance Heuristic (IDH) to assign customers to vehicles based on the reciprocal of their distance from the depot, ensuring a balanced distribution. To respect capacity constraints, a demand penalty function will be employed, increasing the cost of assigning high-demand customers to vehicles near their capacity limits. The solution will further incorporate a combination of a Genetic Algorithm (GA) for iterative route improvement, Simulated Annealing (SA) to escape local optima, and Ant Colony Optimization (ACO) for path exploration and learning. This hybrid framework must be equipped with a real-time rerouting mechanism to adapt to dynamic changes in customer demands and vehicle availability within a predefined response time frame, thereby maintaining optimized vehicle assignments and route distances.",
+  "solutions": [
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Normalize customer demands by total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n\n    # Inverse Distance Heuristic (IDH) - Promote closer customers\n    idh_scores = 1.0 / distance_matrix\n\n    # Demand penalty function - Penalize high-demand customers near capacity\n    demand_penalty = demands / (demands.sum() + 1e-6)  # Avoid division by zero\n\n    # Combine IDH and demand penalty scores\n    combined_scores = idh_scores * normalized_demands * (1 - demand_penalty)\n\n    # Ensure that the heuristics matrix has negative values for undesirable edges\n    combined_scores[distance_matrix == 0] = 0  # Exclude depot itself\n    combined_scores[combined_scores < 0] = 0\n    combined_scores[combined_scores >= 0] -= combined_scores[combined_scores >= 0].min()  # Normalize to ensure positive values\n\n    return combined_scores",
+      "fitness": 49.78913116455078,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_10.txt",
+      "code_file": "coevolve\\generation_6\\code_10.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize the demands by the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n    \n    # Calculate the inverse distance heuristic values\n    inv_distance = 1 / (distance_matrix + 1e-6)  # Adding a small constant to avoid division by zero\n    \n    # Calculate the demand penalty function\n    demand_penalty = (1 + normalized_demands) * (1 - demands / total_capacity)\n    \n    # Combine the inverse distance and demand penalty to get the heuristic values\n    heuristic_values = inv_distance - demand_penalty\n    \n    return heuristic_values",
+      "fitness": 50.407569885253906,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_0.txt",
+      "code_file": "coevolve\\generation_6\\code_0.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize the demands\n    normalized_demands = demands / demands.sum()\n    \n    # Inverse Distance Heuristic (IDH): Assign customers to vehicles based on the reciprocal of their distance\n    # Initialize the heuristic matrix with large negative values\n    heuristic_matrix = -torch.ones_like(distance_matrix)\n    \n    # Set the heuristic values based on the reciprocal of the distance\n    heuristic_matrix[distance_matrix != 0] = 1 / distance_matrix[distance_matrix != 0]\n    \n    # Demand penalty function: Increase the cost of assigning high-demand customers to vehicles near their capacity limits\n    # We will add a penalty to the heuristic values if the sum of demands assigned to a vehicle is close to the capacity\n    vehicle_capacity = 1.0  # Example capacity, can be adjusted as needed\n    demand_penalty_threshold = vehicle_capacity * 0.8  # Threshold for applying penalty\n    \n    # Iterate over each vehicle and apply the demand penalty\n    for i in range(1, len(demands) + 1):\n        demand_sum = demands[:i].sum()\n        if demand_sum > vehicle_capacity:\n            # Calculate the penalty based on how close the sum of demands is to the capacity\n            penalty = (demand_sum - vehicle_capacity) / demand_sum\n            # Apply the penalty to the heuristic values for this vehicle\n            heuristic_matrix[:i, i:] += penalty\n    \n    return heuristic_matrix",
+      "fitness": 75.85087585449219,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_6.txt",
+      "code_file": "coevolve\\generation_6\\code_6.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the inverse distance matrix\n    inv_distance_matrix = 1 / (distance_matrix + 1e-6)  # Adding a small constant to avoid division by zero\n    \n    # Normalize the demands by the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n    \n    # Calculate the demand penalty matrix\n    demand_penalty_matrix = (1 - normalized_demands) * 1000  # Example penalty factor\n    \n    # Combine the inverse distance and demand penalty into the heuristic matrix\n    heuristic_matrix = inv_distance_matrix - demand_penalty_matrix\n    \n    return heuristic_matrix",
+      "fitness": 530.0787353515625,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_5.txt",
+      "code_file": "coevolve\\generation_6\\code_5.py"
+    }
+  ]
+}

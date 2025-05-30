@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for CVRP using a combination of distance, demand, and node visitation order."""
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+    demands = demands / total_capacity  # Normalize demand by total vehicle capacity
+    
+    # Initialize a visited array to keep track of visited nodes
+    visited = torch.zeros(n, dtype=torch.bool)
+    
+    # Create a priority queue to store the potential edges with their heuristics
+    from heapq import heappush, heappop
+    priority_queue = []
+    
+    # Add the initial depot edge to the priority queue
+    heappush(priority_queue, (-distance_matrix[depot, 1], 1))
+    
+    while len(visited) < n - 1:  # We do not visit the depot as our last stop
+        cost, u = heappop(priority_queue)
+        cost = -cost
+        if not visited[u]:
+            heuristics[depot, u] = cost
+            heuristics[u, depot] = distance_matrix[u, depot]
+            
+            # Calculate the heuristic based on remaining demand
+            heuristics += demands.unsqueeze(0) * (demands > demands[u])
+            
+            # Add new edges to the priority queue
+            for v in range(n):
+                if v not in visited:
+                    heappush(priority_queue, (-distance_matrix[u, v], v))
+                    
+            # Mark the node as visited
+            visited[u] = True
+    
+    return heuristics
+```

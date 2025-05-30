@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristics array with zeros
+    heuristics = np.zeros_like(prize)
+    
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Introduce randomness to avoid local optima
+    random_factor = np.random.rand(len(prize))
+    
+    # Combine factors to create a heuristic
+    heuristics = density * (1 - sparsity) + random_factor
+    
+    # Normalize to prevent dominance
+    heuristics = heuristics / (np.max(heuristics) + 1e-8)
+    
+    # Introduce diversity by setting zero weights to a slightly higher value
+    zero_weight_index = np.where(np.sum(weight, axis=1) == 0)
+    heuristics[zero_weight_index] = 0.1
+    
+    return heuristics
+```

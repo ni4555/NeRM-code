@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Introduce a dynamic penalty for variance and outliers
+    demand_std = demands.std()
+    demand_penalty = torch.abs(normalized_demands - 0.5)  # Assuming 0.5 is the desired average demand
+    demand_penalty = torch.clamp(demand_penalty, min=0, max=demand_std)
+
+    # Calculate the heuristic with the penalty
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, distance_matrix),
+        demand_penalty
+    )
+
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-threshold, max=threshold)
+
+    return heuristic_matrix
+```

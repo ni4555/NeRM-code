@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Initialize heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Iterate over each node pair to calculate heuristics
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            
+            # Calculate cumulative demand up to node j
+            cumulative_demand = torch.cumsum(demands[:j+1], dim=0)[-1]
+            
+            # Check if adding node j to the current route exceeds capacity
+            if cumulative_demand > total_capacity:
+                continue
+            
+            # Calculate distance penalty
+            distance_penalty = -torch.log1p(torch.abs(distance_matrix[i, j]) - 1e-8)
+            
+            # Calculate dynamic capacity penalty
+            dynamic_capacity_penalty = -torch.log1p(torch.abs(demands[j]) - 1e-8) * (1 + (total_capacity - cumulative_demand) / total_capacity)
+            
+            # Calculate load balance penalty
+            load_balance = torch.abs(cumulative_demand - total_capacity / n)
+            load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+            
+            # Combine penalties with a scaling factor
+            penalty = distance_penalty + dynamic_capacity_penalty + load_balance_penalty
+            heuristics[i, j] = penalty
+            
+            # Additional penalty for high load balance to avoid overloading
+            if load_balance > total_capacity / (3 * n):
+                heuristics[i, j] += -torch.log1p(load_balance - 1e-8)
+    
+    # Normalize the heuristics to sum to 1 for each row
+    heuristics /= heuristics.sum(dim=1, keepdim=True) + 1e-8
+    
+    return heuristics
+```

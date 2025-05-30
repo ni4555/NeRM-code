@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that uses nearest neighbor and clustering to balance local and global search."""
+    
+    # Initialize an empty matrix with the same shape as the distance matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Find the nearest neighbor for each node
+    nearest_neighbors = torch.argmin(distance_matrix, dim=1)
+    
+    # Calculate the sum of demands for each cluster
+    cluster_demands = demands[nearest_neighbors].sum(dim=0)
+    
+    # Iterate over each edge and calculate the heuristic value
+    for i in range(len(distance_matrix)):
+        for j in range(len(distance_matrix)):
+            if i != j:  # Exclude the diagonal (self-loops)
+                # Calculate the heuristic value based on the demand and the distance
+                heuristic_value = (demands[j] - demands[i]) * (1 / (distance_matrix[i, j] + 1e-8))
+                # Add the heuristic value to the edge
+                heuristic_matrix[i, j] = heuristic_value
+                # Adjust the heuristic value based on the cluster demand
+                if demands[i] < demands[j]:  # If the node is not the depot, adjust the heuristic value
+                    heuristic_matrix[i, j] -= (cluster_demands[i] - demands[i]) / cluster_demands[i]
+                else:
+                    heuristic_matrix[i, j] -= (cluster_demands[j] - demands[j]) / cluster_demands[j]
+    
+    return heuristic_matrix
+```

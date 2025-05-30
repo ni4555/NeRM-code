@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on value-to-weight ratio and sparsity
+    for i in range(n):
+        value_to_weight_ratio = prize[i] / weight[i].sum()
+        weight_sparsity = 1 - (weight[i].sum() / m)
+        heuristic[i] = value_to_weight_ratio * weight_sparsity
+    
+    # Incorporate an adaptive exploration factor based on the current heuristic
+    exploration_factor = heuristic / heuristic.sum()
+    for i in range(n):
+        heuristic[i] *= exploration_factor[i]
+    
+    # Normalize heuristics to ensure they are in the range [0, 1]
+    heuristic /= heuristic.max()
+    
+    # Dynamically adjust thresholds based on the current heuristic
+    threshold = heuristic.mean()
+    heuristic[heuristic < threshold] = 0
+    
+    # Introduce randomness to prevent local optima
+    np.random.shuffle(heuristic)
+    
+    return heuristic
+```

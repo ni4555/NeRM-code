@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce a soft penalty for nodes that are over capacity
+    over_capacity_penalty = torch.clamp(scaled_demands - 1.0, min=0.0)
+
+    # Normalize demand differences to encourage diversity
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Introduce a dampening factor to balance penalties and rewards
+    dampening_factor = 0.2
+
+    # Use a non-linear transformation to encourage exploration of diverse solutions
+    transformed_demand_diff = torch.log(1 + (1 + torch.sqrt(demand_diff)) ** 2)
+
+    # Normalize heuristic values to encourage exploration and avoid local optima
+    max_heuristic = transformed_demand_diff.max()
+    min_heuristic = transformed_demand_diff.min()
+    transformed_demand_diff = (transformed_demand_diff - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Combine normalized demand differences with remaining capacity
+    heuristics = transformed_demand_diff * (1 - dampening_factor * over_capacity_penalty)
+
+    # Introduce randomness to explore diverse solutions
+    exploration_noise = torch.randn_like(heuristics) * 0.01
+    heuristics += exploration_noise
+
+    # Clamp the heuristic values to ensure a balanced heuristic distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

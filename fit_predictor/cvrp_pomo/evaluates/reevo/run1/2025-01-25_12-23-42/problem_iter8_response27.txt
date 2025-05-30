@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / n
+
+    # Normalize the demands to the range [0, 1] with respect to the average demand
+    normalized_demands = (demands - average_demand) / average_demand
+
+    # Normalize the distances to the range [0, 1] with respect to the maximum distance
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+
+    # Use a non-linear function to balance demand and distance
+    # Here we use the exponential function for a more exponential decay with distance
+    heuristics = torch.exp(-normalized_distances * normalized_demands)
+
+    # Add a bonus for edges leading from the depot to reduce travel distance
+    heuristics[:, 0] += 1
+
+    # Avoid unnecessary negative values by clamping the heuristics to a minimum of 0
+    heuristics = torch.clamp(heuristics, min=0)
+
+    return heuristics
+```

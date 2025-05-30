@@ -1,0 +1,65 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize heuristics to be the same as distance matrix
+    heuristics = np.copy(distance_matrix)
+    
+    # Iterate over all edges and update their "badness" based on the following:
+    # - If an edge connects to a node with a high degree, decrease the "badness" of this edge
+    # - If an edge is part of a cycle with a high total distance, increase the "badness" of this edge
+    
+    for i in range(distance_matrix.shape[0]):
+        # Calculate the degree of the current node
+        node_degree = np.sum(distance_matrix[i, :])
+        
+        # Subtract a small amount from the "badness" of the edge to a highly connected node
+        # to indicate it's "better" to include this edge in the solution
+        heuristics[i, :] -= (1 / (node_degree + 1)) * (distance_matrix[i, :] / distance_matrix[i, :].max())
+        
+        # Identify all cycles starting from the current node
+        cycles = find_cycles(distance_matrix, i)
+        
+        # Increase the "badness" of edges in cycles with a high total distance
+        for cycle in cycles:
+            cycle_distance = np.sum(cycle)
+            cycle_edges = get_cycle_edges(cycle, distance_matrix)
+            heuristics[i, cycle_edges] += (cycle_distance / distance_matrix.max()) * (1 / (len(cycle_edges) + 1))
+            for j in cycle_edges:
+                heuristics[j, cycle_edges] += (cycle_distance / distance_matrix.max()) * (1 / (len(cycle_edges) + 1))
+    
+    # Avoid uniform weighting by normalizing the "badness" values to be in the range of the original distances
+    max_val = np.max(heuristics)
+    min_val = np.min(heuristics)
+    heuristics = (heuristics - min_val) / (max_val - min_val) * distance_matrix.max()
+    
+    return heuristics
+
+def find_cycles(distance_matrix, start_node):
+    # A simple cycle finding method using DFS
+    visited = [False] * distance_matrix.shape[0]
+    cycle_list = []
+    stack = [(start_node, [start_node])]
+    
+    while stack:
+        (vertex, path) = stack.pop()
+        visited[vertex] = True
+        for neighbor in range(distance_matrix.shape[0]):
+            if distance_matrix[vertex, neighbor] and not visited[neighbor]:
+                stack.append((neighbor, path + [neighbor]))
+            elif neighbor in path and neighbor != path[-1]:
+                # Cycle found
+                cycle = path + [neighbor]
+                cycle.sort()
+                if cycle not in cycle_list:
+                    cycle_list.append(cycle)
+    return cycle_list
+
+def get_cycle_edges(cycle, distance_matrix):
+    # Get all unique edges from the cycle
+    edges = []
+    for i in range(len(cycle) - 1):
+        edges.append((cycle[i], cycle[i + 1]))
+        edges.append((cycle[i + 1], cycle[i]))
+    return edges
+```

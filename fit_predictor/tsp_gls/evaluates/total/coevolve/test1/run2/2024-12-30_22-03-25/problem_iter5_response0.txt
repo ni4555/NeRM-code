@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    min_distances = np.zeros((n, n))
+    
+    # Calculate the shortest path from each node to every other node using dijkstra's algorithm
+    for i in range(n):
+        min_distances[i, :] = np.partition(distance_matrix[i, :], 2)[:2]
+        min_distances[i, i] = float('inf')
+    
+    # It's bad to include long edges that are not the shortest path
+    # Apply domain knowledge to penalize edges that lead to repeated nodes
+    h = distance_matrix - min_distances
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # If the edge leads to a repeated node, add an additional penalty
+                h[i, j] += distance_matrix[i, j] - min_distances[j, j]
+    
+    return h
+```

@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the sum of demands
+    total_demand = demands.sum().item()
+    
+    # Calculate the sum of distances from the depot to all nodes
+    depot_distances = distance_matrix[:, 0]
+    
+    # Calculate the sum of distances from each node to the depot
+    to_depot_distances = distance_matrix[0, :]
+    
+    # Calculate the total distance for a full route that visits all nodes and returns to the depot
+    full_route_distance = (depot_distances + to_depot_distances).sum().item()
+    
+    # Calculate the maximum distance from the depot to any node
+    max_depot_distance = depot_distances.max().item()
+    
+    # Calculate the maximum distance from any node to the depot
+    max_to_depot_distance = to_depot_distances.max().item()
+    
+    # Calculate the average demand
+    average_demand = total_demand / demands.size(0)
+    
+    # Calculate the heuristic value for each edge
+    # We use a combination of distance and demand, with some domain knowledge adjustments
+    heuristic_values = (distance_matrix * demands).sum(dim=1) - average_demand
+    heuristic_values = (heuristic_values + max_depot_distance + max_to_depot_distance) / 2
+    
+    # Normalize the heuristic values to be between 0 and 1
+    min_value = heuristic_values.min().item()
+    max_value = heuristic_values.max().item()
+    normalized_values = (heuristic_values - min_value) / (max_value - min_value)
+    
+    # Convert to negative values to indicate undesirable edges
+    negative_normalized_values = -normalized_values
+    
+    return negative_normalized_values
+```

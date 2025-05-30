@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    edge_usage = np.zeros_like(distance_matrix)
+    for i in range(n):
+        for j in range(i+1, n):
+            edge_usage[i, j] += 1
+            edge_usage[j, i] += 1
+    
+    # Calculate the usage density
+    usage_density = edge_usage / (n * (n - 1) / 2)
+    average_usage = np.mean(usage_density)
+    
+    # Calculate the average distance from each vertex to all other vertices
+    avg_distances = np.mean(distance_matrix, axis=1)
+    
+    # Create a heuristic matrix based on the difference between the average distances and the current distances
+    # and adjust it using the usage density
+    heuristic_matrix = (avg_distances - distance_matrix) * (1 - usage_density)
+    
+    # Apply a Gaussian perturbation to the heuristic values to avoid local minima
+    perturbation = np.random.normal(size=(n, n)) * 0.01
+    heuristic_matrix += perturbation
+    
+    # Apply a non-linear transformation to the heuristic matrix to give more weight to underutilized edges
+    # and to ensure that the perturbation has a more significant effect on them
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                if usage_density[i] < average_usage:
+                    heuristic_matrix[i, j] *= np.exp((average_usage - usage_density[i]) / average_usage)
+                if usage_density[j] < average_usage:
+                    heuristic_matrix[j, i] *= np.exp((average_usage - usage_density[j]) / average_usage)
+    
+    # Cap the maximum value of the heuristic matrix to avoid overly positive values
+    max_val = np.max(heuristic_matrix[heuristic_matrix < np.inf])
+    if max_val > 0:
+        heuristic_matrix = np.clip(heuristic_matrix, None, max_val)
+    
+    return heuristic_matrix
+```

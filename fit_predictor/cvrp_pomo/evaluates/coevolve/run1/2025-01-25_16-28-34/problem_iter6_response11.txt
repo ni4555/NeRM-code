@@ -1,0 +1,77 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+
+    # Define a helper function to swap nodes and update heuristics
+    def swap_nodes(i, j):
+        demands[j] = demands[i]
+        heuristics[i, :] = heuristics[j, :]
+        heuristics[j, :] = heuristics[i, :]
+        heuristics[i, j], heuristics[j, i] = -1, -1
+        heuristics[i, i] = 0
+        heuristics[j, j] = 0
+
+    # Define a helper function to perform tabu search
+    def tabu_search(heuristics, distance_matrix, demands, tabu_list, tabu_tenure):
+        new_heuristics = heuristics.clone()
+        for i in range(n):
+            for j in range(i + 1, n):
+                if distance_matrix[i, j] != 0 and (i, j) not in tabu_list:
+                    swap_nodes(i, j)
+                    new_demand = demands[i] + demands[j]
+                    if new_demand <= total_capacity:
+                        new_heuristics[i, j] = 0
+                        new_heuristics[j, i] = 0
+                        break
+            else:
+                continue
+            break
+        return new_heuristics
+
+    # Initialize tabu list and tenure
+    tabu_list = set()
+    tabu_tenure = 5
+
+    # Initialize PSO parameters
+    inertia_weight = 0.7
+    cognitive_parameter = 1.5
+    social_parameter = 1.5
+
+    # Iterative process to refine solutions
+    for _ in range(100):  # Number of iterations, could be adjusted
+        for i in range(n):
+            for j in range(i + 1, n):
+                if distance_matrix[i, j] != 0 and demands[i] < total_capacity and demands[j] < total_capacity:
+                    # Perform swap nodes to explore neighborhood
+                    swap_nodes(i, j)
+                    # Update heuristics based on the swap
+                    new_demand = demands[i] + demands[j]
+                    if new_demand <= total_capacity:
+                        heuristics[i, j] = 0
+                        heuristics[j, i] = 0
+                    else:
+                        swap_nodes(i, j)  # Swap back if capacity exceeded
+                    break
+
+        # Update heuristics with PSO-inspired velocity update
+        velocity = inertia_weight * heuristics + cognitive_parameter * torch.rand_like(heuristics) + social_parameter * torch.rand_like(heuristics)
+        heuristics += velocity
+
+        # Apply tabu search to avoid previously suboptimal solutions
+        heuristics = tabu_search(heuristics, distance_matrix, demands, tabu_list, tabu_tenure)
+
+        # Update tabu list
+        tabu_list.add(tuple(sorted((i, j))))
+        if len(tabu_list) > tabu_tenure:
+            tabu_list.pop(0)
+
+    # Adjust heuristics to ensure they are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = 0
+
+    return heuristics
+```

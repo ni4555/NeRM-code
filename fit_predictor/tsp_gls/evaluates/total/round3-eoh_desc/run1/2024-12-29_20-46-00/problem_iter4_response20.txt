@@ -1,0 +1,25 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    # Use a logarithmic transformation to give more weight to longer distances and to handle the zero distance issue
+    log_distance_matrix = np.log(distance_matrix + 1e-5)  # Adding a small constant to avoid logarithm of zero
+
+    # Normalize the distance matrix to ensure that all values are within a similar range
+    min_value = np.min(log_distance_matrix)
+    max_value = np.max(log_distance_matrix)
+    normalized_matrix = (log_distance_matrix - min_value) / (max_value - min_value)
+
+    # Introduce a penalty based on the variance of the shortest path distances
+    num_nodes = distance_matrix.shape[0]
+    distance_matrix_floyd = distance_matrix.copy()
+    np.fill_diagonal(distance_matrix_floyd, np.inf)
+    shortest_path_distances = np.linalg.solve(distance_matrix_floyd, distance_matrix_floyd)
+    variances = np.var(shortest_path_distances, axis=1)
+    penalty = (variances - np.mean(variances)) / np.std(variances)
+
+    # Combine the normalized distances and penalties
+    heuristic_values = normalized_matrix + penalty
+    return heuristic_values
+```

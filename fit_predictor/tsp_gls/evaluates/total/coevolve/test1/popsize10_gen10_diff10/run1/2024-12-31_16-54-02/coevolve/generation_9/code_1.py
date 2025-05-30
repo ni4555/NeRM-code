@@ -1,0 +1,21 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize a matrix with the same shape as the distance matrix to store heuristics
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Loop through each pair of nodes
+    for i in range(len(distance_matrix)):
+        for j in range(i + 1, len(distance_matrix)):
+            # Calculate the shortest path from node i to node j using Dijkstra's algorithm
+            # Here we use np.argmin to simulate a priority queue for the shortest path algorithm
+            # We find the shortest path to each node j from node i
+            shortest_path = np.argmin(distance_matrix[i, :])
+            # The heuristic value is the distance from node i to node j via the shortest path
+            heuristics[i, j] = distance_matrix[i, shortest_path]
+    
+    # Since we've only calculated heuristics for i to j, we need to calculate for j to i as well
+    heuristics = (heuristics + distance_matrix.T) / 2
+    
+    return heuristics

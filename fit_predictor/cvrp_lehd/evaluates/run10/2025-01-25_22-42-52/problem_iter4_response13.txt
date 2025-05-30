@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Find the first customer that can be visited without exceeding vehicle capacity
+    first_feasible_customer = torch.argmax(torch.where(cumulative_capacity[:, None] >= cumulative_demand, cumulative_demand, float('-inf')), dim=1)
+    
+    # Initialize heuristics matrix with positive values for promising edges
+    heuristics_matrix = torch.full_like(distance_matrix, fill_value=float('inf'))
+    
+    # Set the heuristics for the depot to feasible customers
+    heuristics_matrix[:, first_feasible_customer] = distance_matrix[:, first_feasible_customer]
+    
+    # For each node, calculate the distance to the next feasible customer
+    for i in range(1, distance_matrix.shape[0]):
+        next_feasible_customer = torch.argmax(torch.where(cumulative_capacity[:, None] >= cumulative_demand[i:], cumulative_demand[i:], float('-inf')), dim=1) + i
+        heuristics_matrix[i, next_feasible_customer] = distance_matrix[i, next_feasible_customer]
+    
+    # Subtract the distance to the nearest feasible customer from the initial values
+    heuristics_matrix -= distance_matrix[torch.arange(distance_matrix.shape[0]), first_feasible_customer]
+    
+    # Add penalties for edges that would result in overcapacity
+    overcapacity_penalty = distance_matrix * (cumulative_demand > cumulative_capacity[:, None])
+    heuristics_matrix += overcapacity_penalty
+    
+    return heuristics_matrix
+```

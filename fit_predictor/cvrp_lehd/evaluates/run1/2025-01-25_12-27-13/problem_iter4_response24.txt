@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_mask = (demands > 0).float()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Vectorized computation of heuristics values
+    edge_diff = demands[:, None] - demands[None, :]
+    edge_diff[demand_mask[:, None] * demand_mask[None, :] == 0] = 0  # Avoid division by zero
+    edge_heuristic = edge_diff / demands[None, :]
+    edge_heuristic *= distance_matrix
+    heuristics = torch.clamp(edge_heuristic, min=0)
+
+    return heuristics
+```

@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Demand-aware heuristic: higher demand contributes negatively
+    demand_heuristic = -normalized_demands[:, None] * normalized_demands[None, :]
+
+    # Distance-based heuristic: shorter distances contribute positively
+    distance_heuristic = torch.log(distance_matrix + 1)
+
+    # Incorporate local neighborhood insights: penalize high demand after a certain point
+    path_demand = torch.cumsum(demands[:, None], dim=0).squeeze()
+    demand_penalty_threshold = torch.max(path_demand) * 1.5
+    demand_penalty = torch.where(path_demand > demand_penalty_threshold, -path_demand, torch.zeros_like(path_demand))
+
+    # Combine heuristics and demand penalty
+    combined_heuristic = demand_heuristic + distance_heuristic + demand_penalty
+
+    # Normalize the heuristic matrix to ensure it has both positive and negative values
+    min_val, max_val = combined_heuristic.min(), combined_heuristic.max()
+    heuristic_matrix = (combined_heuristic - min_val) / (max_val - min_val)
+
+    return heuristic_matrix
+```

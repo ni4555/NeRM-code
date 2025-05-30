@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Incorporate demand relaxation by setting a threshold for partitioning
+    partition_threshold = 0.5  # Example threshold for partitioning
+    relaxed_demands = torch.where(normalized_demands > partition_threshold, 
+                                  normalized_demands, 
+                                  0.0)
+    
+    # Use adaptive weights based on the structure of the problem
+    # For example, give more weight to edges with lower demand and shorter distances
+    weights = torch.abs(relaxed_demands) + torch.log1p(normalized_distances)
+    weights = torch.clamp(weights, min=0.1, max=1.0)  # Clamp weights to ensure they are within a feasible range
+    
+    # Combine weights with distance and demand values to calculate potential values
+    potential_values = normalized_distances - weights * normalized_demands
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Apply a non-linear transformation to the demand vector to penalize larger demands
+    non_linear_demand = torch.log(demands + 1)  # Adding 1 to avoid log(0)
+    
+    # Normalize the non-linear demand by the maximum demand to ensure a consistent scale
+    normalized_demand = non_linear_demand / non_linear_demand.max()
+    
+    # Incorporate capacity constraints by adding the normalized demand to the distance matrix
+    combined_matrix = distance_matrix + normalized_demand
+    
+    # Normalize the combined matrix to maintain a consistent scale
+    normalized_combined_matrix = combined_matrix / combined_matrix.max()
+    
+    # Apply a penalty to edges that exceed the vehicle capacity
+    penalty_matrix = torch.clamp(-torch.cumsum(normalized_demand, dim=0), min=float('-inf'))
+    
+    # Final potential matrix combining normalized distances and penalties
+    potential_matrix = normalized_combined_matrix + penalty_matrix
+    
+    # Softmax over each row to create a probability distribution
+    softmax_matrix = torch.nn.functional.softmax(potential_matrix, dim=1)
+    
+    # Invert the softmax_matrix to transform it from a probability distribution to a heuristic
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

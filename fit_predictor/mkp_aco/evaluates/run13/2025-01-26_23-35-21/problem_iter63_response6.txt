@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Introduce additional metrics
+    diversity = 1 / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Introduce randomness
+    random_factor = np.random.rand(weight.shape[0])
+    
+    # Create an initial heuristic value
+    heuristic_value = density + diversity
+    
+    # Prune dominated items
+    dominance_check = heuristic_value / (prize + 1e-8)
+    dominated_items = np.where(dominance_check < 1)[0]
+    heuristic_value[dominated_items] = 0
+    
+    # Introduce controlled randomness for exploration
+    exploration = random_factor * np.where(dominance_check < 1)[0]
+    heuristic_value[exploration] += random_factor[exploration] * (heuristic_value[exploration] + 1e-8)
+    
+    # Balance the heuristic by adding a normalization step
+    heuristic_value = (heuristic_value - np.min(heuristic_value)) / (np.max(heuristic_value) - np.min(heuristic_value))
+    
+    return heuristic_value
+```

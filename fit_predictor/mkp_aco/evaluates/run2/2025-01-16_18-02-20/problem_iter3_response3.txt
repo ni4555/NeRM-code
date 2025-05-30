@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristics array with zeros
+    heuristics = np.zeros_like(prize)
+    
+    # Define a function to calculate a composite score for each item
+    def item_score(item_idx):
+        item_prize = prize[item_idx]
+        item_weight = weight[item_idx]
+        
+        # Calculate the density score (prize per unit of total weight)
+        density_score = item_prize / np.sum(item_weight)
+        
+        # Calculate the diversity score (how different from other items)
+        diversity_score = np.mean(np.abs(prize - item_prize) / np.mean(prize))
+        
+        # Calculate the sparsity score (percentage of zero weights)
+        sparsity_score = (item_weight == 0).mean()
+        
+        # Composite score considering density, diversity, and sparsity
+        return density_score * 0.4 + diversity_score * 0.3 - sparsity_score * 0.3
+    
+    # Iteratively select items based on their composite score
+    for _ in range(prize.shape[0]):
+        best_score = -float('inf')
+        best_idx = -1
+        for idx in range(prize.shape[0]):
+            # If item has not been included and has a better score than the current best, update best
+            if heuristics[idx] == 0 and item_score(idx) > best_score:
+                best_score = item_score(idx)
+                best_idx = idx
+        
+        # If a better item has been found, include it in the solution
+        if best_idx != -1:
+            heuristics[best_idx] = 1
+    
+    return heuristics
+```

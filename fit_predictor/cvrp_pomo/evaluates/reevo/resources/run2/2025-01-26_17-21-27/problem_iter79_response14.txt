@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    normalized_capacity = total_capacity / n
+    
+    # Apply a simple penalty for edges leading to overflow
+    overflow_penalty = (cumulative_demand > normalized_capacity) * -1000
+    
+    # Normalize distance matrix
+    distance_matrix = distance_matrix / distance_matrix.max()
+    
+    # Introduce a balance factor for load balancing
+    balance_factor = torch.abs(cumulative_demand - normalized_capacity)
+    
+    # Use the balance factor to add a penalty for high imbalance
+    balance_penalty = balance_factor * 10
+    
+    # Add randomness to edges with high imbalance to encourage diversity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * (balance_factor > 1) * 1
+    
+    # Introduce a controlled randomness factor for all edges
+    controlled_randomness = torch.abs(torch.randn_like(demands)) * (1 - cumulative_demand / total_capacity)
+    
+    # Combine the different factors with a dynamic scaling factor
+    scaling_factor = 2.0
+    heuristics = scaling_factor * (
+        (1 - balance_penalty) * distance_matrix +
+        (1 + overflow_penalty) +
+        controlled_randomness
+    ) + randomness_factor
+    
+    return heuristics
+```

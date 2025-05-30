@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    demand_threshold = total_demand / len(demands)
+    # Incorporate a normalization by the distance to the nearest neighbor
+    min_distance = distance_matrix.min(axis=1).values
+    # Avoid revisits by penalizing the edges leading back to the depot
+    avoid_revisit_penalty = (distance_matrix == 0).float()
+    # Balance load by adjusting the heuristic based on the deviation from the demand threshold
+    load_balance = (1 - (abs(demands - demand_threshold) / demand_threshold))
+    # Combine the heuristics
+    heuristics = (1 / (1 + distance_matrix)) * (load_balance * avoid_revisit_penalty)
+    return heuristics
+```

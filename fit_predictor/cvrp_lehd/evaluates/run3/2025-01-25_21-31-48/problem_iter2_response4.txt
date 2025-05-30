@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    max_customers = (total_demand / demands).to(torch.int)
+    max_customers = torch.clamp(max_customers, min=1)
+    
+    # Calculate the difference between the maximum number of customers and the actual demand
+    delta_customers = max_customers - demands
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Vectorized multiplication of distances and potential additional customers
+    additional_customers = torch.clamp(delta_customers, min=0)
+    heuristic_matrix = -torch.abs(distance_matrix) * additional_customers
+    
+    # For edges that exceed capacity, we do not want them in the heuristic
+    # We will set these to zero, which is already the default, as we're initializing the heuristic_matrix with zeros
+    # However, to be explicit and ensure that edges that cannot accommodate additional customers are not prioritized:
+    # We set the heuristic value to zero for edges where the additional customers are negative
+    
+    return heuristic_matrix
+```

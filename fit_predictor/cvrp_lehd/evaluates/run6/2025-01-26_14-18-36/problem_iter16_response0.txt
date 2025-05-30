@@ -1,0 +1,52 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Incorporate demand constraints by penalizing routes with demands exceeding a fraction of the total demand
+    demand_penalty = (demands > total_demand / n).float() * -1000.0
+    
+    # Identify edges that lead to capacity excess, penalizing them
+    capacity_excess = (demands > 1.0).float() * -1000.0
+    
+    # Incorporate distance patterns by using the average distance and penalizing longer distances
+    distance_pattern = (distance_matrix > distance_matrix.mean()).float() * -10.0
+    
+    # Incorporate demand patterns by identifying customers that can be grouped together due to similar demand
+    demand_pattern = (demands < 0.2 * total_demand).float() * 10.0
+    
+    # Combine the patterns using a weighted sum
+    pattern_weight = torch.tensor([0.5, 0.3, 0.1, 0.1])  # Adjust weights as needed
+    combined_pattern = pattern_weight[0] * demand_penalty + \
+                        pattern_weight[1] * capacity_excess + \
+                        pattern_weight[2] * distance_pattern + \
+                        pattern_weight[3] * demand_pattern
+    
+    # Normalize the combined pattern to sum to 1
+    combined_pattern /= combined_pattern.sum()
+    
+    # Apply decay functions to give more priority to edges that are closer to the depot or have smaller demands
+    distance_decay = torch.exp(-distance_matrix / distance_matrix.mean())
+    demand_decay = torch.exp(-demands / total_demand)
+    
+    # Normalize the decays to sum to 1
+    distance_decay /= distance_decay.sum()
+    demand_decay /= demand_decay.sum()
+    
+    # Combine the decays with the pattern
+    combined_decay = distance_decay * demand_decay
+    
+    # Normalize the combined decay to sum to 1
+    combined_decay /= combined_decay.sum()
+    
+    # Apply the decay to the pattern
+    heuristics = combined_pattern * combined_decay
+    
+    # Scale heuristics to ensure non-negative values and proper normalization
+    heuristics = torch.clamp(heuristics, min=0)
+    heuristics /= heuristics.sum()
+    
+    return heuristics
+```

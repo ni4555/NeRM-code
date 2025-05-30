@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    epsilon = 1e-8
+
+    # Use a non-linear function to weigh the importance of distance and demand
+    distance_weight = 1 / (1 + torch.exp(-0.01 * distance_matrix))
+    demand_weight = torch.exp(-0.05 * torch.log(normalized_demands + epsilon))
+
+    # Calculate the potential for each edge
+    edge_potential = distance_weight + demand_weight
+
+    # Penalize for high demands
+    edge_potential *= (1 - (demands > 2).float() * 0.1)
+
+    # Reward short distances
+    edge_potential *= (1 + (distance_matrix < 5).float() * 0.05)
+
+    return edge_potential
+```

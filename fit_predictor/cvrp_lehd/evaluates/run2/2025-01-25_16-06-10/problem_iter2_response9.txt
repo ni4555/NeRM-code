@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    # Calculate the cumulative sum of demands to determine the demand threshold for each node
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Calculate the remaining capacity at each node as we traverse from the start node
+    remaining_capacity = torch.full_like(demands, demands[0])
+    # For each node as a potential starting point
+    for start_node in range(distance_matrix.shape[0]):
+        # Update the remaining capacity as we visit each node
+        for node in range(start_node + 1, distance_matrix.shape[0]):
+            if demands[node] > remaining_capacity[node]:
+                # If the remaining capacity at the current node is exceeded, reset it
+                remaining_capacity[node] = 0
+            else:
+                # Otherwise, update the remaining capacity
+                remaining_capacity[node] -= demands[node]
+        # Create a mask for feasible edges based on demand and remaining capacity
+        feasible_edges = (distance_matrix[start_node, :] < demand_cumsum[start_node]) & (distance_matrix[start_node, :] < remaining_capacity)
+        # Update the heuristics for feasible edges
+        heuristics[start_node, feasible_edges] = 1 - distance_matrix[start_node, feasible_edges]
+    return heuristics
+```

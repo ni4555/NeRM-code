@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix by subtracting the product of each demand and the total distance to all nodes
+    heuristics_matrix = distance_matrix - normalized_demands * distance_matrix.sum(axis=1, keepdim=True)
+    # Introduce a symmetry factor to balance the cost deviation across symmetric edges
+    symmetry_factor = 0.5
+    # Calculate the symmetric part of the distance matrix
+    sym_distance_matrix = (distance_matrix + distance_matrix.T) / 2
+    # Apply penalties for high cost deviations from the symmetric part of the distance matrix
+    sym_penalty = (heuristics_matrix - sym_distance_matrix) ** 2
+    # Adjust penalties based on the symmetry factor
+    adjusted_sym_penalty = sym_penalty * symmetry_factor
+    # Final heuristics matrix
+    final_heuristics_matrix = heuristics_matrix - adjusted_sym_penalty
+    return final_heuristics_matrix
+```

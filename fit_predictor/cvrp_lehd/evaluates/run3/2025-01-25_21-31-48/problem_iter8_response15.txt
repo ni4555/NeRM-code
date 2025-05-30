@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    # Initialize a full matrix with a small penalty value
+    heuristics = -torch.ones_like(distance_matrix) * 1e-6
+    # Sum of distances from the depot to all other nodes
+    depot_distances = distance_matrix[depot, 1:]
+    # Normalize the distances to balance with demand
+    normalized_distances = depot_distances / demands[1:]
+    # Sum the normalized distances for the initial path
+    sum_normalized_distances = torch.sum(normalized_distances, dim=1)
+    # Update the heuristics with the sum of normalized distances minus the demand
+    heuristics[1:, 1:] = sum_normalized_distances - demands[1:]
+    # Set the heuristic for the initial depot visit to the total demand
+    heuristics[depot, 0] = demands.sum()
+    return heuristics
+```

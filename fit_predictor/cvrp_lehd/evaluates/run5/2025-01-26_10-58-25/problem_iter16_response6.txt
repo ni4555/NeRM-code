@@ -1,0 +1,38 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Apply a non-linear function to emphasize non-linearities in the potential matrix
+    non_linear_potential_matrix = torch.relu(potential_matrix)
+    
+    # Normalize the non-linear potential matrix to ensure that the values are between 0 and 1
+    normalized_potential_matrix = non_linear_potential_matrix / non_linear_potential_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate demand feasibility constraints by penalizing edges that lead to overcapacity
+    feasibility_penalty_matrix = torch.clamp(torch.abs(demands), min=vehicle_capacity) * (1 - normalized_potential_matrix)
+    
+    # Combine the potential and feasibility penalties to create the heuristics matrix
+    heuristics_matrix = potential_matrix + feasibility_penalty_matrix
+    
+    # Normalize the heuristics matrix to ensure that the values are between 0 and 1
+    normalized_heuristics_matrix = heuristics_matrix / heuristics_matrix.sum(dim=1, keepdim=True)
+    
+    # Transform the normalized heuristics matrix into a final heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    final_heuristics_matrix = -torch.log(torch.exp(normalized_heuristics_matrix) / (torch.exp(normalized_heuristics_matrix).sum(dim=1, keepdim=True)))
+    
+    return final_heuristics_matrix
+```

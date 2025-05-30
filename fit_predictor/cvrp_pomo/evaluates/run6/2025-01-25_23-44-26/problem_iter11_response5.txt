@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Normalize the demands
+    normalized_demands = demands / demands.sum()
+    
+    # Inverse distance matrix heuristic with a small constant to avoid division by zero
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Load balancing heuristic that considers the absolute difference in demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Normalize the load balance heuristic to ensure it does not dominate the other heuristics
+    load_balance_normalized = load_balance / load_balance.sum()
+    
+    # Time of day and traffic factor to simulate dynamic conditions
+    time_of_day = torch.rand(distance_matrix.shape[0]) * 24
+    traffic_factor = torch.rand(distance_matrix.shape[0]) * 2 - 1
+    dynamic_time_factor = (1 / (1 + time_of_day.unsqueeze(1) * time_of_day.unsqueeze(0) + traffic_factor))
+    
+    # Blend heuristics using a weighted sum to balance their contributions
+    combined_heuristic = (0.3 * distance_heuristic + 0.4 * load_balance_normalized + 0.2 * dynamic_time_factor)
+    
+    # Randomness factor to explore different solutions
+    random_factor = torch.rand(distance_matrix.shape) * 0.1 - 0.05  # Centered around zero for diversity
+    
+    # Non-linear transformation to emphasize the influence of promising edges
+    heuristics_non_linear = torch.relu(combined_heuristic + random_factor)
+    
+    # Normalize the heuristics to ensure they are within a similar range
+    heuristics_normalized = (heuristics_non_linear - heuristics_non_linear.min()) / (heuristics_non_linear.max() - heuristics_non_linear.min())
+    
+    return heuristics_normalized
+```

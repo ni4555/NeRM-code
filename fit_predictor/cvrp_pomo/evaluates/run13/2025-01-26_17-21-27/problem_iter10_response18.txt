@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    capacity = demands.max()
+    
+    # Calculate savings for each edge, considering quadratic term for demand mismatch
+    savings = ((distance_matrix**2) * (demands[:, None] - demands[None, :])) * demands[:, None]**2
+    
+    # Calculate the cumulative demand at each node if visited
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate penalties for edges that lead to exceeding the vehicle capacity
+    penalty_mask = cumulative_demand > capacity
+    penalties = penalty_mask.float() * (distance_matrix**2)
+    
+    # Adjust penalties to reflect additional travel cost when demand mismatch occurs
+    additional_penalty = torch.where(penalty_mask, (capacity - demands[None, :] + demands[:, None])**2, 0)
+    penalties += additional_penalty
+    
+    # Combine savings and penalties
+    heuristic = savings - penalties
+    
+    # Normalize the heuristic to ensure the range is within [0, 1]
+    min_heuristic = heuristic.min()
+    max_heuristic = heuristic.max()
+    normalized_heuristic = (heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # Ensure the normalized heuristic is positive (as negative heuristics are usually considered less promising)
+    normalized_heuristic = torch.clamp(normalized_heuristic, min=0)
+    
+    return normalized_heuristic
+```

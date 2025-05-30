@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    total_score = np.sum(prize, axis=0)
+    avg_score_per_weight = total_score / np.sum(weight, axis=0)[:, None]
+    
+    # Using z-score to identify items that are significantly better than average
+    z_scores = (avg_score_per_weight - np.mean(avg_score_per_weight)) / np.std(avg_score_per_weight)
+    
+    # Threshold for z-score, we set it based on the percentage of items expected to be selected
+    # This can be adjusted to find the best value experimentally
+    z_score_threshold = np.abs(z_scores) > 2
+    
+    # Ensure we only have a binary outcome
+    heuristics = (z_scores > 0).astype(int)
+    
+    # Data-driven selection based on the z-score
+    # Items with positive z-scores are selected as promising
+    # The number of selected items is based on a heuristic, such as a fixed percentage
+    selected_item_ratio = 0.2  # Heuristic ratio for number of items to select
+    num_items_to_select = int(n * selected_item_ratio)
+    
+    # Sort items by heuristics in descending order
+    sorted_indices = np.argsort(-heuristics)
+    heuristics = heuristics[sorted_indices]
+    
+    # Select the top `num_items_to_select` items based on heuristics
+    top_selected_indices = sorted_indices[:num_items_to_select]
+    heuristics[top_selected_indices] = 1
+    
+    return heuristics
+```

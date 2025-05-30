@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+
+    # Calculate the cumulative demand matrix considering symmetry
+    cumulative_demand_matrix = torch.cumsum(demand_matrix, dim=1)
+    cumulative_demand_matrix /= cumulative_demand_matrix[:, -1][:, None]
+
+    # Calculate the capacity constraint matrix
+    capacity_constraint_matrix = (cumulative_demand_matrix <= 1.0)
+
+    # Calculate the weighted distance matrix based on demand
+    weighted_distance_matrix = distance_matrix * demand_matrix
+
+    # Normalize the weighted distance matrix
+    normalized_weighted_distance_matrix = weighted_distance_matrix / weighted_distance_matrix.sum(dim=1, keepdim=True)
+
+    # Combine heuristics using demand variance and distance correlation
+    demand_variance = torch.var(demands[1:], dim=0)  # Exclude depot node for demand variance calculation
+    demand_variance /= demand_variance.sum()  # Normalize the variance
+    distance_correlation = torch.mean((weighted_distance_matrix[depot] - torch.mean(weighted_distance_matrix[depot])) *
+                                      (demand_matrix[depot] - torch.mean(demand_matrix[depot])))
+
+    # Combine heuristics using the weighted distance, demand variance, and distance correlation
+    heuristics = capacity_constraint_matrix * normalized_weighted_distance_matrix
+    heuristics += demand_variance
+    heuristics += distance_correlation
+
+    # Adaptively update heuristics based on capacity constraint violation
+    for i in range(1, n):
+        cumulative_demand_to_i = cumulative_demand_matrix[depot, i]
+        if cumulative_demand_to_i > 1.0:
+            # Reduce heuristic if there is a capacity violation
+            heuristics[i, depot] = max(0, heuristics[i, depot] - 1)
+            heuristics[depot, i] = max(0, heuristics[depot, i] - 1)
+
+    # Clip negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+
+    return heuristics
+```

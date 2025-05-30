@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_matrix = demands[:, None] * demands
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix = demand_matrix / demand_matrix.sum(dim=1, keepdim=True)
+    
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    capacity_factor = (1 / (demands + 1e-8))
+    
+    heuristics = weighted_distance_matrix - demand_matrix * capacity_factor
+    
+    heuristics = torch.clamp(heuristics, min=0, max=1)
+    
+    # Further enhance the heuristic values for high-demand edges
+    heuristics = heuristics * (1 + demands)
+    
+    return heuristics
+```

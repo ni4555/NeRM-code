@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the heuristic weights based on normalized distances and cumulative demand
+    heuristics = -norm_distances * (cumulative_demand <= demands.unsqueeze(1)).float()
+    
+    # Introduce random perturbations for exploration
+    random_perturbations = torch.randn_like(heuristics) * 0.01
+    
+    # Adjust heuristics by considering local and global information
+    local_adjustment = norm_distances.unsqueeze(1) - norm_distances.unsqueeze(0)
+    heuristics = heuristics - local_adjustment
+    
+    # Normalize the heuristics
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    
+    # Apply random perturbations to the heuristics
+    heuristics = heuristics + random_perturbations
+    
+    return heuristics
+```

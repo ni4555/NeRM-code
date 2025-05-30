@@ -1,0 +1,35 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    longest_path = 2 * (n - 1) * np.amax(distance_matrix)
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Use local information to penalize short edges
+    penalty_factor = 1 / (distance_matrix + 1e-5)
+    
+    # Use global information to avoid edges on the longest path
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                if distance_matrix[i, j] == longest_path - distance_matrix[i, j]:
+                    heuristic_matrix[i, j] = 1  # High penalty for edges on the longest path
+                else:
+                    # Combine local and global heuristics
+                    heuristic_matrix[i, j] = penalty_factor[i, j] + (longest_path - distance_matrix[i, j])
+    
+    # Add exploration heuristic to encourage diversification
+    exploration_factor = np.random.rand(n, n)
+    exploration_factor = (exploration_factor - np.mean(exploration_factor)) / np.std(exploration_factor)
+    
+    # Combine the exploration factor with the heuristic matrix
+    heuristic_matrix = heuristic_matrix + exploration_factor
+    
+    # Normalize the heuristic matrix to have a maximum value of 1
+    max_heuristic = np.max(heuristic_matrix)
+    if max_heuristic > 0:
+        heuristic_matrix /= max_heuristic
+    
+    return heuristic_matrix
+```

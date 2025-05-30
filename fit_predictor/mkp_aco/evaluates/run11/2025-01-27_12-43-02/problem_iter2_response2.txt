@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    # Adjust ratio to avoid items with very low weights dominating the selection
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)
+    combined_score = score * ratio
+    # Calculate an adaptive sparsity threshold based on the weighted mean of combined score
+    weighted_score = combined_score * ratio
+    adaptive_threshold = np.average(weighted_score * normalized_weights)
+    heuristics = combined_score > adaptive_threshold
+    return heuristics.astype(int)
+```

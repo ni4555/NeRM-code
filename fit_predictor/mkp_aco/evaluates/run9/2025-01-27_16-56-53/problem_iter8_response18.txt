@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on value-to-weight ratio, sparsity, diversity, and adaptability
+    for i in range(n):
+        total_prize = 0
+        total_weight = 0
+        for j in range(m):
+            total_prize += prize[i] * weight[i, j]
+            total_weight += weight[i, j]
+        value_to_weight_ratio = total_prize / total_weight if total_weight > 0 else 0
+        weight_sparsity = 1 - (total_weight / m)
+        diversity_factor = 1
+        
+        for j in range(m):
+            if weight[i, j] < weight[i].max():
+                diversity_factor += 1
+        
+        # Adaptive mechanism for high-value items
+        value_factor = np.exp(-np.sum(weight ** 2, axis=1))
+        heuristic[i] = (value_to_weight_ratio * weight_sparsity * diversity_factor * value_factor[i])
+    
+    # Normalize the heuristic to balance all factors
+    heuristic /= np.sum(heuristic)
+    
+    # Introduce randomness to prevent local optima and encourage exploration
+    random_noise = np.random.normal(heuristic.mean(), heuristic.std() / 3, size=n)
+    heuristic += random_noise
+    
+    # Ensure that the heuristic is non-negative and adjusted to be within a certain range
+    heuristic = np.clip(heuristic, 0, 1)
+    
+    # Dynamic adjustment to prioritize high-value and low-weight items
+    high_value_items = heuristic > 0.5
+    low_weight_items = weight.sum(axis=1) / m < 0.5
+    heuristic[~high_value_items & ~low_weight_items] = 0
+    
+    return heuristic
+```

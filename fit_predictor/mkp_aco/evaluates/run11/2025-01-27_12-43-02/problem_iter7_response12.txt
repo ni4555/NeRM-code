@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    combined_score = score * ratio
+    importance_normalized = combined_score / np.sum(combined_score)
+    
+    # Emphasize high-scores and minimize sparsity
+    importance_normalized = np.clip(importance_normalized, 0, 1)
+    
+    # Refine selection based on balance between high scores and normalized importance
+    balanced_score = combined_score * importance_normalized
+    importance_normalized = balanced_score / np.sum(balanced_score)
+    
+    return importance_normalized
+```

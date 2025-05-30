@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+
+    # Calculate the cumulative sum of demands to determine the demand threshold for each node
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Precompute the total distance from the depot to all other nodes
+    total_to_all = torch.sum(distance_matrix, dim=1)
+    # Precompute the total distance from all nodes to the depot
+    total_from_all = torch.sum(distance_matrix, dim=0)
+
+    # For each node as a potential starting point
+    for start_node in range(distance_matrix.shape[0]):
+        # Create a mask for feasible edges based on demand
+        feasible_edges = (distance_matrix[start_node, :] < demand_cumsum[start_node])
+        # Update the heuristics for feasible edges
+        heuristics[start_node, feasible_edges] = 1 - distance_matrix[start_node, feasible_edges]
+        # Adjust heuristics based on the shortest return path
+        for customer_node in range(distance_matrix.shape[0]):
+            if customer_node != start_node:
+                return_distance = distance_matrix[customer_node, start_node]
+                heuristics[start_node, customer_node] += (1 - return_distance / (total_to_all + return_distance))
+
+    return heuristics
+```

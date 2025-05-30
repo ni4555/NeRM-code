@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the initial heuristics matrix using demand-based and distance-based weighting
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True))
+    # Introduce a demand penalty by increasing the heuristic value for edges leading to high-demand customers
+    demand_penalty = (1 - normalized_demands) * (demands / demands.max())
+    heuristics_matrix += demand_penalty.unsqueeze(1) * distance_matrix
+    # Prioritize edges closer to the depot by adding the distance to the depot to the heuristic values
+    heuristics_matrix += distance_matrix[:, 0] * normalized_demands
+    # Refine the heuristic matrix by balancing the trade-off between distance and demand
+    balance_factor = torch.relu(normalized_demands)  # Avoiding excessive random balancing factors
+    heuristics_matrix = heuristics_matrix * (1 - balance_factor) + (normalized_demands * balance_factor.unsqueeze(1) * distance_matrix.sum(axis=1, keepdim=True))
+    return heuristics_matrix
+```

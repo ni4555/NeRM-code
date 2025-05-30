@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for CVRP using a balance between sum of demands and distance."""
+    n = distance_matrix.shape[0]
+    depot = 0
+    demands = demands[1:]  # Exclude depot demand since it's normalized to 0
+    # Calculate the sum of demands for each edge excluding the depot
+    sum_of_demands = torch.sum(demands[:, None] + demands[None, :], dim=0)
+    # Calculate the inverse of the distance matrix, avoiding division by zero
+    inverse_distance = 1 / (distance_matrix[depot] + distance_matrix[:, depot] + 1e-8)
+    # Create an array for each demand value multiplied by its respective distance inverse
+    demand_distance_inverses = sum_of_demands * inverse_distance
+    # Normalize by the maximum of each row (to balance the contribution of each vehicle)
+    heuristics = demand_distance_inverses / demand_distance_inverses.max(axis=0, keepdim=True)[0]
+    # Add the balance term based on capacity normalization to prevent vehicles from overflowing their capacity
+    capacity_normalized_heuristics = heuristics * (demands.sum() / (n - 1))
+    return capacity_normalized_heuristics
+```

@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Core objective: minimize distance and avoid overflow
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    core_objective = distance_penalty + overflow_penalty
+    
+    # Balance load heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Dynamic penalty for remaining capacity, with emphasis on early returns
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Introduce diversity by varying the weight of heuristics
+    diversity_influence = torch.randn(n) * 0.1
+    load_balance_factor = 1.2
+    dynamic_penalty_factor = 1.1
+    core_objective_factor = 1.0
+    
+    # Adaptive scaling based on cumulative demand
+    cumulative_demand_ratio = cumulative_demand / total_capacity_vector
+    adaptive_scale = torch.where(cumulative_demand_ratio > 1.1, torch.ones_like(cumulative_demand_ratio), torch.zeros_like(cumulative_demand_ratio))
+    adaptive_scale = adaptive_scale * 0.8
+    
+    # Combine heuristics, prioritizing core objectives
+    heuristics = (load_balance_factor * load_balance_penalty +
+                  dynamic_penalty_factor * dynamic_capacity_penalty +
+                  core_objective_factor * core_objective) * (1 - adaptive_scale)
+    heuristics += diversity_influence
+    
+    return heuristics
+```

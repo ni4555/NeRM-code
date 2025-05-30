@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix to account for balance
+    normalized_distance = distance_matrix / torch.max(distance_matrix, dim=1)[0].unsqueeze(1)
+    
+    # Calculate a heuristic based on the inverse of demand, promoting lower demand customers
+    inverse_demand = 1 / (demands - 1e-8)  # Add a small value to avoid division by zero
+    
+    # Combine the distance normalization with the inverse demand to create a heuristic
+    heuristic = -normalized_distance + inverse_demand
+    
+    # Add a penalty for edges that have not been visited to avoid cycles
+    penalty = torch.full_like(distance_matrix, fill_value=-1e-4)
+    heuristic += penalty * (1 - torch.eye(n, dtype=torch.bool))
+    
+    return heuristic
+```

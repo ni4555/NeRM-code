@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the penalty for exceeding capacity
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Calculate the penalty for distance
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Scale the distance penalty by the cumulative demand and the remaining capacity
+    scaled_distance_penalty = distance_penalty * (1 + cumulative_demand) * (total_capacity - cumulative_demand) / total_capacity
+    
+    # Sum the scaled penalties
+    scaled_penalties = scaled_distance_penalty + capacity_penalty
+    
+    # Normalize the penalties to sum to 1 for each edge
+    penalties_sum = scaled_penalties.sum(dim=1)
+    normalized_penalties = scaled_penalties / (penalties_sum + 1e-8)
+    
+    # Include a penalty for the depot node
+    depot_mask = (torch.arange(n) == 0).float()
+    heuristics = normalized_penalties + depot_mask.unsqueeze(0) * cumulative_demand.unsqueeze(0)
+    
+    return heuristics
+```

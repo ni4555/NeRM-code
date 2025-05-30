@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    
+    # Global demand adherence heuristic
+    global_demand_adherence = (normalized_demands * distance_matrix.sum(axis=1, keepdim=True)).sum(axis=1)
+    
+    # Local demand adherence heuristic
+    local_demand_adherence = (normalized_demands.unsqueeze(0) * distance_matrix).sum(axis=2)
+    
+    # Randomness for diversification
+    random_factor = (torch.rand(n, n) * 2 - 1) * (distance_matrix > 0).float()
+    
+    # Infeasibility penalty
+    infeasibility_penalty = torch.where(distance_matrix <= 0, -1.0, 0.0)
+    
+    # Combine all factors into the final heuristics matrix
+    heuristics_matrix = global_demand_adherence + local_demand_adherence + random_factor + infeasibility_penalty
+    return heuristics_matrix
+```

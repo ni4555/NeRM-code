@@ -1,0 +1,49 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+
+    def scale_penalty(penalty, scaling_factor):
+        return penalty * scaling_factor
+
+    def dynamic_capacity_penalty(demands, total_capacity):
+        return -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+
+    def distance_penalty(distance_matrix):
+        scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+        time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+        return scaling * time_factor * (1 + cumulative_demand / total_capacity)
+
+    def overflow_penalty(demands, total_capacity):
+        return torch.where(
+            (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+            -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+            torch.zeros_like(cumulative_demand)
+        )
+
+    def load_balance_penalty(cumulative_demand, total_capacity_vector):
+        load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+        return -torch.log1p(load_balance - 1e-8)
+
+    def randomness_factor():
+        return torch.abs(torch.randn_like(demands)) * 0.1
+
+    def diversity_factor():
+        diversity = torch.abs(torch.randn_like(demands)) * 0.2
+        diversity /= (torch.sum(torch.abs(diversity)) + 1e-8)
+        return diversity
+
+    core_objectives = [
+        scale_penalty(dynamic_capacity_penalty(demands, total_capacity), 1.0),
+        scale_penalty(distance_penalty(distance_matrix), 1.0),
+        scale_penalty(overflow_penalty(demands, total_capacity), 1.0),
+        scale_penalty(load_balance_penalty(cumulative_demand, total_capacity_vector), 1.0)
+    ]
+
+    heuristics = sum(core_objectives) + randomness_factor() + diversity_factor()
+    return heuristics
+```

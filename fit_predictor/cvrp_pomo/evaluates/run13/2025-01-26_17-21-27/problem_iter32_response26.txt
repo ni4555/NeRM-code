@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate penalties for each edge
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    capacity_penalty = -torch.log1p(torch.abs(demands - remaining_capacity) - 1e-8)
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+
+    # Normalize penalties by their relative importance
+    normalized_penalties = (
+        0.5 * distance_penalty +
+        0.3 * capacity_penalty +
+        0.2 * overflow_penalty +
+        0.0 * load_balance_penalty
+    )
+
+    # Apply a linear factor to balance their influence
+    heuristics = normalized_penalties * (1 / normalized_penalties.sum())
+
+    return heuristics
+```

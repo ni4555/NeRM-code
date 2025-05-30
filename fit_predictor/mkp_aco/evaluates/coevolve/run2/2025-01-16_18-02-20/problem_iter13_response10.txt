@@ -1,0 +1,54 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate a diversity score based on the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - normalized_prize.reshape(-1, 1)), axis=0)
+    
+    # Combine normalized prize and diversity score with a trade-off factor
+    trade_off_factor = 0.5
+    total_score = normalized_prize * trade_off_factor + diversity_scores * (1 - trade_off_factor)
+    
+    # Incorporate a sparsity score based on the sum of weights across dimensions
+    sparsity_scores = np.sum(weight, axis=1)
+    
+    # Calculate the variance of weights across dimensions for each item
+    weight_variance = np.var(weight, axis=1)
+    
+    # Include the sparsity and weight variance in the total score
+    total_score += sparsity_scores * 0.2 - weight_variance * 0.1
+    
+    # Normalize the total score to ensure they are on the same scale
+    total_score /= np.max(total_score)
+    
+    # Dynamically adapt the trade-off factor based on the average diversity score
+    average_diversity = np.mean(diversity_scores)
+    if average_diversity < 0.5:
+        trade_off_factor = 0.3
+    elif average_diversity < 0.8:
+        trade_off_factor = 0.6
+    else:
+        trade_off_factor = 0.8
+    
+    # Update the total score with the new trade-off factor
+    total_score = normalized_prize * trade_off_factor + diversity_scores * (1 - trade_off_factor)
+    
+    # Rank the items based on their updated normalized total score
+    ranked_indices = np.argsort(total_score)[::-1]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    # Sparsify the heuristics by setting the top 30% of promising elements to 1
+    heuristics[ranked_indices[:len(ranked_indices)//3]] = 1
+    
+    # Mutate the heuristics by randomly flipping the inclusion of the next 10% of items
+    mutation_rate = 0.1
+    mutation_indices = np.random.choice(len(ranked_indices), int(len(ranked_indices) * mutation_rate), replace=False)
+    heuristics[ranked_indices[mutation_indices]] = 1 - heuristics[ranked_indices[mutation_indices]]
+    
+    return heuristics
+```

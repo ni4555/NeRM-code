@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / (total_demand + 1e-8)  # Avoid division by zero
+    
+    # Use element-wise operations for non-linear transformation and to clamp values
+    epsilon = 1e-8
+    edge_potential = 1 / (torch.clamp(distance_matrix + epsilon, min=epsilon))
+    edge_potential = torch.clamp(edge_potential * torch.clamp(normalized_demands, min=-0.1, max=0.1), min=epsilon)
+    
+    # Apply penalties and bonuses directly using element-wise comparisons
+    edge_potential = edge_potential - torch.where(demands > 1, 0.1, 0)
+    edge_potential = edge_potential + torch.where(distance_matrix < 10, 0.1, 0)
+    
+    return edge_potential
+```

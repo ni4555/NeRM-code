@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the potential of each node as a balance between distance and demand
+    demand_potential = -torch.abs(demands - vehicle_capacity)
+    distance_potential = -torch.log(distance_matrix + 1e-6)
+    combined_potential = demand_potential + distance_potential
+    
+    # Introduce randomness but keep constraints strong
+    noise_factor = 1e-3
+    noise = torch.randn_like(combined_potential) * noise_factor
+    combined_potential_with_noise = combined_potential + noise
+    
+    # Emphasize constraints early by using a sigmoid function
+    constrained_potential = torch.sigmoid(combined_potential_with_noise)
+    
+    # Normalize the potential to maintain balance across edges
+    normalized_potential = constrained_potential / (constrained_potential.sum(dim=1, keepdim=True) + 1e-6)
+    
+    # Final transformation into a heuristics matrix
+    heuristics_matrix = normalized_potential - 1  # Negative values for undesirable edges, positive for promising ones
+    
+    return heuristics_matrix
+```

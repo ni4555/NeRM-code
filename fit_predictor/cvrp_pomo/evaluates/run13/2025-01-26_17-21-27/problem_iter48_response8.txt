@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Define a single penalty function for various objectives
+    penalty_function = lambda value, base: -torch.log1p(torch.abs(value - base) - 1e-8)
+
+    # Combine distance scaling with demand scaling
+    distance_demand_scale = penalty_function(distance_matrix, 0) * (cumulative_demand / total_capacity)
+
+    # Dynamic capacity penalty with early return encouragement
+    capacity_penalty = penalty_function(demands - total_capacity, 0) * (1 + (total_capacity - cumulative_demand) / total_capacity)
+
+    # Overflow penalty to encourage early returns
+    overflow_penalty = torch.where(
+        cumulative_demand[:, None] + demands[None, :] > total_capacity,
+        penalty_function((cumulative_demand[:, None] + demands[None, :]) - total_capacity, 0),
+        torch.zeros_like(cumulative_demand)
+    )
+
+    # Load balancing heuristic to encourage even distribution of demand
+    load_balance = penalty_function(cumulative_demand - total_capacity / n, 0)
+    
+    # Combine all penalties into a single heuristic
+    combined_penalties = distance_demand_scale + capacity_penalty + overflow_penalty + load_balance
+
+    # Scale the combined penalties and cap to maintain stability
+    scaling_factor = 3.0
+    heuristics = scaling_factor * combined_penalties
+    heuristics = torch.clamp(heuristics, min=-100, max=100)
+    
+    # Apply a large penalty for the depot to return to itself
+    heuristics[0, 0] = -1000
+
+    return heuristics
+```

@@ -1,0 +1,62 @@
+{
+  "generation": 5,
+  "description": "Design an optimization heuristic for the Capacitated Vehicle Routing Problem (CVRP) that integrates a normalized demand and distance adjustment mechanism with a specific inverse distance heuristic for initial customer assignment. The heuristic should incorporate a demand penalty function that scales the cost of assigning high-demand customers to vehicles near their capacity limit. To ensure efficient route assignments, the heuristic must utilize a Genetic Algorithm (GA) for iterative route improvement, a Simulated Annealing (SA) method to navigate past local optima, and an Ant Colony Optimization (ACO) for path exploration. The algorithm must be equipped with a real-time rerouting capability to adapt to dynamic changes in customer demands and vehicle availability within a predefined response time frame. The heuristic must explicitly define penalty functions, avoid general objectives, specify all employed heuristics and algorithms, and adhere to constraints such as vehicle capacity, demand, and real-time rerouting requirements to minimize total route distance and enhance operational efficiency.",
+  "solutions": [
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    vehicle_capacity = demands.sum()  # Assuming vehicle capacity is equal to total demand\n\n    # Demand penalty function: higher demand customers closer to capacity get higher penalties\n    demand_penalty = 1 + demands / vehicle_capacity\n\n    # Normalize distance matrix by demand penalty to adjust for customer demand\n    adjusted_distance = distance_matrix / demand_penalty\n\n    # Inverse distance heuristic: edges with lower adjusted distance are more promising\n    # We use negative values to indicate undesirable edges (for minimization)\n    heuristics = -adjusted_distance\n\n    return heuristics",
+      "fitness": 49.8669548034668,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_5\\stdout_8.txt",
+      "code_file": "coevolve\\generation_5\\code_8.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Normalize demand by the total vehicle capacity\n    normalized_demands = demands / demands.sum()\n    \n    # Inverse distance heuristic\n    inverse_distance = 1.0 / (distance_matrix + 1e-8)  # Adding a small value to avoid division by zero\n    \n    # Demand penalty function\n    demand_penalty = normalized_demands * (1 + demands / (n * 0.5))  # Scale demand by a factor\n    \n    # Combine the heuristics\n    combined_heuristic = inverse_distance * demand_penalty\n    \n    # Normalize the combined heuristic to ensure non-negative values\n    max_value = combined_heuristic.max()\n    min_value = combined_heuristic.min()\n    combined_heuristic = (combined_heuristic - min_value) / (max_value - min_value)\n    \n    return combined_heuristic",
+      "fitness": 49.88407897949219,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_5\\stdout_3.txt",
+      "code_file": "coevolve\\generation_5\\code_3.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.size(0)\n    # Initialize a tensor with zeros to store heuristics values\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # Normalize demand to the range [0, 1]\n    normalized_demands = demands / demands.max()\n    \n    # Inverse distance heuristic\n    heuristics = 1.0 / (distance_matrix + 1e-6)  # Adding a small constant to avoid division by zero\n    \n    # Demand penalty function: scale the cost for high-demand customers\n    demand_penalty = (1 + demands * 0.1)  # Example penalty factor of 0.1 per unit of demand\n    \n    # Combine the heuristics with the demand penalty\n    heuristics *= demand_penalty\n    \n    # Normalize the heuristics values to ensure non-negative values\n    heuristics = torch.clamp(heuristics, min=0)\n    \n    return heuristics",
+      "fitness": 50.54805374145508,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_5\\stdout_11.txt",
+      "code_file": "coevolve\\generation_5\\code_11.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize demands by the sum of all demands to represent the fraction of vehicle capacity used\n    demand_penalty_factor = 1 / demands.sum()\n    normalized_demands = demands * demand_penalty_factor\n\n    # Calculate the inverse distance heuristic (IDH)\n    # The IDH is a simple heuristic where the weight of an edge is inversely proportional to the distance\n    inverse_distance = 1 / (distance_matrix + 1e-8)  # Adding a small value to avoid division by zero\n\n    # Calculate the demand penalty\n    # The penalty is higher for edges that lead to vehicles close to their capacity\n    demand_penalty = normalized_demands * distance_matrix\n\n    # Combine the inverse distance and demand penalty to get the heuristic value for each edge\n    heuristics = inverse_distance - demand_penalty\n\n    return heuristics",
+      "fitness": 50.694759368896484,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_5\\stdout_9.txt",
+      "code_file": "coevolve\\generation_5\\code_9.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize demands by the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n    \n    # Calculate the inverse distance heuristic\n    inverse_distance = 1 / (distance_matrix + 1e-6)  # Adding a small constant to avoid division by zero\n    \n    # Demand penalty function: higher penalty for high-demand customers near vehicle capacity\n    demand_penalty = demands * (1 - (1 / (1 + normalized_demands)))\n    \n    # Combine the heuristics\n    combined_heuristics = inverse_distance - demand_penalty\n    \n    return combined_heuristics",
+      "fitness": 50.694759368896484,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_5\\stdout_10.txt",
+      "code_file": "coevolve\\generation_5\\code_10.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize demands to be a fraction of the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n\n    # Define the demand penalty function\n    # Higher penalty for edges with customers closer to vehicle capacity limit\n    penalty_factor = torch.clamp(1 - normalized_demands, min=0, max=1)\n    demand_penalty = penalty_factor * distance_matrix\n\n    # Define the inverse distance heuristic\n    # Smaller distance has higher heuristic value\n    inverse_distance = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero\n\n    # Combine the inverse distance heuristic and demand penalty\n    heuristic_values = inverse_distance - demand_penalty\n\n    return heuristic_values",
+      "fitness": 50.75043487548828,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_5\\stdout_1.txt",
+      "code_file": "coevolve\\generation_5\\code_1.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize the demand vector by the total vehicle capacity\n    vehicle_capacity = 1.0  # Assuming a unit capacity for the purpose of this example\n    normalized_demands = demands / vehicle_capacity\n    \n    # Demand penalty function: higher demand customers have a higher penalty\n    demand_penalty = normalized_demands * 1000  # Example penalty factor\n    \n    # Inverse distance heuristic: shorter distances have lower heuristics values\n    inverse_distance = 1.0 / (distance_matrix + 1e-8)  # Adding a small value to avoid division by zero\n    \n    # Combine the inverse distance heuristic and demand penalty\n    combined_heuristic = inverse_distance - demand_penalty\n    \n    # Ensure all values are within the range of -100 to 100 for edge selection\n    combined_heuristic = torch.clamp(combined_heuristic, min=-100, max=100)\n    \n    return combined_heuristic",
+      "fitness": 53.84319305419922,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_5\\stdout_5.txt",
+      "code_file": "coevolve\\generation_5\\code_5.py"
+    }
+  ]
+}

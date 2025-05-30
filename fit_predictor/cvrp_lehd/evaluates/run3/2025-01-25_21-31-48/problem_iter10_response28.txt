@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the inverse of the distance matrix to emphasize shorter distances
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)  # Add a small value to avoid division by zero
+    
+    # Calculate the sum of distances from each node to the depot
+    depot_distances = distance_matrix_inv.sum(axis=1)
+    
+    # Combine the inverse distance matrix with the demand and depot distance
+    combined_matrix = distance_matrix_inv * demands * depot_distances
+    
+    # Normalize the matrix to ensure all values are within a certain range
+    max_combined = combined_matrix.max()
+    min_combined = combined_matrix.min()
+    normalized_combined_matrix = (combined_matrix - min_combined) / (max_combined - min_combined)
+    
+    # Invert the scores to have negative values for undesirable edges and positive for promising ones
+    inverted_scores = 1 - normalized_combined_matrix
+    
+    return inverted_scores
+```

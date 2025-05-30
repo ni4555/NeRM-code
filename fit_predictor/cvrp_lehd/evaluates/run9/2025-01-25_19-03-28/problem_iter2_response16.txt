@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic for each edge as the negative of the sum of the normalized demand
+    # and the negative of the distance. This heuristic gives higher scores to edges with lower
+    # demands and shorter distances.
+    heuristic_matrix = -torch.mul(normalized_demands, distance_matrix)
+
+    # Add a penalty for edges leading to nodes with higher demands to discourage loading
+    # up the vehicle with large demands. We subtract this penalty from the heuristic value.
+    # A larger penalty is assigned for higher demands, discouraging high-demand nodes from being included
+    # in the route early, and potentially causing the need to return to the depot more frequently.
+    penalty = -demands * 100  # Scaling factor is arbitrary and may need to be tuned
+
+    # The final heuristic value is obtained by subtracting the penalty from the current heuristic
+    # This encourages selecting edges that lead to lower demand nodes first.
+    heuristic_matrix = torch.add(heuristic_matrix, penalty)
+
+    return heuristic_matrix
+```

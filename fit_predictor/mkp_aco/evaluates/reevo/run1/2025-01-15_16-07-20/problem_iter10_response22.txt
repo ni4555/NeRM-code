@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Non-linear transformation using logarithm on prize
+    enhanced_score = np.log(1 + prize)
+    
+    # Sparsity score considering the number of non-zero dimensions
+    sparsity = np.sum(1 - weight, axis=1)
+    sparsity_factor = sparsity / np.sum(sparsity)
+    
+    # Dimension-specific factors based on the standard deviation of each dimension
+    dimension_factors = np.exp(-np.std(weight, axis=1))
+    
+    # Constraint balance to ensure even distribution of weights across dimensions
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Normalize each factor to be between 0 and 1
+    enhanced_score /= np.max(enhanced_score)
+    sparsity_factor /= np.max(sparsity_factor)
+    dimension_factors /= np.max(dimension_factors)
+    constraint_balance /= np.max(constraint_balance)
+    
+    # Combine all factors to create the heuristic
+    heuristics = enhanced_score * (sparsity_factor * dimension_factors) * (1 - constraint_balance)
+    
+    # Normalize the heuristics scores to sum to 1
+    normalized_heuristics = heuristics / np.sum(heuristics)
+    
+    # Sparsify the heuristics by setting elements below a threshold to zero
+    threshold = np.percentile(normalized_heuristics, 10)  # 10th percentile threshold for sparsity
+    sparsity_mask = (normalized_heuristics > threshold)
+    sparsified_heuristics = np.where(sparsity_mask, normalized_heuristics, 0)
+    
+    return sparsified_heuristics
+```

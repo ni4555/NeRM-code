@@ -1,0 +1,54 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize heuristic matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the heuristic value for each edge based on scaled demand and remaining capacity
+    heuristics += (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Apply non-linear transformation to balance demand and capacity impact
+    heuristics = torch.sqrt(heuristics)
+
+    # Introduce diversity by considering edge weights from both directions ( depot to customer and customer to depot )
+    heuristics = heuristics + heuristics.t()
+
+    # Apply a dampening factor to the heuristic values to reduce the impact of high penalties
+    dampening_factor = 0.1
+    heuristics *= dampening_factor
+
+    # Add penalties for edges leading to high-demand nodes and edges leading back to the depot
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics -= capacity_penalty * dampening_factor
+    heuristics += depot_penalty * dampening_factor
+
+    # Normalize the heuristic values using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Apply a penalty for edges too far from the depot (local preference)
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 50
+    heuristics += torch.clamp(distance_penalty, min=0.0) * dampening_factor
+
+    # Apply a non-linear transformation to the heuristic values to explore varied solution spaces
+    heuristics = torch.tanh(heuristics)
+
+    # Balancing of penalties to ensure a good heuristic distribution
+    heuristics = torch.clamp(heuristics, min=-1.0, max=1.0)
+
+    return heuristics
+```

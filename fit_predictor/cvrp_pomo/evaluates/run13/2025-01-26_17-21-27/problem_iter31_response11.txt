@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Use a dynamic scaling factor for the distance penalty that adjusts based on cumulative load
+    distance_scaling = distance_penalty * (cumulative_demand / (cumulative_demand.sum() + 1e-8))
+    
+    # Adjust the dynamic capacity penalty based on the deviation from the mean load per customer
+    mean_demand = total_capacity / n
+    dynamic_capacity_penalty = dynamic_capacity_penalty * (1 + (torch.abs(cumulative_demand - mean_demand) / mean_demand))
+    
+    # Calculate an overflow penalty with an early return trigger to avoid excessive loads
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Use a balance heuristic to promote more uniform distribution of demand across the route
+    load_balance = torch.abs(cumulative_demand - mean_demand)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Apply a scaling factor to emphasize the core objectives
+    scaling_factor = 3.0
+    heuristics = scaling_factor * (distance_scaling + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty)
+    
+    # Introduce an adaptive load balancing penalty to avoid overloading a single vehicle
+    adaptive_load_balance_penalty = torch.where(
+        load_balance > 2 * mean_demand,
+        -torch.log1p(load_balance - 1e-8),
+        torch.zeros_like(load_balance)
+    )
+    
+    heuristics += adaptive_load_balance_penalty
+    return heuristics
+```

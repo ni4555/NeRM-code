@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Initialize heuristic based on proportional value to weight
+    heuristic = prize / weight.sum(axis=1)
+    
+    # Adaptive mechanism to prioritize valuable subsets
+    for i in range(n):
+        for j in range(n):
+            # If the combined item j and i exceed the weight limit for any dimension
+            if np.any(weight[j, :] + weight[i, :] > 1):
+                break
+            # Adjust heuristic based on the added value of the second item
+            combined_value = prize[j] + prize[i]
+            combined_weight = weight[j, :].sum() + weight[i, :].sum()
+            heuristic[i] = (heuristic[i] * combined_value) / (combined_weight + heuristic[i])
+    
+    # Apply a threshold to sparsify the heuristics
+    threshold = heuristic.max() * 0.1
+    heuristic[heuristic < threshold] = 0
+    
+    return heuristic
+```

@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    cum_demands = torch.cumsum(demands, dim=0)
+    capacity_mask = cum_demands < demands[0]
+    
+    # Normalize potential based on distance and demand
+    potential = torch.exp(-distance_matrix * 0.1) * (1 / (demands + 1e-8))
+    
+    # Apply penalty for nodes that exceed capacity
+    over_capacity_penalty = (cum_demands - demands[0]) * torch.where(capacity_mask, torch.zeros_like(distance_matrix), torch.ones_like(distance_matrix))
+    
+    # Non-linear scaling of the demand for penalties
+    demand_penalty = torch.pow(demands, 2) * torch.where(capacity_mask, torch.zeros_like(demands), torch.ones_like(demands))
+    
+    # High demand penalty for the first few nodes that exceed capacity
+    high_demand_penalty = demand_penalty * torch.where(capacity_mask, torch.zeros_like(demands), torch.ones_like(demands))
+    
+    # Combine potential and penalties to create heuristic values
+    heuristics = potential - over_capacity_penalty - high_demand_penalty
+    
+    # Ensure the heuristic matrix is symmetric
+    heuristics = (heuristics + heuristics.t()) / 2
+    
+    # Set the heuristic for the depot to itself to 0
+    heuristics[0, 0] = 0
+    
+    return heuristics
+```

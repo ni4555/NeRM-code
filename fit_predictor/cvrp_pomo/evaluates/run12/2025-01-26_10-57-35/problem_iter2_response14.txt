@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    cumulative_distance = torch.cumsum(distance_matrix[:, 0], dim=0)
+    
+    # Calculate the difference in cumulative distances from the depot
+    distance_diff = cumulative_distance[:, None] - cumulative_distance
+    
+    # Calculate the cumulative demand difference for each edge
+    demand_diff = (cumulative_demand[None, :] - cumulative_demand[:, None])
+    
+    # Calculate the heuristics value for each edge
+    heuristics = torch.where(demand_diff > 0, distance_diff * demand_diff, torch.zeros_like(distance_diff))
+    
+    # Adjust for cases where the demand is not exceeded, i.e., when demand_diff is 0
+    heuristics = torch.where(demand_diff == 0, distance_diff * (1 - cumulative_demand[:, None]), heuristics)
+    
+    return heuristics
+```

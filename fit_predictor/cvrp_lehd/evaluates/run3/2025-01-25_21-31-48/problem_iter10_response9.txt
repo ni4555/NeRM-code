@@ -1,0 +1,35 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_sum = torch.sum(demands)
+    demand_mean = demand_sum / n
+    demand_balance = (demands - demand_mean).abs()
+    
+    # Normalize the demand balance by the total demand
+    demand_balance = demand_balance / demand_sum
+    
+    # Invert the balance to favor balanced demands
+    demand_balance = 1 - demand_balance
+    
+    # Incorporate distance into the heuristic using a more complex function
+    distance_heuristic = 1 / (distance_matrix + torch.max(distance_matrix) * (1 - torch.exp(-distance_matrix)))
+    
+    # Combine heuristics with a sigmoid to ensure a smooth transition from negative to positive
+    combined_heuristic = torch.sigmoid(demand_balance * distance_heuristic)
+    
+    # Calculate penalty based on the maximum capacity constraint
+    capacity_penalty = -torch.clamp((demands - 1).abs(), min=0, max=1)
+    
+    # Subtract penalty from promising edges
+    combined_heuristic -= capacity_penalty
+    
+    # Cap the heuristics to ensure that they are within a certain range
+    min_heuristic = torch.min(combined_heuristic)
+    max_heuristic = torch.max(combined_heuristic)
+    combined_heuristic = torch.clamp(combined_heuristic, min=min_heuristic, max=max_heuristic)
+    
+    return combined_heuristic
+```

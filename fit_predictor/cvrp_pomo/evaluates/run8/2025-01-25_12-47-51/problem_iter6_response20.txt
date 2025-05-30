@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    demand_ratio = demands / total_demand
+
+    # Interaction terms: Inverse distance multiplied by demand ratio
+    interaction_terms = inv_distance_matrix * demand_ratio
+
+    # Balance factor: Exponential decay based on distance to favor closer nodes
+    balance_factor = torch.exp(-distance_matrix)
+
+    # Normalize the interaction terms and balance factor
+    normalized_interaction_terms = interaction_terms / total_demand
+    normalized_balance_factor = balance_factor / torch.sum(balance_factor)
+
+    # Combine the normalized interaction terms and balance factor
+    combined_matrix = normalized_interaction_terms * normalized_balance_factor
+
+    # Add a penalty for infeasible edges (demand exceeds capacity)
+    infeasible_mask = demands[:, None] + demands[None, :] > 1
+    combined_matrix[infeasible_mask] = -torch.inf
+
+    return combined_matrix
+```

@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    total_demand = demands.sum()
+    
+    # Sort the demands in descending order
+    sorted_indices = torch.argsort(-demands)
+    
+    # Iterate over the sorted demands
+    for i in range(1, n):
+        # Calculate the total potential gain of visiting node j from node i
+        potential_gain = demands[sorted_indices[i-1]] + demands[sorted_indices[i]]
+        # Check if adding the current node exceeds the capacity
+        if total_demand + potential_gain <= 1:
+            total_demand += potential_gain
+            # Assign the heuristic value to the corresponding positions
+            heuristic_matrix[sorted_indices[i-1], sorted_indices[i]] = total_demand
+            heuristic_matrix[sorted_indices[i], sorted_indices[i-1]] = total_demand
+        else:
+            # Calculate the penalty for the edge
+            penalty = (potential_gain - 1) * (distance_matrix[sorted_indices[i-1], sorted_indices[i]] / distance_matrix[sorted_indices[i-1], sorted_indices[0]])
+            # Assign the heuristic value considering the penalty
+            heuristic_matrix[sorted_indices[i-1], sorted_indices[i]] = -penalty
+            heuristic_matrix[sorted_indices[i], sorted_indices[i-1]] = -penalty
+    
+    return heuristic_matrix
+```

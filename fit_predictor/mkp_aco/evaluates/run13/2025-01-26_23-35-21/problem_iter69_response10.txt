@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Prune dominated items based on a modified Pareto frontier
+    def pareto_sort(heuristic_values, weights):
+        sorted_indices = np.argsort(heuristic_values)[::-1]
+        pareto_front = []
+        for i in range(len(sorted_indices)):
+            is_dominated = False
+            for j in range(i):
+                if heuristic_values[sorted_indices[j]] > heuristic_values[sorted_indices[i]]:
+                    is_dominated = True
+                    break
+            if not is_dominated:
+                pareto_front.append(sorted_indices[i])
+        return pareto_front
+
+    # Calculate normalized density and sparsity
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Add randomness to the heuristic to promote exploration
+    randomness_factor = np.random.rand(*weight.shape[0:])
+    
+    # Dynamic adjustment of weights for less weighty items
+    dynamic_weight = 1 / (weight_sum + 1e-8)
+    
+    # Combine metrics with randomness and dynamic adjustments
+    heuristic_value = density * (1 - sparsity) - dynamic_weight * randomness_factor
+    
+    # Prune dominated items
+    non_dominated_indices = pareto_sort(heuristic_value, weight_sum)
+    
+    # Create a final heuristic by selecting non-dominated items
+    final_heuristic = np.zeros_like(heuristic_value)
+    final_heuristic[non_dominated_indices] = heuristic_value[non_dominated_indices]
+    
+    return final_heuristic
+```

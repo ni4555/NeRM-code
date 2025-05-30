@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Calculate attractiveness based on demand
+    attractiveness = 1 / (1 + demands)
+    
+    # Incorporate distance into attractiveness
+    distance_weight = distance_matrix * attractiveness
+    
+    # Scale by cumulative demand
+    scaled_demand = (torch.cumsum(demands, dim=0) / total_demand).unsqueeze(1)
+    demand_scaled = attractiveness * scaled_demand * scaled_demand
+    
+    # Combine the weights
+    combined_weight = distance_weight + demand_scaled
+    
+    # Dampen the influence of longer distances
+    dampening_factor = torch.exp(-distance_matrix / 10)
+    final_weight = combined_weight * dampening_factor
+    
+    # Adjust heuristics for the depot to all other nodes
+    final_weight[0, 1:] = -final_weight[0, 1:].sum(dim=1)
+    final_weight[1:, 0] = final_weight[1:, 0].sum(dim=1)
+    
+    # Ensure negative values for non-promising edges
+    final_weight = final_weight - final_weight.max()
+    
+    return final_weight
+```

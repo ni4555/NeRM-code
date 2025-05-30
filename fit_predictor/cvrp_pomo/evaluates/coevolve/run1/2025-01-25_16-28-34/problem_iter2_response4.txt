@@ -1,0 +1,105 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+    
+    # Problem-specific Local Search
+    # Create a matrix to store the cumulative load at each node
+    cumulative_load = torch.cumsum(demands, dim=0) - demands
+    
+    # Calculate the load difference for each edge
+    load_diff = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Adjust the load difference to account for vehicle capacities
+    load_diff = load_diff / total_capacity
+    
+    # Calculate the heuristic for each edge
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                edge_heuristic = load_diff[i, j] - cumulative_load[i] + cumulative_load[j]
+                # Ensure the heuristic is negative for undesirable edges
+                heuristics[i, j] = max(edge_heuristic, 0)
+    
+    # Adaptive PSO with Adaptive Population Management
+    # Initialize PSO parameters
+    inertia_weight = 0.7
+    cognitive_component = 0.3
+    social_component = 0.3
+    max_iterations = 100
+    population_size = 50
+    
+    # Initialize particles and their velocities
+    particles = torch.randn(population_size, n, n)
+    velocities = torch.randn(population_size, n, n)
+    
+    # Initialize the best positions and costs
+    best_positions = particles.clone()
+    best_costs = torch.full((population_size,), float('inf'))
+    
+    # PSO loop
+    for iteration in range(max_iterations):
+        # Update positions
+        particles += velocities
+        
+        # Update velocities
+        velocities *= inertia_weight
+        velocities += cognitive_component * (particles - best_positions)
+        velocities += social_component * torch.rand(population_size, n, n) - 0.5
+        
+        # Evaluate new positions
+        for i in range(population_size):
+            costs = torch.sum(particles[i] * distance_matrix)
+            if costs < best_costs[i]:
+                best_costs[i] = costs
+                best_positions[i] = particles[i]
+        
+        # Adaptive population management
+        # Maintain diversity by replacing particles with new random positions
+        new_particles = torch.rand(population_size, n, n)
+        for i in range(population_size):
+            if torch.rand(1) < 0.1:  # 10% chance to replace a particle
+                best_positions[i] = new_particles[i]
+    
+    # Dynamic Tabu Search with Adaptive Cost Function
+    # Initialize tabu list
+    tabu_list = torch.zeros(n)
+    tabu_duration = 10
+    
+    # Tabu search loop
+    for iteration in range(max_iterations):
+        # Find the best edge to move
+        best_edge = torch.argmin(heuristics)
+        
+        # Check if the edge is in the tabu list
+        if tabu_list[best_edge] > 0:
+            continue
+        
+        # Move the edge
+        heuristics[best_edge] *= -1
+        
+        # Update tabu list
+        tabu_list[best_edge] = tabu_duration
+        
+        # Update the distance matrix temporarily to reflect the move
+        temp_distance_matrix = distance_matrix.clone()
+        temp_distance_matrix[best_edge] *= -1
+        temp_distance_matrix[best_edge] += distance_matrix[best_edge]
+        
+        # Evaluate the new cost
+        new_cost = torch.sum(temp_distance_matrix * best_positions)
+        
+        # If the new cost is better, accept the move
+        if new_cost < best_costs:
+            best_costs = new_cost
+            best_positions = particles.clone()
+        
+        # Decrement tabu durations
+        tabu_list -= 1
+        tabu_list[tabu_list < 0] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the diversity factor based on the standard deviation of weight dimensions
+    diversity_factor = np.std(weight, axis=1)
+    
+    # Calculate the utility factor by taking the ratio of prize to average weight
+    utility_factor = normalized_prize / np.mean(weight, axis=1)
+    
+    # Calculate the initial heuristics based on a weighted combination of diversity and utility
+    heuristics = 0.6 * diversity_factor + 0.4 * utility_factor
+    
+    # Introduce a penalty for items with very high utility to prevent overfitting to easy items
+    high_utility_penalty = np.where(utility_factor > np.percentile(utility_factor, 80),
+                                    0.2 * utility_factor, 0)
+    heuristics -= high_utility_penalty
+    
+    # Apply a post-processing step to balance exploration and exploitation
+    # Use a dynamic adjustment that increases heuristics for less explored items
+    num_items = len(prize)
+    item_usage = np.ones(num_items) / num_items  # Initially equal exploration
+    heuristics *= item_usage
+    
+    # Integrate domain-specific knowledge by giving more weight to items with higher prize per unit weight
+    heuristics *= 1.2
+    
+    # Sparsify the heuristics by zeroing out a certain fraction of the least promising items
+    num_to_zero = int(num_items * 0.05)  # Zero out 5% of the lowest heuristics
+    heuristics[np.argsort(heuristics)[:num_to_zero]] = 0
+    
+    return heuristics
+```

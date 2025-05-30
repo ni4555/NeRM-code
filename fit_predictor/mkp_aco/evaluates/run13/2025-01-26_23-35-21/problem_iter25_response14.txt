@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize by the total prize available
+    normalized_prize = prize / np.sum(prize) + 1e-8
+    
+    # Calculate the average density
+    average_density = np.mean(normalized_prize)
+    
+    # Define a function to penalize extreme values
+    def penalize_extremes(value, average, factor=0.5):
+        return max(min(value, factor * average), (1 - factor) * average)
+    
+    # Apply the penalty to prize and weight to avoid extremes
+    penalized_prize = penalize_extremes(normalized_prize, average_density)
+    penalized_weight = penalize_extremes(np.sum(weight, axis=1), average_density)
+    
+    # Introduce a diversity factor by considering the deviation from the average
+    diversity_factor = 1 - np.abs(penalized_prize - average_density)
+    
+    # Create a heuristic based on the penalized prize and diversity factor
+    heuristic = penalized_prize * diversity_factor - penalized_weight
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Sparsify the heuristic by setting low values to zero
+    sparsified_heuristic = np.where(normalized_heuristic > 0.1, normalized_heuristic, 0)
+    
+    return sparsified_heuristic
+```

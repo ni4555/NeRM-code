@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Precompute the cumulative distance matrix
+    cumulative_distances = torch.cumsum(distance_matrix, dim=1)
+    
+    # Define a helper function to get the next customer to visit
+    def get_next_customer(current_customer, vehicle_capacity, visited):
+        candidate_indices = (1 - visited) & (demands > 0)
+        candidate_indices = candidate_indices.nonzero().squeeze()
+        if candidate_indices.numel() == 0:
+            return 0  # If no candidates, return to the depot
+        
+        # Calculate the remaining capacity after visiting each candidate
+        remaining_capacities = vehicle_capacity - (demands[candidate_indices] + cumulative_distances[current_customer, candidate_indices])
+        remaining_capacities = remaining_capacities.clamp(min=0)  # Ensure non-negative
+        
+        # Greedy selection based on remaining capacity
+        next_customer = candidate_indices[remaining_capacities.argmax()]
+        return next_customer
+    
+    # Perform a local search
+    visited = torch.zeros(n, dtype=torch.bool)
+    visited[0] = True  # Start at the depot
+    vehicle_capacity = 1.0  # Initialize vehicle capacity to total demand
+    current_customer = 0  # Start from the depot
+    
+    while True:
+        next_customer = get_next_customer(current_customer, vehicle_capacity, visited)
+        if next_customer == 0:  # If no next customer, we are back at the depot
+            break
+        heuristic_matrix[current_customer, next_customer] = distance_matrix[current_customer, next_customer]
+        visited[next_customer] = True
+        vehicle_capacity -= demands[next_customer]
+        current_customer = next_customer
+    
+    return heuristic_matrix
+```

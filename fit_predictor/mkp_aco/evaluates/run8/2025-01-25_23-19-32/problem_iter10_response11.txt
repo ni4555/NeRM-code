@@ -1,0 +1,46 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize weights by summing across dimensions
+    weight_normalized = np.sum(weight, axis=1)
+    
+    # Calculate the importance of each item based on prize to normalized weight ratio
+    item_importance = prize / weight_normalized
+    
+    # Calculate a diversity factor that encourages selecting a variety of items
+    diversity_factor = 1 / (1 + np.exp(-item_importance))
+    
+    # Incorporate domain knowledge by adding a factor that penalizes items that exceed a certain size threshold
+    size_threshold = 2 * np.median(weight_normalized)
+    size_factor = np.where(weight_normalized < size_threshold, diversity_factor, diversity_factor / 2)
+    
+    # Calculate the sparsity factor for each item
+    sparsity_factor = 1 - (np.sum(weight**2, axis=1) / weight_normalized**2)
+    
+    # Combine importance, diversity, size, and sparsity factors
+    combined_heuristics = item_importance * size_factor * sparsity_factor
+    
+    # Dynamically adjust the diversity factor based on the balance between importance and sparsity
+    importance_threshold = np.percentile(item_importance, 80)
+    sparsity_threshold = np.percentile(sparsity_factor, 20)
+    combined_heuristics *= np.exp(-(item_importance - importance_threshold)**2 / (2 * (sparsity_threshold**2)))
+    
+    # Adjust the diversity factor dynamically based on the current sum of heuristics
+    current_sum_heuristics = np.sum(combined_heuristics)
+    diversity_factor_adjusted = 1 / (1 + np.exp(-current_sum_heuristics))
+    combined_heuristics *= diversity_factor_adjusted
+    
+    # Enforce sparsity by setting a lower threshold for heuristics
+    lower_threshold = 0.1
+    combined_heuristics[combined_heuristics < lower_threshold] = lower_threshold
+    
+    # Apply a diversity threshold to enhance diversity in the selection
+    diversity_threshold = 0.4
+    heuristics = np.where(combined_heuristics >= diversity_threshold, combined_heuristics, 0)
+    
+    # Normalize the heuristics to ensure they sum to 1
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    num_nodes = distance_matrix.shape[0]
+    vehicle_capacity = demands.sum()
+
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the cumulative demand from the depot to each customer
+    cumulative_demand = torch.cumsum(demands[1:], dim=0)[1:]
+
+    # Calculate the total distance if a vehicle starts at the depot, visits all customers, and returns to the depot
+    total_distance = distance_matrix[0, 1:].sum() + distance_matrix[1:, 0].sum() + (num_nodes - 2) * vehicle_capacity
+
+    # Compute the heuristic values for the edges from the depot to customers
+    heuristics[0, 1:] = total_distance - distance_matrix[0, 1:] - cumulative_demand
+
+    # Compute the heuristic values for the edges from customers to the depot
+    heuristics[1:, 0] = distance_matrix[1:, 0] - cumulative_demand
+
+    # Compute the heuristic values for the edges between customers
+    heuristics[1:, 1:] = heuristics[1:, 0] - distance_matrix[1:, 1:]
+
+    # Normalize the heuristics to be between 0 and 1
+    heuristics = heuristics / heuristics.max()
+
+    return heuristics
+```

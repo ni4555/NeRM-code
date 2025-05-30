@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize a matrix of zeros with the same shape as the distance matrix
+    edge_potential = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Use a combination of heuristic approaches:
+    # 1. Shortest distance heuristic (lower potential for longer distances)
+    # 2. Higher demand heuristic (higher potential for nodes with higher demand)
+    # 3. Diversity heuristic (penalize similar nodes based on demand similarity)
+    
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    demand_diff = max_demand - min_demand
+    
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    
+    # Shortest distance heuristic
+    distance_term = normalized_demands * (1 / (distance_matrix + epsilon))
+    
+    # Diversity heuristic
+    demand_similarity = (torch.abs(normalized_demands - min_demand) / demand_diff)
+    diversity_term = -torch.sum(demand_similarity ** 2, dim=1, keepdim=True)
+    
+    # Combine the heuristics
+    edge_potential = distance_term + diversity_term
+    
+    # Normalize potential to maintain a balanced impact of each term
+    edge_potential = (edge_potential - edge_potential.min()) / (edge_potential.max() - edge_potential.min())
+    
+    # Clamp the potential to a reasonable range to avoid too much dominance of one heuristic
+    edge_potential = torch.clamp(edge_potential, min=-1.0, max=1.0)
+    
+    return edge_potential
+```

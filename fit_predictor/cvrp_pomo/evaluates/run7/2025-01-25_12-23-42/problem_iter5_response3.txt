@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Calculate the heuristics by combining the normalized distance and the load factor
+    # Incorporate a penalty for high node loads and a bonus for low node loads
+    heuristics = norm_distances - node_loads * norm_distances.sum(-1)
+    
+    # Add a bonus for edges that lead back to the depot, as it can potentially reduce travel distance
+    heuristics[range(1, len(demands)), 0] += norm_distances[range(1, len(demands)), 0]
+    heuristics[0, range(1, len(demands))] += norm_distances[0, range(1, len(demands))]
+    
+    # Further optimize by penalizing edges that lead to heavily loaded nodes, encouraging the use of less loaded nodes
+    heuristics = heuristics - demands.unsqueeze(0) * norm_distances.sum(-1)
+    
+    return heuristics
+```

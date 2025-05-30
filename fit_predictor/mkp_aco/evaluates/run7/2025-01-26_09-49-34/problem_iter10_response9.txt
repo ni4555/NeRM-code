@@ -1,0 +1,44 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the ratio of prize to total weight per item
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Normalize the ratio to ensure all values are positive
+    ratio = np.clip(ratio, 0, None)
+    
+    # Calculate the sparsity factor based on the number of zero weights
+    sparsity_factor = np.sum(weight == 0, axis=1) / weight.shape[1]
+    
+    # Normalize the sparsity factor to account for average sparsity
+    average_sparsity = np.mean(sparsity_factor)
+    normalized_sparsity = (sparsity_factor - average_sparsity) / (1 - average_sparsity)
+    
+    # Incorporate variance considerations by penalizing items with high weight variance
+    weight_variance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)
+    variance_penalty = 1 / (1 + weight_variance)
+    
+    # Combine the ratio, normalized sparsity, and variance penalty
+    heuristics = ratio * normalized_sparsity * variance_penalty
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Introduce a mutation step to enhance diversity
+    mutation_factor = 0.1
+    mutation = np.random.normal(0, mutation_factor, size=heuristics.shape)
+    heuristics += mutation
+    
+    # Ensure that heuristics do not go negative due to mutation
+    heuristics = np.clip(heuristics, 0, None)
+    
+    # Apply a dynamic sparsification threshold, setting elements below the threshold to zero
+    min_average_weight = np.min(weight, axis=1)
+    sparsity_threshold = np.mean(min_average_weight) * (1 - average_sparsity)
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    return heuristics
+```

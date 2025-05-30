@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Normalize the ratios to sum to 1
+    normalized_ratio = value_to_weight_ratio / np.sum(value_to_weight_ratio)
+    # Dynamic threshold based on the normalized ratio
+    sorted_ratio_indices = np.argsort(normalized_ratio)[::-1]
+    cumulative_prob = np.cumsum(normalized_ratio[sorted_ratio_indices])
+    threshold = cumulative_prob[-1] * (1 / len(normalized_ratio))
+    # Sparsify the heuristics based on the threshold
+    heuristics = np.zeros_like(normalized_ratio)
+    heuristics[sorted_ratio_indices[np.searchsorted(cumulative_prob, threshold, side='right')]] = 1
+    return heuristics
+```

@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    capacity = demands.max()
+    
+    # Calculate the savings for each edge
+    savings = (distance_matrix**2 - torch.clamp(distance_matrix, min=1e-8)) * (demands[:, None] - demands[None, :])
+    
+    # Calculate the cumulative demand at each node if visited
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Create a mask to check if adding a node exceeds the vehicle capacity
+    demand_mask = cumulative_demand <= capacity
+    
+    # Smoothly penalize edges that exceed the vehicle capacity using a linear penalty
+    penalties = torch.where(demand_mask, torch.zeros_like(savings), (1 + distance_matrix) * (demands[:, None] - capacity))
+    
+    # Adjust the savings heuristic to consider demand
+    adjusted_savings = savings * demand_mask
+    
+    # Combine the savings and penalties to create a heuristic
+    heuristic = adjusted_savings - penalties
+    
+    # Normalize the heuristic to ensure the range is within [0, 1]
+    min_heuristic = heuristic.min()
+    max_heuristic = heuristic.max()
+    normalized_heuristic = (heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    return normalized_heuristic
+```

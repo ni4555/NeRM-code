@@ -1,0 +1,25 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+
+    # Create a matrix where the negative values indicate penalties for infeasibility
+    penalty_matrix = torch.clamp(-torch.cumsum(demands, dim=0) / vehicle_capacity, min=float('-inf'))
+
+    # Normalize distances to create a preference for closer nodes
+    normalized_distances = distance_matrix / (distance_matrix + 1)
+
+    # Calculate the heuristic matrix as a weighted sum of normalized distances and penalty matrix
+    # Higher weights are given to the normalized distances
+    weight_normalized_distances = 0.5
+    weight_penalty = 0.5
+    heuristics_matrix = (normalized_distances * weight_normalized_distances +
+                         penalty_matrix * weight_penalty)
+
+    # Apply a non-linear transformation to the heuristic values to amplify the effect of good and bad edges
+    heuristics_matrix = F.relu(heuristics_matrix)
+
+    return heuristics_matrix
+```

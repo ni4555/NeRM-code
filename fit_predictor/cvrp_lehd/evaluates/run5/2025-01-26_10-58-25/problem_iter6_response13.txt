@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand sum
+    total_demand = demands.sum()
+
+    # Calculate the minimum distance from the depot to each customer
+    min_distance_to_customer = torch.min(distance_matrix[0, 1:], dim=0).values
+
+    # Calculate the minimum distance from each customer to the depot
+    min_distance_from_customer = torch.min(distance_matrix[1:, 0], dim=0).values
+
+    # Calculate the heuristic values for the edges from the depot to customers
+    heuristics[0, 1:] = total_demand - min_distance_to_customer
+
+    # Calculate the heuristic values for the edges from customers to the depot
+    heuristics[1:, 0] = total_demand - min_distance_from_customer
+
+    # Calculate the heuristic values for the edges between customers
+    heuristics[1:, 1:] = heuristics[1:, 0] - distance_matrix[1:, 1:]
+
+    # Normalize the heuristics matrix to ensure the sum of each row is 1
+    norm_factor = torch.sum(heuristics, dim=1, keepdim=True)
+    heuristics = heuristics / norm_factor
+
+    # To encourage visiting all customers, add a penalty for not visiting each customer
+    not_visited_penalty = -demands
+    heuristics += not_visited_penalty
+
+    # Incorporate capacity constraints with a penalty for exceeding capacity
+    capacity_penalty = 10  # Hyperparameter for the penalty
+    penalty_matrix = torch.clamp(capacity_penalty * (demands > 1.0), max=0)
+    heuristics += penalty_matrix
+
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    # This will result in negative values for undesirable edges and positive values for promising ones
+    heuristics = 1 - heuristics
+
+    return heuristics
+```

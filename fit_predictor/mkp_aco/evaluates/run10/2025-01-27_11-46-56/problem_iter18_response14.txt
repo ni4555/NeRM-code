@@ -1,0 +1,21 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    diversity_factor = np.exp(-utility)
+    exploration_factor = np.random.normal(0, 0.1, size=utility.shape)
+    exploitation_factor = utility / utility.sum(axis=1, keepdims=True)
+    heuristics = utility * diversity_factor * exploitation_factor * exploration_factor
+    
+    # Adjusting the diversity by penalizing low utility items more
+    low_utility_penalty = np.where(utility < 0.1, utility / utility.max(), 1)
+    adjusted_diversity = low_utility_penalty * diversity_factor
+    
+    # Refined normalization to ensure the heuristics sum to 1 across each knapsack
+    normalized_heuristics = adjusted_diversity / adjusted_diversity.sum(axis=1, keepdims=True)
+    
+    return normalized_heuristics.sum(axis=1)
+```

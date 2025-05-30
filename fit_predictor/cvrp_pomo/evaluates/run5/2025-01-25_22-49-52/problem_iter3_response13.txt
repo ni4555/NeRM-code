@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge
+    # This version uses a more sophisticated function that incorporates node partitioning
+    # and adaptive weights based on demand distribution.
+    potential_values = torch.where(
+        normalized_demands < 0.5,
+        normalized_distances * (1 - normalized_demands),
+        normalized_distances * (1 + normalized_demands)
+    )
+    
+    # Apply demand relaxation to balance the load more evenly across vehicles
+    demand_relaxed = torch.clamp(normalized_demands, min=0.1, max=0.9)
+    
+    # Adjust the potential values based on the relaxed demands
+    potential_values *= demand_relaxed
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

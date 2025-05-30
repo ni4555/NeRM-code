@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    distances_from_depot = distance_matrix[0, 1:]  # Distance from depot to customers
+    distances_to_customers = distance_matrix[1:, 0]  # Distance from customers to depot
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Heuristic: Use demand and distance, with a bias towards higher demand nodes
+    heuristic_values = torch.abs(demand_diff) * distances_from_depot * distances_to_customers + \
+                        100 * demands[1:] * (1 - demand_diff)
+    
+    # Incorporate penalties for edges that exceed the average demand difference
+    penalty_exceed_demand = 1 + demand_diff[1:]
+    
+    # Minimize the number of high-penalty edges, which correspond to demand infeasibility
+    infeasibility_penalty = -1000 * penalty_exceed_demand
+    
+    # Use sparsity to optimize, ignore diagonal edges (0, 0) as they are not useful for heuristic values
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    heuristic_matrix[0, 1:] = heuristic_values + infeasibility_penalty
+    heuristic_matrix[1:, 0] = heuristic_values + infeasibility_penalty
+    
+    # Adjust the depot's role in the heuristic value
+    depot_role = (torch.abs(average_demand) * (distances_from_depot + distances_to_customers)).unsqueeze(1)
+    heuristic_matrix[0, 0] = depot_role.sum().neg()  # Negative to prioritize visiting the depot
+    
+    return heuristic_matrix
+```

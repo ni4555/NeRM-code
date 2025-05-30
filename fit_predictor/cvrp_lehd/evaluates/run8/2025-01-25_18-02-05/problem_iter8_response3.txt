@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize demands and distance matrix
+    normalized_demands = demands / demands.sum()
+    normalized_distance_matrix = distance_matrix / distance_matrix.sum(dim=0, keepdim=True)
+    
+    # Calculate the cumulative sum of the normalized demands and distances
+    cumulative_normalized_demands = torch.cumsum(normalized_demands, dim=0)
+    
+    # Invert cumulative distances to prioritize shorter paths
+    with torch.no_grad():
+        inverted_cumulative_distances = torch.where(cumulative_normalized_distances == 0, torch.tensor(1.0e-8), 1 / cumulative_normalized_distances)
+    
+    # Apply a non-linear transformation to emphasize larger differences
+    heuristic_matrix = torch.log(cumulative_normalized_demands / inverted_cumulative_distances)
+    
+    # Differentiate the cumulative demand to create urgency scores for later decisions
+    urgency_scores = torch.diff(cumulative_normalized_demands)
+    
+    # Apply a weight to urgency scores to balance their importance
+    weight = 0.1  # This can be adjusted for sensitivity
+    weighted_urgency_scores = urgency_scores * weight
+    
+    # Add the weighted urgency scores to the heuristic matrix
+    heuristic_matrix += weighted_urgency_scores
+    
+    # Apply a threshold to filter out the edges that are below a certain ratio
+    threshold = torch.max(heuristic_matrix)
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, -threshold, heuristic_matrix)
+    
+    # Clip the values to ensure they are within the range of [-1, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

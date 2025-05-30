@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    normalized_demands = demands / total_demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    
+    # Use vectorized operations to compute the heuristic matrix
+    # Demand-based weights: higher demand means a more negative value, encouraging the route to prioritize this node
+    # Distance-based penalties: lower distance means a more positive value, encouraging the route to include this node
+    heuristic_matrix = -normalized_demands * inv_distance_matrix
+    
+    # Normalize the heuristic values to ensure they are within a reasonable range
+    heuristic_matrix = heuristic_matrix / (torch.abs(heuristic_matrix).max() + 1e-8)
+    
+    return heuristic_matrix
+```

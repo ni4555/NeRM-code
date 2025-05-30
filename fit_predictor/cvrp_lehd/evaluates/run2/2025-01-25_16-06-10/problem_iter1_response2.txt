@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the sum of demands from the depot to each customer
+    depot_to_customers_demand = demands - demands[0]
+    # Calculate the sum of demands from each customer to the depot
+    customers_to_depot_demand = demands - demands[0]
+
+    # Calculate the potential gain from visiting each customer
+    potential_gain = distance_matrix[:, 1:] * (depot_to_customers_demand[1:] + customers_to_depot_demand[:-1])
+    # Calculate the potential cost from visiting each customer
+    potential_cost = distance_matrix[1:, :] * (depot_to_customers_demand[1:] + customers_to_depot_demand[:-1])
+
+    # The heuristic value is the difference between potential gain and potential cost
+    heuristic_values = potential_gain - potential_cost
+
+    # Normalize the heuristic values to ensure they are in the desired range
+    min_val = heuristic_values.min()
+    max_val = heuristic_values.max()
+    normalized_values = (heuristic_values - min_val) / (max_val - min_val)
+
+    # Ensure that edges with negative values are discouraged
+    heuristic_values = torch.where(normalized_values < 0, torch.zeros_like(normalized_values), normalized_values)
+
+    return heuristic_values
+```

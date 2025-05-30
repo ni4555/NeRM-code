@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_per_weight = prize / np.sum(weight, axis=1)
+    diversity_factor = np.sum(weight, axis=1) / (np.linalg.norm(weight, axis=1) + 1e-8)
+    normalized_prize = prize / np.sum(prize)
+    sparsity = 1 / (np.linalg.norm(weight, axis=1) + 1e-8)
+    heuristics = (value_per_weight * diversity_factor * normalized_prize * sparsity)
+    # Adjusting for the importance of each factor
+    weight_importance = np.array([0.5, 0.2, 0.2, 0.1])  # Example weights for each factor
+    heuristics *= weight_importance
+    # Applying a dampening factor to reduce the impact of very high values
+    dampening_factor = np.exp(-0.1 * np.abs(heuristics))
+    heuristics *= dampening_factor
+    sparsity_threshold = 0.1
+    heuristics[heuristics < sparsity_threshold] = 0
+    heuristics = heuristics / np.max(heuristics)
+    return heuristics
+```

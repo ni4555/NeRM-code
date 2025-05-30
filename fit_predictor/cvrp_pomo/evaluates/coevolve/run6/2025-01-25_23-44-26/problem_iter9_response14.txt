@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the demand heuristic and penalize high demand edges
+    demand_heuristic = -torch.abs(normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0))
+    
+    # Normalize distances and use them as a heuristic
+    distance_heuristic = torch.log(distance_matrix + 1e-6) / torch.log(torch.sum(distance_matrix + 1e-6))
+    
+    # Introduce a non-linear load balancing factor considering the difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).pow(2)
+    
+    # Simulate dynamic routing factors considering real-time data
+    time_of_day = torch.rand(distance_matrix.shape[0]) * 24
+    traffic_factor = torch.rand(distance_matrix.shape[0]) * 2 - 1
+    dynamic_time_factor = 1 / (1 + time_of_day.unsqueeze(1) * time_of_day.unsqueeze(0) + traffic_factor**2)
+    
+    # Combine the above heuristics using different weights
+    weights = torch.tensor([0.5, 0.3, 0.2, 0.0]).unsqueeze(0)  # Example weights
+    combined_heuristic = (weights[0] * demand_heuristic +
+                          weights[1] * distance_heuristic +
+                          weights[2] * load_balance +
+                          weights[3] * dynamic_time_factor)
+    
+    # Randomly shuffle the indices to introduce diversity in the heuristic
+    indices = torch.randperm(distance_matrix.shape[0])
+    shuffled_indices = combined_heuristic[indices]
+    diversity_heuristic = combined_heuristic.clone()
+    diversity_heuristic[indices] = shuffled_indices
+    
+    return diversity_heuristic
+```

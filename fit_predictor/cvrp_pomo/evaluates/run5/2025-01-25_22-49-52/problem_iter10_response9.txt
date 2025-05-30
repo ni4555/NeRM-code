@@ -1,0 +1,71 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a proximity-based demand weight
+    demand_weight = 1.5
+    penalty_threshold = 0.8
+    average_demand = normalized_demands.mean()
+    
+    # Calculate a weight for each node's demand based on its distance to the depot
+    distance_to_depot = torch.sqrt(torch.sum(distance_matrix**2, dim=1))
+    demand_weights = demand_weight * (1 - distance_to_depot / (distance_to_depot.max().item()))
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                normalized_demands - average_demand, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Combine potential values with dynamic demand weights and penalty term
+    potential_values = (normalized_distances + 
+                        demand_weights * normalized_demands - 
+                        penalty_term).abs()
+    
+    # Integrate multiple relaxation strategies
+    relaxation_factor = 0.3
+    relaxed_demands = torch.clamp(normalized_demands * (1 - relaxation_factor), min=0)
+    
+    # Adjust potential values for edges with high total demand
+    for i in range(n):
+        # Calculate the total demand of the neighbors
+        neighbor_demand = demands[distance_matrix[i, :] < max_distance]
+        if len(neighbor_demand) > 0:
+            total_neighbor_demand = neighbor_demand.sum()
+            # Adjust potential values to favor lower total demand
+            potential_values[i, distance_matrix[i, :] < max_distance] -= (total_neighbor_demand / max_demand) / (len(neighbor_demand) + 1)
+    
+    # Introduce a dynamic weight adjustment to prioritize high-capacity nodes
+    # and to ensure that the vehicle capacities are not violated
+    capacity = 1.0
+    for i in range(1, n):
+        for j in range(1, n):
+            if relaxed_demands[i] + demands[j] <= capacity:
+                potential_values[i, j] *= (1 + relaxed_demands[i] * demands[j])
+    
+    # Dynamic penalty terms based on the total distance of the current route
+    total_distance = torch.sum(torch.sqrt(torch.sum(distance_matrix**2, dim=1)))
+    penalty_factor = 0.1
+    penalty_term = penalty_factor * total_distance / (n * max_distance)
+    
+    # Apply penalty to edges that would exceed vehicle capacity
+    for i in range(1, n):
+        for j in range(1, n):
+            if relaxed_demands[i] + demands[j] > capacity:
+                potential_values[i, j] -= penalty_term
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

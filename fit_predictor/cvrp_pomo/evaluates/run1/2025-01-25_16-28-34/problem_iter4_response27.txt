@@ -1,0 +1,75 @@
+```python
+import torch
+
+def refine_neighborhood(heuristics: torch.Tensor, distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands = demands / total_capacity
+    
+    # Calculate the load factor for each edge
+    load_factor = demands[:, None] + demands[None, :] * distance_matrix
+    
+    # Iterate over all pairs of edges
+    for i in range(n):
+        for j in range(i + 1, n):
+            # Check if swapping will not violate capacity constraints
+            if load_factor[i, j] > 1 and load_factor[j, i] > 1:
+                # Calculate the difference in load factor before and after swap
+                load_diff_i = demands[i] - demands[j]
+                load_diff_j = demands[j] - demands[i]
+                
+                # Swap if it does not exceed capacity
+                if (load_factor[i, j] - load_diff_i) <= 1 and (load_factor[j, i] - load_diff_j) <= 1:
+                    demands[i] = demands[j]
+                    demands[j] = 0
+                    distance_matrix[i, j], distance_matrix[j, i] = distance_matrix[j, i], distance_matrix[i, j]
+                    load_factor[i, j], load_factor[j, i] = load_factor[j, i], load_factor[i, j]
+                    heuristics[i, j], heuristics[j, i] = heuristics[j, i], heuristics[i, j]
+    
+    return heuristics
+
+def update_velocity(heuristics: torch.Tensor) -> torch.Tensor:
+    # Placeholder for PSO-inspired velocity update logic
+    # This function should be implemented to dynamically adjust the velocity
+    # and position update rules in PSO to enhance exploration.
+    return heuristics
+
+def tabu_search(heuristics: torch.Tensor, distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    tabu_list = set()
+    
+    for i in range(n):
+        for j in range(i + 1, n):
+            if (i, j) not in tabu_list and (j, i) not in tabu_list:
+                # Update heuristics to avoid previously suboptimal solutions
+                heuristics[i, j] *= 0.95
+                heuristics[j, i] *= 0.95
+                tabu_list.add((i, j))
+    
+    return heuristics
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands = demands / total_capacity
+    
+    heuristics = torch.zeros_like(distance_matrix)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    # Refine neighborhood exploration
+    heuristics = refine_neighborhood(heuristics, distance_matrix, demands)
+    
+    # Update heuristics using PSO-inspired velocity adjustments
+    heuristics = update_velocity(heuristics)
+    
+    # Apply tabu search to promote efficient navigation
+    heuristics = tabu_search(heuristics, distance_matrix, demands)
+    
+    # Adjust the heuristics to ensure they are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = 0
+    
+    return heuristics
+```

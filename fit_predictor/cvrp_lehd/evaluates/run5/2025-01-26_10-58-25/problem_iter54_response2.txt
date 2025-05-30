@@ -1,0 +1,35 @@
+```python
+import torch
+from torch.nn.functional import softmax, log_softmax
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Emphasize high penalties using logarithmic transformations
+    emphasized_matrix = log_softmax(potential_matrix, dim=1)
+    
+    # Apply normalization to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = softmax(emphasized_matrix, dim=1)
+    
+    # Introduce a balancing factor for variable penalties
+    balancing_factor = torch.max(torch.abs(penalty_matrix), torch.abs(distance_penalty_matrix))
+    balanced_normalized_matrix = normalized_emphasized_matrix / (balancing_factor + 1e-6)
+    
+    # Scale the balanced matrix with the distance penalties
+    scaled_balanced_matrix = balanced_normalized_matrix * distance_penalty_matrix
+    
+    # Use soft thresholding for a dynamic balance between penalties
+    soft_threshold = torch.max(torch.abs(penalty_matrix), torch.abs(distance_penalty_matrix))
+    heuristics_matrix = -torch.clamp(scaled_balanced_matrix, min=1e-6, max=soft_threshold)
+    
+    return heuristics_matrix
+```

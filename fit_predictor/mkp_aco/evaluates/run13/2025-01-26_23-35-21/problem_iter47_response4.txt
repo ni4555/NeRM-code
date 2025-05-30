@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize values to consider a uniform scale
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the density, taking into account the weight and the prize
+    density = normalized_prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate a diversity factor based on the variation in density
+    diversity_factor = density / np.max(density + 1e-8)
+    
+    # Include the sparsity as a metric to encourage selection of less dense items
+    sparsity = 1 - density
+    
+    # Combine density and sparsity using a weighted sum
+    combined_metric = 0.5 * density + 0.5 * sparsity
+    
+    # Introduce randomness to promote diversity
+    random_factor = np.random.rand(len(prize))
+    
+    # Prune dominated solutions by setting high sparsity and low density to zero
+    combined_metric[combined_metric < np.min(combined_metric) / 2] = 0
+    
+    # Normalize the heuristic by adding a random factor for exploration
+    heuristic = (combined_metric + random_factor) / np.sum(combined_metric + random_factor + 1e-8)
+    
+    return heuristic
+```

@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Integrate weighted demand and distance with non-linear penalties
+    decay_factor = 0.95
+    distance_weighted = torch.mul(distance_matrix, (1 - decay_factor)**torch.arange(distance_matrix.size(0)))
+
+    # Calculate cumulative demand to penalize large variations in customer demand
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+
+    # Incorporate cumulative demand and capacity
+    demand_over_capacity = torch.clamp(cumulative_demand - total_capacity, min=0)
+
+    # Apply a global network penalty for high cumulative demand
+    global_penalty = 0.5 * torch.mean(demand_over_capacity)
+
+    # Combine the weighted demand, distance, and global penalty
+    heuristic_matrix = torch.mul(normalized_demands, distance_weighted) + global_penalty
+
+    # Normalize and smooth the heuristic matrix
+    max_heuristic = heuristic_matrix.max()
+    min_heuristic = heuristic_matrix.min()
+    heuristic_range = max_heuristic - min_heuristic
+    normalized_heuristic_matrix = (heuristic_matrix - min_heuristic) / heuristic_range
+
+    # Penalize outliers
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    outlier_penalty = torch.clamp(torch.abs(normalized_heuristic_matrix - 0.5), min=0) * threshold
+
+    # Adjust heuristics for stability
+    adjusted_heuristic_matrix = normalized_heuristic_matrix - outlier_penalty
+
+    # Enforce limits for heuristic stability
+    adjusted_heuristic_matrix = torch.clamp(adjusted_heuristic_matrix, min=-threshold, max=threshold)
+
+    return adjusted_heuristic_matrix
+```

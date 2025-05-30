@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Weights for the different components of the heuristic
+    demand_weight = 0.5
+    distance_weight = 0.3
+    outlier_penalty_weight = 0.2
+
+    # Calculate the heuristic based on demand and distance
+    heuristic_matrix = torch.mul(normalized_demands, distance_matrix)
+
+    # Calculate penalty for high demand and outliers using standard deviation
+    std_demand = demands.std()
+    high_demand_penalty = torch.where(demands > 2 * std_demand, torch.tensor(1.0, dtype=distance_matrix.dtype), torch.tensor(0.0, dtype=distance_matrix.dtype))
+    outlier_penalty = torch.where(demands > demands.mean() + std_demand, torch.tensor(1.0, dtype=distance_matrix.dtype), torch.tensor(0.0, dtype=distance_matrix.dtype))
+
+    # Incorporate the penalties into the heuristic
+    heuristic_matrix = torch.mul(heuristic_matrix, outlier_penalty)
+    heuristic_matrix = torch.mul(heuristic_matrix, torch.add(1 - high_demand_penalty, outlier_penalty))
+
+    # Apply the weights to balance demand and distance
+    weighted_heuristic = demand_weight * (1 - outlier_penalty) + distance_weight
+
+    # Normalize the heuristic to ensure all values are within a specific range
+    heuristic_matrix = torch.div(heuristic_matrix, weighted_heuristic)
+
+    # Threshold to ensure all heuristics are within a specific range
+    min_threshold = torch.tensor(-0.1, dtype=distance_matrix.dtype)
+    max_threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+
+    # Apply the threshold to maintain heuristic range
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=min_threshold, max=max_threshold)
+
+    return heuristic_matrix
+```

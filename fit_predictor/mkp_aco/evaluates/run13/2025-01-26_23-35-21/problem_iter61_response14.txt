@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize the prize to ensure consistency
+    prize_normalized = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+
+    # Normalize the weights to ensure consistency
+    weight_normalized = (weight - np.min(weight, axis=1, keepdims=True)) / (np.max(weight, axis=1, keepdims=True) - np.min(weight, axis=1, keepdims=True))
+
+    # Calculate the density of the items considering their normalized prize
+    density = prize_normalized / (np.sum(weight_normalized, axis=1) + 1e-8)
+
+    # Calculate the sparsity of the items
+    sparsity = np.sum(weight_normalized, axis=1) / np.sum(weight, axis=1)
+
+    # Introduce a randomness factor based on the normalized weight
+    randomness_factor = np.random.rand(len(prize))
+
+    # Create a heuristic based on density, sparsity, and randomness
+    heuristic = density * (1 - sparsity) + randomness_factor
+
+    # Introduce a balance factor to ensure a trade-off between density and sparsity
+    balance_factor = 0.5 * (density + (1 - density))
+
+    # Prune dominated items (those with lower prize compared to others with the same weight or less)
+    non_dominated_indices = np.argsort(prize_normalized)[::-1]
+    dominated_indices = np.setdiff1d(range(len(prize)), non_dominated_indices)
+    heuristic[dominated_indices] = 0
+
+    # Combine the balance factor with the heuristic to create the final heuristic value
+    combined_heuristic = balance_factor * heuristic
+
+    # Normalize the combined heuristic to ensure it's within a specific range
+    normalized_combined_heuristic = combined_heuristic / (np.max(combined_heuristic) + 1e-8)
+
+    return normalized_combined_heuristic
+```

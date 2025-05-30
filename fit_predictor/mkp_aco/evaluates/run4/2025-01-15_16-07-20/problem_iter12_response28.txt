@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize vector to sum to 1 for fair comparison
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the total density
+    total_density = np.sum(normalized_prize)
+    
+    # Normalize each item's density
+    item_density = normalized_prize / total_density
+    
+    # Normalize the weight for each item across all dimensions to reduce the influence of heavier items
+    normalized_weight = weight / np.sum(weight, axis=1, keepdims=True)
+    
+    # Calculate the balance across dimensions by the average of the squared normalized weights
+    balance = np.sum(normalized_weight**2, axis=1) / np.sum(normalized_weight, axis=1)**2
+    
+    # Introduce a penalty for high average weight, discouraging overuse of any dimension
+    penalty = 1 / (1 + np.mean(normalized_weight, axis=1))
+    
+    # Combine all the factors to calculate the heuristic score
+    heuristic_score = (item_density + balance - penalty) * total_density
+    
+    # Normalize the heuristic scores
+    max_score = np.max(heuristic_score)
+    heuristic_score = heuristic_score / max_score
+    
+    # Apply a sparsity filter: if an item's balance is high and density is not too high, consider it
+    sparsity_filter = (balance > 0.5) & (item_density < 0.75)
+    
+    # Adjust the heuristic scores according to the sparsity filter
+    heuristic_score[~sparsity_filter] = 0.0
+    
+    return heuristic_score
+```

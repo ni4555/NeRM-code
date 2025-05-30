@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Introduce a diversity factor to balance the heuristic between edges
+    diversity_factor = torch.where(torch.eye(distance_matrix.shape[0]) == 1, torch.ones_like(torch.eye(distance_matrix.shape[0])), torch.zeros_like(torch.eye(distance_matrix.shape[0])))
+    diversity_heuristic = diversity_factor / torch.sqrt(torch.sum(diversity_factor))
+    
+    # Dynamic routing by incorporating a recent changes factor
+    recent_changes_factor = torch.rand(distance_matrix.shape[0])
+    recent_changes_heuristic = recent_changes_factor.unsqueeze(1) * recent_changes_factor.unsqueeze(0)
+    
+    # Dynamic load balancing factor that changes with time and recent changes
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    dynamic_load_balance = load_balance * (recent_changes_heuristic + torch.exp(-torch.arange(len(recent_changes_factor)) * 0.1))
+    
+    # Incorporate dynamic time factor
+    time_constant = torch.rand(distance_matrix.shape[0])
+    dynamic_time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0))) * torch.exp(-torch.arange(len(recent_changes_factor)) * 0.1)
+    
+    # Combine all heuristics
+    combined_heuristic = demand_penalty + distance_heuristic + diversity_heuristic + dynamic_load_balance + dynamic_time_heuristic
+    
+    return combined_heuristic
+```

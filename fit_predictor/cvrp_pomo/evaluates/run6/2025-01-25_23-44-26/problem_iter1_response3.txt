@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the demand penalty matrix
+    demand_penalty = -torch.abs(normalized_demands.unsqueeze(1) - normalized_demands.unsqueeze(0))
+    
+    # Calculate the distance penalty matrix, where higher distances are penalized
+    distance_penalty = 1 / (distance_matrix + 1e-6)
+    
+    # Calculate the cumulative sum of demands in descending order for each row
+    # This helps in prioritizing routes with higher demand earlier
+    cum_demand = torch.cumsum(normalized_demands, dim=1)
+    cum_demand = cum_demand[:,::-1]  # Reverse to prioritize higher demand at the start
+    
+    # Calculate the final heuristic by combining penalties and cumulative demand
+    # This heuristic gives more weight to high-demand nodes and shorter distances
+    combined_heuristic = demand_penalty + distance_penalty * cum_demand
+    
+    return combined_heuristic
+```

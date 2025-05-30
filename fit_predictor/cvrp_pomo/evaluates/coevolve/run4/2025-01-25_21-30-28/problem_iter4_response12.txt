@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: adaptively adjust the search space based on performance
+    heuristic_range = torch.abs(distance_matrix) / torch.sum(torch.abs(distance_matrix), dim=0)
+
+    # Load balancing strategy: adjust heuristic values based on remaining capacity
+    remaining_capacity = torch.ones_like(demands)
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                demand_sum = remaining_capacity[i] * (demands[j] / total_capacity)
+                if demand_sum > 1:
+                    heuristic_range[i, j] *= demand_sum
+
+    # Emphasize capacity constraints by reducing the weight of edges that would lead to overcapacity
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                if remaining_capacity[i] * (demands[j] / total_capacity) > 1:
+                    heuristic_range[i, j] *= 0.5
+
+    # Prioritize capacity constraints by introducing a new heuristic that adjusts for overcapacity
+    capacity_constraint = (remaining_capacity * (demands / total_capacity)).le(1.0)
+    capacity_penalty = capacity_constraint.float()
+
+    # Combine heuristics with load balancing adjustments and capacity constraint emphasis
+    combined_heuristic = inverse_distance + demand_weight * heuristic_range * capacity_penalty
+
+    return combined_heuristic
+```

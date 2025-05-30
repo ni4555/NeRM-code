@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    max_prize = np.max(prize)
+    normalized_prize = prize / max_prize
+    average_weight = np.mean(weight, axis=1)
+    sparsity_threshold = average_weight * 0.1  # 10% of the average weight for sparsity
+    # Initialize heuristics with a prize-based heuristic
+    heuristics = normalized_prize
+    # Penalize items based on their weight if they exceed the sparsity threshold
+    heuristics[average_weight > sparsity_threshold] = 0
+    # Encourage diversity by adding a factor that considers the standard deviation
+    std_dev = np.std(weight, axis=1)
+    diversity_factor = 1 / (1 + std_dev)
+    heuristics *= diversity_factor
+    # Ensure the heuristics are non-negative and normalize if necessary
+    heuristics = np.maximum(0, heuristics)
+    if np.sum(heuristics) == 0:
+        heuristics = np.ones_like(heuristics) / len(heuristics)
+    else:
+        heuristics /= np.sum(heuristics)
+    return heuristics
+```

@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Dynamic weights based on total demand
+    demand_weight = torch.max(0.1, 1 - (0.1 / (total_demand + 1e-8)))
+    distance_weight = 0.1 + (0.8 / (len(demands) + 1e-8))
+    
+    # Dynamic penalties for high demand and long distances
+    high_demand_penalty = 0.1 * (demands > 1.5).float()
+    long_distance_penalty = 0.05 * (distance_matrix > 20).float()
+    
+    # Initialize potential matrix
+    epsilon = 1e-8
+    edge_potential = -torch.inf * torch.ones_like(distance_matrix)
+    
+    # Calculate potential based on lower bound and demand
+    for i in range(1, len(demands)):
+        for j in range(1, len(demands)):
+            if distance_matrix[i, j] != 0:  # Avoid self-loops
+                lower_bound = distance_matrix[j]
+                edge_potential[i, j] = lower_bound / (distance_matrix[i, j] + epsilon)
+                edge_potential[i, j] *= (torch.pow(normalized_demands[i], demand_weight) * 
+                                          torch.pow(normalized_demands[j], demand_weight))
+    
+    # Add dynamic penalties to the potential
+    edge_potential = edge_potential + high_demand_penalty - long_distance_penalty
+    
+    # Normalize the potential matrix to ensure non-negative values
+    edge_potential = torch.clamp(edge_potential, min=0)
+    
+    return edge_potential
+```

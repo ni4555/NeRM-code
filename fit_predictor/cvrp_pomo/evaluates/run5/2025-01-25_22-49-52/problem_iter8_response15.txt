@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize the distance matrix and demands
+    max_distance = distance_matrix.max().item()
+    max_demand = demands.max().item()
+    normalized_distances = distance_matrix / max_distance
+    normalized_demands = demands / max_demand
+    
+    # Define weights for distance and demand
+    distance_weight = 0.6
+    demand_weight = 0.4
+    
+    # Calculate the weighted sum of distances and demands
+    initial_potential = distance_weight * normalized_distances + demand_weight * normalized_demands
+    
+    # Apply a non-linear transformation to the initial potential values
+    non_linear_transformation = torch.sigmoid(initial_potential)
+    
+    # Introduce a penalty for high distances and demands
+    penalty_factor = 1 / (1 + torch.exp(-10 * (normalized_distances + normalized_demands)))
+    
+    # Adjust the potential values with the penalty factor
+    adjusted_potential = non_linear_transformation * penalty_factor
+    
+    # Normalize the adjusted potential values
+    min_potential = adjusted_potential.min().item()
+    max_potential = adjusted_potential.max().item()
+    normalized_potentials = (adjusted_potential - min_potential) / (max_potential - min_potential)
+    
+    # Set the depot to 0 potential value
+    normalized_potentials[0, :] = 0
+    normalized_potentials[:, 0] = 0
+    
+    return normalized_potentials
+```

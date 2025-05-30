@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Integrate domain knowledge: Consider items with a higher ratio of prize to weight as more promising
+    ratio_factor = normalized_prize / weight.sum(axis=1)
+    
+    # Promote diversity and control variance by calculating a dynamic factor based on the standard deviation
+    std_factor = np.mean(np.std(weight, axis=1))
+    
+    # Combine factors and normalize to ensure all factors contribute equally
+    combined_factor = ratio_factor / (std_factor + 1)
+    
+    # Promote exploration and exploitation balance by using a weighted sum of factors
+    exploration_factor = np.random.rand()
+    exploitation_factor = 1 - exploration_factor
+    heuristics = exploration_factor * combined_factor + exploitation_factor * (1 / (combined_factor + 1))
+    
+    # Refine heuristics iteratively to balance exploration and exploitation
+    for _ in range(2):
+        previous_heuristics = heuristics.copy()
+        weighted_sum = heuristics * (heuristics / previous_heuristics)
+        heuristics = weighted_sum / np.sum(weighted_sum)
+    
+    # Normalize heuristics to prevent overflow and introduce sparsity
+    heuristics /= np.sum(heuristics)
+    threshold = np.mean(heuristics)
+    heuristics[heuristics < threshold] = 0
+    
+    # Sparsify the heuristics by setting a fraction of the lowest heuristics to zero
+    num_to_zero = int(len(heuristics) * 0.05)
+    heuristics[np.argsort(heuristics)[:num_to_zero]] = 0
+    
+    # Apply a feedback mechanism that adjusts heuristics based on their performance
+    performance_factor = np.mean(prize[heuristics > 0]) / np.mean(prize)
+    heuristics *= performance_factor
+    
+    return heuristics
+```

@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Apply penalties for outliers by setting a high penalty for excessive demands
+    outlier_penalty_threshold = 1.5
+    outliers_penalty = (demands > normalized_demands.max() * outlier_penalty_threshold).float() * -10
+
+    # Normalize the distance matrix to reduce the impact of longer distances
+    normalized_distance_matrix = distance_matrix / distance_matrix.mean()
+
+    # Calculate the heuristic based on demand and normalized distance, adjusted for outliers
+    demand_weight = normalized_demands + outliers_penalty
+    heuristic_matrix = -torch.mul(demand_weight, normalized_distance_matrix)
+
+    # Apply smoothing to the heuristics to prevent large fluctuations
+    smoothing_factor = torch.tensor(0.05, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.relu(heuristic_matrix + smoothing_factor)
+
+    # Enforce non-negative heuristics and a specific threshold
+    min_value = torch.tensor(0.0, dtype=distance_matrix.dtype)
+    max_value = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=min_value, max=max_value)
+
+    return heuristic_matrix
+```

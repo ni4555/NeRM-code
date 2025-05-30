@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = demands.unsqueeze(1)  # Ensure demands is a 2D tensor for broadcasting
+    
+    # Normalize the distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands / demands.sum()
+    
+    # Introduce a random perturbation to encourage exploration of different paths
+    random_perturbation = torch.randn_like(norm_distances) * 0.1
+    
+    # Combine normalized distances, load factor, and random perturbation to calculate the heuristics
+    heuristics = norm_distances - (node_loads * norm_distances).sum(-1) + random_perturbation
+    
+    return heuristics
+```

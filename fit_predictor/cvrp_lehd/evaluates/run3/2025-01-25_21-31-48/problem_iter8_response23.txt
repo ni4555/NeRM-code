@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for the CVRP that incorporates domain knowledge, prioritizes edges, balances objectives, and leverages vectorization."""
+    # Normalize the demands by the total capacity for the same scale as distances
+    normalized_demands = demands / demands.sum()
+    
+    # Use inverse distance to weight closer nodes more
+    inverse_distances = 1 / (distance_matrix + 1e-6)  # Adding a small value to avoid division by zero
+    
+    # Combine the inverse distance with normalized demands to balance distance and demand
+    combined_weight = inverse_distances * normalized_demands
+    
+    # Introduce a diversity factor to encourage selection of a wider variety of customers
+    diversity_factor = normalized_demands / normalized_demands.sum()
+    
+    # Introduce a distance decay to promote shorter paths
+    distance_decay = 1 - torch.exp(-distance_matrix)
+    
+    # Introduce a uniformity penalty to avoid overconcentration around the depot
+    uniformity_penalty = 1 / (torch.min(distance_matrix, dim=1).values + 1e-10)
+    
+    # Combine the factors to get the heuristic value
+    heuristics = combined_weight * diversity_factor * distance_decay * uniformity_penalty
+    
+    # Incorporate negative values for edges that are not desirable, depending on their weight
+    edge_weight = -torch.abs(heuristics)
+    
+    return edge_weight
+```

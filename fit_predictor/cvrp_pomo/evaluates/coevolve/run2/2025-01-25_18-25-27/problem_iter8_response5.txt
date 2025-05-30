@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True))
+    # Introduce a synergy factor that balances global and local criteria
+    synergy_factor = torch.rand(n) * 0.1  # Randomly initialized synergy factor
+    # Leverage symmetry in the distance matrix
+    sym_distance_matrix = distance_matrix + distance_matrix.T - torch.diag(distance_matrix.diag())
+    # Apply penalties for high cost deviations from the mean cost and from the sym_distance_matrix
+    high_deviation_penalty = (heuristics_matrix - heuristics_matrix.mean()) ** 2
+    sym_penalty = (heuristics_matrix - sym_distance_matrix) ** 2
+    # Combine the penalties with the heuristics matrix
+    combined_penalties = high_deviation_penalty + sym_penalty
+    # Adjust penalties based on the synergy factor
+    adjusted_penalties = combined_penalties * (synergy_factor * 0.9)
+    # Final heuristics matrix
+    final_heuristics_matrix = heuristics_matrix - adjusted_penalties
+    # Ensure non-negative values for heuristic
+    final_heuristics_matrix = final_heuristics_matrix.clamp(min=0)
+    # Penalize edges that do not meet the vehicle capacity requirements
+    final_heuristics_matrix[torch.abs(normalized_demands) > 1.0] *= -1
+    return final_heuristics_matrix
+```

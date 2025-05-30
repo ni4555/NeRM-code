@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    num_nodes = distance_matrix.shape[0]
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the demand for each edge
+    edge_demand = demands.unsqueeze(1) + demands.unsqueeze(0) - demands.unsqueeze(0).unsqueeze(1)
+    
+    # Create a mask where the demand does not exceed the total demand
+    feasible_mask = (edge_demand <= total_demand).all(dim=2)
+    
+    # Calculate the return distance based on whether the edge demand exceeds the vehicle capacity
+    return_distances = torch.where(edge_demand > total_demand, distance_matrix[:, 0], torch.zeros_like(edge_demand))
+    
+    # Calculate the heuristic values for feasible edges
+    heuristic_matrix[feasible_mask] = distance_matrix[feasible_mask] - return_distances[feasible_mask]
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray, local_optimum: np.ndarray) -> np.ndarray:
+    # Introduce a combination of heuristics:
+    # 1. A penalty for edges that are close to being in the local optimum
+    # 2. A weight based on the inverse of the distance
+    # 3. A weight that considers the minimum distance between each edge and the global minimum distance in the matrix
+
+    # Calculate the minimum distance in the matrix
+    global_min_distance = np.min(distance_matrix)
+    
+    # Calculate the minimum distance from each edge to the local optimum route
+    min_distance_to_local_opt = np.min(distance_matrix, axis=0)
+    
+    # Create a heuristic based on the distance from the local optimum
+    local_opt_heuristic = np.where(distance_matrix == min_distance_to_local_opt,
+                                   2,  # Edges in the local optimum are penalized
+                                   1)
+    
+    # Create a heuristic based on the inverse of the distance
+    inverse_distance_heuristic = 1.0 / (distance_matrix + 1e-10)
+    
+    # Create a heuristic based on the minimum distance to the global minimum
+    min_distance_heuristic = np.where(distance_matrix == global_min_distance,
+                                      0,  # Edges with the global minimum distance are favored
+                                      1.0 / (distance_matrix - global_min_distance + 1e-10))
+    
+    # Combine the heuristics with different weights
+    # Here, we balance between the heuristics using weights: 0.5 for the local optimum, 0.3 for the inverse distance, and 0.2 for the min distance heuristic
+    combined_heuristic = 0.5 * local_opt_heuristic + 0.3 * inverse_distance_heuristic + 0.2 * min_distance_heuristic
+    
+    return combined_heuristic
+```

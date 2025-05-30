@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    demand_weight = 0.75
+    distance_weight = 0.25
+
+    n = len(demands)
+    dp = torch.zeros((n, n))
+    for d in range(1, n):
+        for s in range(d):
+            dp[d, s] = torch.min(dp[s, :d-1] + distance_matrix[s, d], dp[:d, s])
+
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    epsilon = 1e-8
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+
+    demand_threshold = 2.0
+    distance_threshold = 5.0
+    max_capacity = 1.0
+    penalty_factor = 0.2
+
+    # Introduce a demand and distance threshold-based penalty
+    edge_potential = edge_potential - (edge_potential * penalty_factor * (demands > demand_threshold).float())
+    edge_potential = edge_potential + (edge_potential * penalty_factor * (distance_matrix > distance_threshold).float())
+
+    # Add an adaptive penalty for edges that exceed vehicle capacity
+    edge_potential = edge_potential - (edge_potential * (1 - (distance_matrix < max_capacity).float()))
+
+    # Ensure the matrix is symmetric to account for bidirectional travel
+    edge_potential = (edge_potential + edge_potential.t()) / 2
+
+    return edge_potential
+```

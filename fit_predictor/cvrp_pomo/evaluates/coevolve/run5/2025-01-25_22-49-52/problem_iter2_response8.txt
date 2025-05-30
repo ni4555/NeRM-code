@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Initialize the potential value matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Use a node partitioning technique to identify potential clusters
+    clusters = partition_nodes(demands)
+    
+    # Calculate the potential value for edges between clusters
+    for i in range(n):
+        for j in range(i + 1, n):
+            if i in clusters[i] and j in clusters[j]:
+                # Calculate the potential value combining distance and demand
+                potential_value = normalized_distances[i, j] - (torch.sum(normalized_demands[clusters[i]]) + torch.sum(normalized_demands[clusters[j]]))
+                potential_values[i, j] = potential_value
+                potential_values[j, i] = potential_value  # Symmetric potential value for the reverse edge
+            else:
+                potential_values[i, j] = -float('inf')
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+
+def partition_nodes(demands: torch.Tensor) -> list:
+    # A more sophisticated partitioning logic could be implemented here.
+    # For demonstration purposes, we'll use a simple partitioning based on demand thresholds.
+    thresholds = torch.quantile(demands, torch.linspace(0, 1, num=4, dtype=torch.float))
+    clusters = []
+    for i in range(4):
+        clusters.append(torch.where((demands >= thresholds[i]) & (demands < thresholds[i + 1]))[0].tolist())
+    return clusters
+```

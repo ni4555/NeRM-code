@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the variance of weights for each item across all dimensions
+    weight_variance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)
+    
+    # Calculate the inverse variance for each item
+    # Adding a small value to avoid division by zero
+    inverse_variance = 1 / (weight_variance + 1e-8)
+    
+    # Calculate the diversity factor based on the sum of normalized weights across dimensions
+    diversity_factor = np.sum(weight, axis=1)
+    
+    # Calculate the initial heuristics based on the product of normalized prize and inverse variance
+    heuristics = normalized_prize * inverse_variance
+    
+    # Adjust heuristics based on diversity, rewarding items with high diversity
+    heuristics *= (1 + np.exp(-diversity_factor))
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Apply a dynamic normalization threshold that considers both the average normalized weight
+    # and the diversity factor, setting elements above the threshold to one
+    normalization_threshold = np.mean(normalized_prize * inverse_variance)
+    heuristics[heuristics > normalization_threshold] = 1
+    
+    # Adjust heuristics based on the variance of the weights, rewarding items with low variance
+    heuristics *= (1 + np.exp(-weight_variance))
+    
+    # Incorporate weighted factors based on the normalized prize and diversity factor
+    weighted_factors = normalized_prize * diversity_factor
+    
+    # Final heuristics based on the sum of weighted factors and adjusted diversity factor
+    heuristics *= weighted_factors * (1 + np.exp(-diversity_factor))
+    
+    return heuristics
+```

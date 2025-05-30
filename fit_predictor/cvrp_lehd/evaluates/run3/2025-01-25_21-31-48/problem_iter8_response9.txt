@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, vehicle_capacity: float) -> torch.Tensor:
+    # Normalize demand to represent fraction of vehicle capacity required at each node
+    normalized_demand = demands / vehicle_capacity
+    
+    # Calculate the inverse of the distance matrix
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)
+    
+    # Incorporate a term to emphasize nodes that are close to the depot
+    distance_to_depot = torch.abs(normalized_demand - normalized_demand[0])
+    depot_emphasis = 1 / (distance_to_depot + 1e-10)
+    
+    # Combine the inverse distance with the normalized demand and depot emphasis
+    demand_weighted_distance_matrix = distance_matrix_inv * depot_emphasis
+    
+    # Create a mask to indicate edges that would cause a capacity violation
+    demand_exceeds_capacity = (normalized_demand > 1).to(torch.float)
+    
+    # Add negative penalty for undesirable edges
+    penalty = -demand_exceeds_capacity * 1  # Assuming the vehicle capacity is 1 for simplicity
+    
+    # Adjust heuristic values based on penalty
+    heuristic_values = demand_weighted_distance_matrix - penalty
+    
+    return heuristic_values
+```

@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Combine capacity and distance factors and normalize
+    capacity_factor = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+    distance_factor = distance_matrix * 0.1  # Normalize the distance factor by multiplying with a small constant
+
+    # Normalize combined factors
+    combined_factors = (capacity_factor + distance_factor) / (capacity_factor + distance_factor).max()
+
+    # Introduce diversity by adding a random noise to the combined factors
+    diversity_factor = torch.rand_like(combined_factors)
+    combined_factors += diversity_factor * 0.05
+
+    # Normalize the heuristic values to the range [0, 1] using min-max scaling
+    max_combined_factors = combined_factors.max()
+    min_combined_factors = combined_factors.min()
+    combined_factors = (combined_factors - min_combined_factors) / (max_combined_factors - min_combined_factors)
+
+    # Introduce a penalty for edges leading back to the depot (index 0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    combined_factors += depot_penalty
+
+    # Apply a non-linear transformation to the heuristic values to avoid local optima
+    combined_factors = torch.tanh(combined_factors)
+
+    # Further balancing of penalties to promote a better heuristic distribution
+    combined_factors = torch.clamp(combined_factors, min=-1.0, max=1.0)
+
+    return combined_factors
+```

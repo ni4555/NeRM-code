@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate cumulative demand for each node
+    cumulative_demand = demands.cumsum(0)
+    # Calculate the difference between cumulative demand and vehicle capacity
+    capacity = 1.0  # Assuming the vehicle capacity is 1 for normalization
+    demand_diff = (cumulative_demand - capacity).clamp(min=0)
+    # Normalize the demand difference and apply a logarithmic transformation
+    heuristic_values = -torch.log1p(torch.abs(demand_diff)) * distance_matrix
+    # Incorporate domain knowledge by penalizing longer distances more heavily
+    # Use an exponential decay function to reduce the impact of distance
+    distance_decay = torch.exp(-distance_matrix)
+    return heuristic_values * distance_decay
+```

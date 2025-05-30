@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: adapt range based on mean distance
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: adjust based on demand distribution
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Combine heuristics with proper weighting
+    combined_heuristic = inverse_distance * 0.5 + demand_weight * 0.3 + heuristic_range * 0.2
+
+    # Penality for exceeding vehicle capacity
+    capacity_penalty = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - demands))
+
+    # Adjust combined heuristic based on load balance
+    combined_heuristic = combined_heuristic * load_balance
+
+    # Adjust combined heuristic based on capacity penalty
+    combined_heuristic = combined_heuristic * capacity_penalty
+
+    # Fine-tune weights based on performance
+    performance_metric = torch.rand(n)  # Placeholder for actual performance metric
+    fine_tuning = 1.0 / (performance_metric + 1e-8)
+    combined_heuristic = combined_heuristic * fine_tuning
+
+    # Normalize and scale heuristic values
+    combined_heuristic = torch.clamp(combined_heuristic, min=-10.0, max=10.0)
+
+    return combined_heuristic
+```

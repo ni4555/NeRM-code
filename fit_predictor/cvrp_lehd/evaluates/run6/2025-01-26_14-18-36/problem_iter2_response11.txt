@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    max_demand = demands.max()
+    min_demand = demands.min()
+    
+    # Normalize demand by total capacity and add a small epsilon to avoid division by zero
+    normalized_demand = (demands - min_demand) / (max_demand - min_demand)
+    normalized_demand = torch.clamp(normalized_demand, min=1e-6)
+    
+    # Create a matrix with the same shape as distance_matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Vectorized calculations for the heuristic values
+    # Distance-based penalty: More distant edges have a higher penalty
+    distance_penalty = distance_matrix / distance_matrix.min()
+    
+    # Demand-based benefit: Higher demand nodes have a higher benefit
+    demand_benefit = normalized_demand.unsqueeze(1) * normalized_demand.unsqueeze(0)
+    
+    # Calculate the heuristic value for each edge
+    # Subtracting the penalties and adding the benefits
+    for i in range(1, n):
+        for j in range(i, n):
+            if j == depot:
+                continue
+            
+            # Potential penalty if the vehicle's capacity is exceeded
+            potential_demand = demands[i] + demands[j]
+            capacity_penalty = (potential_demand - 1) * distance_matrix[i, j] if potential_demand > 1 else 0
+            
+            # Calculate the heuristic value
+            heuristic_value = (distance_matrix[i, j] - distance_penalty[i, j] +
+                               demand_benefit[i, j] - capacity_penalty)
+            
+            # Assign the heuristic value to the corresponding position in the heuristic_matrix
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize an empty array to hold the heuristic values
+    heuristics = np.zeros_like(prize)
+
+    # Calculate the total maximum weight possible
+    total_max_weight = np.sum(weight)
+
+    # Iterate over each item
+    for i in range(weight.shape[0]):
+        # Calculate the maximum possible prize this item could contribute to the knapsack
+        item_max_prize = np.min(prize)
+
+        # Calculate the density of the item, considering the remaining capacity after considering the item
+        item_density = prize[i] / (total_max_weight - weight[i])
+
+        # Calculate the constraint balance of the item, based on the standard deviation of the weights
+        item_constraint_balance = np.std(weight) / np.std(prize)
+
+        # Calculate the sparsity of the item, which is the weight that is not used
+        item_sparsity = weight[i] - item_max_prize / item_density
+
+        # Calculate the utility of the item, considering its density, constraint balance, and sparsity
+        utility = item_density * item_constraint_balance * (1 - item_sparsity)
+
+        # Assign the calculated utility as the heuristic for this item
+        heuristics[i] = utility
+
+    # Normalize the heuristics values to sum to 1, making it a probability distribution
+    heuristics /= heuristics.sum()
+
+    return heuristics
+```

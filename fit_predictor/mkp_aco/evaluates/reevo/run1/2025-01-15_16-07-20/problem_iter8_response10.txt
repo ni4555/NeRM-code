@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize and average weight for each item
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    
+    # Calculate density based on prize and average weight
+    density = prize / (max_prize + average_weight)
+    
+    # Calculate diversity based on the sum of weights
+    diversity = 1 / np.sum(weight, axis=1)
+    
+    # Calculate the importance considering the product of density and diversity
+    importance = density * diversity
+    
+    # Apply a non-linear transformation to emphasize differences
+    transformed_importance = np.log1p(importance)
+    
+    # Adjust heuristics by combining the importance with the prize value
+    adjusted_heuristics = transformed_importance * (prize / max_prize)
+    
+    # Sparsify the heuristics by setting a significant proportion of elements to zero
+    # using a dynamic threshold based on the standard deviation of the heuristics
+    std_dev = np.std(adjusted_heuristics)
+    threshold = np.mean(adjusted_heuristics) + std_dev
+    
+    # Set less promising elements below the threshold to zero
+    heuristics = np.where(adjusted_heuristics < threshold, 0, adjusted_heuristics)
+    
+    # Normalize the heuristics to ensure the sum is close to 1
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

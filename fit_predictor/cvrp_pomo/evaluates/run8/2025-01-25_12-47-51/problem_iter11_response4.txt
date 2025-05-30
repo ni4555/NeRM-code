@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Dynamic weights based on domain-specific knowledge
+    dynamic_weight = 0.1  # Example weight for dynamic adjustment
+
+    # Normalize demand and distance
+    demand_normalized = demands / total_demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+
+    # Integrate heuristics for diversity
+    # Demand-based heuristic
+    demand_weighted_distance = demand_normalized * inv_distance_matrix
+
+    # Remaining capacity-based heuristic
+    remaining_capacity = 1 - demands
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Nearest-neighbor heuristic
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # Balance multi-criteria with penalties
+    # Add a penalty for edges that are too close to the capacity limit
+    capacity_penalty = (1 - remaining_capacity) * dynamic_weight
+    capacity_penalty[remaining_capacity < 0.5] = 0
+
+    # Prioritize demand-based edges and nearest neighbors more than capacity-based
+    priority_factor = torch.rand(n) * 2 - 1  # Random factor between -1 and 1
+
+    # Combine heuristics with improved terms
+    combined_heuristic = demand_weighted_distance * priority_factor + capacity_penalty
+
+    # Ensure that edges with insufficient capacity are penalized
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    # Add nearest-neighbor weight to promote diversity
+    combined_heuristic += nearest_neighbor * 5
+
+    return combined_heuristic
+```

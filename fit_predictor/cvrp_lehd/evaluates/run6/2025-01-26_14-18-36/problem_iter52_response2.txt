@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    dampening_factor = 0.5
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * dampening_factor
+
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * dampening_factor
+
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 30
+    heuristics += torch.clamp(distance_penalty, min=0.0) * dampening_factor
+
+    # Combine the penalties and normalize
+    combined_penalties = heuristics - capacity_penalty - depot_penalty
+    max_combined = combined_penalties.max()
+    min_combined = combined_penalties.min()
+    combined_penalties = (combined_penalties - min_combined) / (max_combined - min_combined)
+
+    # Weight the penalties and the distance factor
+    capacity_weight = 0.7
+    distance_weight = 0.3
+    heuristics = capacity_weight * combined_penalties + distance_weight * distance_penalty
+
+    # Apply a non-linear transformation to avoid local optima
+    heuristics = torch.sigmoid(heuristics)
+
+    # Ensure the heuristic values are within the range [0, 1]
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

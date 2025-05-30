@@ -1,0 +1,54 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Initialize potential values matrix
+    potential_values = torch.zeros_like(normalized_distances)
+    
+    # Node partitioning: divide the nodes into clusters
+    clusters = partition_nodes(normalized_demands)
+    
+    # Demand relaxation: relax demand constraints to simplify problem
+    relaxed_demands = torch.clamp(normalized_demands, min=0.1)
+    
+    # Path decomposition: calculate the potential value for each edge in each cluster
+    for cluster in clusters:
+        distance_weight = 0.5 * len(cluster)
+        demand_weight = 2.0 * len(cluster)
+        penalty_threshold = 0.8  # Nodes with demand greater than 0.8 times the average demand are penalized
+        average_demand = relaxed_demands[cluster].mean()
+        
+        # Create a penalty term for high demand nodes
+        penalty_term = torch.where(relaxed_demands[cluster] > penalty_threshold, 
+                                   relaxed_demands[cluster] - average_demand, 
+                                   torch.zeros_like(relaxed_demands[cluster]))
+        
+        # Combine potential values with a dampening factor for high demands
+        cluster_potential_values = (normalized_distances[cluster][:, cluster] * 
+                                    (1 - relaxed_demands[cluster]) +
+                                    distance_weight * normalized_distances[cluster][:, cluster] +
+                                    demand_weight * relaxed_demands[cluster] - 
+                                    penalty_term).abs()
+        
+        # Update the potential values matrix for the current cluster
+        potential_values[cluster][:, cluster] = cluster_potential_values
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+
+def partition_nodes(demands: torch.Tensor) -> list:
+    # This is a placeholder for the actual partitioning logic
+    # For simplicity, we will just return the list of all nodes as clusters
+    return [range(1, demands.shape[0])]
+```

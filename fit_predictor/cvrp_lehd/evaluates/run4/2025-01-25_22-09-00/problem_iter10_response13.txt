@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+
+    # Demand factor: emphasize high demand nodes
+    demand_factor = demands / demands.sum()
+
+    # Distance factor: decrease the value of longer distances
+    distance_factor = 1 / (1 + distance_matrix / torch.mean(distance_matrix))
+
+    # Local and global factors: scale distance by demand factors
+    global_factor = demand_factor.unsqueeze(1) * demand_factor.unsqueeze(0) * distance_matrix
+    local_factor = distance_factor * torch.where(demands > 0, 1 - demands / demands.max(), 1)
+
+    # Edge potential: refine potential by balancing local and global factors
+    edge_potential = local_factor + global_factor
+
+    # Normalize the potential to ensure non-negative values
+    edge_potential = edge_potential / edge_potential.sum(dim=1, keepdim=True).clamp(min=1)
+
+    # Adjust the heuristics for the depot to all other nodes
+    depot_index = 0
+    for i in range(1, n):
+        route_demand = demands[i] + (total_capacity - demands[i])
+        edge_potential[depot_index, i] = -route_demand * distance_matrix[depot_index, i]
+        edge_potential[i, depot_index] = edge_potential[depot_index, i]
+
+    return edge_potential
+```

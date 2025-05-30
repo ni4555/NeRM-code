@@ -1,0 +1,91 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    weighted_distance_matrix /= weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))  # Avoid division by zero
+    
+    # Calculate heuristic by combining weighted distance, demand, and capacity factor
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Apply a logarithmic scale to balance demand and distance
+    heuristics = torch.log1p(heuristics)
+    
+    # Normalize the heuristics to avoid dominance and ensure stability
+    max_heuristic = heuristics.max()
+    normalized_heuristics = heuristics / max_heuristic
+    
+    # Balance between distance and demand using a linear function
+    demand_balance_factor = demands / demands.sum()
+    heuristics *= demand_balance_factor
+    
+    # Apply penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += normalized_heuristics * overcapacity_penalty - undercapacity_penalty
+    
+    # Ensure that the heuristic for the depot is the highest
+    depot_cost = demands[0]
+    heuristics[0, :] += depot_cost
+    heuristics[:, 0] += depot_cost
+    
+    # Minimize loops by reducing the heuristic values of edges that form a loop
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics += loop_heuristics
+    
+    # Avoid dominance by ensuring that no edge is overly dominated by another
+    dominated_edges = heuristics.unsqueeze(1) + heuristics.unsqueeze(0) - heuristics.unsqueeze(2)
+    dominated_edges[dominated_edges > 0] = 0
+    dominated_edges = dominated_edges.view(n, n, n)
+    dominated_edges = dominated_edges.min(dim=2)[0]
+    heuristics = torch.max(heuristics, dominated_edges)
+    
+    # Apply a dampening factor to all heuristic values
+    dampening_factor = 0.95
+    heuristics *= dampening_factor
+    
+    # Apply capacity factor to emphasize capacity constraints
+    heuristics += (capacity_factor - 1) * demands
+    
+    # Emphasize the capacity factor more than the demand factor
+    capacity_emphasis_factor = 1.2
+    heuristics *= capacity_emphasis_factor
+    
+    # Adjust loop minimization to reduce its effect on stability
+    loop_minimization_factor = 0.7
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = loop_minimization_factor * loop_heuristics[loop_heuristics > 0]
+    heuristics += loop_heuristics
+    
+    # Apply penalties for overcapacity and undercapacity to strengthen them
+    heuristics += normalized_heuristics * overcapacity_penalty - undercapacity_penalty
+    
+    # Adjust loop minimization effect based on stability
+    loop_minimization_factor = 0.8
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = loop_minimization_factor * loop_heuristics[loop_heuristics > 0]
+    heuristics += loop_heuristics
+    
+    # Normalize to avoid dominance and ensure stability
+    max_heuristic = heuristics.max()
+    normalized_heuristics = heuristics / max_heuristic
+    heuristics = normalized_heuristics
+    
+    return heuristics
+```

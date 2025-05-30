@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Calculate the load balancing factor by considering the difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Use a time factor to simulate real-time rerouting capabilities
+    time_constant = torch.rand(distance_matrix.shape[0])
+    time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0)))
+    
+    # Weigh heuristics based on the problem specifics: distance should be given more importance
+    # The weights can be adjusted based on the specific characteristics of the CVRP problem
+    weight_distance = 0.7
+    weight_load_balance = 0.2
+    weight_time = 0.1
+    
+    # Combine the heuristics with the respective weights
+    combined_heuristic = weight_distance * distance_heuristic + weight_load_balance * load_balance + weight_time * time_heuristic
+    
+    # Normalize the combined heuristic values to ensure they sum to 1 for each row (edge)
+    row_sums = combined_heuristic.sum(dim=1, keepdim=True)
+    normalized_combined_heuristic = combined_heuristic / row_sums
+    
+    # Ensure the heuristic values are between 0 and 1
+    normalized_combined_heuristic = torch.clamp(normalized_combined_heuristic, min=0, max=1)
+    
+    return normalized_combined_heuristic
+```

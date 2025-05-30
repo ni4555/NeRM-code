@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the Manhattan distance for each edge considering the depot
+    # This heuristic considers the distance from the depot to each customer and back
+    manhattan_distance = torch.sum(torch.abs(torch.cat((distance_matrix[:, 0], distance_matrix[:, 1:]), 1)), dim=1)
+    
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / manhattan_distance
+    
+    # Use the negative of the demand-to-distance ratio as a heuristic
+    # Negative values indicate undesirable edges (heuristic score is lower)
+    heuristic_matrix = -demand_to_distance_ratio
+    
+    # Apply a threshold to ensure undesirable edges have negative values
+    threshold = torch.min(heuristic_matrix)
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, heuristic_matrix, 0)
+    
+    return heuristic_matrix
+```

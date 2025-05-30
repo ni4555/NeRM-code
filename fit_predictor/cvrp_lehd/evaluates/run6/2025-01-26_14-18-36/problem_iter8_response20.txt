@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    demand_variance = torch.var(demands[1:])  # Demand variance for customers
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Calculate the potential of each edge based on the product of distances and the absolute difference in demand
+    heuristic_values = -torch.abs(demand_diff) * distance_matrix
+    
+    # Incorporate a penalty for edges that are far from the depot and have high demand variance
+    depot_distance_penalty = distance_matrix.sum(dim=1) * (demand_variance * 1000)
+    high_demand_variance_penalty = (torch.abs(demand_diff) > average_demand) * (distance_matrix * 1000)
+    
+    # Combine the heuristic values, penalties, and reward for high demand variance
+    combined_heuristic_values = heuristic_values + depot_distance_penalty + high_demand_variance_penalty
+    
+    # Normalize the combined heuristic values to the range [0, 1]
+    max_heuristic = combined_heuristic_values.max()
+    min_heuristic = combined_heuristic_values.min()
+    if max_heuristic != min_heuristic:
+        combined_heuristic_values = (combined_heuristic_values - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        # Avoid division by zero
+        combined_heuristic_values = torch.ones_like(combined_heuristic_values)
+    
+    # Initialize the heuristic matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Update the heuristic matrix
+    heuristic_matrix[0, 1:] = combined_heuristic_values
+    heuristic_matrix[1:, 0] = combined_heuristic_values
+    
+    # Reward edges that lead to feasible solutions by considering the return to the depot
+    feasible_solution_reward = average_demand * torch.cat([distance_matrix[0, 1:], distance_matrix[1:, 0]], dim=0)
+    heuristic_matrix[0, 0] = feasible_solution_reward.sum()
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand)
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Calculate dominance factors
+    dominance_factors = (weighted_distance_matrix - torch.diag(weighted_distance_matrix)).min(dim=1)[0]
+    
+    # Enhance promising edges with demand and dominance factors
+    enhanced_heuristics = demands + dominance_factors
+    
+    # Integrate capacity constraint by using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Calculate heuristic by combining demand and dominance factors with the capacity factor
+    heuristics = enhanced_heuristics * capacity_factor
+    
+    # Clip negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Core penalties
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector) - 1e-8)
+    
+    # Randomness and diversity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine core penalties with a scaling factor
+    core_penalties = dynamic_capacity_penalty + distance_penalty + overflow_penalty + load_balance_penalty
+    core_penalties *= 2.5  # Scaling factor for core objectives
+    
+    # Integrate randomness and diversity
+    combined_heuristics = core_penalties + randomness_factor + diversity_factor
+    
+    # Early overflow detection and adjustment
+    early_overflow = cumulative_demand > total_capacity_vector
+    combined_heuristics *= (1 + early_overflow)
+    
+    # Cap the heuristics to maintain stability
+    combined_heuristics = torch.clamp(combined_heuristics, min=-10.0, max=10.0)
+    
+    # Subtract depot penalty
+    depot_penalty = torch.arange(n) == 0
+    combined_heuristics = combined_heuristics - depot_penalty.float().unsqueeze(0)
+    
+    return combined_heuristics
+```

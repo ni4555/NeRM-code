@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+
+    # Introduce randomness and a penalty for infeasibilities
+    penalty = torch.rand(n)
+    feasible_edges = (heuristics_matrix > 0).float()
+    random_factor = (torch.rand(n) * 2 - 1) * feasible_edges
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    heuristics_matrix += random_factor + infeasibility_penalty * (1 - feasible_edges)
+
+    # Local neighborhood exploitation: Use a simple local search heuristic that adjusts heuristics based on the capacity constraint
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                edge_influence = distance_matrix[i, j]
+                if torch.rand(1) < 0.2:  # Random walk with 20% chance of acceptance
+                    # Temporarily ignore capacity for the edge
+                    new_edge_value = edge_influence
+                    for k in range(n):
+                        if k != i and k != j:
+                            new_edge_value -= normalized_demands[k] * distance_matrix[k, j]
+                    if new_edge_value < heuristics_matrix[i, j]:  # Accept if it improves the route
+                        heuristics_matrix[i, j] = new_edge_value
+    return heuristics_matrix
+```

@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand at each node as a proxy for popularity
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Normalize the cumulative demand by the maximum cumulative demand to get a popularity score
+    popularity_score = cumulative_demand / cumulative_demand[-1]
+    
+    # Calculate the distance to the nearest neighbor for each node
+    distances = torch.sqrt(torch.sum(distance_matrix**2, dim=1))
+    nearest_neighbor_distance = torch.min(distances, dim=1).values
+    
+    # Combine the popularity score and the distance to the nearest neighbor to get a heuristic score
+    heuristic_scores = popularity_score * nearest_neighbor_distance
+    
+    # Adjust the heuristic scores based on the demand at each node
+    heuristic_scores *= (1 - demands)
+    
+    # Subtract the adjusted heuristic scores from 1 to get a negative heuristic for better sorting
+    negative_heuristic_scores = 1 - heuristic_scores
+    
+    # Return the negative heuristic scores as a matrix
+    return negative_heuristic_scores
+```

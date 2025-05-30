@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize the distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize the demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the balance factors for distance and demand
+    distance_balance = torch.log(1 / (1 + torch.exp(0.1 * (2 * normalized_distances - 1))))
+    demand_balance = torch.log(1 / (1 + torch.exp(0.1 * (2 * normalized_demands - 1))))
+    
+    # Introduce a dampening factor for high demand nodes
+    dampening_factor = torch.where(normalized_demands > 0.7, 
+                                    torch.log(1 / (1 + torch.exp(0.1 * (2 * (normalized_demands - 0.7) - 1)))), 
+                                    1.0)
+    
+    # Calculate potential values using the modified balance heuristic
+    potential_values = (distance_balance * (1 - dampening_factor) +
+                        (1.5 * demand_balance + 0.5 * (1 - dampening_factor))).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

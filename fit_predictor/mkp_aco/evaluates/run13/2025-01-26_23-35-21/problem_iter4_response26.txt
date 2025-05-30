@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the density of each item (prize per unit weight)
+    density = prize / np.sum(weight, axis=1)
+    
+    # Calculate the diversity score based on the inverse of the sum of weights
+    diversity = 1 / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity score based on the minimum weight in each dimension
+    sparsity = np.min(weight, axis=1)
+    
+    # Normalize the scores to a range [0, 1]
+    density = (density - np.min(density)) / (np.max(density) - np.min(density))
+    diversity = (diversity - np.min(diversity)) / (np.max(diversity) - np.min(diversity))
+    sparsity = (sparsity - np.min(sparsity)) / (np.max(sparsity) - np.min(sparsity))
+    
+    # Combine the normalized scores using a weighted sum where diversity has the highest weight,
+    # density has a moderate weight, and sparsity has a lower weight
+    heuristics = (density * 0.4) + (diversity * 0.5) + (sparsity * 0.1)
+    
+    # Apply a logarithmic transformation to the heuristics to reduce the impact of large values
+    heuristics = np.log(heuristics + 1)  # Adding 1 to avoid log of zero
+    
+    # Normalize the heuristics again to a range [0, 1] after transformation
+    heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+    
+    # Set a threshold to sparsify the heuristics
+    threshold = np.percentile(heuristics, 90)  # Use 90th percentile as a threshold
+    
+    # Create heuristics array based on the threshold
+    heuristics = np.where(heuristics >= threshold, heuristics, 0)
+    
+    return heuristics
+```

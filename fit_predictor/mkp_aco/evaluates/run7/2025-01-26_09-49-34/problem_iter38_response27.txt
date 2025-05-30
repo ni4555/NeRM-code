@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to ensure items are not dominated by high prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate value-to-weight ratio to prioritize items with better ratios
+    value_to_weight = normalized_prize / weight.sum(axis=1)
+    
+    # Introduce a sparsity factor considering the number of dimensions
+    sparsity_factor = 1 / (np.arange(weight.shape[1]) + 1)
+    
+    # Calculate a balance factor considering both sparsity and variance
+    variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    balance_factor = sparsity_factor * variance_factor
+    
+    # Incorporate diversity by adding a random component
+    diversity = np.random.normal(0, 0.02, size=normalized_prize.shape)
+    diversity = np.maximum(diversity, 0)  # Ensure non-negative diversity
+    balanced_value_to_weight = value_to_weight * balance_factor + diversity
+    
+    # Introduce sparsity by zeroing out low-value heuristic values
+    sparsity_threshold = np.percentile(balanced_value_to_weight, 30)  # 30% threshold for sparsity
+    balanced_value_to_weight[balanced_value_to_weight < sparsity_threshold] = 0
+    
+    # Use a dynamic threshold based on the current sum of heuristics
+    amplification_threshold = np.percentile(balanced_value_to_weight, 70)  # 70% threshold
+    amplification_factor = 1.2  # Amplification factor for high-value heuristics
+    current_sum = np.sum(balanced_value_to_weight)
+    if current_sum > 0:
+        amplification_threshold = amplification_threshold / current_sum * amplification_factor
+    
+    # Amplify the heuristics of items with higher potential
+    balanced_value_to_weight[balanced_value_to_weight > amplification_threshold] *= amplification_factor
+    
+    # Normalize the final heuristics
+    heuristic_sum = np.sum(balanced_value_to_weight)
+    if heuristic_sum > 0:
+        balanced_value_to_weight /= heuristic_sum
+    
+    return balanced_value_to_weight
+```

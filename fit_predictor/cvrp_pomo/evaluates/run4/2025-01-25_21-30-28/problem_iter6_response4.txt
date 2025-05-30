@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, performance_data: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment using mean distance
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Normalize individual heuristic contributions before combining
+    normalized_inverse_distance = torch.clamp(inverse_distance, min=-10.0, max=10.0)
+    normalized_demand_weight = torch.clamp(demand_weight, min=-10.0, max=10.0)
+    normalized_heuristic_range = torch.clamp(heuristic_range, min=-10.0, max=10.0)
+    normalized_load_balance = torch.clamp(load_balance, min=-10.0, max=10.0)
+
+    # Assuming performance_data is normalized
+    performance_data = performance_data / performance_data.sum()
+
+    # Dynamic weighting based on performance data
+    dynamic_weight = performance_data / (performance_data + 1e-8)
+
+    # Consistent weight scaling for fairness
+    combined_heuristic = (
+        normalized_inverse_distance * 0.5 * dynamic_weight +
+        normalized_demand_weight * 0.3 * dynamic_weight +
+        normalized_heuristic_range * 0.2 * dynamic_weight +
+        normalized_load_balance * 0.4 * dynamic_weight
+    )
+
+    return combined_heuristic
+```

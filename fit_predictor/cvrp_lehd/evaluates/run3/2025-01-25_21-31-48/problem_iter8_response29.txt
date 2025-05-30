@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    max_demand = demands.max()
+    min_demand = demands.min()
+
+    # Normalize demands
+    normalized_demands = (demands - min_demand) / (max_demand - min_demand)
+
+    # Normalize the distance matrix
+    max_distance = distance_matrix.max()
+    min_distance = distance_matrix.min()
+    normalized_distances = (distance_matrix - min_distance) / (max_distance - min_distance)
+
+    # Invert normalized distances to make smaller distances more promising
+    inverted_distances = 1 - normalized_distances
+
+    # Use balance of demand and inverted distances to form the heuristic
+    balance_heuristic = torch.sqrt((normalized_demands * demands)**2)
+    
+    # Combine inverted distances with the demand-based heuristic
+    combined_heuristic = inverted_distances + balance_heuristic
+
+    # Normalize the combined heuristic
+    max_combined_heuristic = combined_heuristic.max()
+    min_combined_heuristic = combined_heuristic.min()
+    normalized_combined_heuristic = (combined_heuristic - min_combined_heuristic) / (max_combined_heuristic - min_combined_heuristic)
+
+    # Invert the normalized values to maximize promising edges
+    heuristics = 1 - normalized_combined_heuristic
+
+    # Fill in the diagonal with zeros, as no edge exists from a node to itself
+    torch.fill_diagonal(heuristics, 0)
+
+    return heuristics
+```

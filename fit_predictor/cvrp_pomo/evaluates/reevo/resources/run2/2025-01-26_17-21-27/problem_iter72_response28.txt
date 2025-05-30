@@ -1,0 +1,57 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Define a helper function for time-adaptive scaling
+    def time_adaptive_scaling(factor, scale_factor):
+        time_factor = torch.exp(-cumulative_demand / (total_capacity * scale_factor))
+        return factor * time_factor
+    
+    # Define penalties using vectorized operations
+    def dynamic_capacity_penalty(demands, total_capacity):
+        return time_adaptive_scaling(-torch.log1p(torch.abs(demands - total_capacity) - 1e-8), 5)
+    
+    def distance_penalty(distance_matrix, scale_factor):
+        return time_adaptive_scaling(-torch.log1p(torch.abs(distance_matrix) - 1e-8), scale_factor)
+    
+    def overflow_penalty(cumulative_demand, total_capacity):
+        overflow_mask = (cumulative_demand[:, None] + demands[None, :]) > total_capacity
+        return torch.where(overflow_mask, -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8), torch.zeros_like(cumulative_demand))
+    
+    def load_balance_penalty(cumulative_demand, total_capacity_vector):
+        load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+        return time_adaptive_scaling(-torch.log1p(load_balance - 1e-8), 5)
+    
+    def randomness_factor():
+        return time_adaptive_scaling(torch.abs(torch.randn_like(demands)) * 0.1, 5)
+    
+    def diversity_factor():
+        diversity = torch.abs(torch.randn_like(demands)) * 0.2
+        diversity /= (torch.sum(torch.abs(diversity)) + 1e-8)
+        return diversity
+    
+    # Core heuristics
+    distance_penalty_value = distance_penalty(distance_matrix, 5)
+    dynamic_penalty_value = dynamic_capacity_penalty(demands, total_capacity)
+    overflow_penalty_value = overflow_penalty(cumulative_demand, total_capacity)
+    load_balance_penalty_value = load_balance_penalty(cumulative_demand, total_capacity_vector)
+    
+    heuristics = distance_penalty_value + dynamic_penalty_value + overflow_penalty_value + load_balance_penalty_value
+    heuristics += randomness_factor()
+    heuristics += diversity_factor()
+    
+    # Adjust for overflow and imbalance
+    early_overflow = cumulative_demand > total_capacity_vector
+    heuristics *= (1 + early_overflow)
+    
+    # Cap the heuristics to maintain stability
+    heuristics = torch.clamp(heuristics, min=-10.0, max=10.0)
+    
+    # Apply a large penalty for the depot to return to itself
+    heuristics[0, 0] = -1e7
+    
+    return heuristics
+```

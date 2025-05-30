@@ -1,0 +1,55 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic penalty based on remaining capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Enhanced distance penalty to account for cumulative load
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity)
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balance load heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Scale penalties for core objectives
+    scaling_factor = 3.0
+    core_objectives = distance_scaling + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty
+    scaled_core_objectives = scaling_factor * core_objectives
+    
+    # Introduce controlled noise
+    random_noise = torch.abs(torch.randn_like(demands)) * 0.05
+    
+    # Introduce stability factors to prevent overflow
+    stability_factor = torch.where(cumulative_demand > total_capacity_vector, torch.ones_like(cumulative_demand), torch.zeros_like(cumulative_demand))
+    
+    # Balance between heuristics and randomness for diversity
+    heuristics = scaled_core_objectives + random_noise
+    
+    # Cap heuristics to prevent too much randomness
+    heuristics = torch.clamp(heuristics, min=-10.0, max=10.0)
+    
+    # Encourage diversity and stability by scaling and adding penalties
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    heuristics += diversity_factor
+    
+    # Apply stability factors
+    heuristics *= stability_factor
+    
+    # Introduce a penalty for the depot to return to itself
+    heuristics[0] = -1000
+    
+    return heuristics
+```

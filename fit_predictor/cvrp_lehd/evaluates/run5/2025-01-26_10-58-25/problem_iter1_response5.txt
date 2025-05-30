@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands to determine the total demand at each step
+    cumulative_demands = demands.cumsum(1)
+    
+    # Normalize the cumulative demands to the vehicle capacity (set to 1 for simplicity)
+    normalized_cumulative_demands = cumulative_demands / (demands.sum(1, keepdim=True) + 1e-6)
+    
+    # Calculate the cumulative distance for each node to find the total distance for each step
+    cumulative_distances = torch.cumsum(distance_matrix, 1)
+    
+    # Calculate the potential cost of including an edge by combining normalized demand and distance
+    potential_costs = (normalized_cumulative_demands * cumulative_distances).transpose(0, 1)
+    
+    # Subtract the current node's distance from the potential cost (to not include the returning edge)
+    potential_costs -= distance_matrix
+    
+    # Add a small constant to avoid division by zero and then calculate the ratio of normalized demand to cost
+    with torch.no_grad():
+        epsilon = 1e-6
+        potential_costs = torch.clamp(potential_costs, min=epsilon)
+    
+    ratio = normalized_cumulative_demands / (potential_costs + epsilon)
+    
+    # Return the ratio as a heuristics, higher values are better
+    return ratio
+```

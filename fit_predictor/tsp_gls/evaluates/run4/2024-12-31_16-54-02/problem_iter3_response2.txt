@@ -1,0 +1,26 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize a matrix with the same shape as the distance_matrix to store heuristics
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Use a priority queue to store the shortest paths for each node
+    # We'll use a simple heap data structure for this purpose
+    import heapq
+    
+    # Precompute the shortest paths for all pairs using Dijkstra's algorithm
+    for i in range(len(distance_matrix)):
+        min_heap = [(distance_matrix[i, j], j) for j in range(len(distance_matrix[i]))]
+        heapq.heapify(min_heap)
+        # We only need the shortest path to the first node in the list for each node i
+        heuristics[i, min_heap[0][1]] = min_heap[0][0]
+        for j in range(1, len(distance_matrix)):
+            if j != min_heap[0][1]:
+                heuristics[i, min_heap[j][1]] = distance_matrix[i, min_heap[j][1]]
+    
+    # Reflect the matrix to handle the symmetric nature of the TSP
+    heuristics = (heuristics + distance_matrix.T) / 2
+    
+    return heuristics
+```

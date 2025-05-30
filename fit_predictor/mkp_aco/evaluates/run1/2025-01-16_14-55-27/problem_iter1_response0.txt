@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Dynamic item sorting based on a weighted ratio and sparsity
+    sorted_indices = np.argsort(-prize / weight.sum(axis=1))
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Track the maximum weight constraint
+    max_weight = weight.sum(axis=1).max()
+
+    # Iterate over the sorted items and assign a heuristic value
+    for i in sorted_indices:
+        # Calculate the weighted ratio for the current item
+        weighted_ratio = prize[i] / weight[i, :].sum()
+        
+        # Calculate the sum of current and previous heuristics
+        current_sum = np.sum(heuristics[:i+1])
+
+        # Check if the item is within the weight constraint and add its value to the heuristic
+        if weight[i, :].sum() <= max_weight:
+            heuristics[i] = weighted_ratio + current_sum
+        else:
+            heuristics[i] = 0
+
+    # Sparsify the heuristics by setting the value of items outside the weight constraint to zero
+    heuristics[weight.sum(axis=1) > max_weight] = 0
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

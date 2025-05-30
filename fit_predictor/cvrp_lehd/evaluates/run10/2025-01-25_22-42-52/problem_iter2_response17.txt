@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Find all nodes that can be visited without exceeding the vehicle capacity
+    feasible_nodes = (cumulative_demand < cumulative_capacity).nonzero(as_tuple=True)[0]
+    
+    # Calculate the shortest distance to a feasible node for each edge from the depot
+    if len(feasible_nodes) > 0:
+        min_distances = torch.min(distance_matrix[:, feasible_nodes], dim=1).values
+    else:
+        # If there are no feasible nodes, all edges have an infinite cost
+        min_distances = torch.full_like(distance_matrix[0], float('inf'))
+    
+    # Invert the distances to get heuristic values: smaller distances are more promising
+    heuristics_matrix = -min_distances
+    
+    return heuristics_matrix
+```

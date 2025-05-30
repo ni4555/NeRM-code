@@ -1,0 +1,53 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a penalty for imbalance in load distribution
+    imbalance_penalty = torch.abs(average_demand_per_edge - total_capacity / (n - 1))
+    
+    # Introduce a penalty for long routes
+    long_route_penalty = distance_matrix ** 2
+    
+    # Combine penalties to form the heuristic
+    heuristics = -torch.log1p(imbalance_penalty + long_route_penalty)
+    
+    # Apply penalties to make long routes and imbalanced loads more undesirable
+    heuristics[distance_matrix == 0] = 0
+    heuristics[long_route_penalty >= 0] = -torch.abs(heuristics[long_route_penalty >= 0])
+    heuristics[imbalance_penalty >= 0] = -torch.abs(heuristics[imbalance_penalty >= 0])
+    
+    # Local search mechanism to refine the heuristics
+    for i in range(n):
+        for j in range(n):
+            if i != j and distance_matrix[i, j] != 0:
+                # Simulate a swap operation in the local search
+                temp_demand = demands[i]
+                demands[i] = demands[j]
+                demands[j] = temp_demand
+                
+                # Update the average demand per edge after the swap
+                edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+                
+                # Recalculate the imbalance penalty after the swap
+                imbalance_penalty = torch.abs(average_demand_per_edge - total_capacity / (n - 1))
+                
+                # Recalculate the heuristic after the swap
+                heuristics[i, j] = -torch.log1p(imbalance_penalty + long_route_penalty[i, j])
+                
+                # Swap back the demands to restore the original state
+                temp_demand = demands[i]
+                demands[i] = demands[j]
+                demands[j] = temp_demand
+    
+    return heuristics
+```

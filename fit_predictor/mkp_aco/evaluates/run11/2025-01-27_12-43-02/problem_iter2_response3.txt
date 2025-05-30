@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    combined_score = score * ratio
+    sparsified_score = np.clip(combined_score, 0, np.mean(combined_score))
+    smoothed_score = sparsify_and_smooth(sparsified_score)
+    return smoothed_score
+
+def sparsify_and_smooth(score: np.ndarray) -> np.ndarray:
+    sparsity_threshold = np.percentile(score, 90)  # Use 90th percentile as sparsity threshold
+    sparsified_score = np.where(score > sparsity_threshold, score, 0)
+    smoothed_score = sparsify_and_smooth_recursive(sparsified_score)
+    return smoothed_score
+
+def sparsify_and_smooth_recursive(score: np.ndarray) -> np.ndarray:
+    if score.size < 5:
+        return score
+    mean_score = np.mean(score)
+    if np.mean(score != mean_score) > 0.1:  # If more than 10% of the values are different from the mean
+        threshold_index = np.argmax(score)
+        score[threshold_index + 1:] = mean_score
+    return sparsify_and_smooth_recursive(score)
+```

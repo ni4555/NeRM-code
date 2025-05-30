@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Prune dominated items
+    non_dominated_items = np.where(np.prod(weight, axis=1) > 0)[0]
+    prize_pruned = prize[non_dominated_items]
+    weight_pruned = weight[non_dominated_items]
+
+    # Calculate normalized metrics
+    density = prize_pruned / (np.sum(weight_pruned, axis=1) + 1e-8)
+    sparsity = np.sum(weight_pruned, axis=1) / (np.max(weight_pruned, axis=1) + 1e-8)
+    
+    # Use randomness to introduce diversity
+    random_factor = np.random.rand(len(prize_pruned))
+    
+    # Incorporate a randomness-based heuristic value
+    random_heuristic = random_factor / (np.max(random_factor) + 1e-8)
+    
+    # Combine metrics with randomness
+    combined_heuristic = density * (1 - sparsity) + random_heuristic
+    
+    # Normalize the heuristics to ensure a positive scale
+    normalized_combined_heuristic = combined_heuristic / (np.max(combined_heuristic) + 1e-8)
+    
+    # Prune again by setting the minimum value to ensure diversity
+    normalized_combined_heuristic[normalized_combined_heuristic < 1e-8] = 1e-8
+    
+    return normalized_combined_heuristic
+```

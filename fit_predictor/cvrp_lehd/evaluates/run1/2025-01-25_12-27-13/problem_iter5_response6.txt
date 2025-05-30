@@ -1,0 +1,24 @@
+```python
+import torch
+import numpy as np
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Create a mask for nodes with positive demand
+    demand_mask = (demands > 0).float()
+
+    # Normalize the demand by the total vehicle capacity
+    normalized_demand = demands / total_demand
+
+    # Vectorized non-linear transformation (e.g., using sigmoid function)
+    edge_heuristic = torch.sigmoid(normalized_demand[j] - normalized_demand[i]) * distance_matrix[i][j]
+
+    # Apply the mask to keep only positive heuristics
+    heuristics[i, j] = torch.clamp(edge_heuristic, min=0)
+    heuristics[j, i] = heuristics[i, j]
+
+    return heuristics
+```

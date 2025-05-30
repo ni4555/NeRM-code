@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the distance matrix
+    distance_matrix_inv = 1 / distance_matrix
+    
+    # Calculate the balance of demand for each node ( depot demand is considered zero)
+    balance_demand = (demands[1:] - demands[:-1]).abs() * 10  # Scale by 10 for emphasis
+    
+    # Normalize the balance demand
+    balance_demand_normalized = balance_demand / balance_demand.sum()
+    
+    # Compute a heuristic based on distance inverse and normalized balance demand
+    # We use a linear combination of distance inverse and balance demand
+    # Adjust weights as needed to control the influence of each term
+    heuristic = balance_demand_normalized * distance_matrix_inv
+    
+    # Ensure non-negative values by clamping at zero
+    heuristic = torch.clamp(heuristic, min=0)
+    
+    # Invert the heuristic to ensure negative values for undesirable edges
+    return -heuristic
+```

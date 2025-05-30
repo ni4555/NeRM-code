@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    weighted_demand = inv_distance_matrix * demands
+
+    # Heuristic that combines demand weight and distance
+    heuristic_matrix = (weighted_demand / total_demand) - (demands / total_demand)
+
+    # Apply a penalty for exceeding capacity
+    capacity_penalty = demands[:, None] + demands[None, :] > 1
+    heuristic_matrix[capacity_penalty] = -float('inf')
+
+    return heuristic_matrix
+```

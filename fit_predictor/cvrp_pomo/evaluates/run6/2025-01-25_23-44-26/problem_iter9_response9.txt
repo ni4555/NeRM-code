@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the demands to ensure balanced load distribution
+    normalized_demands = (demands - demands.min()) / (demands.max() - demands.min())
+    
+    # Penalize high demand edges
+    demand_penalty = -torch.dot(normalized_demands.unsqueeze(1), normalized_demands.unsqueeze(0))
+    
+    # Inverse of distance matrix to favor shorter paths
+    distance_heuristic = 1 / (distance_matrix + 1e-6)
+    
+    # Balance the load between nodes
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Integrate a dynamic time factor that adjusts based on expected traffic and time of day
+    time_of_day = torch.rand(distance_matrix.shape[0]) * 24
+    traffic_factor = torch.rand(distance_matrix.shape[0]) * 2 - 1
+    dynamic_time_factor = 1 / (1 + (time_of_day.unsqueeze(1) * time_of_day.unsqueeze(0))**2 + (traffic_factor**2))
+    
+    # Combine heuristics with weighted factors
+    heuristic_weights = torch.tensor([0.3, 0.5, 0.1, 0.1], dtype=torch.float)  # Adjust weights as needed
+    combined_heuristic = (demand_penalty * heuristic_weights[0] +
+                          distance_heuristic * heuristic_weights[1] +
+                          load_balance * heuristic_weights[2] +
+                          dynamic_time_factor * heuristic_weights[3])
+    
+    # Introduce a small amount of randomness to escape local optima
+    random_factor = torch.rand(distance_matrix.shape) * 0.01
+    diversity_heuristic = combined_heuristic + random_factor
+    
+    return diversity_heuristic
+```

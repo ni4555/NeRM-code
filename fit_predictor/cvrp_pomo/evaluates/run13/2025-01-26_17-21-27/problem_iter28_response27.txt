@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Demand scaling with exponential decay, emphasizing early demand
+    demand_scaling = torch.exp(-torch.abs(torch.arange(n) * (1/n) - torch.arange(n) @ torch.exp(-demands / total_capacity)))
+    
+    # Distance scaling with exponential decay, emphasizing closer nodes
+    distance_scaling = torch.exp(-torch.abs(distance_matrix / total_capacity))
+    
+    # Capacity overflow penalty for edges that would exceed vehicle capacity
+    overflow_penalty = torch.where(
+        (torch.cumsum(demands, dim=0)[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((torch.cumsum(demands, dim=0)[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(torch.cumsum(demands, dim=0))
+    )
+    
+    # Load balance penalty for demand imbalances
+    load_balance = torch.abs(torch.cumsum(demands, dim=0) - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Combine scaled factors with penalties
+    heuristics = distance_scaling * demand_scaling + overflow_penalty + load_balance_penalty
+    
+    # Incentivize the depot node with a strong incentive
+    depot_incentive = torch.exp(-torch.abs(torch.cumsum(demands, dim=0) - total_capacity / n))
+    heuristics = heuristics * depot_incentive
+    
+    # Normalize the heuristics to sum to 1 for each edge
+    penalties_sum = heuristics.sum(dim=1)
+    normalized_penalties = heuristics / (penalties_sum + 1e-8)
+    
+    return normalized_penalties
+```

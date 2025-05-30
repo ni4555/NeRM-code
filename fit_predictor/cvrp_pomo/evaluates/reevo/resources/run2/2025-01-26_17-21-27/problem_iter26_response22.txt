@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the penalty for exceeding capacity
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Calculate the penalty for distance
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic scaling based on the remaining capacity of each vehicle
+    # and the cumulative demand up to each node
+    dynamic_scaling = (1 + cumulative_demand / total_capacity)
+    
+    # Combine the penalties with the dynamic scaling
+    heuristics = (distance_penalty * dynamic_scaling + capacity_penalty) * (demands > 0)
+    
+    # Set the penalty for the depot node to zero
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

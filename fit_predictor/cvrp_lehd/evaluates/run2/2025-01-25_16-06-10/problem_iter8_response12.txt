@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    capacity = demands.sum()
+    
+    heuristics = torch.full_like(distance_matrix, fill_value=float('-inf'))
+    
+    # Calculate the heuristic for each edge
+    for i in range(1, n_nodes):
+        for j in range(1, n_nodes):
+            if demands[j] + demand_cumsum[i-1] <= capacity:
+                heuristics[i, j] = distance_matrix[i, j]
+            else:
+                # If the demand is too high for the current vehicle, return to the depot
+                heuristics[i, j] = distance_matrix[i, 0]
+    
+    # Ensure all heuristics are non-negative
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

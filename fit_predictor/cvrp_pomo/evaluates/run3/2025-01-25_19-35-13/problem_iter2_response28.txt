@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize the heuristics matrix with zeros
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Compute the potential for each edge based on distance and demand
+    # This heuristic combines the distance and demand by using a weighted sum
+    # where the weight is inversely proportional to the distance (to favor shorter paths)
+    # and proportional to the demand (to favor routes with higher demand).
+    # The coefficients alpha and beta are tuning parameters.
+    alpha = 0.5
+    beta = 0.5
+    edge_potential = (alpha / (distance_matrix + 1e-8)) + (beta * normalized_demands)
+    
+    # Adjust weights dynamically based on the average distance and demand
+    avg_distance = distance_matrix.mean()
+    avg_demand = normalized_demands.mean()
+    dynamic_alpha = alpha * (1 + avg_distance / 10)
+    dynamic_beta = beta * (1 + avg_demand / 10)
+    edge_potential = (dynamic_alpha / (distance_matrix + 1e-8)) + (dynamic_beta * normalized_demands)
+    
+    # Apply soft constraints to maintain solution diversity
+    # Introduce a penalty for edges with high potential to avoid local optima
+    high_potential_penalty = 0.1
+    edge_potential = torch.clamp(edge_potential, min=-high_potential_penalty, max=high_potential_penalty)
+    
+    # Normalize heuristics to balance exploration and exploitation
+    # Use a min-max normalization to scale the potential values
+    min_potential = edge_potential.min()
+    max_potential = edge_potential.max()
+    edge_potential = (edge_potential - min_potential) / (max_potential - min_potential)
+    
+    return edge_potential
+```

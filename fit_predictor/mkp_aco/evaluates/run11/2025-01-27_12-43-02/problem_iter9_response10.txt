@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    # Normalize weights by the sum of weights for each item
+    normalized_weights = weight / np.sum(weight, axis=1)[:, None]
+    # Calculate the sum of weighted prizes for each item
+    weighted_prize_sum = np.sum(prize * normalized_weights, axis=1)
+    # Calculate a diversity factor for each item to ensure item diversity
+    diversity_factor = np.prod(normalized_weights, axis=1)
+    # Normalize the diversity factor by the sum of diversity factors
+    diversity_normalized = diversity_factor / np.sum(diversity_factor)
+    # Combine weighted prize sum and diversity factor
+    combined_score = weighted_prize_sum * diversity_normalized
+    # Normalize scores for consistency
+    max_score = np.max(combined_score)
+    importance_normalized = combined_score / (max_score + 1e-8)  # Avoid division by zero
+    # Sparse the heuristics by setting less than a threshold to zero
+    threshold = 0.01  # Example threshold value
+    heuristics = (importance_normalized > threshold).astype(float)
+    return heuristics
+```

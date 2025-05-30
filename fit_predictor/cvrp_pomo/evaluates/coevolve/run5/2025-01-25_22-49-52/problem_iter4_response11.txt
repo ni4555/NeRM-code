@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a balanced approach
+    # The potential value is the sum of the distance and the absolute demand difference
+    potential_values = (normalized_distances + normalized_demands.abs()).mul(1 - 2 * normalized_demands)
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = torch.zeros_like(potential_values[0, :])
+    potential_values[:, 0] = torch.zeros_like(potential_values[:, 0])
+    
+    # Vectorized node partitioning penalty
+    partitioning_penalty = 0.1
+    connectivity_matrix = torch.sum(potential_values, dim=0) + torch.sum(potential_values, dim=1)
+    for i in torch.arange(1, n):
+        potential_values[i, :] -= partitioning_penalty * connectivity_matrix[i]
+        potential_values[:, i] -= partitioning_penalty * connectivity_matrix[i]
+    
+    return potential_values
+```

@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: adaptively modify the search space based on the performance metric
+    performance_metric = torch.rand(n)  # Placeholder for the actual performance metric
+    range_adjustment = 1.0 / (performance_metric + 1e-8)
+
+    # Early combination of heuristics for efficiency
+    combined_heuristic = inverse_distance + demand_weight + range_adjustment
+
+    # Load balancing strategy: adjust the heuristic values based on the load distribution
+    load_balance_factor = torch.sum(demands, dim=0) / total_capacity
+    load_balance_heuristic = (1 - load_balance_factor) * combined_heuristic
+
+    # Capacity adjustment: ensure no vehicle is overloaded
+    vehicle_loads = torch.zeros(n, dtype=torch.float32)
+    vehicle_loads[0] = normalized_demands.sum()  # The first load is the total demand
+    for i in range(1, n):
+        vehicle_loads[i] = torch.clamp(vehicle_loads[i-1] + normalized_demands[i], min=0, max=total_capacity)
+    capacity_adjustment = 1.0 / (vehicle_loads + 1e-8)
+
+    # Adjust combined heuristic based on capacity adjustment
+    combined_heuristic = combined_heuristic * capacity_adjustment
+
+    return combined_heuristic
+```

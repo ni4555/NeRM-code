@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+
+    # Calculate the inverse of distance matrix
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+
+    # Demand-based heuristic: weigh by demand and inverse distance
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = demand_normalized * inv_distance_matrix
+
+    # Nearest-neighbor heuristic: prioritize nodes that are closer to the depot
+    nearest_neighbor_heuristic = inv_distance_matrix
+
+    # Capacity-based heuristic: consider the remaining capacity of the vehicle
+    demand_normalized_matrix = demands / torch.sum(demands)
+    remaining_capacity = 1 - demand_normalized_matrix
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Combine heuristics: demand, nearest-neighbor, and capacity
+    # Introduce balance factors for each heuristic
+    demand_factor = 0.5
+    nearest_neighbor_factor = 0.3
+    capacity_factor = 0.2
+    combined_heuristic = (demand_factor * demand_weighted_distance) + \
+                          (nearest_neighbor_factor * nearest_neighbor_heuristic) + \
+                          (capacity_factor * capacity_weighted_distance)
+
+    # Penalize edges that would exceed vehicle capacity
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    return combined_heuristic
+```

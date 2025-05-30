@@ -1,0 +1,51 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Calculate normalized density
+    density = prize / np.sum(weight, axis=1) + 1e-8
+
+    # Calculate value-to-weight ratio
+    value_density_ratio = prize / np.sum(weight**2, axis=1) + 1e-8
+
+    # Calculate sparsity
+    sparsity = np.sum(weight, axis=1) / np.sum(weight**2, axis=1) + 1e-8
+
+    # Prune dominated items based on density
+    dominated_indices = np.argsort(density)[::-1]
+    pruned_indices = []
+    while dominated_indices.shape[0] > 1:
+        current_index = dominated_indices[0]
+        dominated_indices = dominated_indices[1:]
+        for index in dominated_indices:
+            if density[index] <= density[current_index]:
+                break
+        pruned_indices.append(index)
+        if len(pruned_indices) >= (n * 0.1):  # Prune at most 10% of the items
+            break
+    pruned_mask = np.array([False] * n)
+    for index in pruned_indices:
+        pruned_mask[index] = True
+    pruned_density = density[~pruned_mask]
+
+    # Calculate balance score
+    balance_score = (pruned_density + (1 - sparsity[~pruned_mask])) / 2
+
+    # Introduce randomness to encourage diversity
+    random_factor = np.random.rand(n - len(pruned_indices)) + 1e-8
+
+    # Create heuristic by combining balance score, value-to-weight ratio, and randomness
+    heuristic = balance_score + value_density_ratio * 0.2 + random_factor
+
+    # Normalize the heuristic
+    normalized_heuristic = heuristic / np.sum(heuristic + 1e-8)
+
+    # Ensure diversity by giving a small positive heuristic value if all items are dominated
+    if np.sum(normalized_heuristic) == 0:
+        normalized_heuristic = np.ones(n) * 1e-8
+
+    return normalized_heuristic
+```

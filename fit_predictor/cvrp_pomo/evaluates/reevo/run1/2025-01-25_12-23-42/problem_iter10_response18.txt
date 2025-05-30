@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Apply a logarithmic transformation to the normalized distances to encourage exploration of longer paths
+    log_norm_distances = torch.log(1 + norm_distances)
+    
+    # Use the logarithmic distances and node loads to calculate a dynamic load factor
+    dynamic_load_factor = log_norm_distances * (1 - node_loads)
+    
+    # Introduce noise for exploration while keeping the balance between exploitation and exploration
+    noise = torch.randn_like(dynamic_load_factor) * 0.1  # 0.1 is a small scaling factor for the noise
+    
+    # Combine the dynamic load factor and noise to create the heuristics
+    heuristics = log_norm_distances - (dynamic_load_factor + noise).sum(-1)
+    
+    # Limit the heuristics to ensure they are within a reasonable range
+    heuristics = torch.clamp(heuristics, min=-2.0, max=2.0)
+    
+    return heuristics
+```

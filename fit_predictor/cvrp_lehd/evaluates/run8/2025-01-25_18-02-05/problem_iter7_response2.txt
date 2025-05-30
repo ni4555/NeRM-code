@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Normalize demands to get the ratio of demand to vehicle capacity
+    demand_ratio = demands / demands[0]
+    
+    # Normalize distances from the depot to other nodes
+    distance_normalized = distance_matrix / distance_matrix[0, :]
+    
+    # Invert normalized distances to give a preference to shorter distances
+    distance_inverted = 1 / distance_normalized
+    
+    # Apply a non-linear transformation to emphasize larger demand ratios and shorter distances
+    transformed_matrix = torch.log(demand_ratio) + torch.log(distance_inverted)
+    
+    # Calculate the cumulative sum of the transformed matrix
+    cumulative_transformed = torch.cumsum(transformed_matrix, dim=0)
+    
+    # Apply thresholds to filter out edges that are too far below or above the average
+    threshold_min = torch.mean(cumulative_transformed) - torch.std(cumulative_transformed)
+    threshold_max = torch.mean(cumulative_transformed) + torch.std(cumulative_transformed)
+    
+    # Set negative values for edges that fall below the lower threshold
+    below_threshold = cumulative_transformed < threshold_min
+    cumulative_transformed[below_threshold] = -threshold_min[below_threshold]
+    
+    # Set positive values for edges that fall above the upper threshold
+    above_threshold = cumulative_transformed > threshold_max
+    cumulative_transformed[above_threshold] = threshold_max[above_threshold]
+    
+    # Clip the values to be within the desired range to ensure they are within [-1, 1]
+    heuristic_matrix = torch.clamp(cumulative_transformed, min=-1, max=1)
+    
+    return heuristic_matrix
+```

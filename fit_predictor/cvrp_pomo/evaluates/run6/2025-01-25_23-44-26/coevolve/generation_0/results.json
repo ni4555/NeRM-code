@@ -1,0 +1,30 @@
+{
+  "generation": 0,
+  "description": "Assisting in solving Capacitated Vehicle Routing Problem (CVRP) with some prior heuristics. CVRP requires finding the shortest path that visits all given nodes and returns to the starting node. Each node has a demand and each vehicle has a capacity. The total demand of the nodes visited by a vehicle cannot exceed the vehicle capacity. When the total demand exceeds the vehicle capacity, the vehicle must return to the starting node.",
+  "solutions": [
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the demand per unit distance for each edge\n    demand_per_unit_distance = demands / distance_matrix\n    \n    # Calculate the maximum demand that can be covered by one trip (capacity normalized)\n    max_demand_per_trip = demands.max()\n    \n    # Initialize the heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # Set the values in the heuristics matrix for edges that are promising\n    # We consider edges promising if their demand per unit distance is less than or equal to the maximum demand per trip\n    heuristics[demand_per_unit_distance <= max_demand_per_trip] = 1\n    \n    return heuristics",
+      "fitness": 49.72929763793945,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_0\\stdout_1.txt",
+      "code_file": "coevolve\\generation_0\\code_1.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the sum of demands for each node\n    demand_sum = demands.sum(dim=0)\n    \n    # Initialize a mask for edges that are undesirable\n    undesirable_edges = (demand_sum > 1)  # Assuming 1 is the normalized vehicle capacity\n    \n    # Create a negative value for undesirable edges\n    undesirable_value = torch.full_like(distance_matrix, fill_value=-1)\n    \n    # Create a positive value for promising edges\n    promising_value = torch.zeros_like(distance_matrix)\n    \n    # Assign the negative value for undesirable edges\n    distance_matrix[undesirable_edges] = undesirable_value[undesirable_edges]\n    \n    # The rest of the edges are promising, so assign a positive value\n    promising_edges = ~undesirable_edges\n    distance_matrix[promising_edges] = promising_value[promising_edges]\n    \n    return distance_matrix",
+      "fitness": 50.00139236450195,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_0\\stdout_0.txt",
+      "code_file": "coevolve\\generation_0\\code_0.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the normalized demand for each customer\n    normalized_demands = demands / demands.sum()\n    \n    # Calculate the negative of the normalized demand for each edge as a heuristic\n    # This will encourage the heuristic to favor edges with lower demand\n    edge_heuristics = -normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0)\n    \n    # Add a small constant to prevent division by zero\n    epsilon = 1e-6\n    edge_heuristics = edge_heuristics + epsilon\n    \n    # Calculate the distance between each pair of nodes and add to the heuristic\n    edge_heuristics = edge_heuristics + distance_matrix\n    \n    # Ensure that the diagonal elements (self-loops) are set to a very negative value\n    # to discourage them from being included in the solution\n    diagonal_mask = torch.eye(edge_heuristics.shape[0], dtype=edge_heuristics.dtype)\n    edge_heuristics = edge_heuristics - 2 * diagonal_mask\n    \n    return edge_heuristics",
+      "fitness": 50.083290100097656,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_0\\stdout_3.txt",
+      "code_file": "coevolve\\generation_0\\code_3.py"
+    }
+  ]
+}

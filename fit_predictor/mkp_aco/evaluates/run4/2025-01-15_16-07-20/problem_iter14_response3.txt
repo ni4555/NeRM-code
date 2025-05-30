@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Calculate density based on prize and average weight
+    density = prize / np.mean(weight, axis=1)
+    
+    # Calculate constraint balance for each item
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate utility considering both density and constraint balance
+    utility = density * (1 - constraint_balance)
+    
+    # Calculate sparsity bonus for items with zero weight in each dimension
+    sparsity_bonus = np.where(weight.sum(axis=1) == 0, 1, 0)
+    
+    # Adjust utility with sparsity bonus
+    adjusted_utility = utility * sparsity_bonus
+    
+    # Calculate a penalty for items that are overrepresented in any dimension
+    overrepresentation_penalty = np.sum(np.where(weight.sum(axis=1) > 1, 1, 0))
+    
+    # Adjust the adjusted utility with the overrepresentation penalty
+    adjusted_utility -= overrepresentation_penalty
+    
+    # Normalize the adjusted utility scores
+    normalized_utility = adjusted_utility / np.sum(adjusted_utility)
+    
+    # Return the heuristics scores
+    return normalized_utility
+```

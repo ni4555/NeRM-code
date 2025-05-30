@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: adaptively adjust the search space based on performance
+    # We calculate the maximum distance between nodes as a base for heuristic range adjustment
+    max_distance = torch.max(torch.sum(torch.abs(distance_matrix), dim=1))
+    heuristic_range = max_distance / (distance_matrix + 1e-8)
+
+    # Load balancing strategy: adjust heuristic values based on remaining capacity
+    # We maintain a record of the remaining capacity for each vehicle starting from the depot
+    vehicle_loads = torch.zeros(n, dtype=torch.float32)
+    for i in range(1, n):
+        vehicle_loads[i] = min(normalized_demands[i], 1.0 - vehicle_loads[i-1])
+    # Update the vehicle_loads to include the total demand for each vehicle
+    for i in range(1, n):
+        vehicle_loads[i] += demands[i]
+
+    # We apply load balancing by reducing the weight of edges that lead to overcapacity
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                demand_sum = normalized_demands[j]
+                if demand_sum > 1.0 - vehicle_loads[i]:
+                    heuristic_range[i, j] *= 0.5
+
+    # Combine heuristics with load balancing adjustments
+    combined_heuristic = (inverse_distance + demand_weight) * heuristic_range
+
+    return combined_heuristic
+```

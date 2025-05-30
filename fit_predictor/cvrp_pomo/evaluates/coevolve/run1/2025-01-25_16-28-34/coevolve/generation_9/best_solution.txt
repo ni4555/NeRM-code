@@ -1,0 +1,39 @@
+Fitness: 23.238935470581055
+
+Description:
+The goal is to devise an integrated optimization heuristic for the Capacitated Vehicle Routing Problem (CVRP) that leverages the strengths of local search techniques, adaptive population management in Particle Swarm Optimization (PSO), and dynamic tabu search strategies, while ensuring efficient navigation of the solution space and balancing exploration with exploitation. This heuristic should be tailored to address the complexities of CVRP by emphasizing the following components:
+
+1. **Problem-specific Local Search**: Implement a refined neighborhood exploration mechanism for the CVRP that takes into account vehicle capacities and demand distributions to guarantee neighborhood validity and optimally balance load.
+
+2. **Adaptive PSO with Adaptive Population Management**: Enhance the exploration capability of PSO through the implementation of a dynamic adjustment mechanism for velocity and position update rules. Employ a population management strategy that ensures a balance between exploration and convergence, fostering diversity and maintaining a broad search space coverage.
+
+3. **Dynamic Tabu Search with Adaptive Cost Function**: Integrate a tabu search approach with a cost function that dynamically evaluates load distribution and routing costs, promoting efficient navigation while respecting the vehicle constraints and avoiding previously suboptimal solutions.
+
+The proposed heuristic will encapsulate these strategies in a modular and integrated framework that allows for individual contribution analysis, enabling clear understanding of how each heuristic contributes to the overall optimization process. The heuristic is designed to avoid the pitfalls of overgeneralization and to prioritize a clear, problem-specific, and successful optimization strategy for the CVRP, yielding optimal load distribution, minimal routing costs, and high system performance.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total vehicle capacity
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Calculate the heuristics based on the average demand per edge
+    heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    # Adjust the heuristics to ensure they are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0  # Avoid division by zero
+    heuristics[heuristics >= 0] = 0  # Set non-negative values to zero
+    
+    return heuristics

@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray, removed_edges: set, iteration: int) -> np.ndarray:
+    # Create a heuristic that penalizes long edges and rewards short ones
+    # Incorporates diversity by rewarding recent removals and adjusts penalties over time
+    penalty_factor = 1.5
+    removal_reward_factor = 0.3
+    diversity_reward_factor = 0.1
+    time_based_penalty_adjustment = 0.9  # Decrease penalty factor over time
+    
+    # Initialize the heuristic matrix with the same size as the distance matrix
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Loop through the matrix to calculate the heuristics
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # If the edge has been removed in the last iteration, give it a small reward
+                reward = removal_reward_factor if distance_matrix[i, j] == np.inf else 0
+                
+                # Adjust the penalty factor based on the number of iterations
+                adjusted_penalty_factor = penalty_factor * (time_based_penalty_adjustment ** iteration)
+                
+                # Calculate diversity reward for recently removed edges
+                diversity_reward = diversity_reward_factor * (1 if (i, j) in removed_edges else 0)
+                
+                # Calculate the heuristic as a weighted sum of the edge length, removal reward, and diversity reward
+                heuristic_matrix[i, j] = distance_matrix[i, j] * adjusted_penalty_factor + reward + diversity_reward
+    
+    return heuristic_matrix
+```

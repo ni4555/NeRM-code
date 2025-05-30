@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the average distance from the depot to all nodes
+    avg_distance = distance_matrix.mean()
+
+    # Use a normalized distance to the depot as the base for the heuristic
+    normalized_distances = distance_matrix / avg_distance
+
+    # Apply penalties based on normalized demand and distance
+    # Higher penalty for demand closer to the upper bound of the total capacity
+    # Higher penalty for distance further from the average distance
+    penalty_demand = torch.clamp(normalized_demands, min=0, max=1) * (1 - normalized_demands)
+    penalty_distance = torch.clamp(normalized_distances, min=0, max=1) * (normalized_distances)
+
+    # Combine the penalties into the heuristic
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, normalized_distances),
+        torch.add(penalty_demand, penalty_distance)
+    )
+
+    # Apply a threshold to ensure all heuristics are within a specific range
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-threshold, max=threshold)
+
+    return heuristic_matrix
+```

@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    demand_weights = 1 / (normalized_demands + 1e-8)
+
+    # Initialize heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Iterate over all pairs of nodes
+    for i in range(1, n):
+        for j in range(i + 1, n):
+            # Calculate the difference in normalized demand values
+            demand_diff = normalized_demands[j] - normalized_demands[i]
+            # Promote edges with smaller differences in demand
+            demand_diff *= demand_weights[i]
+            # Incorporate the distance to the edge to give preference to nearby nodes
+            demand_diff *= distance_matrix[i][j]
+            # Set heuristics value with non-negative values only
+            heuristics[i][j] = torch.max(demand_diff, torch.zeros_like(demand_diff))
+            heuristics[j][i] = heuristics[i][j]
+
+    return heuristics
+```

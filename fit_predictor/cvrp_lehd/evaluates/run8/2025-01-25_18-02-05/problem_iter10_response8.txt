@@ -1,0 +1,33 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    
+    # Avoid division by zero in cases where cumulative_distances might be zero
+    with torch.no_grad():
+        safe_distances = torch.where(cumulative_distances == 0, torch.tensor(1.0e-8), cumulative_distances)
+    
+    # Calculate the heuristic values based on the ratio of cumulative demand to cumulative distance
+    heuristic_matrix = cumulative_demands / safe_distances
+    
+    # Apply a non-linear transformation (sigmoid) to enhance differentiation
+    sigmoid_transform = F.sigmoid(heuristic_matrix)
+    
+    # Normalize the transformed values to ensure sparsity
+    max_value = torch.max(sigmoid_transform)
+    min_value = torch.min(sigmoid_transform)
+    normalized_matrix = (sigmoid_transform - min_value) / (max_value - min_value)
+    
+    # Apply thresholding to differentiate between promising and undesirable edges
+    threshold = 0.5
+    heuristics_thresholded = torch.where(normalized_matrix < threshold, -1, 1)
+    
+    return heuristics_thresholded
+```

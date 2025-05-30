@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand along each row (from the depot to each customer)
+    cumulative_demand = torch.cumsum(demands, dim=1)
+    
+    # Calculate the cumulative distance along each row (from the depot to each customer)
+    cumulative_distance = torch.cumsum(distance_matrix[:, 1:], dim=1)
+    
+    # Calculate the cumulative cost (distance * demand) along each row
+    cumulative_cost = cumulative_distance * cumulative_demand
+    
+    # Calculate the minimum cumulative cost up to each customer
+    min_cumulative_cost = torch.min(cumulative_cost, dim=1)[0].unsqueeze(1).expand_as(cumulative_cost)
+    
+    # Calculate the difference between the current cumulative cost and the minimum cumulative cost
+    cost_difference = cumulative_cost - min_cumulative_cost
+    
+    # Calculate the heuristic value as the negative difference (more negative is better)
+    heuristic_values = -cost_difference
+    
+    # Normalize the heuristic values to ensure they are in the same scale
+    max_value = torch.max(heuristic_values)
+    min_value = torch.min(heuristic_values)
+    normalized_values = (heuristic_values - min_value) / (max_value - min_value)
+    
+    return normalized_values
+```

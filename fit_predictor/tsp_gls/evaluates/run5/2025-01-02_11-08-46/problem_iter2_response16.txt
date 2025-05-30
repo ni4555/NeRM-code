@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Incorporate local structure and normalize the distances
+    # This heuristic considers the local structure by comparing the distance between nodes with the
+    # average distance of the neighboring nodes and also normalizes by the sum of distances from the
+    # neighboring nodes to the destination node
+    for i in range(len(distance_matrix)):
+        local_sum = np.sum(distance_matrix[i])
+        if local_sum > 0:
+            local_avg = np.sum(distance_matrix[i]) / len(distance_matrix[i])
+            for j in range(i+1, len(distance_matrix)):
+                if local_sum > 0:
+                    local_sum_j = np.sum(distance_matrix[j])
+                    local_avg_j = np.sum(distance_matrix[j]) / len(distance_matrix[j])
+                    # Calculate the ratio of the distance between node i and j to the average of the local structures
+                    heuristic_value = distance_matrix[i, j] / (local_avg + local_avg_j)
+                    # Normalize by the sum of distances from the neighboring nodes to the destination node
+                    if local_sum + local_sum_j > 0:
+                        heuristic_value /= (local_sum + local_sum_j)
+                    heuristic_matrix[i, j] = heuristic_value
+                    heuristic_matrix[j, i] = heuristic_value  # Symmetry of the matrix
+    
+    return heuristic_matrix
+```

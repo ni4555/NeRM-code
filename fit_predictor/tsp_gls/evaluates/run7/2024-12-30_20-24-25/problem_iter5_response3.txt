@@ -1,0 +1,48 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_edges = distance_matrix.shape[0]
+    precision_matrix = np.zeros_like(distance_matrix)
+    
+    # Heuristic using a modified Chebyshev distance for precision
+    heuristic_matrix = np.max(np.abs(distance_matrix - np.min(distance_matrix, axis=0) - 
+                                   np.min(distance_matrix, axis=1, keepdims=True)), axis=0)
+    
+    # Normalize the heuristic matrix to create a precision heuristic matrix
+    heuristic_sum = np.sum(heuristic_matrix, axis=0, keepdims=True)
+    precision_matrix = np.where(heuristic_sum == 0, 1, heuristic_matrix / heuristic_sum)
+    
+    # Dynamic mutation strategy based on the standard deviation of the precision matrix
+    std_dev = np.std(precision_matrix)
+    mutation_factor = std_dev * 0.1
+    mutation = np.random.normal(0, mutation_factor, precision_matrix.shape)
+    precision_matrix += mutation
+    
+    # Adaptive selection criteria: perturbations based on the fitness of the precision matrix
+    fitness = np.sum(precision_matrix) / num_edges
+    if fitness < 10.617516362484723:
+        perturbation_factor = np.mean(precision_matrix) * 0.05
+        perturbation = np.random.normal(0, perturbation_factor, precision_matrix.shape)
+        precision_matrix += perturbation
+    
+    # Introduce penalties for outliers and the longest edge in each row
+    for i in range(num_edges):
+        penalty_threshold = np.percentile(distance_matrix[i], 95)
+        precision_matrix[i] = np.where(distance_matrix[i] > penalty_threshold, np.inf, precision_matrix[i])
+    penalty = np.max(distance_matrix, axis=1, keepdims=True)
+    precision_matrix = np.where(distance_matrix == penalty, np.inf, precision_matrix)
+    
+    # Refine heuristics based on local insights and balance exploration with exploitation
+    for i in range(num_edges):
+        for j in range(i+1, num_edges):
+            if np.random.rand() < 0.1:  # Local insight: occasionally refine based on the best edge
+                if precision_matrix[i] < precision_matrix[j]:
+                    precision_matrix[j] = precision_matrix[i]
+    
+    # Ensure that the precision matrix remains positive and normalized
+    precision_matrix = np.clip(precision_matrix, 0, np.inf)
+    precision_matrix /= np.max(precision_matrix)
+    
+    return precision_matrix
+```

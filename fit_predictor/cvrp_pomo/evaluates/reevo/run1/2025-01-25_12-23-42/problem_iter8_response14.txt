@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = demands.unsqueeze(1)  # Ensure demands is a 2D tensor for broadcasting
+    distance_matrix_squared = distance_matrix ** 2
+    min_distance_to_depot = distance_matrix_squared[:, 0]  # Squared distance to depot
+    max_demand = torch.max(demands, dim=0)[0]  # Maximum demand in the network
+    
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Calculate the heuristic considering both the closest distance to the depot,
+    # the normalized distance, and the load factor. The load factor is subtracted
+    # from the heuristic to discourage visiting heavily loaded nodes.
+    heuristic = -norm_distances + min_distance_to_depot * max_demand
+    
+    # Introduce a small exploration element by adding a random noise to the heuristics.
+    noise = torch.randn_like(heuristics) * 0.1  # 0.1 is a small scaling factor for the noise
+    
+    # Blend the exploration with the existing heuristics using a weighted sum
+    # where the weight increases with the node load.
+    exploration_factor = node_loads * 0.5  # Adjust the weight as needed
+    heuristics = (1 - exploration_factor) * heuristic + exploration_factor * noise
+    
+    # Limit the heuristics to ensure they are within a reasonable range.
+    heuristics = torch.clamp(heuristics, min=-2.0, max=2.0)
+    
+    return heuristics
+```

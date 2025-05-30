@@ -1,0 +1,85 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Define a function to calculate the load factor for each edge
+    def load_factor(i, j):
+        return demands[i] + demands[j] - total_capacity
+    
+    # Calculate the load factor for each edge
+    load_factors = load_factor(distance_matrix.gt(0).nonzero(as_tuple=True)[0].unsqueeze(1),
+                               distance_matrix.gt(0).nonzero(as_tuple=True)[1])
+    
+    # Initialize PSO parameters
+    num_particles = 30
+    max_iterations = 100
+    w = 0.9
+    c1 = 1.5
+    c2 = 1.5
+    
+    # Initialize PSO variables
+    velocities = torch.randn(num_particles, n, n)
+    positions = torch.randint(0, n, (num_particles, n))
+    personal_best = torch.tensor([float('inf')] * num_particles)
+    global_best = torch.tensor([float('inf')])
+    
+    # PSO main loop
+    for _ in range(max_iterations):
+        # Update velocities
+        velocities = w * velocities + c1 * torch.rand(num_particles, n, n) * (personal_best.unsqueeze(1) - positions) + c2 * torch.rand(num_particles, n, n) * (global_best.unsqueeze(1) - positions)
+        
+        # Update positions
+        positions += velocities
+        
+        # Evaluate fitness
+        fitness = (load_factors * distance_matrix).sum(1)
+        for i in range(num_particles):
+            if fitness[i] < personal_best[i]:
+                personal_best[i] = fitness[i]
+                if fitness[i] < global_best:
+                    global_best = fitness[i]
+        
+        # Tabu search for local search
+        tabu_list = set()
+        for i in range(num_particles):
+            for _ in range(10):  # Local search iterations
+                current_position = positions[i].clone()
+                best_position = current_position.clone()
+                best_fitness = fitness[i]
+                
+                # Generate neighborhood
+                for j in range(n):
+                    for k in range(n):
+                        if (j, k) not in tabu_list and (k, j) not in tabu_list:
+                            new_position = current_position.clone()
+                            new_position[j], new_position[k] = new_position[k], new_position[j]
+                            new_fitness = (load_factors * distance_matrix[torch.arange(n), new_position]).sum(1)
+                            if new_fitness < best_fitness:
+                                best_position = new_position
+                                best_fitness = new_fitness
+                
+                # Update tabu list
+                tabu_list.add(tuple(best_position))
+                if len(tabu_list) > 10:
+                    tabu_list.pop(0)
+                
+                # Update personal best
+                if best_fitness < personal_best[i]:
+                    personal_best[i] = best_fitness
+                
+                # Update global best
+                if best_fitness < global_best:
+                    global_best = best_fitness
+    
+    # Calculate heuristics based on the global best position
+    for i in range(n):
+        for j in range(n):
+            if distance_matrix[i, j] > 0:
+                heuristics[i, j] = -1 * (load_factor(i, j) - total_capacity)
+    
+    return heuristics
+```

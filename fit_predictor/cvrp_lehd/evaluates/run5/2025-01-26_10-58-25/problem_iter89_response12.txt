@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate demand penalties
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Calculate distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties
+    combined_penalty_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Introduce a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.relu(combined_penalty_matrix)
+    
+    # Normalize the emphasized matrix
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Add Gaussian noise for randomness
+    noise_matrix = torch.randn_like(normalized_emphasized_matrix) * 1e-2
+    
+    # Introduce a second noise term for further randomness
+    second_noise_matrix = torch.randn_like(noise_matrix) * 1e-2
+    
+    # Combine the original noise with the second noise
+    combined_noise_matrix = noise_matrix + second_noise_matrix
+    
+    # Add the combined noise to the normalized emphasized matrix
+    noisy_emphasized_matrix = normalized_emphasized_matrix + combined_noise_matrix
+    
+    # Introduce mutation by adding a small random perturbation
+    mutation_factor = torch.rand_like(noisy_emphasized_matrix)
+    mutated_matrix = noisy_emphasized_matrix + torch.randn_like(noisy_emphasized_matrix) * 1e-3 * mutation_factor
+    
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -mutated_matrix
+    
+    return heuristics_matrix
+```

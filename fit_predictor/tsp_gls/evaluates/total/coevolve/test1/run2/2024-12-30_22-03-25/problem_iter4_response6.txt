@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    min_distances = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            min_distances[i, j] = np.min(distance_matrix[i, :]) + np.min(distance_matrix[:, j])
+    
+    # Calculate the total weight of the shortest path tree (not including the longest edge)
+    total_weight = np.sum(min_distances) - np.max(min_distances)
+    
+    # Define a penalty for edges that deviate from the shortest path tree
+    deviation_penalty = (distance_matrix - min_distances) * (distance_matrix < min_distances)
+    
+    # Incorporate node degree information, discouraging high degree nodes
+    degrees = np.sum(distance_matrix, axis=0)
+    penalty_for_high_degree = degrees / np.sum(degrees) * 0.5
+    
+    # Combine the deviation from the shortest path, penalty for high degree nodes, and a small constant
+    combined_heuristic = deviation_penalty + penalty_for_high_degree + 0.1
+    
+    # Avoid considering self-loops in the heuristic
+    np.fill_diagonal(combined_heuristic, np.inf)
+    
+    # Normalize by the total weight of the shortest path tree to ensure heuristic is admissible
+    combined_heuristic /= total_weight
+    
+    return combined_heuristic
+```

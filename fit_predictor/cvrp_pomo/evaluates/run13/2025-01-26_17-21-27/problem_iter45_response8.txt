@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Use a dynamic scaling for both distance and capacity penalties
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / n) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Incorporate a diversity factor to avoid getting trapped in local optima
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Introduce a dynamic adjustment for the penalty scaling based on the current load
+    penalty_adjustment = torch.abs(cumulative_demand - total_capacity / n)
+    penalty_adjustment = torch.where(penalty_adjustment > 1, torch.log1p(penalty_adjustment - 1), penalty_adjustment)
+    
+    # Combine penalties while balancing the need to optimize capacity and distance
+    heuristics = capacity_penalty + distance_penalty * (1 + diversity_factor) + penalty_adjustment
+    
+    # Apply strong scaling for the most critical objectives
+    strong_scaling_factor = 3.0
+    heuristics *= strong_scaling_factor
+    
+    return heuristics
+```

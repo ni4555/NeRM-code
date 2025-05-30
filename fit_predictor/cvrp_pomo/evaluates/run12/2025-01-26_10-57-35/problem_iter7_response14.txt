@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_matrix = (demands[:, None] * demands).triu(k=1) / (demands.sum() ** 2)
+    
+    # Calculate the cumulative demand from the depot to each node
+    cumulative_demand = demands.cumsum()
+    
+    # Calculate the capacity balance factor for each edge
+    capacity_balance_factor = cumulative_demand[:, None] - cumulative_demand[None, :]
+    
+    # Calculate the distance-based heuristic
+    distance_heuristic = distance_matrix * demand_matrix
+    
+    # Combine the capacity balance and distance-based heuristic
+    combined_heuristic = capacity_balance_factor * distance_heuristic
+    
+    # Normalize the heuristics based on the maximum possible capacity utilization
+    max_capacity_utilization = demands.max()
+    normalized_heuristics = combined_heuristic / max_capacity_utilization
+    
+    # Clip the negative values to zero, as they are undesirable
+    normalized_heuristics = torch.clamp(normalized_heuristics, min=0)
+    
+    return normalized_heuristics
+```

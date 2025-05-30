@@ -1,0 +1,16 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """This heuristic uses the Chebyshev distance to estimate the demand overflow for each edge,
+    and assigns higher values to edges with less overflow, assuming they are more promising."""
+    # Compute the Chebyshev distance between nodes, which is the maximum of the absolute differences
+    chebyshev_distance = torch.clamp(torch.abs(demands - demands.T), min=0)
+    # Compute the total demand for each vehicle if the corresponding edge is included
+    total_demand = distance_matrix + demands
+    # Normalize the total demand by the vehicle capacity to get the overflow
+    overflow = (total_demand > 1).float() * (1 - demands / (total_demand.clamp(min=1)))
+    # The heuristic value is inversely proportional to the overflow and the Chebyshev distance
+    heuristic_values = (1 - overflow) * (1 / (chebyshev_distance + 1e-8))
+    return heuristic_values
+```

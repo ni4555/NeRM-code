@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Use exponential decay to balance penalties over the route
+    decay_factor = 0.9
+    capacity_penalty = -torch.log(torch.abs(demands - total_capacity))
+    distance_penalty = -torch.log(torch.abs(distance_matrix))
+    # Apply the decay factor to both penalties
+    capacity_penalty *= decay_factor
+    distance_penalty *= decay_factor
+    # Use a non-linear transformation to scale the penalties
+    capacity_penalty = torch.exp(capacity_penalty)
+    distance_penalty = torch.exp(distance_penalty)
+    # Normalize the cumulative demand by the total capacity and depot
+    normalized_demand = (cumulative_demand / (cumulative_demand[0] + 1e-8))
+    # Apply a scaling factor to the distance penalty
+    distance_scaling = distance_penalty * (1 + normalized_demand)
+    heuristics = distance_scaling + capacity_penalty
+    return heuristics
+```

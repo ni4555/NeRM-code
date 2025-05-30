@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to ensure items are not dominated by high prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate a balance factor considering both sparsity and variance
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    balance_factor = sparsity_factor * inv_variance_factor
+    
+    # Incorporate diversity by adding a random component
+    np.random.seed(0)
+    diversity = np.random.normal(0, 0.02, size=normalized_prize.shape)
+    diversity = np.maximum(diversity, 0)  # Ensure non-negative diversity
+    balanced_prize = normalized_prize * balance_factor + diversity
+    
+    # Introduce sparsity by zeroing out low-value heuristic values
+    sparsity_threshold = np.percentile(balanced_prize, 20)  # Lower threshold for more sparsity
+    balanced_prize[balanced_prize < sparsity_threshold] = 0
+    
+    # Use a threshold to amplify the heuristics of items with higher potential
+    amplification_threshold = np.percentile(balanced_prize, 80)  # Higher threshold for more amplification
+    balanced_prize[balanced_prize > amplification_threshold] *= 1.3
+    
+    # Adapt thresholds dynamically based on the problem scale
+    if prize.size > 100:
+        sparsity_threshold = np.percentile(balanced_prize, 15)
+        amplification_threshold = np.percentile(balanced_prize, 85)
+    
+    # Refine the heuristics by iterating over the elements
+    for i in range(balanced_prize.shape[0]):
+        for j in range(balanced_prize.shape[1]):
+            if weight[i, j] > 0 and balanced_prize[i] > 0:
+                # Amplify the heuristic value based on the prize value
+                balanced_prize[i] *= prize[i] / np.sum(prize)
+    
+    # Normalize the final heuristics
+    heuristic_sum = np.sum(balanced_prize)
+    if heuristic_sum > 0:
+        balanced_prize /= heuristic_sum
+    
+    return balanced_prize
+```

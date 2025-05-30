@@ -1,0 +1,23 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Penalize edges based on the demand exceeding vehicle capacity
+    # The penalty is the difference between the current demand and vehicle capacity
+    penalty_matrix = (demands[:, None] - demands[None, :]).abs()
+    penalty_matrix[penalty_matrix > vehicle_capacity] = vehicle_capacity
+    
+    # Create a potential matrix combining the distance and demand-based penalties
+    potential_matrix = distance_matrix + penalty_matrix
+    
+    # Apply softmax to normalize the potential matrix into a probability distribution
+    softmax_matrix = F.softmax(potential_matrix, dim=1)
+    
+    # Subtract from 1 to convert probabilities into heuristics with negative values for undesirable edges
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

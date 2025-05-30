@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    normalized_demand = demands / total_demand
+    
+    # Calculate the weight of each edge based on the normalized demand and distance
+    edge_weights = -normalized_demand.unsqueeze(1) * normalized_demand.unsqueeze(0) * distance_matrix
+    
+    # Add a penalty for edges that go to nodes with high demand relative to the total demand
+    high_demand_penalty = (demands > 1.0).float() * -1000
+    
+    # Add a penalty for edges that lead to a potential overflow of vehicle capacity
+    capacity_penalty = demands.unsqueeze(1) * demands.unsqueeze(0) > 1.0
+    
+    # Consider the local neighborhood quality by adding a bonus for short distances
+    short_distance_bonus = (distance_matrix < 10.0).float() * 100
+    
+    # Combine the different weights and penalties
+    heuristics = edge_weights + high_demand_penalty + capacity_penalty + short_distance_bonus
+    
+    return heuristics
+```

@@ -1,0 +1,28 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    vehicle_capacity = demands.sum()
+    demands_normalized = demands / vehicle_capacity
+
+    # Calculate the penalty for each edge based on the normalized demand
+    demand_penalty_matrix = torch.abs(demands_normalized[:, None] - demands_normalized[None, :])
+
+    # Calculate the distance from the depot to each customer and vice versa
+    min_distance_to_customer = torch.min(distance_matrix[0, 1:], dim=0).values
+    min_distance_from_customer = torch.min(distance_matrix[1:, 0], dim=0).values
+
+    # Combine distance and demand-based penalties into a potential matrix
+    potential_matrix = distance_matrix + demand_penalty_matrix
+
+    # Normalize the potential matrix to form a probability distribution using softmax
+    epsilon = 1e-8
+    softmax_matrix = F.softmax(potential_matrix / (distance_matrix.mean() + epsilon), dim=1)
+
+    # Convert the probability distribution into heuristics by subtracting from 1
+    heuristics_matrix = 1 - softmax_matrix
+
+    return heuristics_matrix
+```

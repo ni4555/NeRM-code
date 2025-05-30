@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Calculate normalized prize to ensure all items are on the same scale
+    normalized_prize = prize / max_prize
+    
+    # Calculate the density of each item considering its contribution to the total prize
+    density = normalized_prize / np.mean(weight, axis=1)
+    
+    # Calculate a non-linear weight factor to discourage heavier items
+    non_linear_weight = np.exp(-np.sum(weight**2, axis=1))
+    
+    # Calculate the balance across dimensions using the average of the squared weights
+    balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Promote sparsity by encouraging items with zero weight in at least one dimension
+    sparsity = np.sum(weight == 0, axis=1)
+    
+    # Combine all factors to calculate a composite heuristic score
+    heuristic_score = (density * non_linear_weight * balance * (1 / (sparsity + 1))) * max_prize
+    
+    # Normalize the heuristic scores to make them comparable
+    max_score = np.max(heuristic_score)
+    normalized_heuristic_score = heuristic_score / max_score
+    
+    return normalized_heuristic_score
+```

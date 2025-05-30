@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Normalize distances to be within [0, 1]
+    norm_distances = distance_matrix / distance_matrix.max()
+    # Normalize demands to sum to 1
+    normalized_demands = demands / demands.sum()
+    # Calculate load factor for each customer node
+    load_factors = normalized_demands.unsqueeze(1)
+    # Calculate the sum of distances to all other nodes for each node
+    distance_sum = torch.sum(norm_distances, dim=1)
+    # Calculate the demand-based heuristic
+    demand_based_heuristic = load_factors * distance_sum
+    # Add a penalty for high load nodes
+    load_penalty = -torch.log(1 + (demands - demands.mean()) ** 2)
+    # Add a penalty for large distance differences between nodes
+    distance_diff_penalty = torch.abs(torch.cdist(demands.unsqueeze(0), demands.unsqueeze(1)) - demands.mean())
+    # Combine heuristics with penalties
+    combined_heuristic = demand_based_heuristic + load_penalty + distance_diff_penalty
+    # Limit the heuristics to a range that balances exploration and exploitation
+    heuristics = torch.clamp(combined_heuristic, -1, 1)
+    return heuristics
+```

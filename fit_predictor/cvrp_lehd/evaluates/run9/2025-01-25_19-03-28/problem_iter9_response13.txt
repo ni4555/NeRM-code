@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    max_demand = demands.max()
+    min_demand = demands.min()
+    demand_diff = max_demand - min_demand
+
+    # Dynamic penalty for variance and outliers using a Z-score normalization
+    z_scores = (demands - min_demand) / (max_demand - min_demand)
+    variance_penalty = -torch.clamp(z_scores ** 2, min=-1, max=0)
+
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, distance_matrix),
+        torch.mul(demand_diff, variance_penalty)
+    )
+
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-threshold, max=threshold)
+
+    return heuristic_matrix
+```

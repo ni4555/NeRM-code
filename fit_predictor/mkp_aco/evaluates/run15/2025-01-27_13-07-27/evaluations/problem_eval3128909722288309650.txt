@@ -1,0 +1,20 @@
+import numpy as np
+
+def heuristics_v2(prize, weight):
+    n = len(prize)
+    m = len(weight[0])
+    # Center and standardize the weights to have zero mean and unit variance along each dimension
+    weight_centered = weight - np.mean(weight, axis=1, keepdims=True)
+    weight_standardized = weight_centered / np.std(weight, axis=1, keepdims=True)
+    
+    # Perform PCA
+    pca_comps = np.linalg.eigvals(np.dot(weight_standardized.T, weight_standardized))
+    idx_sorted = np.argsort(pca_comps)[::-1]
+    weight_pca = weight_standardized[:, idx_sorted[:min(5, m)]]
+    
+    # Normalize the projected weights
+    weight_pca_normalized = np.sqrt(np.sum(weight_pca ** 2, axis=1, keepdims=True)) * (prize / np.sqrt(np.sum(weight ** 2, axis=1)))
+    
+    # Calculate heuristics
+    heuristics_matrix = np.sum(weight_pca_normalized * prize, axis=1)
+    return heuristics_matrix

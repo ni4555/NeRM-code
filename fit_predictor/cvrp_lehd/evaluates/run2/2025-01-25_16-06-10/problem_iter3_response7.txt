@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the negative distance heuristic as a penalty for longer paths
+    negative_distance_heuristic = -distance_matrix
+    
+    # Calculate the positive demand heuristic as an incentive for high demand nodes
+    demand_heuristic = demands * demands
+    
+    # Calculate the total capacity used so far for each edge, and use this as a penalty
+    total_capacity_used = demands.cumsum(dim=0)
+    capacity_used_heuristic = (total_capacity_used > demands).float() * -1000
+    
+    # Combine the three heuristics into a single tensor
+    combined_heuristic = negative_distance_heuristic + demand_heuristic + capacity_used_heuristic
+    
+    # Return the combined heuristic, ensuring it has the same shape as the distance matrix
+    return combined_heuristic
+```

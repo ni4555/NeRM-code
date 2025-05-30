@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_scale = demands / total_capacity
+    distance_scale = distance_matrix / distance_matrix.max()
+    combined_scale = -distance_scale * demand_scale
+
+    # Exclude the depot's demand from the scale calculation
+    combined_scale[1:, 1:] -= 1.0
+    combined_scale[1:, 1:][combined_scale[1:, 1:] < 0] = 0
+
+    # Include the heuristic for the edge to the depot
+    combined_scale[0, 1:] = demand_scale[1:]
+    combined_scale[1:, 0] = demand_scale[1:]
+
+    return combined_scale
+```

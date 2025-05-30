@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the distance matrix to emphasize shorter distances
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)
+    
+    # Calculate the normalized demand by dividing each demand by the sum of all demands
+    normalized_demand = demands / demands.sum()
+    
+    # Combine the inverse distance with the normalized demand
+    demand_weighted_distance_matrix = distance_matrix_inv * normalized_demand
+    
+    # Incorporate a term to emphasize nodes that are close to the depot
+    distance_to_depot = torch.abs(demands - demands[0])
+    depot_emphasis = 1 / (distance_to_depot + 1e-10)
+    
+    # The heuristic value is a combination of the demand-weighted distance and the depot emphasis
+    heuristic_values = demand_weighted_distance_matrix * depot_emphasis
+    return heuristic_values
+```

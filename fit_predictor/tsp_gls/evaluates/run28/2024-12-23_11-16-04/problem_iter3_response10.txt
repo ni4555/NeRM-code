@@ -1,0 +1,30 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the mean and standard deviation of the distances
+    mean_distance = np.mean(distance_matrix)
+    std_distance = np.std(distance_matrix)
+    
+    # Create a heuristic value based on the standard deviation and mean
+    # This encourages the inclusion of "normal" distances while penalizing deviations
+    heuristic_value = distance_matrix / (mean_distance + std_distance)
+    
+    # Introduce a penalty for edges that have high connectivity, as they might be in a cycle
+    # and are less likely to be included in an optimal path
+    # High connectivity is defined here as edges that are connected to more than 2 other nodes
+    high_connectivity_penalty = np.sum(distance_matrix, axis=0) > 2
+    
+    # Use conditional logic to tailor the penalty based on the distance
+    # Edges with extremely high distances get a higher penalty
+    high_distance_penalty = np.where(distance_matrix > mean_distance + 2 * std_distance, 1, 0)
+    high_connectivity_penalty = np.where(high_distance_penalty, 1, high_connectivity_penalty)
+    
+    # Combine the heuristic value and penalty into a single array
+    combined_heuristic = heuristic_value - high_connectivity_penalty
+    
+    # Normalize the combined heuristic to be within the range [0, 1]
+    combined_heuristic = (combined_heuristic - np.min(combined_heuristic)) / (np.max(combined_heuristic) - np.min(combined_heuristic))
+    
+    return combined_heuristic
+```

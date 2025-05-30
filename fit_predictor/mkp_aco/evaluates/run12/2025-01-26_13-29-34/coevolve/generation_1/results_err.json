@@ -1,0 +1,38 @@
+{
+  "generation": 1,
+  "description": "Optimizing MKP with a novel hybrid stochastic search algorithm leveraging advanced machine learning heuristics and adaptive constraint-based selection strategies, ensuring an integrated solution approach that balances computational efficiency and robustness through dynamic probability distribution adjustment and evolutionary population optimization techniques.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    heuristic_values = np.zeros(n)\n    \n    # Initialize a dynamic probability distribution\n    probability_distribution = np.ones(n) / n\n    \n    # Adaptive constraint-based selection strategy\n    for _ in range(100):  # Number of iterations can be adjusted for performance\n        selected_indices = np.random.choice(n, size=m, replace=False, p=probability_distribution)\n        \n        # Calculate the potential of each item based on machine learning heuristics\n        potential = np.dot(prize[selected_indices], weight[selected_indices])\n        \n        # Update the heuristic values based on potential and adaptive strategies\n        heuristic_values += potential / (m + 1)\n        \n        # Adjust the probability distribution based on the updated heuristic values\n        probability_distribution = heuristic_values / heuristic_values.sum()\n        \n        # Keep the probability distribution within bounds\n        probability_distribution = np.clip(probability_distribution, 0.0001, 0.9999)\n    \n    return heuristic_values",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by random selection",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom sklearn.gaussian_process import GaussianProcessRegressor\nfrom sklearn.gaussian_process.kernels import RBF, ConstantKernel as C\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = weight.shape\n    # Initialize a population with random weights\n    population = np.random.rand(n, m)\n    # Create a Gaussian Process for each dimension\n    kernels = [C(1.0, (1e-2, 1e2)) * RBF(10, (1e-2, 1e2)) for _ in range(m)]\n    gpr_models = [GaussianProcessRegressor(kernel=k) for k in kernels]\n    \n    # Evaluate the prize function for each population member\n    fitness_scores = np.apply_along_axis(lambda x: np.sum(prize * x), axis=1, arr=population)\n    \n    # Initialize the heuristic vector\n    heuristics = np.zeros(n)\n    \n    # Iteratively refine the heuristics using evolutionary algorithms\n    for _ in range(10):  # Perform 10 generations\n        # Evaluate the fitness of the current population\n        for i in range(n):\n            gpr_models = [model.fit(population[i], fitness_scores[i]) for model in gpr_models]\n            # Use the trained GPR models to predict the prize for different weights\n            weight_samples = np.random.rand(n, m)\n            predicted_prizes = np.array([model.predict(weight_samples) for model in gpr_models]).sum(axis=0)\n            # Update the heuristic based on the predicted prize\n            heuristics[i] = np.mean(predicted_prizes)\n        \n        # Selection: Choose parents based on the heuristics\n        parents_indices = np.argsort(heuristics)[::-1][:10]  # Keep top 10 parents\n        population = population[parents_indices]\n        \n        # Crossover and mutation to create new population\n        new_population = np.random.rand(n, m)\n        for i in range(n):\n            parent1, parent2 = population[i], population[np.random.randint(n)]\n            # Crossover (one-point crossover)\n            crossover_point = np.random.randint(m)\n            new_population[i] = np.concatenate([parent1[:crossover_point], parent2[crossover_point:]])\n            # Mutation (small random changes)\n            new_population[i] += np.random.normal(0, 0.01, new_population[i].shape)\n            new_population[i] = np.clip(new_population[i], 0, 1)\n        \n        # Evaluate the new fitness scores\n        new_fitness_scores = np.apply_along_axis(lambda x: np.sum(prize * x), axis=1, arr=new_population)\n        fitness_scores = np.concatenate([fitness_scores, new_fitness_scores])\n        \n        # Update population\n        population = np.concatenate([population, new_population])\n    \n    # Return the heuristic vector\n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by random selection",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    m = weight.shape[1]\n    heuristic = np.zeros_like(prize)\n    for i in range(m):\n        item_weights = weight[:, i]\n        total_weight = np.sum(item_weights)\n        weighted_prize = item_weights * prize\n        normalized_prize = weighted_prize / total_weight\n        heuristic += normalized_prize\n    return heuristic",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by random selection",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom sklearn.cluster import KMeans\nfrom scipy.stats import entropy\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    \n    # Initialize the probability distribution\n    probabilities = np.ones(n) / n\n    \n    # KMeans clustering to find initial clusters\n    kmeans = KMeans(n_clusters=m, random_state=0).fit(weight)\n    \n    # Calculate the entropy of the clusters\n    cluster_entropy = entropy(kmeans.labels_, probabilities)\n    \n    # Iterative optimization\n    for _ in range(100):\n        # Update probabilities based on the prize and weight\n        probabilities = (prize * (1 - weight)).sum(axis=1) / (1 - weight).sum(axis=1)\n        \n        # KMeans clustering with updated probabilities\n        kmeans.fit(weight)\n        \n        # Calculate the entropy of the clusters\n        new_cluster_entropy = entropy(kmeans.labels_, probabilities)\n        \n        # If entropy decreases, continue; otherwise, adjust probabilities\n        if new_cluster_entropy < cluster_entropy:\n            cluster_entropy = new_cluster_entropy\n        else:\n            probabilities = np.ones(n) / n\n    \n    # Calculate the heuristics based on the final probabilities\n    heuristics = probabilities * (prize * (1 - weight)).sum(axis=1)\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 8, in <module>\n    import gpt\n  File \"E:\\Projects\\CO\\reevo-main\\problems\\mkp_aco\\gpt.py\", line 3, in <module>\n    from sklearn.cluster import KMeans\nModuleNotFoundError: No module named 'sklearn'\n",
+      "stdout_file": "coevolve\\generation_1\\stdout_2.txt",
+      "code_file": "coevolve\\generation_1\\code_2.py"
+    }
+  ]
+}

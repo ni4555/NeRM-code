@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # 1. Precise Demand Handling
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Cumulative demand mask
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    
+    # 2. Capacity Constraint Prioritization
+    # Edge feasibility mask
+    edge_capacity_impact = distance_matrix * cumulative_demand
+    
+    # 3. Clear Edge Evaluation
+    # Define a clear and objective evaluation method for edges
+    # Use a combination of distance and demand impact
+    edge_evaluation = (1 / (1 + edge_capacity_impact)) * distance_matrix
+    
+    # 4. Optimization Strategies
+    # Enhance demand impact by increasing the weight of cumulative demand
+    demand_impact_weight = torch.where(edge_evaluation > 0, 2.0, 1.0)
+    edge_evaluation *= demand_impact_weight
+    
+    # Penalize long distances
+    long_distance_penalty = torch.where(distance_matrix > 100, -5.0, 0.0)
+    edge_evaluation += long_distance_penalty
+    
+    # Balance evaluations by normalizing the evaluation scores
+    edge_evaluation = torch.log1p(edge_evaluation)  # Logarithmic transformation for normalization
+    
+    # Apply gradient ascent-like approach to enhance promising edges
+    gradient_ascent = torch.where(edge_evaluation > 0, edge_evaluation, 0.0)
+    edge_evaluation += gradient_ascent
+    
+    # Normalize the evaluation to ensure a balanced approach
+    edge_promise = edge_evaluation / edge_evaluation.max()
+    
+    return edge_promise
+```

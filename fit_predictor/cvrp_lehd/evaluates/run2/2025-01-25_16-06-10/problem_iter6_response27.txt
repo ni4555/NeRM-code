@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Vectorized calculation of the cumulative demand
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Vectorized edge-based heuristic values
+    edge_based_heuristics = distance_matrix - demand_cumsum
+
+    # Set edges that cannot be visited due to capacity constraint
+    edge_mask = demands[:, None] + demands.T > total_demand
+    edge_based_heuristics[~edge_mask] = -float('inf')
+
+    # Apply return-to-depot heuristic
+    return_to_depot_mask = demands[:, None] > total_demand - demands.T
+    heuristics += edge_based_heuristics * (1 - return_to_depot_mask)
+    heuristics[1:, 0] = heuristics[1:, 0].clamp(min=0)
+
+    return heuristics
+```

@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize prize to ensure items are not dominated by high prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Dynamic thresholds based on the distribution of normalized prizes
+    mean_threshold = np.mean(normalized_prize)
+    median_threshold = np.median(normalized_prize)
+    lower_quartile_threshold = np.percentile(normalized_prize, 25)
+    
+    # Use value-to-weight ratio as a heuristic for each item
+    value_to_weight_ratio = normalized_prize / weight.sum(axis=1)
+    
+    # Combine factors to determine how promising an item is
+    exploration_exploitation = value_to_weight_ratio + (mean_threshold - normalized_prize)
+    diversity = np.random.normal(0, 0.02, size=value_to_weight_ratio.shape)
+    balanced_score = exploration_exploitation + diversity
+    
+    # Amplify items with higher potential
+    amplified_scores = np.where(balanced_score > median_threshold, balanced_score * 1.2, balanced_score)
+    
+    # Apply sparsity optimization by setting low-score items to zero
+    sparsity_threshold = lower_quartile_threshold + (median_threshold - lower_quartile_threshold) * 0.5
+    sparse_scores = np.where(amplified_scores > sparsity_threshold, amplified_scores, 0)
+    
+    # Normalize the final heuristics
+    heuristic_sum = np.sum(sparse_scores)
+    if heuristic_sum > 0:
+        sparse_scores /= heuristic_sum
+    
+    return sparse_scores
+```

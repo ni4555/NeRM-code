@@ -1,0 +1,29 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics array with zeros
+    heuristics = np.zeros_like(prize)
+    
+    # Calculate the total weight for each dimension
+    total_weight = np.sum(weight, axis=0)
+    
+    # Calculate the cumulative prize and weight for each item
+    cumulative_prize = np.zeros_like(prize)
+    cumulative_weight = np.zeros_like(prize)
+    cumulative_prize[0] = prize[0]
+    cumulative_weight[0] = weight[0, 0]
+    
+    for i in range(1, len(prize)):
+        cumulative_prize[i] = cumulative_prize[i-1] + prize[i]
+        cumulative_weight[i] = cumulative_weight[i-1] + weight[i, 0]
+    
+    # Iterate over each item and calculate the heuristics value
+    for i in range(len(prize)):
+        for j in range(i+1, len(prize)):
+            # Check if adding the next item would exceed the weight limit
+            if cumulative_weight[j] <= total_weight[0]:
+                # Calculate the heuristic value as the difference in prize
+                heuristics[i] = max(heuristics[i], cumulative_prize[j] - cumulative_prize[i])
+    
+    return heuristics

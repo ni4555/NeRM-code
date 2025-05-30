@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    # Normalize demand for each node
+    normalized_demands = demands / total_demand
+    # Normalize the distance matrix
+    normalized_distance_matrix = distance_matrix / distance_matrix.max()
+    # Calculate the heuristic value based on normalized demand and distance
+    heuristic_values = torch.abs(1.0 - normalized_distance_matrix) - normalized_demands
+    # Apply a logarithmic transformation to penalize larger distances
+    distance_penalty = torch.log(distance_matrix + 1)  # Adding 1 to avoid log(0)
+    # Incorporate domain-specific penalties
+    domain_penalty = torch.log(1 + demands)  # Penalizing larger demands
+    # Combine all penalties into the final heuristic
+    return heuristic_values + distance_penalty + domain_penalty
+```

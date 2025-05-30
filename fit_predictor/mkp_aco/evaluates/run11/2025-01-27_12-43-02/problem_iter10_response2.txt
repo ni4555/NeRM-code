@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    
+    # Calculate the relevance score based on the normalized weights
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    relevance_score = np.sum(prize * normalized_weights, axis=1)
+    
+    # Normalize the relevance score to get a percentage
+    normalized_relevance = relevance_score / np.sum(relevance_score)
+    
+    # Calculate a diversity score using the inverse of the prize, normalized
+    diversity_score = -np.log(1 / (prize + 1e-8)) / np.sum(-np.log(1 / (prize + 1e-8)))
+    
+    # Combine relevance and diversity scores
+    combined_score = normalized_relevance + diversity_score
+    
+    # Dynamically determine sparsity thresholds using percentiles
+    sparsity_thresholds = np.percentile(combined_score, np.linspace(0, 100, num=11)[1:])
+    
+    # Create heuristics based on thresholds
+    heuristics = np.zeros_like(combined_score)
+    for threshold in sparsity_thresholds:
+        heuristics += (combined_score > threshold).astype(float)
+    
+    # Normalize heuristics to ensure maximum is 1
+    heuristics /= np.max(heuristics)
+    
+    return heuristics.astype(int)
+```

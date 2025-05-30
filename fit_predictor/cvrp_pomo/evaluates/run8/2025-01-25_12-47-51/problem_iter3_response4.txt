@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+
+    # Normalize demands and distances
+    normalized_demands = demands / total_demand
+    normalized_distance_matrix = distance_matrix / total_demand
+
+    # Nearest-neighbor heuristic: Prioritize shortest distance
+    nearest_neighbor = normalized_distance_matrix.sum(dim=1)
+
+    # Greedy heuristic: Prioritize nodes by demand
+    sorted_indices = torch.argsort(normalized_demands)[::-1]
+    greedy = torch.zeros_like(nearest_neighbor)
+    cumulative_demand = 0
+    for i in range(n):
+        greedy[sorted_indices[i]] = nearest_neighbor[sorted_indices[i]]
+        cumulative_demand += demands[sorted_indices[i]]
+        if cumulative_demand >= 1:
+            break
+
+    # Domain-specific heuristic: Balance local and global by incorporating capacity
+    demand_normalized_matrix = demands / torch.sum(demands)
+    remaining_capacity = 1 - demand_normalized_matrix
+    capacity_weighted_distance = remaining_capacity * normalized_distance_matrix
+
+    # Combine heuristics and penalize edges with insufficient capacity
+    combined_heuristic = (nearest_neighbor + greedy + capacity_weighted_distance) / 3
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    return combined_heuristic
+```

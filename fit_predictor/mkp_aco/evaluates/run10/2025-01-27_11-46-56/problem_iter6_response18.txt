@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    max_utility = utility.max(axis=1)
+    diversity_factor = np.sum((utility - max_utility[:, np.newaxis])**2, axis=1)
+    
+    # Calculate the mean and standard deviation of the utility scores
+    mean_utility = np.mean(utility, axis=1)
+    std_dev_utility = np.std(utility, axis=1)
+    
+    # Dynamic adjustment based on utility distribution
+    threshold = max_utility + 0.5 * std_dev_utility / np.mean(mean_utility)
+    
+    # Apply a smooth transition for heuristics to encourage diversity
+    heuristic = max_utility + np.exp(-diversity_factor / (threshold + 1))
+    
+    # Ensure that the heuristics do not become negative
+    heuristic = np.clip(heuristic, 0, None)
+    return heuristic
+```

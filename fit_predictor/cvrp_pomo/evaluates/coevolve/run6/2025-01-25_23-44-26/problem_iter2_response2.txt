@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    # Note: We add a small constant to avoid division by zero
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Calculate a demand-based heuristic where high demand edges are penalized
+    demand_penalty = -torch.sum(normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0), dim=0)
+    
+    # Calculate a load balancing factor by considering the absolute difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Incorporate time dynamics with a time factor that increases as time of day progresses
+    # Assuming a time factor that is higher for later times
+    time_factor = torch.rand(distance_matrix.shape[0])
+    time_heuristic = 1 / (1 + time_factor.unsqueeze(1) * time_factor.unsqueeze(0))
+    
+    # Combine the heuristics using a weighted sum
+    combined_heuristic = demand_penalty + distance_heuristic + load_balance * time_heuristic
+    
+    # Normalize to ensure non-negative values
+    min_val = combined_heuristic.min()
+    combined_heuristic = combined_heuristic - min_val
+    
+    return combined_heuristic
+```

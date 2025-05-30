@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the distance matrix and demands by the vehicle capacity
+    normalized_distance = distance_matrix / demands[0]
+    normalized_demand = demands / demands[0]
+
+    # Calculate the cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(normalized_demand, dim=0)
+
+    # Initialize a tensor for heuristics with the same shape as the distance matrix
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Loop through all customer nodes
+    for i in range(1, len(demands)):
+        # Calculate the cost to move from the previous node to the current node
+        # and subtract the potential benefit if adding this node to the route
+        edge_cost = normalized_distance[i, i-1] - (cumulative_demand[i] - cumulative_demand[i-1])
+        
+        # Calculate the potential benefit as a negative exponential of the distance
+        potential_benefit = -torch.exp(-normalized_distance[i, i-1])
+
+        # Combine the edge cost and potential benefit to create the heuristic value
+        heuristics[i, i-1] = edge_cost + potential_benefit
+        heuristics[i-1, i] = -heuristics[i, i-1]
+    
+    # Set the heuristic for the depot to the first node to zero
+    heuristics[0, 1] = 0
+    heuristics[1, 0] = 0
+
+    return heuristics
+```

@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    max_utility = utility.max(axis=1)
+    
+    # Add exploration using noise to promote diversity
+    noise = np.random.normal(0, 0.01, size=utility.shape)
+    exploration_utility = max_utility + noise
+    
+    # Introduce domain knowledge: prioritize items with high utility and low weight
+    domain_informed_heuristics = (utility + (1 - utility) * (normalized_weight.sum(axis=1) / max_utility)) / 2
+    
+    # Balance exploitation and exploration
+    balance_factor = 0.5  # This can be adjusted based on the problem context
+    balanced_heuristics = balance_factor * exploration_utility + (1 - balance_factor) * domain_informed_heuristics
+    
+    # Normalize the heuristics to ensure a consistent scale
+    balanced_heuristics = (balanced_heuristics - balanced_heuristics.min()) / (balanced_heuristics.max() - balanced_heuristics.min())
+    
+    # Set unpromising elements to zero to sparsify the heuristics
+    sparsified_heuristics = np.where(balanced_heuristics > 0.5, balanced_heuristics, 0)
+    
+    return sparsified_heuristics
+```

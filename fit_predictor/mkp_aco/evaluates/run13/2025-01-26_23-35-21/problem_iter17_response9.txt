@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic array with zeros
+    heuristic = np.zeros_like(prize)
+    
+    # Sort items by prize in descending order to prioritize high-value items
+    sorted_indices = np.argsort(prize)[::-1]
+    
+    # Calculate normalized weight for each item
+    normalized_weight = weight / np.sum(weight, axis=1, keepdims=True)
+    
+    # Initialize a mask for feasible items
+    feasible_mask = np.ones(len(prize), dtype=bool)
+    
+    for i in sorted_indices:
+        # Calculate the potential heuristic value for the current item
+        current_heuristic = prize[i] / np.sum(normalized_weight)
+        
+        # Check if the item can be included without violating the constraints
+        if np.all(normalized_weight * weight[i] <= 1):
+            # Update the heuristic and normalize weights
+            heuristic[i] = current_heuristic
+            normalized_weight = normalized_weight * (1 - weight[i])
+            
+            # Mark the item as included and update the feasible mask
+            feasible_mask[i] = False
+    
+    # Normalize the heuristic values
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Penalize items that do not meet the single dimension constraint
+    normalized_heuristic[~feasible_mask] = 0
+    
+    return normalized_heuristic
+```

@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Calculate density based on prize and average weight
+    average_weight = np.mean(weight, axis=1)
+    density = prize / average_weight
+    
+    # Calculate constraint balance for each item
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate diversity based on the standard deviation of weights
+    std_dev = np.std(weight, axis=1)
+    diversity = 1 / (1 + std_dev)
+    
+    # Calculate the ratio of prize to the sum of prizes
+    prize_ratio = prize / np.sum(prize)
+    
+    # Calculate the overall utility as a weighted sum of factors
+    utility = density * 0.4 * constraint_balance * 0.2 * diversity * 0.2 * prize_ratio
+    
+    # Normalize utility to ensure it's within a certain range to avoid overfitting
+    utility_normalized = (utility - np.min(utility)) / (np.max(utility) - np.min(utility))
+    
+    # Calculate sparsity based on the ratio of utility to maximum prize
+    sparsity = (utility_normalized > 0.5) * 1.0
+    
+    # Normalize the utility to ensure that the heuristics sum to 1
+    normalized_utility = utility_normalized * sparsity / np.sum(utility_normalized * sparsity)
+    
+    # Return the heuristics scores
+    return normalized_utility
+```

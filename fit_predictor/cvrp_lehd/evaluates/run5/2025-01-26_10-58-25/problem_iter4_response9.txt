@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = len(demands)
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the cumulative demand for each edge
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the heuristic values for the edges based on the sum of distances to all customers
+    for i in range(n):
+        if i == 0:  # For the depot
+            heuristics[i, 1:] = cumulative_demand[:i+1].sum() + distance_matrix[0, 1:].sum()
+        else:
+            heuristics[i, 1:] = cumulative_demand[:i+1].sum() - distance_matrix[i-1, 1:].sum()
+    
+    # Normalize the heuristics values to ensure they are in the range [0, 1]
+    max_value = heuristics.max()
+    min_value = heuristics.min()
+    heuristics = (heuristics - min_value) / (max_value - min_value)
+    
+    return heuristics
+```

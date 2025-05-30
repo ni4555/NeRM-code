@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the distance matrix to prioritize short edges
+    distance_matrix_inv = 1 / (distance_matrix + 1e-8)  # Add a small value to avoid division by zero
+    
+    # Calculate the demand-based heuristic by multiplying demand and inverse distance
+    demand_based_heuristic = demands * distance_matrix_inv
+    
+    # Normalize the heuristic by the sum of demands to get a comparable scale
+    demand_sum = torch.sum(demands)
+    normalized_heuristic = demand_based_heuristic / demand_sum
+    
+    # Create a matrix with a range of values from -1 to 1 based on the normalized heuristic
+    heuristic_matrix = 2 * (normalized_heuristic - 0.5) + 1
+    
+    # Set the values below zero to zero, which represents undesirable edges
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=0)
+    
+    return heuristic_matrix
+```

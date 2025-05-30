@@ -1,0 +1,60 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    heuristic = np.zeros((n,))
+
+    # Initialize reinforcement learning model with pre-trained weights
+    # For demonstration, we assume these weights are based on item utility
+    rl_weights = np.load('rl_weights.npy')
+
+    # Initialize adaptive constraint-driven filtering parameters
+    alpha = 0.1  # Learning rate for adaptive filtering
+    threshold = 0.95  # Threshold for feasibility
+
+    # Initialize particle swarm optimization parameters
+    particles = np.random.rand(n, n)
+    velocities = np.random.rand(n, n)
+    best_position = particles
+    best_fitness = heuristic
+
+    # Deep reinforcement learning for real-time decision-making
+    for episode in range(1000):
+        for i in range(n):
+            action = np.random.choice([0, 1], p=[1 - rl_weights[i], rl_weights[i]])
+            if action == 1:
+                if weight[i].any() > threshold:
+                    rl_weights[i] *= (1 - alpha)
+                heuristic[i] = np.sum(prize[i])
+            else:
+                heuristic[i] = 0
+
+    # Adaptive constraint-driven filtering to maintain multi-dimensional feasibility
+    for episode in range(1000):
+        for i in range(n):
+            if np.any(weight[i] > threshold):
+                heuristic[i] = 0
+            else:
+                heuristic[i] *= (1 - alpha)
+
+    # Particle swarm optimization for evolutionary swarm intelligence
+    for iteration in range(100):
+        for i in range(n):
+            for j in range(n):
+                velocities[i][j] = 0.5 * velocities[i][j] + 0.1 * (best_position[i][j] - particles[i][j])
+                particles[i][j] += velocities[i][j]
+            if heuristic[i] > best_fitness[i]:
+                best_position[i] = particles[i]
+                best_fitness[i] = heuristic[i]
+
+    # Refine RL for better item scoring by incorporating dynamic constraints
+    for i in range(n):
+        for j in range(n):
+            if weight[i].any() > threshold:
+                rl_weights[i] *= (1 - alpha)
+
+    heuristic = best_fitness
+
+    return heuristic
+```

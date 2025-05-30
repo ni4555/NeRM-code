@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    # Dynamically scale the distance penalty based on cumulative demand
+    distance_scaling = distance_penalty * (1 + cumulative_demand)
+    # Introduce a demand balance factor that penalizes large fluctuations in demand
+    demand_balance_factor = (cumulative_demand[1:] - cumulative_demand[:-1]).abs()
+    demand_balance_penalty = -torch.log1p(demand_balance_factor - 1e-8)
+    # Combine penalties into a single heuristic
+    heuristics = distance_scaling + capacity_penalty + demand_balance_penalty
+    return heuristics
+```

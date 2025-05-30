@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    
+    # Avoid division by zero in cases where cumulative_distances might be zero
+    with torch.no_grad():
+        safe_distances = torch.where(cumulative_distances == 0, torch.tensor(1.0e-8), cumulative_distances)
+    
+    # Calculate the heuristic values based on the ratio of cumulative demand to cumulative distance
+    heuristic_matrix = cumulative_demands / safe_distances
+    
+    # Incorporate a non-linear transformation using a sigmoid function
+    heuristic_matrix = torch.sigmoid(heuristic_matrix)
+    
+    # Calculate the demand penalty based on the difference between cumulative demand and individual demand
+    demand_penalty = (cumulative_demands - demands) / cumulative_distances
+    penalty_threshold = torch.mean(demand_penalty)
+    penalty_matrix = torch.where(demand_penalty > penalty_threshold, -demand_penalty, torch.zeros_like(demand_penalty))
+    
+    # Adjust the heuristic matrix by adding the penalty matrix
+    heuristic_matrix = heuristic_matrix + penalty_matrix
+    
+    # Normalize the heuristic matrix to ensure all values are within the range [-1, 1]
+    min_val = torch.min(heuristic_matrix)
+    max_val = torch.max(heuristic_matrix)
+    normalized_heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    # Scale the normalized heuristic matrix to the range [-1, 1]
+    scaled_heuristic_matrix = 2 * normalized_heuristic_matrix - 1
+    
+    return scaled_heuristic_matrix
+```

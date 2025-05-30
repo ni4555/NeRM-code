@@ -1,0 +1,36 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+
+    # Adjust the average demand per edge to be relative to the total capacity
+    adjusted_average_demand = average_demand_per_edge / total_capacity
+
+    # Apply a sigmoid function to balance the penalty for load imbalance
+    sigmoid_factor = torch.sigmoid(adjusted_average_demand - 1)
+    load_imbalance_penalty = (1 - sigmoid_factor) * torch.log(1 + adjusted_average_demand)
+
+    # Calculate a cost for edges that are too heavily loaded
+    heavy_load_penalty = torch.clamp(average_demand_per_edge - 1, min=0) * 0.5
+
+    # Combine penalties and scale the heuristics
+    heuristics = (load_imbalance_penalty + heavy_load_penalty) / (1 + torch.mean(load_imbalance_penalty + heavy_load_penalty))
+
+    # Apply a normalization factor to scale the heuristics between -1 and 1
+    heuristics = F.hardsigmoid(heuristics * 2) - 1
+
+    # Set edges with zero distance to zero
+    heuristics[distance_matrix == 0] = 0
+
+    return heuristics
+```

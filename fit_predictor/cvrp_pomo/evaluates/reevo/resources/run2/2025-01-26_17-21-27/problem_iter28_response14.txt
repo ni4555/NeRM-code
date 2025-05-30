@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Demand-based penalty inversely proportional to the cumulative demand
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    scaled_capacity_penalty = capacity_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Distance penalty inversely proportional to the remaining capacity
+    remaining_capacity = total_capacity - cumulative_demand
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    scaled_distance_penalty = distance_penalty * (1 + remaining_capacity / total_capacity)
+    
+    # Introduce a penalty for edges leading from the depot to maintain diversity
+    depot_penalty = torch.arange(n) == 0
+    depot_penalty = depot_penalty.float().unsqueeze(0)
+    
+    # Integrate multiple penalties with balancing factors
+    alpha = 0.5  # Balance between demand and distance
+    beta = 1.5   # Positive scaling constant for balancing
+    heuristics = alpha * scaled_distance_penalty + (1 - alpha) * scaled_capacity_penalty
+    
+    # Apply a penalty for the depot to return to itself
+    heuristics[0] = -1000
+    
+    # Encourage diversity by adding a penalty for edges that have high similarity
+    # to the depot's edges (i.e., close to the diagonal)
+    diversity_penalty = torch.abs(distance_matrix - torch.diag(distance_matrix))
+    diversity_penalty = diversity_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Combine diversity penalty with other penalties
+    heuristics += beta * diversity_penalty
+    
+    return heuristics
+```

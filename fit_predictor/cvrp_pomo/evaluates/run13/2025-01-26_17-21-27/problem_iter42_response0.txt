@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_per_customer = total_capacity / n
+    
+    # Initialize heuristics matrix with negative values to promote non-choice of these edges
+    heuristics = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Detect early overflow and apply penalty
+    overflow_penalty = torch.where(
+        cumulative_demand > total_capacity,
+        -torch.log1p(cumulative_demand - total_capacity - 1e-8),
+        torch.zeros_like(distance_matrix)
+    )
+    heuristics += overflow_penalty
+    
+    # Apply dynamic load balancing penalty
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - capacity_per_customer) - 1e-8)
+    heuristics += load_balance_penalty
+    
+    # Normalize the heuristics to ensure they are within a reasonable range
+    heuristics = (1 + heuristics) / (1 + heuristics).max()
+    
+    # Apply penalties for the depot to return to itself
+    heuristics[0, 0] = -1000
+    
+    return heuristics
+```

@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Introduce randomness through permutation of the customers based on demand
+    indices = torch.argsort(demands[1:])  # Skip the depot demand
+    random_permutation_matrix = torch.eye(demands.numel())[indices]
+    
+    # Combine the original potential matrix with the permuted potential matrix
+    combined_potential_matrix = potential_matrix + torch.bmm(potential_matrix.unsqueeze(1), random_permutation_matrix.unsqueeze(0))
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(combined_potential_matrix))
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Introduce diversity through the use of multiple distance penalties
+    diversity_matrix = distance_penalty_matrix * torch.sigmoid(potential_matrix)
+    
+    # Combine the normalized emphasized matrix with the diversity matrix
+    combined_matrix = normalized_emphasized_matrix + diversity_matrix
+    
+    # Normalize the combined matrix to maintain balance
+    normalized_combined_matrix = combined_matrix / combined_matrix.sum(dim=1, keepdim=True)
+    
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -normalized_combined_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,30 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the density of each item (prize/weight)
+    density = prize / np.sum(weight, axis=1)
+    
+    # Calculate the diversity of each item (1 / sum of each dimension's weight)
+    diversity = 1 / np.sum(weight, axis=1)
+    
+    # Calculate the quality of each item (sum of its weight in each dimension)
+    quality = np.sum(weight, axis=1)
+    
+    # Combine density, diversity, and quality, and normalize by max value
+    combined = (density + diversity + quality) / (np.max(density + diversity + quality) + 1e-8)
+    
+    # Apply a penalty for high variance in weights to encourage sparsity
+    variance_penalty = np.exp(-3 * np.var(weight, axis=1))
+    
+    # Adjust combined score to include variance penalty
+    adjusted_combined = combined * variance_penalty
+    
+    # Set a threshold to sparsify the heuristics
+    threshold = 0.5
+    
+    # Create heuristics array
+    heuristics = np.where(adjusted_combined >= threshold, adjusted_combined, 0)
+    
+    return heuristics
+```

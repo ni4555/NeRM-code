@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate cumulative demand and distance from the depot to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    cumulative_distance = torch.cumsum(distance_matrix, dim=0)
+    
+    # Calculate the relative demand-to-distance ratio
+    relative_demand_to_distance = cumulative_demand / cumulative_distance
+    
+    # Apply a logarithmic transformation to reduce the influence of outliers
+    log_transform = torch.log(relative_demand_to_distance)
+    
+    # Subtract the maximum log-transformed value to ensure all values are negative
+    min_log_value = torch.min(log_transform)
+    heuristic_matrix = log_transform - min_log_value
+    
+    # Normalize the heuristic matrix to a range of [-1, 1]
+    max_log_value = torch.max(log_transform)
+    normalized_heuristic = heuristic_matrix / (max_log_value - min_log_value)
+    
+    # Multiply by -2 to get a range of [-2, 2] and add 1 to shift the range to [-1, 1]
+    final_heuristic = -2 * normalized_heuristic + 1
+    
+    return final_heuristic
+```

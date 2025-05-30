@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    max_demand = demands.max()
+    
+    # Demand factor: increase the value of edges leading to high demand nodes
+    demand_factor = (demands - max_demand / 2) / (max_demand / 2)
+    
+    # Local balance factor: favor edges with moderate length and demand
+    local_balance_factor = torch.where(
+        (torch.abs(distance_matrix) < 2 * torch.mean(torch.abs(distance_matrix))) & (demands > 0),
+        demands / total_capacity * torch.abs(distance_matrix),
+        0
+    )
+    
+    # Global balance factor: minimize the effect of long distance edges
+    global_balance_factor = 1 / (1 + torch.exp(torch.abs(distance_matrix) / torch.mean(torch.abs(distance_matrix))))
+    
+    # Refine distance scaling: decrease the weight of distant edges
+    distance_scaling = 1 / (1 + torch.exp(-distance_matrix / torch.mean(torch.abs(distance_matrix))))
+    
+    # Combine the factors into the heuristics matrix
+    heuristic_matrix = demand_factor + local_balance_factor + global_balance_factor + distance_scaling
+    
+    # Avoid loops by penalizing returning to the depot from a customer without visiting other customers
+    loop_penalty = heuristic_matrix[:, 0] - heuristic_matrix[0, :]
+    heuristic_matrix[:, 0] = heuristic_matrix[:, 0].clamp(min=-loop_penalty.min())
+    heuristic_matrix[0, :] = heuristic_matrix[0, :].clamp(min=-loop_penalty.max())
+    
+    # Normalize the heuristics matrix to ensure non-negative values
+    heuristic_matrix = heuristic_matrix.clamp(min=0)
+    
+    # Adjust the heuristics for the depot to all other nodes
+    depot_distance = distance_matrix[:, 0]
+    for i in range(1, n):
+        route_demand = demands[i] + (total_capacity - demands.sum())
+        heuristic_matrix[0, i] = -route_demand * depot_distance[i]
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    return heuristic_matrix
+```

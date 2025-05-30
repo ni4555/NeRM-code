@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate a penalty for nodes with demand greater than capacity
+    demand_penalty = -torch.abs(demands - vehicle_capacity)
+    
+    # Normalize demand penalty to scale with vehicle capacity
+    normalized_demand_penalty = (demand_penalty / vehicle_capacity) * 10
+    
+    # Apply a distance penalty to balance the cost of visiting faraway nodes
+    distance_penalty = -torch.log(distance_matrix + 1e-6)
+    
+    # Create a matrix combining both penalties with a focus on non-linear distance penalty
+    combined_penalty_matrix = 0.5 * normalized_demand_penalty + 0.5 * distance_penalty
+    
+    # Scale down the combined penalties to ensure they don't outweigh the distance factor
+    scaled_penalty_matrix = combined_penalty_matrix / torch.sum(combined_penalty_matrix)
+    
+    # Non-linearly emphasize nodes that are not within the vehicle capacity
+    heuristics_matrix = torch.where(scaled_penalty_matrix > 1, scaled_penalty_matrix, torch.zeros_like(scaled_penalty_matrix))
+    
+    # Apply an exponential transformation to increase the weight of penalties on unsuitable edges
+    heuristics_matrix = torch.exp(heuristics_matrix)
+    
+    return heuristics_matrix
+```

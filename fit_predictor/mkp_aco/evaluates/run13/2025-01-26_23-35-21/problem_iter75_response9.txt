@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic array with zeros
+    heuristics = np.zeros_like(prize)
+    
+    # Iterate through each item
+    for i in range(len(prize)):
+        # Normalize prize by sum of weights for dimensionality balance
+        normalized_prize = prize[i] / np.sum(weight[i])
+        
+        # Normalize weight by max weight for sparsity measure
+        normalized_weight = weight[i] / np.max(weight[i])
+        
+        # Calculate dominance score (negative as higher score means less dominating)
+        dominance_score = -np.sum(normalized_prize * normalized_weight)
+        
+        # Prune dominated items
+        dominated = False
+        for j in range(len(prize)):
+            if j != i:
+                # Normalize opponent's prize and weight
+                opponent_normalized_prize = prize[j] / np.sum(weight[j])
+                opponent_normalized_weight = weight[j] / np.max(weight[j])
+                
+                # Calculate opponent's dominance score
+                opponent_dominance_score = -np.sum(opponent_normalized_prize * opponent_normalized_weight)
+                
+                # If current item is dominated, break out of the loop
+                if dominance_score < opponent_dominance_score:
+                    dominated = True
+                    break
+        
+        # If not dominated, calculate heuristic value
+        if not dominated:
+            # Randomness factor to introduce exploration
+            randomness_factor = np.random.rand()
+            heuristic = normalized_prize - dominance_score - randomness_factor
+            heuristics[i] = heuristic
+    
+    return heuristics
+```

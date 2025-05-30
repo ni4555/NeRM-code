@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    penalty_threshold = torch.tensor(1.0, dtype=distance_matrix.dtype)
+    penalty = torch.clamp(torch.abs(cumulative_demand - penalty_threshold), min=0, max=1)
+
+    global_stats = torch.mean(distance_matrix[1:, 1:])  # Exclude the diagonal
+    adjusted_weights = distance_matrix / global_stats
+
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, adjusted_weights),
+        penalty
+    )
+
+    smoothed_heuristic_matrix = torch.tanh(heuristic_matrix)  # Smooths and clamps between -1 and 1
+    normalized_heuristic_matrix = smoothed_heuristic_matrix / (torch.abs(smoothed_heuristic_matrix).max() + 1e-8)
+
+    return normalized_heuristic_matrix
+```

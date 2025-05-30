@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristic array
+    n = prize.shape[0]
+    heuristics = np.zeros(n)
+    
+    # Randomly shuffle indices for diversity
+    indices = np.arange(n)
+    np.random.shuffle(indices)
+    
+    # Normalize the prize and calculate the ratio of prize to sum of weights
+    normalized_prize = prize / np.sum(prize)
+    prize_to_weight_ratio = prize / np.sum(weight, axis=1)
+    
+    # Use a mix of value-to-weight ratio and normalized prize as a heuristic
+    heuristics = normalized_prize * prize_to_weight_ratio
+    
+    # Add a penalty for high sparsity by subtracting the sum of weights
+    heuristics -= np.sum(weight, axis=1)
+    
+    # Introduce a diversity factor by penalizing repeated values
+    for i in range(n):
+        for j in range(i + 1, n):
+            if prize[i] == prize[j]:
+                heuristics[j] -= 0.1
+    
+    # Avoid dominance by limiting the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    heuristics = np.clip(heuristics, 0, max_heuristic)
+    
+    # Normalize heuristics to ensure they sum to 1 for stochastic selection
+    heuristics /= np.sum(heuristics)
+    
+    # Apply a final tweak to the heuristics to favor balance between high density and low sparsity
+    for i in range(n):
+        # Calculate the balance metric
+        balance_metric = normalized_prize[i] / (1 + sparsity[i])
+        heuristics[i] += balance_metric
+    
+    return heuristics
+```

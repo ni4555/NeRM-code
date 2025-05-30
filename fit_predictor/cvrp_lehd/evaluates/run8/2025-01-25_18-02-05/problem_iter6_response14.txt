@@ -1,0 +1,56 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the distance matrix
+    distance_matrix_min = torch.min(distance_matrix)
+    normalized_distance_matrix = (distance_matrix - distance_matrix_min) / (torch.max(distance_matrix) - distance_matrix_min)
+    
+    # Calculate the inverse of the normalized distance matrix
+    distance_matrix_inv = 1 / (normalized_distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    # Calculate the product of demand and inverse distance for each edge
+    demand_distance_product = demands * distance_matrix_inv
+    
+    # Normalize the product by the total vehicle capacity to get a demand-based heuristic
+    normalized_demand = demands / demands.sum()
+    demand_based_heuristic = demand_distance_product * normalized_demand
+    
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distance = torch.cumsum(normalized_distance_matrix, dim=0)
+    
+    # Calculate the cumulative demand-to-distance ratio as we move along each edge
+    cumulative_ratio = cumulative_demand / cumulative_distance
+    
+    # Calculate the inverse cumulative ratio to penalize longer paths
+    inverse_cumulative_ratio = 1 / (cumulative_ratio + 1e-8)
+    
+    # Calculate the average demand range
+    demand_range = torch.abs(torch.diff(demands)).mean()
+    
+    # Create a matrix of the same shape as the distance matrix with the demand range
+    demand_range_matrix = torch.full_like(distance_matrix, demand_range)
+    
+    # Combine heuristics: demand-based, inverse cumulative ratio, and demand range
+    combined_heuristic = demand_based_heuristic * 0.6 + inverse_cumulative_ratio * 0.4 + demand_range_matrix * 0.2
+    
+    # Normalize the combined heuristic matrix by the sum of demands to ensure it's on a comparable scale
+    demand_sum = demands.sum()
+    normalized_combined_heuristic = combined_heuristic / demand_sum
+    
+    # Apply a sigmoid function to transform the normalized heuristic into a range of [0, 1]
+    # Then, scale the range to [-1, 1] to indicate desirable edges
+    heuristic_matrix = 2 * torch.sigmoid(normalized_combined_heuristic) - 1
+    
+    # To ensure that the heuristic values are within the range [-1, 1], we can bound the values
+    # However, since we are using -1 to represent undesirable edges, we only need to ensure the
+    # positive values are bounded. We do this by taking the minimum of the threshold and the
+    # normalized heuristic matrix.
+    threshold_fraction = 0.9
+    threshold = torch.max(torch.abs(heuristic_matrix)) * threshold_fraction
+    heuristic_matrix = torch.where(heuristic_matrix < 0, -1 * torch.clamp(torch.abs(heuristic_matrix), min=0, max=threshold),
+                                   torch.clamp(heuristic_matrix, min=-threshold, max=threshold))
+    
+    return heuristic_matrix
+```

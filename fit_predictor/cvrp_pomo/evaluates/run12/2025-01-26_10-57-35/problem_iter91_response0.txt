@@ -1,0 +1,49 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison and normalization
+    demand_matrix = (demands[:, None] * demands - torch.diag(demands)) / demands.sum()
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Apply capacity-based scaling and dampen demand's influence
+    capacity_factor = (1 / (demands + 1e-8)) * demand_matrix
+    
+    # Combine weighted distance and capacity factor
+    heuristics = weighted_distance_matrix + capacity_factor
+    
+    # Log scale for balancing demand and distance
+    heuristics = torch.log1p(heuristics)
+    
+    # Apply dampening factor
+    dampening_factor = 0.95
+    heuristics *= dampening_factor
+    
+    # Apply capacity emphasis
+    capacity_emphasis_factor = 1.1
+    heuristics *= capacity_emphasis_factor
+    
+    # Ensure that the heuristic for the depot is the highest
+    heuristics[0, :] += 1  # or any other high value
+    heuristics[:, 0] += 1  # or any other high value
+    
+    # Minimize loops and dominated edges
+    loop_minimization_factor = 0.1
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = loop_minimization_factor * loop_heuristics[loop_heuristics > 0]
+    heuristics += loop_heuristics
+    
+    dominated_edges = heuristics.unsqueeze(1) + heuristics.unsqueeze(0) - heuristics.unsqueeze(2)
+    dominated_edges[dominated_edges > 0] = 0
+    dominated_edges = dominated_edges.view(n, n, n)
+    dominated_edges = dominated_edges.min(dim=2)[0]
+    heuristics = torch.max(heuristics, dominated_edges)
+    
+    # Normalize the heuristics
+    max_heuristic = heuristics.max()
+    normalized_heuristics = heuristics / max_heuristic
+    
+    return normalized_heuristics
+```

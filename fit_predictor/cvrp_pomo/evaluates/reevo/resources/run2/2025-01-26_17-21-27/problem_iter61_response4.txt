@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    load_balance_threshold = torch.max(torch.abs(torch.cumsum(demands[1:], dim=0)), torch.abs(torch.cumsum(demands[:-1], dim=0)))
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+
+    # Scaled dynamic capacity penalty for edges that could lead to overflow
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - (total_capacity / n))) if demands.min() < (total_capacity / n) else 0
+    overflow_penalty = -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8) * torch.isnan(dynamic_capacity_penalty)
+    dynamic_capacity_penalty += overflow_penalty
+
+    # Weighted distance penalty based on the balance of current load
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix)) * load_balance_threshold / torch.sum(load_balance_threshold)
+
+    # Modulate penalties by the degree of demand imbalance and early return
+    imbalances = torch.abs(cumulative_demand - total_capacity_vector)
+    penalty_modulation = torch.log1p(imbalances / total_capacity)
+    penalties = torch.cat((dynamic_capacity_penalty, distance_penalty, penalty_modulation), dim=1)
+
+    # Introduce a diversity factor to avoid overfitting and improve exploration
+    diversity_factor = torch.randn_like(distance_matrix)
+    diversity_factor *= 0.2 / (torch.norm(diversity_factor, p=2) + 1e-8)
+
+    # Combine the penalties and diversity with a balanced objective weight
+    heuristics = torch.matmul(penalties, torch.nn.functional.normalize(diversity_factor, dim=1))
+
+    return heuristics
+```

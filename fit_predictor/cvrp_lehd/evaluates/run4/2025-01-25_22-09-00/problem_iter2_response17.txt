@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic for the CVRP, considering demand, distance, and dampening factors."""
+    total_demand = demands.sum()
+    # Normalize demands by total demand
+    normalized_demands = demands / total_demand
+    # Calculate the potential contribution of each edge
+    potential = -distance_matrix * normalized_demands
+    # Apply a dampening factor to penalize longer distances
+    dampen = torch.exp(-distance_matrix / 10)
+    # Combine potential and dampening, then normalize the potential contribution
+    heuristics = (potential * dampen) / (potential * dampen).sum()
+    # Normalize the heuristics to have a range between -1 and 1
+    min_val = heuristics.min()
+    max_val = heuristics.max()
+    heuristics = 2 * (heuristics - min_val) / (max_val - min_val) - 1
+    return heuristics
+```

@@ -1,0 +1,35 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize weights by summing across dimensions
+    weight_normalized = np.sum(weight, axis=1)
+    
+    # Calculate the importance of each item based on prize to normalized weight ratio
+    item_importance = prize / weight_normalized
+    
+    # Incorporate domain insights for balanced variance and sparsity
+    variance_factor = np.var(item_importance)
+    sparsity_factor = 1 - (np.sum(weight**2, axis=1) / weight_normalized**2)
+    
+    # Emphasize item variance for exploration
+    variance_weighted_importance = item_importance * (1 + variance_factor)
+    
+    # Integrate randomness to balance exploration with exploitation
+    randomness_factor = np.random.rand(len(item_importance))
+    adjusted_importance = variance_weighted_importance * randomness_factor
+    
+    # Normalize importance to balance between high-value items and diverse selection
+    normalized_importance = adjusted_importance / np.sum(adjusted_importance)
+    
+    # Set a sparsity factor to encourage sparsity in the solution
+    sparsity_weight = 1 - sparsity_factor
+    
+    # Combine normalized importance with sparsity factor
+    heuristics = normalized_importance * sparsity_weight
+    
+    # Normalize heuristics to encourage variety without uniformity
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

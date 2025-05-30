@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Demand-driven sorting: prioritize edges based on demand and remaining capacity
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+    demand_and_capacity = scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0) * remaining_capacity
+    _, sorted_indices = torch.sort(demand_and_capacity, dim=0, descending=True)
+
+    # Global view: consider the average distance from the depot to each node
+    average_distance = distance_matrix[:, 0].mean()
+    distance_from_depot = distance_matrix[:, 0] - average_distance
+
+    # Local demand and distance: use a dampened factor to balance local preferences
+    dampened_distance = distance_from_depot * 0.5
+
+    # Precomputed stats: calculate penalties for capacity overflows and distance
+    capacity_overflow_penalty = (scaled_demands > 1.0).float() * 1000.0
+    distance_penalty = dampened_distance * 100
+
+    # Vectorized operations: compute the heuristics for each edge
+    heuristics = demand_and_capacity[sorted_indices]
+
+    # Combine the heuristic values with the penalties
+    combined_penalties = torch.max(capacity_overflow_penalty, distance_penalty)
+    heuristics = torch.where(combined_penalties > 0, combined_penalties, heuristics)
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    if max_heuristic != min_heuristic:
+        heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        # Avoid division by zero
+        heuristics = torch.ones_like(heuristics)
+
+    return heuristics
+```

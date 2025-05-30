@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray, local_optimal_route: np.ndarray) -> np.ndarray:
+    # Initialize the prior indicators matrix with zeros
+    prior_indicators = np.zeros_like(distance_matrix)
+
+    # Calculate the mean distance for each edge's neighbors
+    neighbors_mean = (distance_matrix[:, :-1].mean(axis=1) +
+                      distance_matrix[:, 1:].mean(axis=1)) / 2
+    
+    # Calculate the deviation from the mean for each edge
+    deviations = distance_matrix - neighbors_mean
+    
+    # Normalize the deviations to ensure they are within the range of [0, 1]
+    deviations = (deviations - deviations.min()) / (deviations.max() - deviations.min())
+
+    # Contextualize changes by penalizing edges in the current route more
+    current_route_edges = np.zeros(distance_matrix.shape, dtype=bool)
+    for i in range(len(local_optimal_route) - 1):
+        start = local_optimal_route[i]
+        end = local_optimal_route[i + 1]
+        current_route_edges[start, end] = True
+        current_route_edges[end, start] = True
+    badness = deviations
+    badness[current_route_edges] *= 1.5  # Increase penalty
+
+    # Encourage diversification by balancing exploration and exploitation
+    # Use the current route to identify edges that are part of the diversification strategy
+    diversification_indices = np.where(np.diff(local_optimal_route) == 1)[0]
+    diversification_edges = local_optimal_route[diversification_indices]
+    badness[diversification_edges] *= 0.5  # Decrease penalty for diversification
+
+    # Normalize measures by scaling the badness values
+    prior_indicators = badness
+    prior_indicators = (prior_indicators - prior_indicators.min()) / (prior_indicators.max() - prior_indicators.min())
+
+    return prior_indicators
+```

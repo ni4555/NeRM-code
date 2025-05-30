@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Enhanced heuristic that incorporates demand-based savings and considers demand constraints."""
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    # Assuming all vehicles have the same capacity as the total demand
+    capacity = demands.sum()
+    
+    # Calculate the savings for each edge
+    savings = (distance_matrix**2 - torch.clamp(distance_matrix, min=1e-8)) * (demands[:, None] - demands[None, :])
+    
+    # Calculate the cumulative demand at each node if visited
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Create a mask to check if adding a node exceeds the vehicle capacity
+    demand_mask = cumulative_demand <= capacity
+    
+    # Apply savings heuristic and demand-based adjustments
+    adjusted_savings = savings * demand_mask
+    
+    # Add a penalty for edges that exceed the vehicle capacity
+    # Using the fact that the first node is the depot, we can't exceed capacity before reaching it
+    for i in range(1, n):
+        adjusted_savings[i] -= adjusted_savings[i - 1]
+        adjusted_savings[i] = torch.where(adjusted_savings[i] < 0, torch.zeros_like(adjusted_savings[i]), adjusted_savings[i])
+    
+    # Normalize the adjusted savings to the range of [0, 1] for comparison
+    adjusted_savings /= adjusted_savings.sum()
+    
+    return adjusted_savings
+```

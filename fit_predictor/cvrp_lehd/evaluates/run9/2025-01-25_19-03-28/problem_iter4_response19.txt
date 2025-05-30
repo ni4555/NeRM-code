@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic based on a combination of demand, distance, and normalized demand
+    # Incorporate demand variance as a factor to penalize nodes with highly varying demands
+    demand_variance = torch.var(normalized_demands)
+
+    # Use the variance to calculate a demand-based penalty
+    demand_penalty = -demand_variance * normalized_demands
+
+    # Calculate a distance-based penalty that discourages long distances
+    distance_penalty = -distance_matrix
+
+    # Normalize the demands and add penalties to the heuristics matrix
+    heuristic_matrix = torch.add(
+        torch.add(demand_penalty, distance_penalty),
+        torch.log(1 + demands)  # Logarithmic demand to penalize outliers
+    )
+
+    # Normalize the heuristic matrix to ensure it is within a specific range
+    heuristic_matrix = heuristic_matrix / (heuristic_matrix.abs().max() + 1e-10)
+
+    return heuristic_matrix
+```

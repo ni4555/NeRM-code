@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_per_weight = prize / np.sum(weight, axis=1)
+    diversity_factor = np.sum(weight, axis=1) / (np.linalg.norm(weight, axis=1) + 1e-8)
+    normalized_prize = prize / np.sum(prize)
+    sparsity = 1 / (np.linalg.norm(weight, axis=1) + 1e-8)
+    utility_factor = value_per_weight * diversity_factor * normalized_prize * sparsity
+    
+    # Incorporating domain-specific constraints by emphasizing items with higher utility per weight
+    domain_specific_factor = utility_factor / (1 + np.log1p(utility_factor))
+    
+    # Normalizing scores to ensure that all values are on a comparable scale
+    normalized_scores = domain_specific_factor / np.max(domain_specific_factor)
+    
+    # Filtering low scores based on a sparsity threshold
+    sparsity_threshold = 0.1
+    low_scores = normalized_scores < sparsity_threshold
+    normalized_scores[low_scores] = 0
+    
+    # Adjusting scale of scores to make them more interpretable
+    scaled_scores = normalized_scores * 100
+    
+    return scaled_scores
+```

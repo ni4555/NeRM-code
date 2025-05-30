@@ -1,0 +1,30 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Prune dominated items
+    non_dominated_items = np.where(np.max(prize / np.sum(weight, axis=1)[:, np.newaxis], axis=0) == prize)[0]
+    
+    # Normalize prize to balance high and low values
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Normalize weights to consider their importance
+    normalized_weight = (np.sum(weight, axis=1) - np.min(np.sum(weight, axis=1))) / (np.max(np.sum(weight, axis=1)) - np.min(np.sum(weight, axis=1)))
+    
+    # Use random sampling to introduce randomness and explore the solution space
+    random_factor = np.random.rand(len(weight))
+    
+    # Combine the metrics
+    heuristic_value = normalized_prize * normalized_weight * random_factor
+    
+    # Introduce sparsity to reduce the density of the heuristics
+    sparsity_factor = 1 / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Adjust the heuristic values based on sparsity
+    adjusted_heuristic = heuristic_value * sparsity_factor
+    
+    # Set zero weights to a small value to maintain diversity
+    adjusted_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return adjusted_heuristic
+```

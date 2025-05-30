@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the start node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Calculate the cumulative cost to visit nodes starting from the depot
+    cumulative_cost = torch.cumsum(distance_matrix[0], dim=1)
+    # Calculate the potential cost for each edge by considering the cumulative demand and cost
+    potential_costs = cumulative_demand * cumulative_cost
+    # Normalize potential costs to get promising indicators
+    normalized_potential_costs = potential_costs / torch.max(potential_costs)
+    # Return a matrix with negative values for undesirable edges and positive values for promising ones
+    # Undesirable edges are those with higher normalized potential costs
+    return torch.where(normalized_potential_costs < 1, normalized_potential_costs, -torch.inf)
+```

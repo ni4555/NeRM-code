@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on weighted sum of prizes, normalize by dimension-specific weight limits
+    for i in range(n):
+        total_prize = np.sum(prize[i] * weight[i])
+        total_weight = np.sum(weight[i])
+        item_heuristic = total_prize / total_weight if total_weight != 0 else 0
+        
+        # Incorporate sparsity by penalizing items with high weight relative to their prize
+        sparsity_factor = (1 - (total_weight / m))
+        
+        # Combine the heuristic with the sparsity factor
+        heuristic[i] = item_heuristic * sparsity_factor
+    
+    # Normalize heuristics to account for the overall maximum heuristic value
+    max_heuristic = np.max(heuristic)
+    heuristic /= max_heuristic
+    
+    # Adaptive mechanism to prioritize valuable subsets
+    # Increase heuristic values for items with high relative value
+    adaptive_factor = np.exp(-np.sum(weight, axis=1))
+    heuristic *= adaptive_factor
+    
+    # Further adjust heuristics to prevent local optima
+    # Introduce a randomness factor to avoid getting stuck in local optima
+    random_factor = np.random.rand(n)
+    heuristic = heuristic * random_factor
+    
+    # Ensure compliance with dimension-specific weight limits by adjusting heuristics
+    # Normalize by the minimum weight per dimension to prevent overfitting to any single dimension
+    min_weight_per_dim = np.min(weight, axis=1)
+    normalized_weight = weight / min_weight_per_dim[:, np.newaxis]
+    compliance_factor = np.exp(-np.sum(normalized_weight, axis=1))
+    heuristic *= compliance_factor
+    
+    return heuristic
+```

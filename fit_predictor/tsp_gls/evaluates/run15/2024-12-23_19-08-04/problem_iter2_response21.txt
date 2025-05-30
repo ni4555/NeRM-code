@@ -1,0 +1,22 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the usage of each edge
+    num_trips = np.sum(distance_matrix, axis=0) + np.sum(distance_matrix, axis=1) - len(distance_matrix) * (len(distance_matrix) - 1)
+    edge_usage = 1 / (num_trips + 1e-5)  # Avoid division by zero
+
+    # Adjust distances based on usage to avoid local minima
+    adjusted_distances = distance_matrix * (1 - edge_usage)
+
+    # Normalize the adjusted distances for even impact
+    min_val = np.min(adjusted_distances)
+    max_val = np.max(adjusted_distances)
+    normalized_distances = (adjusted_distances - min_val) / (max_val - min_val)
+
+    # Add a penalty for highly used edges to encourage diversity
+    penalty_factor = 0.1
+    normalized_distances *= (1 + penalty_factor * edge_usage)
+
+    return normalized_distances
+```

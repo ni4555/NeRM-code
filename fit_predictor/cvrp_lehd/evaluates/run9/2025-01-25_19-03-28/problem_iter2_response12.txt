@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic considering normalized demand, distance, and demand inverse
+    distance_squared = distance_matrix ** 2
+    demand_inverse = 1 / (normalized_demands + 1e-8)  # Avoid division by zero
+
+    # Use a weighted sum where distance and demand play a role in determining the heuristic
+    # The weights are chosen to balance the importance of distance and demand
+    # We use negative for distance to penalize longer routes and positive for demand to prioritize high-demand nodes
+    weights = torch.tensor([0.5, -0.3, 0.2])  # Example weights, can be tuned
+    heuristic_matrix = torch.sum(torch.stack([normalized_demands, -distance_squared, demand_inverse]) * weights, dim=0)
+
+    return heuristic_matrix
+```

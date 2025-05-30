@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate explicit penalties for capacity violations and edges to the depot
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+
+    # Apply dampening factors for penalties
+    penalty = torch.clamp(capacity_penalty.unsqueeze(0) + capacity_penalty.unsqueeze(1), min=0.0)
+    depot_dampening_factor = 0.1
+    distance_dampening_factor = 0.5
+    depot_penalty *= depot_dampening_factor
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 30
+    distance_penalty = torch.clamp(distance_penalty, min=0.0) * distance_dampening_factor
+
+    # Emphasize incentives for feasible paths
+    exploration_incentive = torch.clamp(remaining_capacity / remaining_capacity.max(), min=0.0)
+    incentive = (exploration_incentive.unsqueeze(0) * exploration_incentive.unsqueeze(1)) - (exploration_incentive * exploration_incentive)
+
+    # Combine penalties and incentives, and dampen depot and distance penalties
+    heuristic_matrix = penalty - (depot_penalty + distance_penalty) + incentive
+
+    # Normalize heuristic values
+    min_heuristic = heuristic_matrix.min()
+    max_heuristic = heuristic_matrix.max()
+    heuristic_matrix = (heuristic_matrix - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Apply a non-linear transformation
+    heuristics = torch.relu(heuristic_matrix)
+
+    # Balance distribution to ensure they sum to 1
+    heuristics /= heuristics.sum()
+
+    # Ensure all values are within [0, 1]
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

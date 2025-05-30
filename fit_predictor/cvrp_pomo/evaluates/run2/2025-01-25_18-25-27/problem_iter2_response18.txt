@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Initialize heuristics matrix with zeros
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    # Calculate the total demand for each node (including the depot's own demand)
+    total_demand = (demands + 1)  # +1 for the depot's own demand
+    # Normalize the demand by the total vehicle capacity
+    demand_normalized = demands / demands.sum()
+    # Compute the heuristics matrix using a demand-based weighting
+    heuristics_matrix = -total_demand * (demand_normalized[:, None] - demand_normalized[None, :])
+    # Add a penalty for edges leading to the depot to encourage spreading out routes
+    depot_penalty = torch.ones_like(demand_normalized) * -1e6
+    heuristics_matrix[:, 0] += depot_penalty
+    heuristics_matrix[0, :] += depot_penalty
+    return heuristics_matrix
+```

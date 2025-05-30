@@ -1,0 +1,40 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize a usage matrix with zeros
+    usage_matrix = np.zeros_like(distance_matrix)
+    
+    # Calculate the number of times each edge is used in the distance matrix
+    for i in range(distance_matrix.shape[0]):
+        for j in range(i + 1, distance_matrix.shape[1]):  # Only calculate for one direction to avoid double counting
+            usage_matrix[i, j] = usage_matrix[j, i] = np.sum((distance_matrix[:, i] == distance_matrix[j, :]) & 
+                                                          (distance_matrix[:, j] == distance_matrix[i, :]))
+
+    # Define penalty factors
+    usage_penalty = 0.1
+    connectivity_penalty = 0.05
+    diversity_penalty = 0.05
+    
+    # Adjust the distance matrix based on usage and connectivity
+    adjusted_matrix = distance_matrix + usage_penalty * (usage_matrix ** 2)
+    adjusted_matrix += connectivity_penalty * (np.sum(distance_matrix ** 2, axis=0) ** 2)
+    
+    # Encourage diversity by increasing the penalty for edges that are similar to the shortest edges
+    min_edge_distance = np.min(distance_matrix, axis=1)
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if distance_matrix[i, j] < min_edge_distance[i] + diversity_penalty:
+                adjusted_matrix[i, j] += diversity_penalty * (distance_matrix[i, j] - min_edge_distance[i])
+    
+    # Apply a balance factor to reward short edges
+    balance_factor = 0.5
+    for i in range(adjusted_matrix.shape[0]):
+        for j in range(adjusted_matrix.shape[1]):
+            adjusted_matrix[i, j] *= (1 + balance_factor / (1 + adjusted_matrix[i, j]))
+    
+    # Ensure that the distances remain positive
+    adjusted_matrix = np.maximum(adjusted_matrix, np.finfo(np.float64).eps)
+    
+    return adjusted_matrix
+```

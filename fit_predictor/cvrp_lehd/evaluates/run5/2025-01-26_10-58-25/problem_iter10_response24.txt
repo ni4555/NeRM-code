@@ -1,0 +1,21 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+
+    # Emphasize short distances and capacity constraints
+    # Use a non-linear function that reduces the penalty for smaller distances
+    # and increases the penalty for violating capacity constraints
+    distance_matrix = F.relu(distance_matrix)
+    penalty_matrix = torch.exp(penalty_matrix)
+
+    # Combine the distance and demand penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_matrix
+
+    # Normalize the potential matrix to ensure a range of values and get the heuristics matrix
+    heuristics_matrix = (potential_matrix - potential_matrix.min()) / (potential_matrix.max() - potential_matrix.min())
+    return heuristics_matrix
+```

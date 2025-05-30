@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on value-to-weight ratio
+    for i in range(n):
+        value_to_weight_ratio = prize[i] / weight[i].sum()
+        heuristic[i] = value_to_weight_ratio
+    
+    # Introduce diversity factor
+    unique_weights = np.unique(weight, axis=0)
+    diversity_factor = np.sum((weight == unique_weights).any(axis=1)) / n
+    heuristic *= diversity_factor
+    
+    # Adaptive exploration strategy
+    mean_heuristic = np.mean(heuristic)
+    exploration_exploitation_factor = 1 / (1 + np.exp((heuristic - mean_heuristic) / 0.1))
+    heuristic *= exploration_exploitation_factor
+    
+    # Penalize items with non-essential weight
+    non_essential_weight_items = weight.sum(axis=1) > m * 0.1
+    heuristic[non_essential_weight_items] = 0
+    
+    # Normalize the heuristic values
+    heuristic = (heuristic - np.min(heuristic)) / (np.max(heuristic) - np.min(heuristic))
+    
+    # Introduce a mutation mechanism to enhance diversity
+    mutation_strength = np.random.rand()
+    mutation = np.random.rand(n) * mutation_strength
+    heuristic += mutation
+    
+    # Ensure the heuristic values are within a reasonable range
+    heuristic = np.clip(heuristic, 0, 1)
+    
+    return heuristic
+```

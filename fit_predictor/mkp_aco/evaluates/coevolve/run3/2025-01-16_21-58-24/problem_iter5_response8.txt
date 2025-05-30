@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate a penalty factor for outliers based on the percentile of the ratio
+    penalty_factor = np.abs(value_to_weight_ratio - np.percentile(value_to_weight_ratio, 75))
+    
+    # Normalize the penalty factor
+    max_penalty = np.max(penalty_factor)
+    penalty_factor = penalty_factor / max_penalty
+    
+    # Calculate a density factor based on the ratio
+    density_factor = value_to_weight_ratio / np.mean(value_to_weight_ratio)
+    
+    # Combine the normalized ratio with the penalty and density factors
+    combined_heuristics = value_to_weight_ratio * (1 - penalty_factor + density_factor)
+    
+    # Apply a threshold to the heuristics
+    threshold = 0.5
+    heuristics = np.where(combined_heuristics > threshold, combined_heuristics, 0)
+    
+    # Add a mutation step to introduce diversity
+    mutation_rate = 0.1
+    random_indices = np.random.choice(len(combined_heuristics), int(len(combined_heuristics) * mutation_rate), replace=False)
+    heuristics[random_indices] = 1 - heuristics[random_indices]
+    
+    return heuristics
+```

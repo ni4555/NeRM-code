@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    demands = demands[1:]  # Exclude depot node from demand calculation
+    demand_sum = demands.sum()
+    demand_diff = (demands[:, None] + demands[None, :]) / 2
+    demand_diff -= torch.diag(demand_diff)
+    inverse_distance = 1 / (distance_matrix + 1e-8)  # Adding a small value to avoid division by zero
+
+    # Calculate initial heuristics as a function of demand difference and inverse distance
+    heuristics = demand_diff * inverse_distance
+
+    # Incorporate demand-based weighting
+    demand_weight = (demands > 0).float()
+    heuristics *= demand_weight
+
+    # Normalize the heuristics
+    max_heuristic = heuristics.max()
+    normalized_heuristics = heuristics / max_heuristic
+
+    # Adjust heuristics to prioritize edges with higher cumulative demand contribution
+    for i in range(1, n):
+        for j in range(1, n):
+            # Calculate cumulative contribution of edges to demand i
+            cumulative_contribution = normalized_heuristics[:, i].sum() - normalized_heuristics[i, j]
+            # Update heuristic if cumulative contribution is low
+            normalized_heuristics[i, j] = max(normalized_heuristics[i, j], cumulative_contribution)
+
+    # Ensure that heuristics do not exceed 1 (capacity constraint)
+    normalized_heuristics = torch.clamp(normalized_heuristics, max=1.0)
+
+    # Incorporate the demand sum in the heuristic normalization to account for overall vehicle capacity
+    normalized_heuristics /= (max_heuristic + 1e-8)
+
+    return normalized_heuristics
+```

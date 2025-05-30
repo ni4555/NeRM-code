@@ -1,0 +1,55 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning component
+    model_scores = np.random.rand(n)
+
+    # Initialize adaptive constraint-driven filtering
+    constraints = np.sum(weight, axis=1) <= 1
+    feasible_items = constraints.astype(bool)
+
+    # Initialize Particle Swarm Optimization (PSO) parameters
+    velocities = np.random.rand(n)
+    positions = np.random.rand(n)
+    personal_best_scores = np.copy(model_scores)
+    global_best_score = -np.inf
+    global_best_index = 0
+
+    # Simulate PSO evolution for a set number of iterations
+    for _ in range(100):
+        # Update velocities
+        velocities = 0.8 * velocities + 0.2 * np.random.randn(n)
+
+        # Update positions based on velocities, ensuring feasibility
+        positions = np.clip(positions + velocities, 0, 1)
+        positions[~feasible_items] = positions[~feasible_items]
+
+        # Evaluate the current scores
+        current_scores = model_scores * positions * (prize / (prize[global_best_index] + 1e-6))
+
+        # Update personal bests if the current scores are better
+        for i in range(n):
+            if current_scores[i] > personal_best_scores[i]:
+                personal_best_scores[i] = current_scores[i]
+                if current_scores[i] > global_best_score:
+                    global_best_score = current_scores[i]
+                    global_best_index = i
+
+    # Update heuristics based on model scores, PSO positions, and feasibility
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            heuristic[i] = personal_best_scores[i]
+
+    # Sparsify heuristics by setting less promising items to zero based on a dynamic threshold
+    sparsity_threshold = np.percentile(heuristic[feasible_items], 75)
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    return heuristic
+```

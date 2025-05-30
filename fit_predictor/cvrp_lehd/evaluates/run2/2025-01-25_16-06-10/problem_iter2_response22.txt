@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that incorporates additional factors."""
+    # Normalize the distance matrix to ensure the scale of distance and demand are comparable
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    
+    # Calculate the absolute difference in demand between each node and the depot
+    demand_diff = demands.abs() - demands[0].abs()
+    
+    # Incorporate the interaction between demand and distance
+    interaction_factor = (demands[0] * demands).unsqueeze(1) + (demands.unsqueeze(0) * demands[0])
+    
+    # Calculate a heuristic value that combines distance, demand difference, and their interaction
+    heuristic_values = -normalized_distance_matrix + demand_diff + interaction_factor
+    
+    # Ensure that the heuristic values are within a reasonable range
+    min_value = torch.min(heuristic_values)
+    max_value = torch.max(heuristic_values)
+    scale_factor = torch.max(torch.tensor([1.0, 10.0]))  # Scale factor to ensure positive values
+    heuristic_values = (heuristic_values - min_value) / (max_value - min_value) * scale_factor
+    
+    return heuristic_values
+```

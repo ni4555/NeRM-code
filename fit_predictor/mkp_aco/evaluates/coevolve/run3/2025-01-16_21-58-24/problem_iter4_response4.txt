@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate variance-based sparsity factor
+    variance_factor = 1 / (1 + np.std(value_to_weight_ratio))
+    
+    # Calculate percentile-based threshold for outliers
+    percentile_threshold = np.percentile(value_to_weight_ratio, 95)
+    outliers_factor = np.where(value_to_weight_ratio < percentile_threshold, 1, 0)
+    
+    # Combine the normalized ratio with the sparsity and outliers factors
+    combined_heuristics = value_to_weight_ratio * variance_factor * outliers_factor
+    
+    # Normalize the combined heuristics
+    max_combined = np.max(combined_heuristics)
+    if max_combined > 0:
+        combined_heuristics = combined_heuristics / max_combined
+    
+    # Apply smoothing to prevent sudden changes in heuristic values
+    smoothing_factor = np.exp(-np.abs(combined_heuristics - 0.5))
+    
+    # Apply threshold to the heuristics to select promising items
+    threshold = 0.8  # Threshold can be adjusted based on experimentation
+    heuristics = np.where(combined_heuristics * smoothing_factor > threshold, combined_heuristics * smoothing_factor, 0)
+    
+    return heuristics
+```

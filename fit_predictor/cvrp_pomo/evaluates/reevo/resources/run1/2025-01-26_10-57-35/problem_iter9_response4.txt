@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the demand deviation matrix
+    demand_deviation_matrix = demands[:, None] * demands - demands.unsqueeze(1)
+    
+    # Normalize demand deviation matrix
+    normalized_demand_deviation_matrix = demand_deviation_matrix / (demand_deviation_matrix.abs().sum(dim=1, keepdim=True) + 1e-8)
+    
+    # Calculate the demand-based distance matrix
+    demand_based_distance_matrix = distance_matrix * normalized_demand_deviation_matrix
+    
+    # Integrate capacity constraints by considering the inverse of demand
+    capacity_constrained_heuristics = demand_based_distance_matrix / (demands + 1e-8)
+    
+    # Clip the negative values to zero
+    heuristics = torch.clamp(capacity_constrained_heuristics, min=0)
+    
+    return heuristics
+```

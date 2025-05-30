@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the penalty for edges that exceed the vehicle capacity
+    capacity_penalty = torch.abs(demands - vehicle_capacity)
+    
+    # Use a non-linear transformation to increase the impact of capacity constraints
+    capacity_penalty = torch.pow(capacity_penalty, 1.5)
+    
+    # Normalize the distance matrix to account for scale
+    normalized_distance = distance_matrix / distance_matrix.max()
+    
+    # Calculate a penalty for larger distances
+    distance_penalty = -normalized_distance
+    
+    # Combine the capacity and distance penalties into a single potential matrix
+    potential_matrix = capacity_penalty + distance_penalty
+    
+    # Introduce randomness through Gaussian noise
+    noise_matrix = torch.randn_like(potential_matrix) * 0.01
+    
+    # Apply a non-linear transformation to emphasize the constraints
+    emphasized_matrix = torch.exp(potential_matrix)
+    
+    # Introduce a second layer of randomness
+    second_noise_matrix = torch.randn_like(emphasized_matrix) * 0.005
+    
+    # Mutate the matrix by adding a random perturbation
+    mutation_factor = torch.rand_like(emphasized_matrix)
+    mutated_matrix = emphasized_matrix + second_noise_matrix * mutation_factor
+    
+    # Normalize the matrix to ensure that all values are non-negative and scale the values
+    normalized_matrix = mutated_matrix / mutated_matrix.sum(dim=1, keepdim=True)
+    
+    # Adjust the matrix to ensure that undesirable edges have negative values
+    heuristics_matrix = -normalized_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,45 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on value-to-weight ratio and sparsity
+    for i in range(n):
+        value_to_weight_ratio = prize[i] / weight[i].sum()
+        weight_sparsity = 1 - (weight[i].sum() / m)
+        heuristic[i] = value_to_weight_ratio * weight_sparsity
+    
+    # Incorporate an adaptive exploration factor based on the current heuristic
+    exploration_factor = heuristic / heuristic.sum()
+    for i in range(n):
+        heuristic[i] *= exploration_factor[i]
+    
+    # Normalize heuristics to ensure they are in the range [0, 1]
+    heuristic /= heuristic.max()
+    
+    # Dynamically adjust thresholds based on the current heuristic
+    threshold = heuristic.mean()
+    heuristic[heuristic < threshold] = 0
+    
+    # Introduce randomness to prevent local optima
+    np.random.shuffle(heuristic)
+    
+    # Refine the heuristic by considering diversity and penalizing over-weight items
+    for i in range(n):
+        # Diversity factor based on the number of dimensions at the maximum weight
+        diversity_factor = (weight[i] == weight[i].max()).sum()
+        # Penalize over-weight items
+        over_weight_penalty = np.exp(-weight[i].sum() / m)
+        heuristic[i] *= diversity_factor * over_weight_penalty
+    
+    # Normalize heuristics again
+    heuristic /= heuristic.sum()
+    
+    # Set low-value items and those with high total weight to zero
+    heuristic[heuristic < np.percentile(heuristic, 5)] = 0
+    heuristic[weight.sum(axis=1) > m * 0.8] = 0
+    
+    return heuristic
+```

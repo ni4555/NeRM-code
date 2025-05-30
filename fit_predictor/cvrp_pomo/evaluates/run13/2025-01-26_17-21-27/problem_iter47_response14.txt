@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Introduce a more aggressive penalty for high cumulative demand
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (cumulative_demand / total_capacity) ** 2
+    
+    # Use the sum of distances as a heuristic, but adapt it based on the current load
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (cumulative_demand / total_capacity) ** 1.5
+    
+    # Add a high penalty if the vehicle is over capacity at any node
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Encourage a balance in load distribution among vehicles
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8) * load_balance
+    
+    # Introduce randomness with a decreasing probability of adding randomness
+    diversity_factor = torch.abs(torch.randn_like(demands)) * (1 - (cumulative_demand / total_capacity))
+    
+    # Scale heuristics to prioritize core objectives
+    scaling_factor = 2.5
+    heuristics = scaling_factor * (distance_scaling + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty)
+    
+    # Ensure that early overflow nodes are given a significant penalty
+    early_overflow = torch.where(cumulative_demand > total_capacity_vector, torch.ones_like(cumulative_demand), torch.zeros_like(cumulative_demand))
+    heuristics *= early_overflow
+    
+    # Apply penalties to enhance diversity and balance without overwhelming other objectives
+    heuristics += diversity_factor * (1 - early_overflow)
+    
+    return heuristics
+```

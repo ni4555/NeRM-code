@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the density of each item (prize/weight)
+    density = prize / np.sum(weight, axis=1)
+    
+    # Calculate the diversity metric (sparsity)
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1)
+    
+    # Calculate the robustness metric (weight variance)
+    robustness = np.var(weight, axis=1)
+    
+    # Combine metrics using a weighted sum to create a heuristic value
+    # Adjust weights as needed based on problem-specific insights
+    # Higher weight on density suggests a preference for high-value items
+    # Robustness and diversity are also considered to ensure solution stability
+    heuristic_value = (0.6 * density) + (0.3 * (1 - sparsity)) + (0.1 * robustness)
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic_value / (np.max(heuristic_value) + 1e-8)
+    
+    # Sparsify the heuristics by setting values below a threshold to zero
+    # Use the 10th percentile as a threshold to retain the most promising items
+    threshold = np.percentile(normalized_heuristic, 10)
+    sparsified_heuristic = np.where(normalized_heuristic > threshold, normalized_heuristic, 0)
+    
+    return sparsified_heuristic
+```

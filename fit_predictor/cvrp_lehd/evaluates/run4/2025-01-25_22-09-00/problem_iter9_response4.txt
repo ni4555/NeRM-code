@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    depot_index = 0
+    
+    # Demand factor: scale the demand based on its importance relative to the total capacity
+    demand_factor = demands / total_capacity
+    
+    # Distance dampening: use non-linear dampening for distance
+    distance_dampening = 1 / (1 + torch.exp(distance_matrix / (torch.mean(torch.abs(distance_matrix)) + 1)))
+    
+    # Local factors: focus on the balance of edges near the depot
+    local_factors = demand_factor * distance_dampening
+    
+    # Global factors: focus on the balance of the entire route
+    global_factors = demand_factor * distance_dampening / (total_capacity + torch.mean(torch.abs(distance_matrix)))
+    
+    # Combine factors, but avoid negative weights for distances
+    heuristics_matrix = torch.where(distance_matrix <= 0, global_factors, local_factors)
+    
+    # Normalize to ensure all factors are non-negative
+    heuristics_matrix = heuristics_matrix.clamp(min=0)
+    
+    # Exclude the depot from the heuristics for the depot's edges
+    for i in range(n):
+        heuristics_matrix[depot_index, i] = 0
+        heuristics_matrix[i, depot_index] = 0
+    
+    # Adjust the heuristics for the depot to all other nodes based on the route demand
+    for i in range(1, n):
+        heuristics_matrix[depot_index, i] = -demands[i]
+        heuristics_matrix[i, depot_index] = -demands[i]
+    
+    return heuristics_matrix
+```

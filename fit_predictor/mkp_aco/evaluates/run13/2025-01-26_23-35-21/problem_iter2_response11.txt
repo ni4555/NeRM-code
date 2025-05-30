@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the profit to weight ratio for each item
+    profit_to_weight_ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate the variance of weights within each item
+    variance = np.var(weight, axis=1)
+    
+    # Calculate the inverse of variance to give less weight to items with higher sparsity
+    inverse_variance = 1 / (variance + 1e-6)
+    
+    # Calculate the weighted sum of the profit to weight ratio and the inverse variance
+    weighted_sum = profit_to_weight_ratio * inverse_variance
+    
+    # Normalize the weighted sum to ensure it is between 0 and 1
+    normalized_sum = weighted_sum / np.sum(weighted_sum)
+    
+    # Apply a smoothing technique to avoid sparsity by ensuring a minimum value
+    min_value = np.min(normalized_sum)
+    heuristics = normalized_sum - min_value + 0.1  # Add a small value to avoid zero
+    
+    # Ensure the heuristics are non-negative
+    heuristics[heuristics < 0] = 0
+    
+    return heuristics
+```

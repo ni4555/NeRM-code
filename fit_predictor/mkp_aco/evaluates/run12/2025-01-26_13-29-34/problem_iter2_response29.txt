@@ -1,0 +1,49 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape
+    heuristic = np.zeros(n)
+
+    # Initialize reinforcement learning model weights
+    rl_weights = np.random.rand(n)
+
+    # Initialize particle swarm optimization parameters
+    w = 0.5  # Inertia weight
+    c1, c2 = 1.5, 1.5  # Cognitive and social coefficients
+
+    # Particle swarm optimization (PSO) initialization
+    particles = np.random.rand(n, n)
+    velocities = np.random.rand(n, n)
+    pbest = particles.copy()
+    pbest_fitness = heuristic.copy()
+    gbest = particles[np.argmax(pbest_fitness)]
+
+    # Deep reinforcement learning for real-time decision-making
+    # Simplified here to adjust weights based on fitness
+    for _ in range(50):
+        for i in range(n):
+            if np.sum(weight[i]) > 1:
+                rl_weights[i] *= 0.99
+            else:
+                rl_weights[i] *= 1.01
+
+    # PSO main loop
+    for _ in range(100):
+        for i in range(n):
+            velocities[i] = w * velocities[i] + c1 * np.random.rand() * (pbest[i] - particles[i]) + c2 * np.random.rand() * (gbest - particles[i])
+            particles[i] += velocities[i]
+            if np.sum(particles[i]) <= 1 and np.sum(weight[i]) <= 1:
+                fitness = np.sum(prize[i] * rl_weights[i])
+                if fitness > pbest_fitness[i]:
+                    pbest[i] = particles[i]
+                    pbest_fitness[i] = fitness
+                if fitness > gbest_fitness:
+                    gbest = particles[i]
+                    gbest_fitness = fitness
+
+    # Convert pbest to heuristic scores
+    heuristic = pbest_fitness / np.max(pbest_fitness)
+
+    return heuristic
+```

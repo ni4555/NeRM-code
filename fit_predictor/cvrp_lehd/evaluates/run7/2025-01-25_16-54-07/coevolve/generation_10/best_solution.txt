@@ -1,0 +1,55 @@
+Fitness: 21.38175392150879
+
+Description:
+The goal is to develop a refined heuristic for the hybrid Capacitated Vehicle Routing Problem (hCVRP) that efficiently optimizes logistics routes while strictly adhering to vehicle capacity constraints. The heuristic should integrate the following key components:
+
+1. Precise Demand Handling:
+   - Implement a demand normalization algorithm to accurately reflect the total demand of nodes on potential routes.
+   - Develop a cumulative demand mask that dynamically assesses the total demand along potential routes, ensuring load balancing.
+
+2. Capacity Constraint Prioritization:
+   - Create an edge feasibility mask to rigorously evaluate the impact of adding an edge on a vehicle's capacity before incorporating it into a route.
+   - Enforce capacity-based prioritization by considering the load distribution and vehicle capacity when selecting edges.
+
+3. Clear Edge Evaluation:
+   - Define a clear and objective evaluation method for edges, ensuring that the chosen paths contribute to efficient and feasible routes.
+   - Utilize this evaluation to determine the optimal sequence of nodes for each vehicle.
+
+4. Optimization Strategies:
+   - Adopt direct optimization techniques for route feasibility without compromising solution quality.
+   - Prioritize simplicity and clarity in demand and capacity management, avoiding ambiguity and complexity.
+
+The resulting heuristic should be designed to navigate the complexities of hCVRP by utilizing the cumulative demand for route prioritization and focusing on computational efficiency, ensuring robust and effective routing plans for fleet operations.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # 1. Precise Demand Handling
+    # Demand normalization
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Cumulative demand mask
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    
+    # 2. Capacity Constraint Prioritization
+    # Edge feasibility mask
+    edge_capacity_impact = distance_matrix * cumulative_demand
+    
+    # 3. Clear Edge Evaluation
+    # Define a clear and objective evaluation method for edges
+    # Here we use the cumulative demand as the evaluation criterion
+    edge_evaluation = edge_capacity_impact
+    
+    # 4. Optimization Strategies
+    # Prioritize simplicity and clarity in demand and capacity management
+    # We use a simple threshold to determine if an edge is promising or not
+    # Negative values for undesirable edges, positive for promising ones
+    threshold = 0.5  # This threshold can be adjusted based on the problem specifics
+    edge_promise = torch.where(edge_evaluation < threshold, -1.0, 1.0)
+    
+    return edge_promise

@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Scale demands to the range [0, 1]
+    scaled_demands = demands / demands.max()
+    # Apply a non-linear transformation to both the normalized distances and scaled demands
+    # using hyperbolic tangent (tanh) to balance positive and negative values
+    non_linear_distance = torch.tanh(normalized_distance_matrix)  # Using tanh for non-linearity
+    non_linear_demand = torch.tanh(scaled_demands - 0.5)  # Centering and tanh for non-linearity
+    # Combine the non-linear transformations by adding them, which should help to emphasize the
+    # importance of edges with high non-linear distance transformation values
+    combined_heuristic = non_linear_distance + non_linear_demand
+    # Adjust the sign to ensure positive values for promising edges
+    return combined_heuristic
+```

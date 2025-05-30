@@ -1,0 +1,38 @@
+{
+  "generation": 5,
+  "description": "Design a hybrid optimization heuristic for the Multi-dimensional Knapsack Problem (MKP) that employs a probabilistic sampling mechanism to explore diverse solution landscapes. The heuristic should integrate a precise fitness function that evaluates candidate solutions based on a weighted combination of item values and adherence to multi-dimensional constraints. The algorithm must balance exploration with exploitation by incorporating adaptive evolutionary computation to refine promising candidate solutions and a robust local search algorithm to fine-tune the final solution. The heuristic should enforce strict adherence to the MKP's weight and volume constraints, and it should provide detailed performance metrics to quantify the efficiency and effectiveness of the optimization process.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Normalize the prize and weight arrays to ensure all items have the same scale\n    normalized_prize = prize / np.linalg.norm(prize)\n    normalized_weight = weight / np.linalg.norm(weight, axis=1, keepdims=True)\n    \n    # Compute the heuristic value for each item based on the normalized prize and weight\n    # The heuristic is a weighted combination of normalized prize and normalized weight\n    # Each item's heuristic value is the sum of the product of its prize and weight in each dimension\n    heuristics = np.sum(normalized_prize * normalized_weight, axis=1)\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 12, in heuristics_v2\n    # Calculate the adherence to constraints (assuming constraint is 1 for each dimension)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_5/stdout_2.txt",
+      "code_file": "coevolve/generation_5/code_2.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Assuming each item's weight is in the same dimension as the prize vector\n    # We use a simple heuristic that multiplies the prize by a normalized weight\n    # The normalization is done by dividing each item's weight by the sum of all weights\n    # to ensure that the total weight does not exceed the knapsack capacity\n    \n    # Calculate the sum of weights to normalize\n    weight_sum = np.sum(weight, axis=1)\n    \n    # Avoid division by zero\n    weight_sum[weight_sum == 0] = 1\n    \n    # Normalize weights\n    normalized_weight = weight / weight_sum[:, np.newaxis]\n    \n    # Calculate heuristic values\n    heuristics = normalized_weight * prize\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 20, in heuristics_v2\n    return heuristic_scores\n                 ^^^^^^^^^^^\nValueError: operands could not be broadcast together with shapes (100,5) (100,) \n",
+      "stdout_file": "coevolve/generation_5/stdout_7.txt",
+      "code_file": "coevolve/generation_5/code_7.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the heuristic value for each item\n    # The heuristic is a weighted combination of the prize and the inverse of the weight\n    # since a lower weight is preferable. The constraints are fixed to 1, so we do not\n    # need to enforce them explicitly here.\n    \n    # Normalize the weights to account for the fixed constraint of 1\n    normalized_weight = weight / np.sum(weight, axis=1, keepdims=True)\n    \n    # Calculate the heuristic based on the prize and normalized weight\n    heuristic_values = prize / normalized_weight\n    \n    # Return the computed heuristic values\n    return heuristic_values",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 14, in heuristics_v2\n    total_weight = np.sum(weight[i])\n                   ^^^^^^^^^^^^^^^^^^\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_5/stdout_9.txt",
+      "code_file": "coevolve/generation_5/code_9.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n = prize.shape[0]\n    m = weight.shape[1]\n    \n    # Calculate the weighted value for each item\n    weighted_value = np.dot(prize, weight)\n    \n    # Calculate the total weight for each item\n    total_weight = np.sum(weight, axis=1)\n    \n    # Initialize the heuristic array with the weighted value\n    heuristics = weighted_value.copy()\n    \n    # Adjust the heuristic based on adherence to multi-dimensional constraints\n    for i in range(n):\n        if total_weight[i] > 1:\n            heuristics[i] *= (1 - (total_weight[i] - 1) / 1)\n    \n    # Normalize the heuristic values\n    heuristics /= np.sum(heuristics)\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 24, in solve\n    assert heu.shape == (n,)\n           ^^^^^^^^^^^^^^^^^\nAssertionError\n",
+      "stdout_file": "coevolve/generation_5/stdout_11.txt",
+      "code_file": "coevolve/generation_5/code_11.py"
+    }
+  ]
+}

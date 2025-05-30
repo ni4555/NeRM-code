@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Normalize distance matrix by the sum of all demands
+    normalized_distances = distance_matrix / demands.sum()
+    # Incorporate the inverse of demand as a feature
+    demand_inverses = 1 / demands
+    # Normalize demand inverses to avoid dominance by large demands
+    demand_inverses /= demand_inverses.sum()
+    # Calculate a heuristic that balances distance and inverse demand
+    heuristic = -normalized_distances * demand_inverses
+    # Clip the heuristic to avoid overflow
+    heuristic = torch.clamp(heuristic, min=-1e8, max=1e8)
+    return heuristic
+```

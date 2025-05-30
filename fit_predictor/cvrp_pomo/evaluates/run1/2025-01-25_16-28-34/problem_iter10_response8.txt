@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adjust the average demand per edge to be relative to the total capacity
+    adjusted_average_demand = average_demand_per_edge / total_capacity
+    
+    # Introduce penalties for high and low average demand per edge
+    high_demand_penalty = adjusted_average_demand.clamp(min=0.5).pow(2)
+    low_demand_bonus = (1 - adjusted_average_demand.clamp(max=0.5)).pow(2)
+    
+    # Calculate penalties for overloading and underloading
+    overload_penalty = (adjusted_average_demand - 1).clamp(min=0).pow(2)
+    underload_bonus = (-adjusted_average_demand + 0).clamp(min=0).pow(2)
+    
+    # Combine penalties and bonuses into the heuristics matrix
+    heuristics = -torch.abs(high_demand_penalty + low_demand_bonus +
+                            overload_penalty + underload_bonus)
+    
+    # Introduce a penalty for short paths (which might indicate over-reliance on specific paths)
+    path_length_penalty = distance_matrix.mean(dim=1).clamp(min=1).pow(2)
+    heuristics += path_length_penalty
+    
+    # Introduce a penalty for edges with zero distance to the depot
+    zero_distance_penalty = distance_matrix.sum(dim=1, keepdim=True)
+    heuristics += zero_distance_penalty
+    
+    # Introduce a local search heuristic that considers the load balance
+    # Calculate the load for each customer node
+    load = torch.cumsum(adjusted_average_demand, dim=0) - adjusted_average_demand
+    # Find customers with loads significantly exceeding the vehicle capacity
+    overload_loads = load > total_capacity / 2
+    load_penalty = torch.zeros_like(heuristics)
+    load_penalty[overload_loads] = 1
+    heuristics += load_penalty
+    
+    # Normalize the heuristics to ensure negative values for undesirable edges
+    heuristics = heuristics - heuristics.max()
+    
+    return heuristics
+```

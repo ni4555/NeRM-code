@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    # Normalize weights
+    max_weight_per_dimension = np.max(weight, axis=0)
+    normalized_weights = weight / max_weight_per_dimension[:, None]
+    # Calculate individual scores
+    scores = np.sum(prize * normalized_weights, axis=1)
+    # Normalize scores
+    normalized_scores = scores / np.sum(scores)
+    # Add diversity and balance
+    diversity = np.std(normalized_weights, axis=1)
+    balance = np.sum(normalized_weights, axis=1) / m
+    diversity_normalized = diversity / np.sum(diversity)
+    balance_normalized = balance / np.sum(balance)
+    # Combine scores
+    importance_normalized = (normalized_scores * diversity_normalized + 
+                             normalized_scores * balance_normalized) / (1 + diversity_normalized + balance_normalized)
+    # Apply sparsity
+    sparsity_threshold = np.quantile(importance_normalized, 0.75)
+    importance_normalized[importance_normalized < sparsity_threshold] = 0
+    return importance_normalized
+```

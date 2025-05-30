@@ -1,0 +1,26 @@
+Fitness: 21.401277542114258
+
+Description:
+Assisting in solving Capacitated Vehicle Routing Problem (CVRP) with some prior heuristics. CVRP requires finding the shortest path that visits all given nodes and returns to the starting node. Each node has a demand and each vehicle has a capacity. The total demand of the nodes visited by a vehicle cannot exceed the vehicle capacity. When the total demand exceeds the vehicle capacity, the vehicle must return to the starting node.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Assuming the total vehicle capacity is normalized to 1 in the demand vector
+    # Compute the cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Create a mask where a value is positive if the cumulative demand at that node
+    # is less than the vehicle capacity, and negative otherwise
+    mask = cumulative_demand < 1
+    
+    # Use the mask to create a new distance matrix where we subtract the distance
+    # if the edge is promising (cumulative demand is less than capacity), and add
+    # a large negative value if it's undesirable (cumulative demand is greater than
+    # capacity). The subtraction and addition of a large negative value helps to
+    # prioritize edges that are within the capacity constraint.
+    heuristics_matrix = torch.where(mask, -distance_matrix, torch.full_like(distance_matrix, -1e6))
+    
+    return heuristics_matrix

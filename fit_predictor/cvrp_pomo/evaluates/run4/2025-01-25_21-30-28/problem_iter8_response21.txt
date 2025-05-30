@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: shorter distances have higher values
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: demand close to the average normalized demand is more promising
+    mean_normalized_demand = normalized_demands.mean()
+    demand_weight = (normalized_demands - mean_normalized_demand) ** 2
+
+    # Heuristic range adjustment: encourage closer nodes to the depot
+    range_adjustment = torch.exp(-distance_matrix)
+
+    # Load balancing strategy: penalize edges that could cause overcapacity
+    remaining_capacity = torch.ones_like(demands)
+    load_balance = 1.0 / (1 + torch.sum(demands.unsqueeze(1) * remaining_capacity.unsqueeze(0), dim=0) - total_capacity)
+
+    # Combine heuristics using domain knowledge and weights
+    combined_heuristic = inverse_distance * 0.4 + demand_weight * 0.3 + range_adjustment * 0.2 + load_balance * 0.1
+
+    # Normalize the combined heuristic values to ensure they are within the desired range
+    combined_heuristic = (combined_heuristic - combined_heuristic.min()) / (combined_heuristic.max() - combined_heuristic.min())
+
+    return combined_heuristic
+```

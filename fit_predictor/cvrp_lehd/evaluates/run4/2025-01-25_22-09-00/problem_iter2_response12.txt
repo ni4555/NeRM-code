@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that considers demand importance, dampens distance penalties, and normalizes properly."""
+    total_demand = demands.sum()
+    # Normalize demands by total demand to get demand importance
+    demand_importance = demands / total_demand
+    # Calculate the potential contribution of each edge
+    potential = -distance_matrix * demand_importance
+    # Dampen the impact of distance by exponentiating the distance with a negative base
+    dampen_distance = torch.exp(-distance_matrix / 10)
+    # Combine potential with dampened distance
+    heuristics = potential * dampen_distance
+    # Normalize the heuristics to a range between 0 and 1 to avoid negative values
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    # Scale heuristics to have a range between -1 and 1
+    heuristics = 2 * heuristics - 1
+    return heuristics
+```

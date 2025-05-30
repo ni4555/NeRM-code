@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the distance matrix to ensure the scale of distance and demand are comparable
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    
+    # Calculate the absolute difference in demand between each node and the depot
+    demand_diff = torch.abs(demands - demands[0])
+    
+    # Introduce a demand-awareness factor that penalizes edges with higher demand difference
+    demand_penalty = demand_diff * 2
+    
+    # Calculate the demand heuristic
+    demand_heuristic = demands[:, None] * demands
+    
+    # Calculate the capacity heuristic, ensuring the demand does not exceed 1 (vehicle capacity)
+    capacity_heuristic = torch.clamp(demands, max=1)
+    
+    # Combine the distance, demand, and capacity heuristics
+    combined_heuristic = normalized_distance_matrix - demand_penalty + demand_heuristic * capacity_heuristic
+    
+    # Introduce exploration and exploitation factors
+    exploration_factor = 0.5 * (torch.rand_like(combined_heuristic) - 0.5)
+    exploitation_factor = 0.5 * (torch.ones_like(combined_heuristic) - exploration_factor)
+    
+    # Combine exploration and exploitation with the heuristics
+    combined_heuristic_with_factors = combined_heuristic + exploration_factor + exploitation_factor
+    
+    # Normalize the heuristics to be between 0 and 1
+    min_val = combined_heuristic_with_factors.min()
+    max_val = combined_heuristic_with_factors.max()
+    heuristic_values = (combined_heuristic_with_factors - min_val) / (max_val - min_val)
+    
+    return heuristic_values
+```

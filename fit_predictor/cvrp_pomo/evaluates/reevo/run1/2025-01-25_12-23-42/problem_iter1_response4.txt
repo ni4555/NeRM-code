@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the minimum distance from each customer to the depot
+    min_to_depot = torch.min(distance_matrix[:, 1:], dim=0).values
+    # Calculate the minimum distance from each customer to the closest neighbor
+    min_to_neighbor = torch.min(distance_matrix[1:], dim=0).values
+    
+    # Create a matrix with negative values for the edges where the sum of demands
+    # exceeds the vehicle capacity and positive values for other edges
+    edge_value = -(demands[1:] + demands[0] - demands[1:]).cumsum() > demands[0]
+    edge_value[distance_matrix == float('inf')] = 0
+    
+    # Calculate the heuristics using a combination of minimum distances and edge value
+    heuristics = min_to_depot - min_to_neighbor * (1 - edge_value)
+    heuristics[distance_matrix == float('inf')] = float('-inf')
+    
+    return heuristics
+```

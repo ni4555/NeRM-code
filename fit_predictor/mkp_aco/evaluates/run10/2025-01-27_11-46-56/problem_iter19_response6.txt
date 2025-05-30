@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    max_utility = utility.max(axis=1)
+    
+    # Add noise to the utility to promote diversity
+    noise = np.random.normal(0, 0.01, size=utility.shape)
+    noisy_utility = utility + noise
+    
+    # Add time-sensitivity factor by reducing the impact of utility over time
+    time_factor = np.exp(-np.arange(len(utility)) / 10)
+    time_sensitive_utility = noisy_utility * time_factor
+    
+    # Use non-linear factors such as the logarithm of the utility
+    non_linear_utility = np.log(time_sensitive_utility + 1)
+    
+    # Calculate a weighted sum of different factors
+    weighted_sum = (non_linear_utility * 0.6 +
+                    max_utility * 0.3 +
+                    noise * 0.1)
+    
+    # Sparsify the heuristics by setting values below a threshold to zero
+    threshold = weighted_sum.mean()
+    heuristics = np.where(weighted_sum > threshold, weighted_sum, 0)
+    
+    return heuristics
+```

@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node from the count
+
+    # Create a heuristic matrix based on the distance to the nearest demand
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Calculate the heuristic value for each node by considering the difference
+    # between the average demand and the current node's demand
+    for i in range(1, n):
+        distances = distance_matrix[i, 1:]  # Exclude the depot node
+        # Find the minimum distance to any customer node
+        min_distance = torch.min(distances)
+        # Calculate the heuristic value
+        heuristic_value = (average_demand - demands[i]) * min_distance
+        # Update the heuristic matrix
+        heuristic_matrix[i, 1:] = heuristic_value
+        # Symmetrically update the matrix for the reverse edges
+        heuristic_matrix[1:, i] = heuristic_value
+
+    # Adjust the heuristic value for edges leading to the depot
+    for i in range(1, n):
+        # Calculate the penalty for taking an edge to the depot if the total demand
+        # of the visited nodes exceeds the vehicle capacity
+        penalty = (demands[i] / total_demand) * (distance_matrix[i, depot] - min_distance)
+        # Subtract the penalty from the heuristic value
+        heuristic_matrix[i, depot] -= penalty
+
+    return heuristic_matrix
+```

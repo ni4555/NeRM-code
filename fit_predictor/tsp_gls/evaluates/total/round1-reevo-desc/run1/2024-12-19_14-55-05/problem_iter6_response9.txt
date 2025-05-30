@@ -1,0 +1,23 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Calculate the sum of distances for the current edge and the previous and next edges in a loop
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, i] + distance_matrix[i, j]
+                direct_distance = distance_matrix[i, i]
+                
+                # Apply a penalty if the loop distance is larger than the direct distance
+                heuristics[i, j] = loop_distance - direct_distance
+
+    # Apply a global penalty for large distances to encourage exploration of shorter paths
+    large_distance_penalty = 1e6
+    heuristics[distance_matrix > large_distance_penalty] = large_distance_penalty - distance_matrix[distance_matrix > large_distance_penalty]
+
+    return heuristics
+```

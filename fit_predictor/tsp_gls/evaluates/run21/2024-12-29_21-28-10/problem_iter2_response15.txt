@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray, last_removed_edges: list) -> np.ndarray:
+
+    # Improved heuristic that incorporates diversity, adaptability, and a balance between exploration and exploitation
+    penalty_factor = 2
+    diversity_factor = 0.1
+    removal_reward_factor = 0.5
+    adaptability_factor = 0.5
+    
+    # Initialize the heuristic matrix with the same size as the distance matrix
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Loop through the matrix to calculate the heuristics
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Calculate the heuristic based on the penalty factor
+                heuristic = distance_matrix[i, j] * penalty_factor
+                
+                # Incorporate diversity by penalizing repeated edges
+                if (i, j) in last_removed_edges:
+                    heuristic += diversity_factor
+                
+                # Reward removal of edges in previous iterations
+                if distance_matrix[i, j] == np.inf:
+                    heuristic += removal_reward_factor
+                
+                # Adapt to changes by rewarding shorter edges more
+                heuristic += (1 - adaptability_factor) * np.min(distance_matrix[i, :]) + adaptability_factor * np.min(distance_matrix[:, j])
+                
+                # Apply a decay factor to the heuristic value of removed edges
+                if distance_matrix[i, j] == np.inf:
+                    decay = 1 - adaptability_factor
+                    heuristic *= decay
+                
+                # Store the calculated heuristic in the matrix
+                heuristic_matrix[i, j] = heuristic
+    
+    return heuristic_matrix
+```

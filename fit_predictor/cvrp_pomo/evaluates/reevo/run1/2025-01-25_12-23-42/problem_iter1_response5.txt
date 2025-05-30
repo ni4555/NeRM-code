@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that considers demand proximity and distance."""
+    # Calculate the sum of demands to normalize
+    total_demand = demands.sum()
+    
+    # Calculate the demand for each node (including the depot)
+    node_demands = demands + 1  # +1 for the depot
+    
+    # Normalize the demands to represent the fraction of vehicle capacity required
+    normalized_demands = node_demands / total_demand
+    
+    # Create a matrix to hold the heuristics
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # For each customer, calculate the heuristics value as the product of normalized demand and distance
+    heuristics[1:, :] = normalized_demands[1:] * distance_matrix[1:, :]
+    heuristics[:, 1:] = normalized_demands[1:] * distance_matrix[:, 1:]
+    
+    # Subtract the maximum value in the diagonal to avoid including the depot twice
+    heuristics -= torch.diag(torch.max(heuristics.diag(), dim=1).values)
+    
+    # Make sure to have positive values for promising edges and negative for undesirable ones
+    heuristics[heuristics < 0] = 0
+    heuristics[heuristics >= 0] = 1
+    
+    return heuristics
+```

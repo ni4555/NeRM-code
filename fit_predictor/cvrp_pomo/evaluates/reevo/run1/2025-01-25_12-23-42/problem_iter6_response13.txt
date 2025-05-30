@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = demands.unsqueeze(1)  # Ensure demands are a 2D tensor for broadcasting
+    norm_distances = distance_matrix / distance_matrix.max()
+    node_loads = demands / demands.sum()
+    
+    # Calculate a heuristic based on distance normalization and load factor
+    heuristics = norm_distances - (node_loads * norm_distances).sum(-1)
+    # Avoid revisits by penalizing edges leading back to the depot
+    revisits_penalty = (distance_matrix == 0) * -1e6
+    heuristics += revisits_penalty
+    return heuristics
+```

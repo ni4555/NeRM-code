@@ -1,0 +1,23 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    diversity_factor = np.exp(-utility)
+    exploration_factor = np.random.normal(0, 0.1, size=utility.shape)
+    
+    # Balancing exploration and exploitation
+    balance_factor = 0.5
+    heuristics = utility * diversity_factor * exploration_factor * balance_factor
+    
+    # Penalize low utility items by decreasing their heuristics
+    penalty_factor = 0.1
+    heuristics = np.where(utility < 0.5, heuristics * (1 - penalty_factor), heuristics)
+    
+    # Normalize to ensure the sum of heuristics for each item is 1
+    normalized_heuristics = heuristics / heuristics.sum(axis=1, keepdims=True)
+    
+    return normalized_heuristics.sum(axis=1)
+```

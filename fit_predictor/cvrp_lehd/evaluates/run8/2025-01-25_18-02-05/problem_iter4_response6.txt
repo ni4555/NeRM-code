@@ -1,0 +1,25 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand-to-distance ratio as we move along each edge
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    cumulative_distance = torch.cumsum(distance_matrix, dim=0)
+    
+    # Calculate the heuristic values based on the ratio of cumulative demand to cumulative distance
+    heuristic_matrix = cumulative_demand / cumulative_distance
+    
+    # Normalize the heuristic values to ensure they are within a meaningful range
+    normalized_heuristic = (heuristic_matrix - torch.min(heuristic_matrix)) / (torch.max(heuristic_matrix) - torch.min(heuristic_matrix))
+    
+    # Apply a threshold to convert the normalized heuristic values to a binary indicator
+    # Values above the threshold indicate a desirable edge (non-zero), and values below indicate an undesirable edge (zero)
+    threshold = 0.5  # This threshold can be adjusted based on the problem context
+    heuristic_matrix = torch.where(normalized_heuristic > threshold, torch.ones_like(heuristic_matrix), torch.zeros_like(heuristic_matrix))
+    
+    # Convert the binary indicator to a range of [-1, 1] to indicate desirable edges
+    heuristic_matrix = (2 * heuristic_matrix) - 1
+    
+    return heuristic_matrix
+```

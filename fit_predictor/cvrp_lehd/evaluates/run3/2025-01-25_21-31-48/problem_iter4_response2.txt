@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    # Normalize the demand by the total vehicle capacity
+    normalized_demand = demands / total_demand
+    # Incorporate a weighted combination of distance and demand
+    weighted_distance = distance_matrix * (1 - normalized_demand)
+    weighted_demand = (distance_matrix.sum(axis=1, keepdim=True) - demands.unsqueeze(1)) * normalized_demand
+    # Use a logarithmic transformation to give higher weight to closer nodes
+    log_distance = torch.log(distance_matrix + 1)  # Adding 1 to avoid log(0)
+    # Combine weighted distance and demand with logarithmic distance
+    heuristics = weighted_distance - weighted_demand + log_distance
+    # Cap the heuristics to avoid overflow during optimization
+    heuristics = torch.clamp(heuristics, min=-10, max=10)
+    return heuristics
+```

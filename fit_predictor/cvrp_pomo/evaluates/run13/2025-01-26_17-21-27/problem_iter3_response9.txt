@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Initialize a tensor with high penalties for undesirable edges
+    penalties = -distance_matrix.clone()
+    
+    # Vectorized operation to calculate the cumulative demand along the edges
+    cumulative_demand = torch.cumsum(torch.clamp(demands, 0) + demands[n-1], dim=1)
+    
+    # Apply capacity-aware penalties
+    for i in range(1, n):
+        penalties[:, i] = penalties[:, i-1] + penalties[i-1, i] + (cumulative_demand[:, i] > total_capacity)
+    
+    # Calculate demand-distance interaction by adding a positive coefficient
+    demand_distance_interaction = (demands + distance_matrix).abs() * demands
+    
+    # Normalize the penalties and the interaction to the same scale
+    penalties = (penalties + demand_distance_interaction) / (n + 1)
+    
+    # Add some small positive value to avoid division by zero
+    return penalties + 1e-10
+```

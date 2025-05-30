@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize a matrix of zeros with the same shape as the distance matrix
+    edge_potential = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Calculate the potential using a combination of heuristics
+    # Distance-based potential: Inverse of distance squared
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    distance_potential = 1 / (distance_matrix ** 2 + epsilon)
+    
+    # Demand-based potential: Proportional to normalized demand
+    demand_potential = normalized_demands
+    
+    # Diversity-promoting potential: Difference between max and min demand
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    diversity_potential = max_demand - min_demand
+    
+    # Constraint-based potential: Penalize short distances and long distances
+    short_distance_penalty = torch.where(distance_matrix < 1.5, distance_matrix - 1.5, 0)
+    long_distance_penalty = torch.where(distance_matrix > 2.0, distance_matrix - 2.0, 0)
+    
+    # Combine the potentials using weights
+    weight_distance = 0.6
+    weight_demand = 0.3
+    weight_diversity = 0.1
+    weight_constraints = 0.1
+    combined_potential = (
+        weight_distance * distance_potential +
+        weight_demand * demand_potential +
+        weight_diversity * diversity_potential +
+        weight_constraints * (short_distance_penalty + long_distance_penalty)
+    )
+    
+    # Ensure that the potential is within a certain range
+    edge_potential = torch.clamp(combined_potential, min=-10.0, max=10.0)
+    
+    return edge_potential
+```

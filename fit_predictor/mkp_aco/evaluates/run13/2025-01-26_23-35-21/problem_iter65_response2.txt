@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the density of each item
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items: items with lower density than at least one non-dominant item
+    non_dominant_indices = np.argsort(density)[::-1]  # sort by descending density
+    pruned_indices = non_dominant_indices[1:]  # keep only the first for each dominance
+    pruned_density = density[pruned_indices]
+    
+    # Blend density with a diversity factor based on average density
+    average_density = np.mean(pruned_density)
+    diversity_factor = pruned_density / (average_density + 1e-8)
+    
+    # Calculate sparsity for each item
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Create a heuristic value by blending density and sparsity
+    heuristic_value = density * (1 - sparsity) * diversity_factor
+    
+    # Normalize the heuristic values
+    normalized_heuristic = heuristic_value / (np.max(heuristic_value) + 1e-8)
+    
+    # Limit randomness by setting a threshold
+    threshold = np.percentile(normalized_heuristic, 95)
+    combined_heuristic = np.where(normalized_heuristic >= threshold, normalized_heuristic, 0)
+    
+    return combined_heuristic
+```

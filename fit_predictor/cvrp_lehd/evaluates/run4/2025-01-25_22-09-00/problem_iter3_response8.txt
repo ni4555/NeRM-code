@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_factors = 1 / (1 + demands / total_capacity)  # Normalize demand factors
+
+    # Compute local heuristics: sum of demands and distances
+    local_heuristics = demands + distance_matrix.sum(axis=1)
+
+    # Compute global heuristics: sum of distances
+    global_heuristics = distance_matrix.sum()
+
+    # Scale distances to balance local and global factors
+    distance_scales = 1 / (1 + distance_matrix / global_heuristics)
+    
+    # Adjust heuristics with demand factors and distance scales
+    adjusted_heuristics = local_heuristics * demand_factors * distance_scales
+
+    # Ensure that the depot edges have a high heuristics value
+    adjusted_heuristics[:, 0] = adjusted_heuristics[:, 0] * 10
+    adjusted_heuristics[0, :] = adjusted_heuristics[0, :] * 10
+
+    return adjusted_heuristics
+```

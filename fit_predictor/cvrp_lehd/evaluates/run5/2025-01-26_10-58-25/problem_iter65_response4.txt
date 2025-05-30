@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Blend demand and distance penalties with an exponential metric to enhance diverse exploration
+    blending_factor = 0.5
+    blended_potential_matrix = blending_factor * (torch.exp(-torch.abs(penalty_matrix)) + 
+                                                 (1 - blending_factor) * torch.exp(-torch.abs(distance_penalty_matrix)))
+    
+    # Normalize the blended potential matrix to ensure non-negativity and scale balance
+    normalized_blended_matrix = blended_potential_matrix / (blended_potential_matrix.sum(dim=1, keepdim=True) + 1e-6)
+    
+    # Adjust the normalized blended matrix to prevent all values from becoming zero
+    adjusted_blended_matrix = normalized_blended_matrix - torch.min(normalized_blended_matrix)
+    
+    # Use the distance penalty matrix to further adjust the matrix, ensuring a balance between exploration and exploitation
+    final_adjusted_matrix = adjusted_blended_matrix + distance_penalty_matrix
+    
+    # Transform the final adjusted matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -final_adjusted_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Introduce a penalty matrix based on normalized distance, with demand normalization as a multiplier
+    penalty_matrix = demands * (-torch.log(distance_matrix + 1e-6))
+    
+    # Add diversity to the penalties by using the variance of demand within clusters
+    demand_variance = torch.var(demands[1:], unbiased=False)  # Exclude the depot
+    variance_matrix = demand_variance * (demands * (demands > 0)).unsqueeze(1) * (demands.unsqueeze(0) > 0)
+    
+    # Combine penalties with the demand matrix
+    combined_penalty_matrix = penalty_matrix + variance_matrix
+    
+    # Apply a non-linear transformation to the penalties to emphasize them
+    emphasized_penalties = torch.tanh(combined_penalty_matrix) * torch.abs(combined_penalty_matrix)
+    
+    # Normalize the emphasized penalties to balance their impact across all edges
+    normalized_penalties = emphasized_penalties / emphasized_penalties.sum(dim=1, keepdim=True)
+    
+    # Combine normalized penalties with the original demand to create the final heuristic matrix
+    final_heuristic_matrix = normalized_penalties + demands
+    
+    # Transform the final heuristic matrix to reflect heuristic values
+    heuristics_matrix = final_heuristic_matrix - torch.min(final_heuristic_matrix)
+    
+    return heuristics_matrix
+```

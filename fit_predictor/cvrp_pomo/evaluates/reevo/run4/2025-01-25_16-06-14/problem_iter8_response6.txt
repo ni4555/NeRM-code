@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate cumulative demand for each node
+    cumulative_demand = torch.cat([torch.zeros(1), demands.cumsum(0)], dim=0)
+    # Assuming the vehicle capacity is the total demand, normalize by it
+    capacity = demands.sum()
+    demand_diff = (cumulative_demand - capacity).clamp(min=0)
+    # Use a non-linear transformation to enhance the impact of the heuristic
+    heuristic_values = -torch.pow(demand_diff, 2) * torch.log1p(distance_matrix)
+    # Incorporate a domain knowledge heuristic where edges closer to the depot are preferred
+    # The preference is modeled as a decreasing function of the distance
+    depot_preference = 1.0 - (distance_matrix.cumsum(0) - 1) / distance_matrix.sum()
+    return heuristic_values + depot_preference
+```

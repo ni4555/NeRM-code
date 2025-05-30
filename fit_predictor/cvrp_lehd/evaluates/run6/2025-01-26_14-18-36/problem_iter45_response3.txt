@@ -1,0 +1,55 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize heuristic values with negative infinity
+    heuristics = torch.full((n, n), float('-inf'))
+
+    # Define penalties for high demand and returning to depot
+    high_demand_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+
+    # Define a balance factor for capacity vs distance
+    balance_factor = 0.75
+
+    # Compute heuristic values considering remaining capacity and distance
+    for i in range(n):
+        for j in range(n):
+            if i != j:  # Skip self-loops
+                if j == 0:  # Returning to depot
+                    heuristics[i, j] = -depot_penalty[i]
+                else:
+                    edge_demand = scaled_demands[j]
+                    remaining_cap = remaining_capacity[j - 1] if j > 0 else total_capacity
+                    if edge_demand <= remaining_cap:
+                        heuristics[i, j] = balance_factor * distance_matrix[i, j] - (1 - balance_factor) * (scaled_demands[j] - scaled_demands[i])
+
+    # Apply penalties and dampening factors
+    heuristics -= high_demand_penalty
+    heuristics += depot_penalty * 0.5
+
+    # Normalize heuristic values to [0, 1] using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Introduce diversity by considering distance from the depot
+    distance_from_depot = distance_matrix[:, 0]
+    diversity_factor = torch.exp(-distance_from_depot * 0.01)
+    heuristics *= diversity_factor
+
+    # Clamp heuristic values to ensure non-negative values
+    heuristics = torch.clamp(heuristics, min=0.0)
+
+    return heuristics
+```

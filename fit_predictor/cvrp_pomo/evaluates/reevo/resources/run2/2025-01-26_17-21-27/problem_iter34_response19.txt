@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Core objective penalties
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic scaling based on cumulative demand
+    dynamic_scale = (1 + cumulative_demand / total_capacity)
+    scaled_capacity_penalty = capacity_penalty * dynamic_scale
+    scaled_distance_penalty = distance_penalty * dynamic_scale
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balancing heuristic to encourage uniform distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Combine penalties for core objectives
+    core_objectives = scaled_capacity_penalty + scaled_distance_penalty + overflow_penalty
+    
+    # Balance load with core objectives
+    balanced_core_objectives = core_objectives + load_balance_penalty
+    
+    # Adaptive penalties for imbalance
+    imbalance = torch.abs(cumulative_demand - total_capacity / n)
+    most_imbalanced_indices = torch.argsort(imbalance, descending=True)
+    adaptive_penalty = torch.zeros_like(balanced_core_objectives)
+    adaptive_penalty[most_imbalanced_indices[:3]] += -2.0  # Apply stronger penalties to the top 3 imbalanced routes
+    
+    # Final heuristic values
+    heuristics = balanced_core_objectives + adaptive_penalty
+    
+    # Avoid self-loops at the depot
+    heuristics[0] = -1000
+    
+    return heuristics
+```

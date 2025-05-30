@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    average_demand = demands.mean()
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the heuristic for each edge considering physical distance and node demand
+    for i in range(1, n):
+        for j in range(i, n):
+            # Calculate the penalty based on the relative excess demand
+            excess_demand = (demands[i] + demands[j] - average_demand) / average_demand
+            penalty = torch.exp(-excess_demand)
+            # Apply the penalty to the heuristic value
+            heuristic_matrix[i, j] = penalty * distance_matrix[i, j]
+            heuristic_matrix[j, i] = penalty * distance_matrix[j, i]
+
+    # Add the penalty for the depot to return to the route
+    return_penalty = torch.exp(-average_demand / average_demand)
+    heuristic_matrix[:, 0] = heuristic_matrix[:, 0] + return_penalty
+    heuristic_matrix[0, :] = heuristic_matrix[0, :] + return_penalty
+
+    return heuristic_matrix
+```

@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    import numpy as np
+    
+    # Calculate the cumulative sum of demands to determine the demand threshold for each node
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Calculate the distance from each node to the depot
+    distances_to_depot = distance_matrix[:, 0]
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # For each node as a potential starting point
+    for start_node in range(distance_matrix.shape[0]):
+        # Create a mask for feasible edges based on demand
+        feasible_edges = (distance_matrix[start_node, :] < demand_cumsum[start_node])
+        # Update the heuristics for feasible edges
+        heuristics[start_node, feasible_edges] = 1 - distance_matrix[start_node, feasible_edges]
+        # Use distance to depot as tiebreaker for the same demand level
+        tiebreaker_mask = (feasible_edges * (distances_to_depot == distances_to_depot.min()))
+        heuristics[start_node, tiebreaker_mask] *= (1 + distances_to_depot[tiebreaker_mask])
+    
+    # Incorporate vehicle capacity constraints by reducing the heuristics value when exceeding capacity
+    for node in range(distance_matrix.shape[0]):
+        for destination in range(distance_matrix.shape[0]):
+            if demands[destination] + demands[node] > 1.0:  # Assuming 1.0 is the vehicle capacity
+                heuristics[node, destination] *= 0.5  # Reduce the heuristic value for this edge
+    
+    return heuristics
+```

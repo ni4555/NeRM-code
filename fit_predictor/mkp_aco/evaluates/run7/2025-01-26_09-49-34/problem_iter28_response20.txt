@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to encourage exploration of all items
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate sparsity factor based on the number of non-zero weight dimensions
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Calculate normalized weights to account for the total weight of items
+    normalized_weight = weight / np.sum(weight, axis=1)[:, np.newaxis]
+    
+    # Calculate variance within each item's weight to account for risk
+    item_variance = np.sum(normalized_weight**2, axis=1)
+    
+    # Calculate the inverse of the variance for each item to promote variance
+    inverse_variance = 1 / (item_variance + 1e-8)
+    
+    # Use a weighted sum to generate the initial heuristics
+    heuristics = normalized_prize * sparsity_factor * inverse_variance
+    
+    # Promote exploration by normalizing the heuristics
+    heuristics /= np.sum(heuristics)
+    
+    # Adjust heuristics based on the total weight to balance exploitation
+    total_weight = np.sum(weight, axis=1)
+    weight_factor = 1 / (total_weight + 1e-8)
+    
+    # Combine heuristics with weight factor to balance exploration and exploitation
+    heuristics *= weight_factor
+    
+    return heuristics
+```

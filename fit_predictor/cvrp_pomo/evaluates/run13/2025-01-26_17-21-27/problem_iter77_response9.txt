@@ -1,0 +1,64 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Modular penalty functions for stability
+    def dynamic_capacity_penalty(demands, total_capacity, cumulative_demand):
+        return -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    def enhanced_distance_penalty(distance_matrix, cumulative_demand, total_capacity):
+        distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+        time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+        return distance_scaling * (1 + cumulative_demand / total_capacity) * time_factor
+    
+    def overflow_penalty(cumulative_demand, demands, total_capacity):
+        overflow_mask = (cumulative_demand[:, None] + demands[None, :]) > total_capacity
+        return torch.where(overflow_mask, -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8), torch.zeros_like(cumulative_demand))
+    
+    def load_balance_penalty(cumulative_demand, total_capacity_vector):
+        load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+        return -torch.log1p(load_balance - 1e-8)
+    
+    # Adaptive scaling for controlled randomness
+    def randomness_factor(cumulative_demand, total_capacity):
+        randomness = torch.abs(torch.randn_like(demands)) * 0.1
+        return randomness * (1 - cumulative_demand / total_capacity)
+    
+    def diversity_factor(cumulative_demand, total_capacity):
+        diversity = torch.abs(torch.randn_like(demands)) * 0.2
+        diversity /= (torch.sum(torch.abs(diversity)) + 1e-8)
+        diversity *= (1 - cumulative_demand / total_capacity)
+        return diversity
+    
+    # Apply the modular penalty functions
+    dynamic_penalty = dynamic_capacity_penalty(demands, total_capacity, cumulative_demand)
+    distance_penalty = enhanced_distance_penalty(distance_matrix, cumulative_demand, total_capacity)
+    overflow_penalty_val = overflow_penalty(cumulative_demand, demands, total_capacity)
+    load_balance_penalty_val = load_balance_penalty(cumulative_demand, total_capacity_vector)
+    
+    # Randomness and diversity factors
+    randomness_factor_val = randomness_factor(cumulative_demand, total_capacity)
+    diversity_factor_val = diversity_factor(cumulative_demand, total_capacity)
+    
+    # Core objective and diversity factors applied to heuristics
+    scaling_factor = 2.5
+    heuristics = (
+        scaling_factor * (
+            distance_penalty +
+            dynamic_penalty +
+            overflow_penalty_val +
+            load_balance_penalty_val
+        ) +
+        randomness_factor_val
+    )
+    
+    # Final adjustments and scaling for heuristics
+    heuristics *= (1 + overflow_penalty_val != 0)  # Apply diversity only if there's no overflow
+    heuristics += diversity_factor_val
+    
+    return heuristics
+```

@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    return_distance_to_depot = distance_matrix[:, None, 0] + distance_matrix[None, :, 0]
+    current_demand = demands[:, None] + demands[None, :]
+    return_to_depot = (current_demand >= total_demand).float()
+    heuristic_values = -distance_matrix + return_distance_to_depot * return_distance_to_depot
+    
+    # Identify edges that exceed vehicle capacity and penalize them heavily
+    edge_exceeds_capacity = (current_demand >= total_demand).bool()
+    heuristics = heuristic_values * (1 - edge_exceeds_capacity) - torch.inf * edge_exceeds_capacity
+    
+    # Normalize the heuristics to ensure consistent scale
+    # Add a small constant to avoid division by zero
+    max_combined_heuristic = torch.clamp(heuristics, min=-torch.inf).max(dim=1, keepdim=True)[0]
+    min_combined_heuristic = torch.clamp(heuristics, min=-torch.inf).min(dim=1, keepdim=True)[0]
+    normalized_combined_heuristic = (
+        heuristics - min_combined_heuristic +
+        1e-8
+    ) / (max_combined_heuristic - min_combined_heuristic + 1e-8)
+    
+    return normalized_combined_heuristic
+```

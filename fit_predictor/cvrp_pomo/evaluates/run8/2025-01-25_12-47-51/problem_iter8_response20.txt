@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    demand_weighted_distance = inv_distance_matrix * demands / total_demand
+
+    # Balance between demand-based and distance-based heuristic
+    balance_factor = 0.5  # Tunable balance factor
+    combined_weight = (1 - demands / total_demand) * demand_weighted_distance
+
+    # Nearest-neighbor heuristic: add the closest node for each customer
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # Adjust heuristics to reflect the importance of nodes based on their distance
+    adjusted_combined_weight = combined_weight * nearest_neighbor
+
+    # Apply a penalty to edges that would exceed vehicle capacity
+    capacity_penalty = (demands[:, None] + demands[None, :]) > 1
+    adjusted_combined_weight[capacity_penalty] = -float('inf')
+
+    return adjusted_combined_weight
+```

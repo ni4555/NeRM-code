@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the usage frequency of each edge
+    num_edges = distance_matrix.size
+    usage_frequency = np.zeros_like(distance_matrix)
+    for i in range(distance_matrix.shape[0]):
+        for j in range(i, distance_matrix.shape[1]):
+            usage_frequency[i, j] += distance_matrix[i, j]
+            usage_frequency[j, i] += distance_matrix[i, j]
+    
+    # Normalize usage frequency to have a mean of 1
+    mean_usage = np.mean(usage_frequency)
+    normalized_usage = usage_frequency / mean_usage
+    
+    # Introduce variability by adding Gaussian noise with a mean of 0 and a small variance
+    variance = 0.01
+    gaussian_noise = np.random.normal(0, variance, size=distance_matrix.shape)
+    
+    # Adjust the distance matrix based on the normalized usage frequency and Gaussian noise
+    adjusted_distances = distance_matrix / (1 + normalized_usage) + gaussian_noise
+    
+    # Introduce balance adjustments by capping the lowest distances to a certain value
+    min_distance = 0.5  # This is an arbitrary cap value
+    adjusted_distances = np.maximum(adjusted_distances, min_distance)
+    
+    # Normalize the adjusted distances to ensure they are non-negative
+    adjusted_distances = np.maximum(adjusted_distances, 0)
+    
+    return adjusted_distances
+```

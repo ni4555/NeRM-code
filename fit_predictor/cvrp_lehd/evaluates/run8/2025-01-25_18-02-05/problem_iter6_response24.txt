@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the distance matrix to prioritize short edges
+    distance_matrix_inv = 1 / distance_matrix
+    
+    # Calculate the product of demand and inverse distance for each edge
+    demand_distance_product = demands * distance_matrix_inv
+    
+    # Normalize the product by the sum of demands to get a demand-based heuristic
+    demand_sum = torch.sum(demands)
+    demand_based_heuristic = demand_distance_product / demand_sum
+    
+    # Calculate the diversity of demands
+    demand_diversity = torch.var(demands)
+    
+    # Normalize the diversity by the sum of demands
+    normalized_demand_diversity = demand_diversity / demand_sum
+    
+    # Combine the demand-based heuristic and diversity into a single heuristic value
+    combined_heuristic = demand_based_heuristic * (1 - normalized_demand_diversity) + \
+                          normalized_demand_diversity
+    
+    # Apply a non-linear transformation to emphasize longer distances and diverse demands
+    heuristic_matrix = torch.exp(-combined_heuristic)
+    
+    # Normalize the heuristic matrix to ensure all values are on a comparable scale
+    normalized_heuristic_matrix = heuristic_matrix / torch.max(heuristic_matrix)
+    
+    # Use the normalized heuristic matrix as the threshold
+    threshold = torch.full_like(distance_matrix, normalized_heuristic_matrix.max())
+    
+    # Apply the threshold to ensure all undesirable edges have negative values
+    heuristic_matrix = torch.where(normalized_heuristic_matrix < threshold, normalized_heuristic_matrix, 0)
+    
+    return heuristic_matrix
+```

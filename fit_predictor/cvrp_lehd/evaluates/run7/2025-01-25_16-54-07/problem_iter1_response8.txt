@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # 1. Precise Demand Handling
+    # Demand normalization
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # 2. Capacity Constraint Prioritization
+    # Edge feasibility mask
+    edge_capacity_impact = distance_matrix * normalized_demands
+    
+    # 3. Clear Edge Evaluation
+    # Define a clear and objective evaluation method for edges
+    # We use a weighted sum of distance and demand impact
+    edge_evaluation = distance_matrix + edge_capacity_impact
+    
+    # 4. Optimization Strategies
+    # Implement a dynamic threshold based on the average edge evaluation
+    average_evaluation = edge_evaluation.mean()
+    dynamic_threshold = average_evaluation * 0.8  # Threshold is set to 80% of the average
+    
+    # Determine the promise of each edge based on the dynamic threshold
+    edge_promise = torch.where(edge_evaluation < dynamic_threshold, -1.0, 1.0)
+    
+    return edge_promise
+```

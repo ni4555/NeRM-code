@@ -1,0 +1,38 @@
+{
+  "generation": 7,
+  "description": "Innovatively solve the MKP using a heuristic approach, strategically combining a probabilistic selection of items based on their estimated total contribution and a sophisticated perturbation scheme for exhaustive solution space exploration. Leverage state-of-the-art metaheuristic methods, such as stochastic local search or genetic algorithms, to efficiently navigate through potential item combinations while strictly respecting each knapsack's complex, multi-dimensional weight restrictions. Continuously evolve the candidate solutions by adaptively perturbing selected item subsets to break through local maxima, ultimately aiming to converge upon a globally optimal or near-optimal prize collection, while optimizing computational resources through an early-stopping criterion.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\nimport random\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape\n    heuristic = np.zeros(n)\n    \n    # Calculate the total contribution of each item\n    total_contribution = prize * np.sum(weight, axis=1)\n    \n    # Initialize the probability of selection based on total contribution\n    probability = total_contribution / np.sum(total_contribution)\n    \n    # Initialize the heuristic values\n    for i in range(n):\n        heuristic[i] = probability[i]\n    \n    # Perform stochastic local search\n    for _ in range(100):  # Number of iterations for the search\n        # Randomly select an item to perturb\n        perturbed_item = random.choices(range(n), weights=heuristic, k=1)[0]\n        \n        # Generate a neighbor by swapping the perturbed item with another item\n        neighbor_item = random.choice([i for i in range(n) if i != perturbed_item])\n        neighbor = np.copy(heuristic)\n        neighbor[perturbed_item], neighbor[neighbor_item] = neighbor[neighbor_item], neighbor[perturbed_item]\n        \n        # Evaluate the neighbor\n        neighbor_probability = total_contribution / np.sum(total_contribution)\n        neighbor_heuristic = neighbor_probability * np.sum(weight)\n        \n        # Accept the neighbor if it's better\n        if neighbor_heuristic > heuristic.sum():\n            heuristic = neighbor\n    \n    # Adjust the heuristic values to ensure they sum to 1\n    heuristic /= heuristic.sum()\n    \n    return heuristic",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 2, confidence: 0.9969)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    total_contribution = prize / weight.sum(axis=1)\n    # Normalize the total contribution by its maximum to ensure positive values\n    max_contrib = np.max(total_contribution)\n    normalized_contrib = total_contribution / max_contrib\n    \n    # Create a random permutation of the items based on normalized contribution\n    permuted_indices = np.argsort(normalized_contrib)\n    \n    # Initialize heuristic array with zeros\n    heuristics = np.zeros(n)\n    \n    # Apply stochastic local search to find better solutions\n    for _ in range(100):  # Limit the number of iterations to avoid excessive computation\n        current_indices = permuted_indices[:5]  # Randomly select a subset of items\n        best_heuristic = np.argmax(normalized_contrib[current_indices])\n        \n        # Apply perturbation by swapping items\n        for i in range(len(current_indices)):\n            for j in range(i + 1, len(current_indices)):\n                swapped_indices = np.array([i, j])\n                new_heuristic = np.sum(normalized_contrib[permuted_indices[swapped_indices]]) - np.sum(normalized_contrib[current_indices])\n                if new_heuristic > best_heuristic:\n                    best_heuristic = new_heuristic\n                    permuted_indices[swapped_indices] = permuted_indices[i, j]\n                    permuted_indices[i, j] = permuted_indices[swapped_indices]\n        \n        # Update the heuristic array based on the best permutation\n        heuristics[permuted_indices] = normalized_contrib[permuted_indices]\n        \n        # Check for early stopping condition\n        if np.max(heuristics) >= 1.0:\n            break\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 3, confidence: 0.9968)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    m = weight.shape[1]\n    n = prize.size\n    \n    # Calculate the total contribution of each item\n    total_contribution = prize / np.linalg.norm(weight, axis=1)\n    \n    # Calculate the probability of selection for each item\n    probabilities = total_contribution / np.sum(total_contribution)\n    \n    # Generate a binary solution based on the probabilities\n    solution = np.random.choice([0, 1], size=n, p=probabilities)\n    \n    # Apply perturbation to avoid local optima\n    for _ in range(10):\n        for i in range(n):\n            if solution[i] == 0:\n                # Try to switch item i with another item\n                for j in range(n):\n                    if i != j and solution[j] == 1:\n                        new_solution = solution.copy()\n                        new_solution[i], new_solution[j] = 1, 0\n                        if np.all(weight[:, i] <= np.sum(weight[:, new_solution], axis=1)) and np.all(weight[:, j] <= np.sum(weight[:, new_solution], axis=1)):\n                            solution = new_solution\n                            break\n    \n    # Convert the solution to a promising heuristic value\n    heuristics = np.where(solution, 1.0, 0.0)\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 4, confidence: 0.9312)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nimport random\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    max_contribution = np.sum(prize * weight, axis=1)\n    probability = max_contribution / np.sum(max_contribution)\n    return np.random.choice(np.arange(n), p=probability, size=m)",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main\\problems\\mkp_aco\\gpt.py\", line 7, in heuristics_v2\n    max_contribution = np.sum(prize * weight, axis=1)\n                              ~~~~~~^~~~~~~~\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve\\generation_7\\stdout_0.txt",
+      "code_file": "coevolve\\generation_7\\code_0.py"
+    }
+  ]
+}

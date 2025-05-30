@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Calculate the index of the nearest customer with a positive demand that can be served
+    nearest_customer = torch.argmin(torch.abs(cumulative_demand - cumulative_capacity[:, None]), dim=1)
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Assign heuristics values based on the distance to the nearest customer that can be served
+    # without exceeding vehicle capacity. We add a penalty for edges that cannot be served directly
+    # from the depot without exceeding capacity, and we give more weight to closer nodes.
+    heuristics_matrix[torch.arange(distance_matrix.shape[0]), nearest_customer] = (
+        -distance_matrix[torch.arange(distance_matrix.shape[0]), nearest_customer] +
+        (cumulative_demand - cumulative_capacity[:, None])[torch.arange(distance_matrix.shape[0]), nearest_customer] *
+        10
+    )
+    
+    # Add a penalty for edges that cannot be served from the depot without exceeding capacity
+    cannot_serve_penalty = (cumulative_demand - cumulative_capacity[:, None]) < 0
+    heuristics_matrix[torch.arange(distance_matrix.shape[0]), nearest_customer] += (
+        cannot_serve_penalty * 100
+    )
+    
+    return heuristics_matrix
+```

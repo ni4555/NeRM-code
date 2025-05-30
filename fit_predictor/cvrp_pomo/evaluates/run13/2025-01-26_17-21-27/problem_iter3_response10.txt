@@ -1,0 +1,15 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_exceeds_capacity = (cumulative_demand >= total_capacity[:, None]).float()
+    
+    penalty = demand_exceeds_capacity * 10000  # High penalty for edges that cause capacity overflow
+    distance_weighted = distance_matrix * cumulative_demand
+    
+    # Calculate the heuristic as the negative of the distance-weighted sum plus penalty
+    heuristic = -torch.sum(distance_weighted, dim=0) + penalty
+    return heuristic
+```

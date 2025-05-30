@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize demands to have a sum of 1
+    normalized_demands = demands / demands.sum()
+    
+    # Penalize high demand edges using the difference between the normalized demands
+    demand_penalty = -torch.relu(normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0))
+    
+    # Heuristic for shortest distance considering small epsilon to avoid division by zero
+    distance_heuristic = 1 / (distance_matrix + 1e-6)
+    
+    # Load balancing by calculating the difference between normalized demands
+    load_balance = torch.abs(normalized_demands.unsqueeze(1) - normalized_demands.unsqueeze(0))
+    
+    # Simulate real-time rerouting with a time constant affecting edge heuristics
+    time_constant = torch.rand(distance_matrix.shape[0])
+    time_heuristic = 1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0))
+    
+    # Weights for the heuristics to balance their influence
+    weights = torch.tensor([0.3, 0.4, 0.2, 0.1], dtype=torch.float32)
+    
+    # Combine heuristics weighted by their importance
+    combined_heuristic = (weights[0] * demand_penalty +
+                          weights[1] * distance_heuristic +
+                          weights[2] * load_balance * time_heuristic +
+                          weights[3] * distance_heuristic)  # Adding another weight for distance heuristic
+    
+    # Normalize the combined heuristic to enhance edge prominence
+    min_val = combined_heuristic.min()
+    max_val = combined_heuristic.max()
+    normalized_combined_heuristic = (combined_heuristic - min_val) / (max_val - min_val)
+    
+    return normalized_combined_heuristic
+```

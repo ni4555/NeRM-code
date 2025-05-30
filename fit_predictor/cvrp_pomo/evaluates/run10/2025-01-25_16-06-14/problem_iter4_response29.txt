@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = demands.cumsum(0)
+    # Calculate the demand difference for each node, penalizing nodes with higher demand
+    demand_diff = (cumulative_demand - demands[:, None]).clamp(min=0)
+    # Calculate the maximum cumulative demand up to each node
+    max_cumulative_demand = cumulative_demand.max(0)[0]
+    # Normalize the demand difference by the maximum cumulative demand to avoid overflow
+    demand_diff_normalized = demand_diff / max_cumulative_demand[:, None]
+    # Calculate the heuristic values based on the normalized demand difference
+    heuristic_values = -distance_matrix * demand_diff_normalized
+    return heuristic_values
+```

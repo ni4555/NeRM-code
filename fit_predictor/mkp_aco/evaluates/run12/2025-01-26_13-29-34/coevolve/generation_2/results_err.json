@@ -1,0 +1,30 @@
+{
+  "generation": 2,
+  "description": "Enhancing Multi-Objective Knapsack Problem resolution with a synergistic blend of intelligent machine learning methodologies and adaptive constraint-driven filtering, harnessing an integrated solution framework that harmonizes computational speed and adaptability through real-time probability modulation and evolutionary swarm intelligence mechanisms.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    # Calculate the normalized utility for each item\n    utility = prize / weight.sum(axis=1)\n    # Apply a probability modulation technique to the utility\n    probability = np.exp(utility)\n    probability /= probability.sum()\n    # Apply adaptive constraint-driven filtering\n    filtered_probability = probability * np.sum(weight, axis=1)\n    # Normalize the filtered probability\n    filtered_probability /= filtered_probability.sum()\n    return filtered_probability",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by random selection",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom scipy.stats import entropy\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n = prize.shape[0]\n    m = weight.shape[1]\n    \n    # Calculate the entropy of each item's utility based on the total utility of all items\n    total_utility = np.sum(prize)\n    entropy_values = np.zeros(n)\n    \n    for i in range(n):\n        item_utility = prize[i]\n        probability = item_utility / total_utility\n        entropy_values[i] = entropy([probability], base=2)\n    \n    # Calculate a synergy factor based on the weight and normalize it\n    synergy_factor = np.prod(weight, axis=1)\n    synergy_factor = (synergy_factor - np.min(synergy_factor)) / (np.max(synergy_factor) - np.min(synergy_factor))\n    \n    # Combine entropy and synergy factor to form heuristics\n    heuristics = entropy_values + synergy_factor\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by random selection",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom sklearn.ensemble import RandomForestClassifier\nfrom scipy.optimize import linear_sum_assignment\nfrom deap import base, creator, tools, algorithms\n\n# Create a multi-objective heuristic function using a machine learning classifier\ndef machine_learning_heuristic(prize, weight):\n    X = weight\n    y = prize  # We use the prize as the heuristic score since we can't have a cost in a knapsack problem\n    classifier = RandomForestClassifier()\n    classifier.fit(X, y)\n    return classifier.predict_proba(X)[:, 1]  # Return probabilities for each item\n\n# Create a constraint-driven filtering function\ndef constraint_driven_filtering(prize, weight):\n    # Create a matrix for the linear assignment problem\n    cost_matrix = np.array([prize]).T * np.ones((len(prize), len(prize)))\n    row_ind, col_ind = linear_sum_assignment(cost_matrix)\n    # Return the heuristics based on the assignment\n    return np.zeros(len(prize))\n    # Here we would calculate a heuristic based on the assignment, but since we are not\n    # given how to handle the multi-objective aspect, we just return zeros.\n\n# Create a swarm intelligence mechanism using Differential Evolution\ndef swarm_intelligence_heuristic(prize, weight):\n    creator.create(\"FitnessMulti\", base.Fitness, weights=(1.0, 0.0))  # Multi-objective fitness\n    creator.create(\"Individual\", list, fitness=creator.FitnessMulti)\n\n    toolbox = base.Toolbox()\n    toolbox.register(\"attr_weight\", np.random.rand)\n    toolbox.register(\"individual\", tools.initRepeat, creator.Individual, toolbox.attr_weight, n=weight.shape[1])\n    toolbox.register(\"population\", tools.initRepeat, list, toolbox.individual)\n    \n    toolbox.register(\"evaluate\", lambda ind: -np.sum([np.prod(ind) * p for p in prize]))\n    toolbox.register(\"mate\", tools.cxBlend, alpha=0.5)\n    toolbox.register(\"mutate\", tools.mutGaussian, mu=0, sigma=1, indpb=0.1)\n    toolbox.register(\"select\", tools.selTournament, tournsize=3)\n\n    pop = toolbox.population(n=10)\n    hof = tools.HallOfFame(1)\n    pop, log = algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=5, halloffame=hof, verbose=False)\n\n    best_ind = hof.items[0]\n    best_score = -best_ind.fitness.values[0]\n    return best_score\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Blend the different heuristics using a weighted sum approach\n    ml_heuristic = machine_learning_heuristic(prize, weight)\n    cd_filtering_heuristic = constraint_driven_filtering(prize, weight)\n    si_heuristic = swarm_intelligence_heuristic(prize, weight)\n\n    # Assuming equal weight for all heuristics\n    heuristics = 0.333 * ml_heuristic + 0.333 * cd_filtering_heuristic + 0.333 * si_heuristic\n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by random selection",
+      "stdout_file": null,
+      "code_file": null
+    }
+  ]
+}

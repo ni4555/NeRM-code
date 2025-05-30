@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand)
+    
+    # Normalize the distance penalty based on the remaining capacity of each vehicle
+    remaining_capacity = total_capacity - cumulative_demand
+    capacity_normalized = (remaining_capacity / total_capacity).unsqueeze(1)
+    
+    # Emphasize problem-specific properties: Normalize and penalize based on the remaining capacity
+    heuristics = distance_scaling + capacity_penalty * (torch.arange(n) == 0).float().unsqueeze(0)
+    heuristics = heuristics + (capacity_normalized * distance_penalty)
+    
+    # Further refine the heuristics by penalizing nodes that have exceeded the vehicle capacity
+    heuristics[torch.arange(n) != 0] += torch.where(cumulative_demand > total_capacity, -1e8, 0)
+    
+    return heuristics
+```

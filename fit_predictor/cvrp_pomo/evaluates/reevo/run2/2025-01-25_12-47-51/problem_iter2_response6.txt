@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_demand = torch.sum(demands)
+
+    # Use the nearest neighbor heuristic for initialization
+    for i in range(1, n):
+        heuristics[i, torch.argmin(distance_matrix[i, 1:])] = -distance_matrix[i, torch.argmin(distance_matrix[i, 1:])]
+
+    # Introduce diversity by using a random neighbor heuristic on some nodes
+    for i in range(1, n):
+        if torch.rand(1) < 0.1:  # 10% chance to apply random neighbor heuristic
+            closest_node = torch.argmin(distance_matrix[i, 1:])
+            # Randomly select another customer that can be reached within the capacity
+            remaining_capacity = 1 - demands[i]
+            valid_nodes = torch.where(distance_matrix[i, 1:] <= remaining_capacity)[0]
+            if valid_nodes.numel() > 0:
+                random_node = torch.choice(valid_nodes)
+                heuristics[i, random_node] = -distance_matrix[i, random_node]
+
+    # Improve the solution by iteratively swapping pairs of customers to improve the heuristic values
+    improved = True
+    while improved:
+        improved = False
+        for i in range(1, n):
+            for j in range(i + 1, n):
+                # Check if both nodes can be visited without exceeding capacity
+                if demands[i] + demands[j] <= 1:
+                    old_value_i = -distance_matrix[i, j]
+                    old_value_j = -distance_matrix[j, i]
+                    new_value_i = -distance_matrix[i, torch.argmin(distance_matrix[i, 1:])]
+                    new_value_j = -distance_matrix[j, torch.argmin(distance_matrix[j, 1:])]
+
+                    # Swap if the new solution is better
+                    if new_value_i > old_value_i and new_value_j > old_value_j:
+                        heuristics[i, j] = new_value_i
+                        heuristics[j, i] = new_value_j
+                        improved = True
+
+    return heuristics
+```

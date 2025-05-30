@@ -1,0 +1,94 @@
+{
+  "generation": 7,
+  "description": "**Problem Description:**\n\nDesign a probabilistic optimization algorithm for the Multi-Knapsack Problem (MKP) that leverages a dynamic value-to-weight ratio heuristic to prioritize item selection. The algorithm shall employ a novel stochastic sampling technique to iteratively select items for each knapsack, ensuring that weight constraints are dynamically adjusted and refined throughout the optimization process. This approach will aim to maximize the total prize collected while adhering to strict weight limitations. The algorithm should incorporate advanced performance metrics and normalization techniques to enhance its robustness and scalability, enabling efficient solutions for large-scale MKP instances.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom scipy.stats import multinomial\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Normalize the prize values by their sum to get a relative importance\n    normalized_prize = prize / np.sum(prize)\n    \n    # Calculate the value-to-weight ratio for each item\n    value_to_weight_ratio = normalized_prize / weight\n    \n    # Calculate the heuristic for each item based on the value-to-weight ratio\n    # Here we are simply taking the inverse of the value-to-weight ratio as a heuristic\n    heuristics = 1 / value_to_weight_ratio\n    \n    # Normalize the heuristics to ensure they sum to 1\n    heuristics /= np.sum(heuristics)\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 10, in heuristics_v2\n    normalized_ratio = value_to_weight_ratio / np.sum(value_to_weight_ratio)\n                            ~~~~~~~~~~~~~~~~~^~~~~~~~\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_7/stdout_0.txt",
+      "code_file": "coevolve/generation_7/code_0.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom scipy.stats import poisson\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight_ratio = prize / weight\n    \n    # Calculate the normalized value-to-weight ratio\n    normalized_ratio = value_to_weight_ratio / np.sum(value_to_weight_ratio)\n    \n    # Calculate the heuristic values based on a Poisson distribution\n    # with the mean equal to the normalized value-to-weight ratio\n    heuristics = poisson.pmf(range(1, len(prize) + 1), np.mean(normalized_ratio))\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 7, in heuristics_v2\n    \nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_7/stdout_1.txt",
+      "code_file": "coevolve/generation_7/code_1.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight = prize / weight\n    \n    # Calculate the heuristic as the negative of the value-to-weight ratio\n    # since we want to maximize the total prize, we minimize the negative ratio\n    heuristics = -value_to_weight\n    \n    # Normalize the heuristics to ensure they are in a comparable range\n    max_heuristic = np.max(heuristics)\n    min_heuristic = np.min(heuristics)\n    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    value_to_weight_ratio = prize / weight\n                      ^^^^^^^^^^^^^^\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_7/stdout_2.txt",
+      "code_file": "coevolve/generation_7/code_2.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight_ratio = prize / weight\n    \n    # Normalize the value-to-weight ratio to ensure non-negative values\n    min_ratio = np.min(value_to_weight_ratio)\n    normalized_ratio = value_to_weight_ratio - min_ratio\n    \n    # Scale the normalized ratios to ensure they can be interpreted as probabilities\n    max_ratio = np.max(normalized_ratio)\n    scaled_ratio = normalized_ratio / max_ratio\n    \n    # Convert the scaled ratios to heuristics by applying a sigmoid function\n    heuristics = 1 / (1 + np.exp(-scaled_ratio))\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    value_to_weight_ratio = prize / weight\n                            ~~~~~~^~~~~~~~\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_7/stdout_3.txt",
+      "code_file": "coevolve/generation_7/code_3.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight_ratio = prize / weight\n    \n    # Normalize the ratios to ensure they are comparable and prioritize items with higher ratios\n    max_ratio = np.max(value_to_weight_ratio)\n    normalized_ratios = value_to_weight_ratio / max_ratio\n    \n    # Use a simple stochastic sampling technique to select items based on the normalized ratios\n    # Here we're using a random choice, but this could be replaced with a more sophisticated method\n    # like Thompson sampling or other probabilistic selection techniques.\n    random_choice = np.random.rand(len(normalized_ratios))\n    selected_indices = np.argsort(random_choice)[:len(normalized_ratios)]\n    \n    # Return the selected indices as heuristics, which represent the order of item selection\n    heuristics = np.zeros_like(prize)\n    heuristics[selected_indices] = 1\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    # Calculate the value-to-weight ratio for each item\n                            ^^^^^^^^^^^^^^\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_7/stdout_4.txt",
+      "code_file": "coevolve/generation_7/code_4.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom scipy.stats import multinomial\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight_ratio = prize / weight\n    \n    # Normalize the value-to-weight ratio to ensure all ratios are positive\n    min_ratio = np.min(value_to_weight_ratio)\n    value_to_weight_ratio = value_to_weight_ratio - min_ratio\n    \n    # Normalize the ratios to sum to 1\n    normalized_ratio = value_to_weight_ratio / np.sum(value_to_weight_ratio)\n    \n    # Sample heuristics for each item using multinomial distribution\n    heuristics = multinomial.pmf(np.arange(len(normalized_ratio)), n=1, p=normalized_ratio)\n    \n    return np.array(heuristics, dtype=float)",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 7, in heuristics_v2\n    value_to_weight_ratio = prize / weight\n                            ~~~~~~^~~~~~~~\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_7/stdout_5.txt",
+      "code_file": "coevolve/generation_7/code_5.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom scipy.stats import multinomial\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight_ratio = prize / weight\n    \n    # Normalize the ratios to sum to 1\n    normalized_ratios = value_to_weight_ratio / np.sum(value_to_weight_ratio)\n    \n    # Generate a sample of heuristics using a multinomial distribution\n    num_samples = len(prize)\n    heuristics = multinomial.rvs(p=normalized_ratios, size=num_samples)\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 7, in heuristics_v2\n    # the heuristic for each item can be defined as the prize of the item.\n                            ^^^^^^^^^^^^^^\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_7/stdout_6.txt",
+      "code_file": "coevolve/generation_7/code_6.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight = prize / weight\n    \n    # Normalize the value-to-weight ratio to create a heuristic\n    max_ratio = np.max(value_to_weight)\n    min_ratio = np.min(value_to_weight)\n    normalized_ratio = (value_to_weight - min_ratio) / (max_ratio - min_ratio)\n    \n    # Return the normalized heuristic values\n    return normalized_ratio",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    value_to_weight_ratio = prize / weight\n                      ^^^^^^^^^^^^^^\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_7/stdout_8.txt",
+      "code_file": "coevolve/generation_7/code_8.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight_ratio = prize / weight\n    \n    # Normalize the ratios to ensure they sum to 1 across all items\n    normalized_ratio = value_to_weight_ratio / np.sum(value_to_weight_ratio)\n    \n    # Generate a random number for each item to introduce stochasticity\n    random_numbers = np.random.rand(len(prize))\n    \n    # Calculate heuristics based on the normalized ratios and random numbers\n    heuristics = normalized_ratio * random_numbers\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    value_to_weight_ratio = prize / weight.sum(axis=1, keepdims=True)\n                            ~~~~~~^~~~~~~~\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_7/stdout_9.txt",
+      "code_file": "coevolve/generation_7/code_9.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight_ratio = prize / weight.sum(axis=1, keepdims=True)\n    \n    # Calculate the heuristic as the logarithm of the ratio, which is a common heuristic\n    heuristics = np.log(value_to_weight_ratio + 1e-10)  # Adding a small value to avoid log(0)\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 24, in solve\n    assert heu.shape == (n,)\n           ^^^^^^^^^^^^^^^^^\nAssertionError\n",
+      "stdout_file": "coevolve/generation_7/stdout_10.txt",
+      "code_file": "coevolve/generation_7/code_10.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight_ratio = prize / weight\n    \n    # Normalize the ratios to make them suitable for comparison\n    normalized_ratio = value_to_weight_ratio / np.sum(value_to_weight_ratio)\n    \n    # Create a heuristic score for each item based on the normalized ratio\n    heuristics = normalized_ratio * (1 + np.random.rand(len(value_to_weight_ratio)))\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    value_to_weight_ratio = prize / weight\n                            ~~~~~~^~~~~~~~\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_7/stdout_11.txt",
+      "code_file": "coevolve/generation_7/code_11.py"
+    }
+  ]
+}

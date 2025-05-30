@@ -1,0 +1,52 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # 1. Precise Demand Handling
+    # Demand normalization
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Cumulative demand mask
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    
+    # 2. Capacity Constraint Prioritization
+    # Edge feasibility mask
+    edge_capacity_impact = distance_matrix * cumulative_demand
+    
+    # 3. Clear Edge Evaluation
+    # Define a clear and objective evaluation method for edges
+    # Here we use the cumulative demand as the evaluation criterion
+    edge_evaluation = edge_capacity_impact
+    
+    # 4. Optimization Strategies
+    # Use a more sophisticated approach for edge evaluation
+    # Introduce a penalty for high cumulative demand
+    demand_penalty = 1.0 - cumulative_demand
+    edge_evaluation = edge_evaluation * demand_penalty
+    
+    # Introduce a bonus for short distances
+    distance_bonus = 1.0 / (distance_matrix + 1e-6)  # Avoid division by zero
+    edge_evaluation = edge_evaluation * distance_bonus
+    
+    # Prioritize edges based on the combined evaluation
+    edge_promise = edge_evaluation.sum(dim=1)  # Sum along the vehicle dimension
+    
+    # 5. Further Optimization
+    # Use a Gaussian kernel to smooth the edge promise values
+    # This helps to create smoother transition between high and low promise edges
+    gaussian_kernel = torch.exp(-torch.arange(0, n).float() ** 2 / (2 * 0.1 ** 2))
+    edge_promise = torch.nn.functional.conv1d(edge_promise.unsqueeze(1), gaussian_kernel.unsqueeze(0), padding=n//2).squeeze(1)
+    
+    # Convert to the desired shape and normalize to a range
+    edge_promise = edge_promise.view(n, n)
+    edge_promise = (edge_promise - edge_promise.min()) / (edge_promise.max() - edge_promise.min())
+    
+    # 6. Final Adjustment
+    # Adjust edge promise to ensure negative values for undesirable edges and positive for promising ones
+    edge_promise = torch.where(edge_promise > 0.5, 1.0, -1.0)
+    
+    return edge_promise
+```

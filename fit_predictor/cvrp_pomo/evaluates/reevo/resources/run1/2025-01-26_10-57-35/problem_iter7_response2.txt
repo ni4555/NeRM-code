@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= demand_matrix.diag()
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Vectorized computation for weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Integrate capacity constraints by considering demands and distances
+    capacity_constrained_matrix = torch.clamp(weighted_distance_matrix, max=demands)
+    
+    # Normalize the capacity constrained matrix
+    normalized_capacity_constrained_matrix = capacity_constrained_matrix / capacity_constrained_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine normalized demand and normalized distance
+    heuristics = normalized_capacity_constrained_matrix + demand_matrix
+    
+    # Use dynamic priority queues by sorting the heuristics and selecting the top edges
+    sorted_indices = torch.argsort(heuristics, descending=True)
+    top_edges = heuristics[sorted_indices]
+    heuristics = torch.zeros_like(heuristics)
+    heuristics[sorted_indices] = top_edges
+    
+    return heuristics
+```

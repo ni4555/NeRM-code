@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison and normalization
+    demand_matrix = demands[:, None] * demands
+    demand_matrix = (demand_matrix - torch.diag(demand_matrix)) / demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Initialize a penalty matrix for loops
+    loop_penalty = torch.eye(n, dtype=distance_matrix.dtype) * 1e8
+    
+    # Calculate a penalty for each edge that is a loop
+    loop_penalty = loop_penalty - torch.diag(demand_matrix)
+    
+    # Incorporate the loop penalty into the weighted distance matrix
+    weighted_distance_matrix = distance_matrix + loop_penalty
+    
+    # Normalize the weighted distance matrix by the total demand to balance demand
+    total_demand = demands.sum()
+    demand_factor = demands / total_demand
+    weighted_distance_matrix = weighted_distance_matrix * demand_factor[:, None]
+    
+    # Use capacity as a factor in the heuristic
+    capacity_factor = (1 / (demands + 1e-8))
+    
+    # Calculate heuristic
+    heuristics = weighted_distance_matrix + capacity_factor
+    
+    # Apply a dynamic penalty to edges with high cumulative demand to minimize redundancy
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    dynamic_penalty = cumulative_demand[:, None] / cumulative_demand.sum(dim=1, keepdim=True)
+    heuristics = heuristics + dynamic_penalty
+    
+    # Clip negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

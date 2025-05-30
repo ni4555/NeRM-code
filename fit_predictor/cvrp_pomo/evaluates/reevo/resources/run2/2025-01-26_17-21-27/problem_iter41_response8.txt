@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+
+    # Use a simpler scaling for distance to focus on the core objective
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+
+    # Introduce a more direct penalty for early overflow to encourage early return
+    overflow_penalty = torch.where(
+        cumulative_demand > total_capacity,
+        -torch.log1p(cumulative_demand - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+
+    # Implement a load balancing heuristic without using a penalty
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_heuristic = 1.0 / (load_balance + 1e-8)
+
+    # Use a penalty to balance the diversity factor
+    diversity_penalty = torch.abs(torch.randn_like(demands)) * 0.1
+
+    # Avoid redundancy by removing unnecessary terms
+    heuristics = load_balance_heuristic * (distance_penalty + overflow_penalty)
+
+    # Encourage diversity and balance by applying a diversity factor
+    heuristics += diversity_penalty
+
+    # Scale the heuristics to prioritize core objectives
+    scaling_factor = 2.0
+    heuristics *= scaling_factor
+
+    # Adapt heuristics for early overflow
+    early_overflow = torch.where(cumulative_demand > total_capacity, torch.ones_like(cumulative_demand), torch.zeros_like(cumulative_demand))
+    heuristics *= early_overflow
+
+    return heuristics
+```

@@ -1,0 +1,49 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate sum of weights
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Balance heuristic value by blending metrics
+    heuristic_value = density * (1 - sparsity) - weight_sum
+    
+    # Diversity factor based on the average density
+    average_density = np.mean(density)
+    diversity_factor = density / (average_density + 1e-8)
+    
+    # Create a final heuristic combining heuristic value with diversity factor
+    heuristic = heuristic_value * diversity_factor
+    
+    # Normalize the heuristic value to a common scale
+    normalized_heuristic_value = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Normalize sparsity to a common scale
+    normalized_sparsity = sparsity / (np.max(sparsity) + 1e-8)
+    
+    # Normalize weight sum to a common scale
+    normalized_weight_sum = weight_sum / (np.max(weight_sum) + 1e-8)
+    
+    # Adjust heuristics for items with zero weight to ensure diversity
+    zero_weight_mask = weight_sum < 1e-8
+    normalized_heuristic_value[zero_weight_mask] = 1e-8
+    
+    # Final heuristic combining the normalized heuristic value with sparsity and weight sum adjustments
+    final_heuristic = normalized_heuristic_value * (1 - normalized_sparsity) - normalized_weight_sum
+    
+    # Introduce a small random factor to encourage diversity
+    random_factor = np.random.rand(n) / (np.max(np.random.rand(n)) + 1e-8)
+    
+    # Final heuristic is the weighted sum of the final heuristic and a random factor
+    final_heuristic = final_heuristic + 0.1 * random_factor
+    
+    return final_heuristic
+```

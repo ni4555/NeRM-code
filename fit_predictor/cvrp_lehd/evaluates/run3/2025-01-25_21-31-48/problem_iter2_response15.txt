@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    # Calculate the total demand excluding the depot
+    total_demand = demands[1:].sum()
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    # Iterate over all possible edges except the one to the depot
+    for i in range(1, n):
+        for j in range(1, n):
+            if i != j:
+                # Calculate the potential contribution of this edge to the solution
+                contribution = distance_matrix[i][j] - demands[j]
+                # Normalize the contribution based on the total demand
+                heuristics[i][j] = contribution / total_demand
+                # If the contribution is positive, add a small penalty for high distance
+                if contribution > 0:
+                    heuristics[i][j] *= (1 - torch.exp(-distance_matrix[i][j]))
+    return heuristics
+```

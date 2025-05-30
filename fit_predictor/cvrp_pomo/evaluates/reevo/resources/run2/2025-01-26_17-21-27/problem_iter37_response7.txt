@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Early overflow detection and dynamic penalty
+    early_overflow_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector) - 1e-8)
+    
+    # Enhanced distance penalty with cumulative load
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity)
+    
+    # Load balance heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Blend diverse heuristics for balance and randomness
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Vectorized implementation of the blend of heuristics
+    blended_heuristics = (
+        distance_scaling +
+        early_overflow_penalty +
+        load_balance_penalty +
+        diversity_factor
+    )
+    
+    # Vectorized normalization and scaling
+    normalized_heuristics = blended_heuristics / blended_heuristics.max()
+    scaled_heuristics = normalized_heuristics * 100  # Adjust scaling factor as needed
+    
+    return scaled_heuristics
+```

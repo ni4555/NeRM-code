@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Demand-based factor: consider deviation from average demand
+    average_demand = demands.mean()
+    demand_deviation = torch.abs(demands - average_demand)
+    
+    # Distance-based factor: dampen the influence of distance
+    dampening_factor = torch.exp(-torch.abs(distance_matrix) / torch.mean(torch.abs(distance_matrix)))
+    
+    # Avoid loops: penalize edges that form loops
+    loop_penalty = (distance_matrix * distance_matrix).sum(dim=1, keepdim=True)
+    loop_penalty = loop_penalty / torch.mean(loop_penalty)
+    
+    # Combine factors into the heuristics matrix
+    heuristic_matrix = (demand_deviation + dampening_factor + loop_penalty) / (average_demand + torch.mean(torch.abs(distance_matrix)))
+    
+    # Ensure non-negative heuristics
+    heuristic_matrix = heuristic_matrix.clamp(min=0)
+    
+    # Adjust the heuristics for the depot to all other nodes
+    for i in range(1, n):
+        route_demand = demands[i]
+        heuristic_matrix[0, i] = -route_demand * distance_matrix[0, i]
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    return heuristic_matrix
+```

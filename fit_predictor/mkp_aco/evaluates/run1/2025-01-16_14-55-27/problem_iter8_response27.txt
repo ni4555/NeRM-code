@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Normalize the prize to consider each item's contribution to the total prize
+    normalized_prize = prize / prize.sum()
+
+    # Initialize the heuristic values array with normalized prizes
+    heuristics = np.zeros(n)
+    heuristics.fill(normalized_prize)
+
+    # Define the sparsity-aware weighted ratio analysis function
+    def weighted_ratio_analysis(prize: float, weight: np.ndarray, total_weight: float):
+        if total_weight == 0:
+            return 0
+        weighted_ratio = prize / total_weight
+        average_weight = weight.mean()
+        return weighted_ratio - average_weight
+
+    # Dynamic item sorting based on the sparsity-aware weighted ratio analysis
+    total_weights = weight.sum(axis=1)
+    sorted_indices = np.argsort(
+        -np.array([weighted_ratio_analysis(prize[i], weight[i], total_weights[i]) for i in range(n)])[::-1]
+    )
+
+    # Iterate over the sorted items and adjust heuristic values
+    for i in sorted_indices:
+        current_prize = prize[i]
+        current_weight = weight[i, :].sum()
+        current_heuristic = heuristics[i]
+        contribution = weighted_ratio_analysis(current_prize, weight[i, :], current_weight)
+
+        # Update the heuristic value for the current item
+        heuristics[i] = max(current_heuristic, current_heuristic + contribution)
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

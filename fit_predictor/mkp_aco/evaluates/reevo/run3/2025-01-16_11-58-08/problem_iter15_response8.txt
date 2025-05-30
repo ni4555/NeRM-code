@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Normalize the ratio and introduce randomness to encourage diversity
+    normalized_ratio = (value_to_weight_ratio - np.min(value_to_weight_ratio)) / (np.max(value_to_weight_ratio) - np.min(value_to_weight_ratio))
+    # Randomly perturb the normalized ratios to enhance diversity
+    perturbed_ratios = normalized_ratio + np.random.normal(0, 0.01, size=normalized_ratio.shape)
+    # Apply a logarithmic transformation to penalize ratios near 1
+    log_transformed_ratios = np.log(perturbed_ratios)
+    # Apply a sparsity-inducing threshold to focus on high-value features
+    thresholded_ratios = np.where(log_transformed_ratios > np.log(0.1), log_transformed_ratios, 0)
+    # Control sparsity by setting a second threshold to amplify the impact of high ratios
+    amplified_thresholded_ratios = np.where(thresholded_ratios > np.log(0.05), thresholded_ratios, 0)
+    # Normalize the amplified and thresholded heuristics to ensure they sum to 1
+    heuristics = amplified_thresholded_ratios / np.sum(amplified_thresholded_ratios)
+    return heuristics
+```

@@ -1,0 +1,59 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+
+    # Hypothetical pre-trained RL model to get initial item scores
+    model_scores = np.random.rand(n)  # Replace with actual model predictions
+
+    # Check feasibility and identify infeasible items
+    feasible_items = np.all(weight <= 1, axis=1)
+    infeasible_items = ~feasible_items
+
+    # Initialize PSO components
+    global_best_index = np.argmax(model_scores)
+    global_best_score = model_scores[global_best_index]
+    pso_position = np.copy(model_scores)
+    pso_personal_best = np.copy(model_scores)
+    pso_global_best = np.copy(model_scores)
+
+    # Initialize velocities with a more complex update rule
+    pso_velocity = np.zeros(n)
+    cognitive_constant = 2
+    social_constant = 2
+    inertia_weight = 0.7
+    for _ in range(10):  # Smaller number of iterations for adaptability
+        for i in range(n):
+            r1, r2 = np.random.rand(2)
+            cognitive_factor = cognitive_constant * r1 * (pso_personal_best[i] - model_scores[i])
+            social_factor = social_constant * r2 * (pso_global_best[i] - model_scores[i])
+            pso_velocity[i] = inertia_weight * pso_velocity[i] + cognitive_factor + social_factor
+            pso_position[i] += pso_velocity[i]
+            pso_position[i] = np.clip(pso_position[i], 0, 1)  # Constraint to [0, 1]
+
+        # Update personal and global bests
+        pso_personal_best = np.maximum(pso_position, pso_personal_best)
+        pso_global_best = np.maximum(pso_personal_best, pso_global_best)
+        global_best_index = np.argmax(pso_global_best)
+
+    # Combine model scores with PSO scores and adjust for feasibility
+    for i in range(n):
+        heuristic = model_scores[i] * (prize[i] / (prize[global_best_index] + 1e-6))
+        if feasible_items[i]:
+            heuristic += (pso_global_best[i] * (1 - model_scores[i]))
+        else:
+            heuristic = 0
+
+        # Adjust heuristic based on its position relative to global best
+        if heuristic < global_best_score * 0.5:
+            heuristic *= 0.9
+
+    # Sparsify heuristics using a balanced threshold
+    sparsity_threshold = np.percentile(heuristic, 80)
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    # Incorporate a dynamic confidence factor based on feasibility
+    confidence_factor = np.mean(heuristic[feasible_items])
+    heuristic[feasible_items] *= (1 + confidence_factor * (np.random.rand(n) < 0.1))
+
+    return heuristic
+```

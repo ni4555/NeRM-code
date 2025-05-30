@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate penalties for high demand and distance
+    demand_penalty = -torch.abs(demands - vehicle_capacity)
+    distance_penalty = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine penalties and introduce noise
+    combined_penalty = demand_penalty + distance_penalty
+    noise = torch.randn_like(combined_penalty) * 1e-2
+    
+    # Normalize the penalty matrix to control randomness
+    normalized_penalty = combined_penalty + noise
+    normalized_penalty = normalized_penalty / (normalized_penalty.sum(dim=1, keepdim=True) + 1e-6)
+    
+    # Introduce randomness through mutation
+    mutation = torch.rand_like(normalized_penalty)
+    mutated_potential = normalized_penalty + torch.randn_like(normalized_penalty) * 1e-3 * mutation
+    
+    # Final heuristics matrix transformation
+    heuristics_matrix = -mutated_potential
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,76 @@
+Fitness: inf
+
+Description:
+Integrate a probabilistic sampling mechanism with a collective of Genetic Algorithms and Stochastic Local Search algorithms to tackle the Multi-Knapsack Problem. This novel approach prioritizes the maximization of cumulative reward while respecting multiple weight constraints. The proposed heuristic harnesses adaptive sampling to iteratively refine potential solutions, further optimized by incorporating reinforcement learning for enhanced exploration and exploitation. Emphasis is placed on solution quality, computational efficacy, and adaptability across diverse MKP scenarios, with an algorithmic focus on evolutionary strategies, probabilistic modeling, and iterative refinement mechanisms.
+
+Code:
+import numpy as np
+import numpy as np
+import random
+
+def heuristic_based_selection(population, fitness, heuristic, alpha):
+    normalized_fitness = (fitness - min(fitness)) / (max(fitness) - min(fitness))
+    probabilities = normalized_fitness * alpha
+    probabilities += (1 - alpha) * heuristic / max(heuristic)
+    cumulative_probabilities = np.cumsum(probabilities)
+    selected_indices = np.searchsorted(cumulative_probabilities, np.random.rand(len(cumulative_probabilities)))
+    return selected_indices
+
+def reinforcement_learning_heuristic(state, reward_model, gamma=0.9):
+    Q_values = reward_model(state)
+    best_action = np.argmax(Q_values)
+    return Q_values[best_action]
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape
+    heuristic = np.zeros(n)
+    population_size = 50
+    mutation_rate = 0.02
+    generations = 10
+    alpha = 0.5
+    gamma = 0.9
+
+    # Initialize the population with random weights
+    population = np.random.choice([0, 1], size=(population_size, n))
+
+    # Fitness function
+    def fitness(population):
+        rewards = np.dot(population, prize)
+        weights = np.sum(population * weight, axis=1)
+        valid_solutions = np.all(weights <= 1, axis=1)
+        return np.where(valid_solutions, rewards, -np.inf)
+
+    # Q-table initialization
+    Q_table = np.zeros((n, 2**n))
+
+    # Genetic Algorithm
+    for generation in range(generations):
+        # Evaluate fitness
+        fitness_scores = fitness(population)
+        
+        # Reinforcement learning step
+        for state in range(2**n):
+            state_bits = np.array([int(x) for x in bin(state)[2:]]).astype(int)
+            if np.sum(state_bits) < n:  # Only consider feasible states
+                reward = fitness_scores[state]
+                heuristic[state] = reinforcement_learning_heuristic(state, lambda s: Q_table[s], gamma)
+        
+        # Selection
+        selected_indices = heuristic_based_selection(population, fitness_scores, heuristic, alpha)
+        
+        # Crossover
+        for i in range(0, population_size, 2):
+            parent1, parent2 = population[selected_indices[i]], population[selected_indices[i+1]]
+            crossover_point = random.randint(1, n-1)
+            child1, child2 = np.concatenate((parent1[:crossover_point], parent2[crossover_point:])), np.concatenate((parent2[:crossover_point], parent1[crossover_point:]))
+            population[i], population[i+1] = child1, child2
+        
+        # Mutation
+        for i in range(population_size):
+            if random.random() < mutation_rate:
+                mutation_point = random.randint(0, n-1)
+                population[i][mutation_point] = 1 - population[i][mutation_point]
+
+    # Choose the best solution
+    best_state = np.argmax(fitness(population))
+    return np.array([int(x) for x in bin(best_state)[2:]], dtype=int)

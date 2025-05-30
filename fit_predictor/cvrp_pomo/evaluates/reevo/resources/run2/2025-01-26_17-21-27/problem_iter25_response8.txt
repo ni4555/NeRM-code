@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Incorporate exponential decay in the scaling factor
+    decay_factor = 0.9
+    scaling_factor = decay_factor ** (torch.arange(n, dtype=torch.float32) - (n // 2))
+
+    # Use nuanced scaling with demand awareness
+    dynamic_capacity_penalty = capacity_penalty * scaling_factor * (1 + (total_capacity - cumulative_demand) / total_capacity)
+
+    # Overflow detection with a more nuanced approach
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8) * scaling_factor,
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Demand scaling for balance load heuristic
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Combine all penalties and scaling factors
+    heuristics = (distance_penalty * scaling_factor +
+                  dynamic_capacity_penalty +
+                  overflow_penalty +
+                  load_balance_penalty)
+    return heuristics
+```

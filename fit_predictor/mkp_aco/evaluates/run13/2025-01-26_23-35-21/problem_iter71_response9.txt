@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Prune dominated items based on density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sorted_indices = np.argsort(density)[::-1]
+    non_dominated_items = sorted_indices[np.searchsorted(sorted_indices, sorted_indices, side='right') == 0]
+    
+    # For non-dominated items, calculate normalized sparsity and sum of weights
+    sparsity = np.sum(weight[non_dominated_items], axis=1) / (np.max(weight[non_dominated_items], axis=1) + 1e-8)
+    weight_sum = np.sum(weight[non_dominated_items], axis=1)
+    
+    # Create a balanced heuristic value by blending metrics
+    heuristic_value = (prize[non_dominated_items] / (weight_sum + 1e-8)) * (1 - sparsity)
+    
+    # Introduce a diversity factor based on the average density
+    average_density = np.mean(density[non_dominated_items])
+    diversity_factor = density[non_dominated_items] / (average_density + 1e-8)
+    
+    # Create a final heuristic by combining the diversity factor with the heuristic value
+    heuristic = heuristic_value * diversity_factor
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Set the heuristics for dominated items to zero
+    final_heuristic = np.zeros_like(density)
+    final_heuristic[non_dominated_items] = normalized_heuristic
+    
+    # Introduce a random perturbation to foster diversity
+    random_perturbation = np.random.rand(len(final_heuristic))
+    final_heuristic = final_heuristic * random_perturbation / np.sum(random_perturbation)
+    
+    return final_heuristic
+```

@@ -1,0 +1,35 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic array with a default value
+    heuristic = np.zeros_like(prize)
+    
+    # Iterate over items to determine their heuristic value
+    for i in range(len(prize)):
+        # Normalize prize and weight to reduce the influence of larger values
+        normalized_prize = prize[i] / np.max(prize)
+        normalized_weight = weight[i] / np.max(weight, axis=0)
+        
+        # Calculate density
+        density = normalized_prize / np.sum(normalized_weight)
+        
+        # Calculate sparsity
+        sparsity = np.sum(normalized_weight) / np.max(normalized_weight)
+        
+        # Introduce randomness to explore other options
+        random_factor = np.random.rand()
+        
+        # Determine the heuristic value by balancing the metrics and randomness
+        heuristic[i] = (density - sparsity) / (density + sparsity + 1e-8) * random_factor
+        
+        # Prune dominated items by checking if the current item is worse than any other item
+        for j in range(len(prize)):
+            if j != i and (prize[j] / np.sum(weight[j]) > prize[i] / np.sum(weight[i])):
+                heuristic[i] = 0
+    
+    # Normalize the heuristic values to ensure they sum up to 1
+    heuristic /= np.sum(heuristic)
+    
+    return heuristic
+```

@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate inverse distance matrix and normalize by total demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Demand-based heuristic: normalize demand
+    demand_normalized = demands / total_demand
+
+    # Distance-based heuristic: normalize distance
+    distance_normalized = inv_distance_matrix / total_demand
+
+    # Combine demand and distance for heuristic
+    demand_distance_heuristic = demand_normalized * distance_normalized
+
+    # Dynamic weight: use a parameter that adjusts the weight based on domain knowledge
+    dynamic_weight = torch.exp(-0.1 * distance_normalized)
+
+    # Integrate heuristics and dynamic weight
+    combined_heuristic = demand_distance_heuristic * dynamic_weight
+
+    # Ensure infeasible edges (capacity exceeded) are heavily penalized
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    return combined_heuristic
+```

@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    demand_scale = (demands / total_demand).unsqueeze(1)
+    
+    cost_component = distance_matrix * demand_scale
+    demand_component = (demand_scale - demand_scale.transpose(0, 1)) * (1.0 - demand_scale.sum(1, keepdim=True))
+    
+    heuristic_values = cost_component + demand_component
+    
+    max_abs_value = torch.max(torch.abs(heuristic_values))
+    heuristic_values = heuristic_values / max_abs_value
+    
+    penalty = torch.zeros_like(heuristic_values)
+    penalty[torch.arange(n), 0] = -1  # Penalty for returning to the depot
+    penalty[(demands > 1.0).bool()] = -1000.0  # Penalty for demand overflow
+    heuristic_values += penalty
+    
+    return heuristic_values
+```

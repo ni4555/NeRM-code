@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Core objective: penalize for deviations from total capacity
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Distance-based penalty: heavier for longer distances
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Load balance penalty: encourage load distribution close to average
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Combine penalties with a focus on capacity and load balance
+    combined_penalty = (capacity_penalty + distance_penalty + load_balance_penalty) / 3
+    
+    # Diversity heuristic: encourage exploration of different solutions
+    diversity = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Final heuristics: combine penalties with diversity
+    heuristics = combined_penalty + diversity
+    
+    # Normalize and limit the range of heuristics
+    heuristics = torch.clamp(heuristics, min=-10.0, max=10.0)
+    return heuristics
+```

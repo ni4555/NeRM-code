@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Initialize potential matrix with a high initial penalty
+    edge_potential = torch.ones_like(distance_matrix) * 10000
+    edge_potential[distance_matrix == 0] = 0  # Skip the depot edge
+
+    # Use dynamic programming to estimate a lower bound for each edge
+    n = len(demands)
+    for capacity in range(int(total_demand) + 1):
+        dp = torch.zeros((n, n))
+        for start in range(n):
+            for end in range(start + 1, n):
+                if dp[start, end - 1] + distance_matrix[start, end] <= capacity:
+                    dp[start, end] = min(dp[start, end], dp[start, end - 1] + distance_matrix[start, end])
+        edge_potential += dp[0, 1:] - dp[0, :-1]  # Update edge potential based on the lower bound
+
+    # Adjust the weight dynamically based on demand distribution
+    max_demand_weight = demands.max()
+    demand_weight = normalized_demands / (normalized_demands.max() + 1e-8)
+
+    # Calculate the demand-based potential and update edge potential
+    for i in range(n):
+        edge_potential += torch.sum(demand_weight[i] * normalized_demands)
+
+    # Apply penalties for edges that might lead to infeasibilities
+    high_demand_penalty = 0.5
+    high_demand_threshold = max_demand_weight * 1.5
+    high_demand_penalty_factor = (demands > high_demand_threshold).float() * high_demand_penalty
+
+    high_distance_penalty = 0.5
+    high_distance_threshold = distance_matrix.max()
+    high_distance_penalty_factor = (distance_matrix < high_distance_threshold * 0.5).float() * high_distance_penalty
+
+    edge_potential -= (high_demand_penalty_factor + high_distance_penalty_factor)
+
+    # Normalize and cap the potential to prevent dominance by specific edges
+    max_potential = edge_potential.max()
+    edge_potential = (edge_potential - edge_potential.min()) / (max_potential - edge_potential.min())
+    edge_potential = torch.clamp(edge_potential, min=-1.0, max=1.0)
+
+    return edge_potential
+```

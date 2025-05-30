@@ -1,0 +1,38 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the sparsity
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1)
+    
+    # Introduce an exploration factor based on the standard deviation of density
+    exploration_factor = 1 - np.exp(-np.std(density))
+    
+    # Introduce an exploitation factor based on the sum of weights
+    exploitation_factor = np.exp(-weight_sum)
+    
+    # Combine exploration and exploitation factors
+    balance_factor = exploration_factor * exploitation_factor
+    
+    # Introduce randomness for diversity
+    random_factor = np.random.rand(*weight.shape) / np.max(np.random.rand(*weight.shape))
+    
+    # Create a heuristic that balances density, sparsity, and random factors
+    heuristic = (density * (1 - sparsity) + balance_factor + random_factor)
+    
+    # Prune dominated items (those with lower heuristic than at least one of their neighbors)
+    sorted_indices = np.argsort(-heuristic)
+    heuristic_dominated = heuristic.copy()
+    for i in range(len(heuristic)):
+        for j in range(len(heuristic)):
+            if i != j and heuristic[i] < heuristic[j]:
+                heuristic_dominated[i] = 0
+    
+    # Set zero weights to a small value to maintain diversity
+    heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return heuristic_dominated
+```

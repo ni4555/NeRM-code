@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Normalize the distance matrix by the sum of demands to balance the influence of distance and demand
+    demand_sum = demands.sum()
+    normalized_distance_matrix = distance_matrix / demand_sum
+    
+    # Incorporate constraints: edges leading to an overflow in vehicle capacity are penalized
+    overflow_penalty = demands[:, None] > demands[None, :]
+    normalized_distance_matrix[overflow_penalty] = -float('inf')
+    
+    # Use demand patterns: increase the value of edges with high demand
+    demand_weighted_distance = normalized_distance_matrix * demands
+    
+    # Use distance patterns: decrease the value of longer edges
+    return demand_weighted_distance
+```

@@ -1,0 +1,51 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+
+    def dynamic_capacity_penalty():
+        penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+        penalty *= (1 + 0.3 * (total_capacity - cumulative_demand) / total_capacity)
+        penalty *= (cumulative_demand > total_capacity_vector).float()
+        return penalty
+
+    def distance_scaling():
+        scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+        scaling *= (1 + cumulative_demand / total_capacity)
+        scaling *= torch.exp(-cumulative_demand / (total_capacity * 5))
+        return scaling
+
+    def overflow_penalty():
+        penalty = torch.where(
+            (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+            -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+            torch.zeros_like(cumulative_demand)
+        )
+        return penalty
+
+    def load_balance_penalty():
+        balance = torch.abs(cumulative_demand - total_capacity_vector)
+        return -torch.log1p(balance - 1e-8)
+
+    def randomness_factor():
+        factor = torch.abs(torch.randn_like(demands)) * 0.1
+        factor *= (1 - cumulative_demand / total_capacity)
+        return factor
+
+    penalties = (dynamic_capacity_penalty() +
+                 distance_scaling() +
+                 overflow_penalty() +
+                 load_balance_penalty())
+    factors = randomness_factor()
+
+    heuristics = penalties * 2.5 + factors
+
+    heuristics *= (1 + (cumulative_demand > total_capacity_vector))
+    heuristics += torch.clamp(torch.abs(torch.randn_like(demands)) * 0.1, min=-1, max=1)
+
+    return heuristics
+```

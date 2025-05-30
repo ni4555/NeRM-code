@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Calculate the potential of each edge based on distances and the absolute difference in demand
+    heuristic_values = -torch.abs(demand_diff) * distance_matrix
+    
+    # Incorporate a dampening factor to balance local demand and global distance
+    dampening_factor = 0.5
+    dampened_distance = dampening_factor * (distance_matrix.sum(dim=0) + distance_matrix.sum(dim=1)) / (2 * (n - 1))
+    
+    # Combine heuristic values with dampened distance
+    heuristics = heuristic_values + dampened_distance
+    
+    # Apply penalties for infeasibilities
+    penalties = torch.zeros_like(heuristics)
+    penalties[distance_matrix.sum(dim=0) + distance_matrix.sum(dim=1) > total_demand] = -1000  # Exceeding vehicle capacity
+    penalties[torch.abs(demand_diff) > average_demand * 2] = -1000  # High demand difference
+    penalties[dampened_distance > average_demand * 2] = -1000  # Too far from the depot
+    heuristics += penalties
+    
+    # Normalize the heuristic values to maintain balance and stability
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # Update the heuristic matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    heuristic_matrix[0, 1:] = heuristics
+    heuristic_matrix[1:, 0] = heuristics
+    heuristic_matrix[0, 0] = -heuristics.sum()
+    
+    return heuristic_matrix
+```

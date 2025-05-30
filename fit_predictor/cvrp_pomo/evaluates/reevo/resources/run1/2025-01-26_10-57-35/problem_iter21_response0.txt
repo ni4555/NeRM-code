@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix = demand_matrix / demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    weighted_distance_matrix = weighted_distance_matrix / weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by using the inverse of demand (addition to heuristic)
+    capacity_factor = (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Calculate heuristic by combining normalized weighted distance and demand
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Enhance promising edges by considering both distance and demand, and balance with capacity
+    heuristics = heuristics * (1 + demands)  # Enhance promising edges
+    
+    # Incorporate decay function for distant nodes
+    decay_factor = torch.exp(-distance_matrix / torch.mean(distance_matrix, dim=1, keepdim=True))
+    heuristics *= decay_factor
+    
+    # Ensure non-dominance by considering local minima for dominated edges
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                dominated_edges = heuristics[i, :] + heuristics[:, j] - heuristics[i, j]
+                non_dominated_mask = dominated_edges <= 0
+                if not non_dominated_mask.all():
+                    heuristics[i, j] = dominated_edges[non_dominated_mask].min()
+    
+    return heuristics
+```

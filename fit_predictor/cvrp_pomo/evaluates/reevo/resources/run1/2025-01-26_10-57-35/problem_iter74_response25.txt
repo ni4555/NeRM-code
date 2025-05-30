@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Integrate capacity constraint by using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))  # Avoid division by zero
+    
+    # Calculate heuristic by combining weighted distance, demand, and capacity factor
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Apply a logarithmic scale to balance demand and distance
+    heuristics = torch.log1p(heuristics)
+    
+    # Apply a dampening factor to avoid dominance and stabilize
+    dampening_factor = 0.95
+    heuristics *= dampening_factor
+    
+    # Minimize loops by reducing the heuristic values of edges that form a loop
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics += loop_heuristics
+    
+    # Apply penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += heuristics * (overcapacity_penalty - undercapacity_penalty)
+    
+    # Normalize to ensure stability and to avoid dominance
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    return heuristics
+```

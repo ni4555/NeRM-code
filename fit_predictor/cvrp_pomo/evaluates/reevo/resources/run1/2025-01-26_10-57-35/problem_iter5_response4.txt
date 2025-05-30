@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate cumulative demands from the depot
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative distance from the depot to each node
+    cumulative_distance = torch.cumsum(distance_matrix[:, 1:], dim=0)
+    
+    # For each edge, calculate the potential heuristics value
+    for i in range(1, n):
+        for j in range(1, n):
+            # Calculate the demand at node j
+            demand_j = demands[j]
+            # Calculate the cumulative demand from the depot to node j
+            cumulative_demand_j = cumulative_demands[j]
+            # Calculate the cumulative distance from the depot to node j
+            cumulative_distance_j = cumulative_distance[j]
+            # Calculate the potential heuristics value
+            heuristics[i, j] = cumulative_demand_j - cumulative_distance_j + demand_j
+    
+    # Apply demand-driven insights by prioritizing edges with lower demand
+    heuristics = heuristics * (1 - demands)
+    
+    # Normalize the heuristics matrix to ensure all values are within the same scale
+    heuristics = heuristics / heuristics.max()
+    
+    return heuristics
+```

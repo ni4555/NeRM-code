@@ -1,0 +1,28 @@
+```python
+import torch
+from torch.nn.functional import softmax
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Normalize the demands vector
+    demands = demands / demands.sum()
+    
+    # Create a demand penalty matrix with higher penalties for edges exceeding vehicle capacity
+    penalty_matrix = torch.where(demands > 1.0, 1e6, torch.zeros_like(demands))
+    
+    # Calculate the potential function by adding distance and demand penalties
+    potential_matrix = distance_matrix + penalty_matrix
+    
+    # Apply softmax to normalize the potential matrix and get probabilities
+    probabilities = softmax(potential_matrix, dim=1)
+    
+    # Invert the probabilities to promote lower potential edges with higher values
+    heuristics = 1 - probabilities
+    
+    # Normalize the heuristics matrix
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    
+    return heuristics
+```

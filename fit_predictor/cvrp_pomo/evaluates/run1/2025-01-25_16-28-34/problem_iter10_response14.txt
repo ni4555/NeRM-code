@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a more refined heuristic that considers the balance between overloading and underloading
+    load_factor = average_demand_per_edge / total_capacity
+    overloading_cost = torch.log(torch.clamp(load_factor, max=1))
+    underloading_cost = torch.log1p(torch.clamp(load_factor, min=1))
+    
+    # Weighted combination of overloading and underloading costs
+    load_cost = 0.5 * (overloading_cost + underloading_cost)
+    
+    # Calculate the heuristic value based on load costs and add a penalty for high connection density
+    heuristics = -load_cost - (1 / (distance_matrix.sum(dim=1) + 1))
+    
+    # Ensure the heuristics are negative for undesirable edges and non-existent edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

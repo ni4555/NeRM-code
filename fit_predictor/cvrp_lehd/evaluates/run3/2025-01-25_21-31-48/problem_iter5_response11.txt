@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the distance matrix
+    normalized_distance = distance_matrix / torch.max(distance_matrix)
+    
+    # Normalize the demands by the total vehicle capacity
+    normalized_demand = demands / torch.sum(demands)
+    
+    # Use distance inverses to give higher weight to shorter distances
+    inverse_distance = 1 / (normalized_distance + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    # Calculate the balance between distance and demand
+    distance_demand_balance = inverse_distance * normalized_demand
+    
+    # Use a simple heuristic to weigh the edges: balance multiplied by a demand threshold
+    demand_threshold = torch.max(demands) * 0.5  # Example threshold
+    heuristic_matrix = distance_demand_balance * (demands >= demand_threshold)
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Define the precision heuristic matrix using a more nuanced distance metric, such as the Euclidean distance
+    precision_matrix = np.sqrt(np.sum(np.square(np.subtract.outer(range(distance_matrix.shape[0]), range(distance_matrix.shape[0]))), axis=1))
+    
+    # Initialize the heuristic matrix with a precision value for each edge
+    heuristic_matrix = precision_matrix
+    
+    # Add a perturbation to create diversity in the heuristic values
+    perturbation = np.random.normal(0, 0.01, heuristic_matrix.shape)
+    heuristic_matrix += perturbation
+    
+    # Normalize the heuristic matrix to ensure non-negative values
+    heuristic_matrix = np.clip(heuristic_matrix, 0, np.inf)
+    
+    # Adjust the heuristic matrix based on the distance matrix itself, to account for the overall scale of distances
+    max_distance = np.max(distance_matrix)
+    min_distance = np.min(distance_matrix)
+    heuristic_matrix *= (max_distance - min_distance) / max_distance
+    
+    # Introduce a multiplicative factor to adjust the heuristics based on the number of cities
+    num_cities = distance_matrix.shape[0]
+    adjustment_factor = num_cities * (1 / (num_cities - 1))
+    heuristic_matrix *= adjustment_factor
+    
+    return heuristic_matrix
+```

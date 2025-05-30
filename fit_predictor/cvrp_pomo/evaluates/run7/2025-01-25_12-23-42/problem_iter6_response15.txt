@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / n
+    
+    # Normalize the demands to the range [0, 1] with respect to the average demand
+    normalized_demands = (demands - average_demand) / average_demand
+    
+    # Normalize the distances to the range [0, 1] with respect to the maximum distance
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Use a non-linear function to balance demand and distance
+    # In this version, we use the logarithm to emphasize larger distances and the absolute value to
+    # ensure that negative demand values are not used (which could be due to an error in the demand
+    # normalization)
+    heuristics = torch.log(normalized_distances + 1) * torch.abs(normalized_demands)
+    
+    # Add a bonus for edges leading from the depot to reduce travel distance
+    heuristics[:, 0] += 1
+    
+    return heuristics
+```

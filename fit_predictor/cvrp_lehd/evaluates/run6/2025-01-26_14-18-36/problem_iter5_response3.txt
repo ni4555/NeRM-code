@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_mask = demands > 0
+    total_demand = demands.sum()
+    total_distance = distance_matrix.sum()
+    
+    # Prioritize edges with higher demands and shorter distances
+    edge_potential = -distance_matrix + (demands * demand_mask)
+    
+    # Apply capacity constraints
+    remaining_capacity = torch.ones_like(demands) * total_demand
+    for i in range(1, n):
+        remaining_capacity[i] = remaining_capacity[i - 1] - demands[i]
+        remaining_capacity[i] = torch.clamp(remaining_capacity[i], min=0)
+    
+    # Normalize the edge potential based on remaining capacity
+    edge_potential /= remaining_capacity.unsqueeze(1)
+    
+    # Add a term that encourages visiting the depot last (negative distance to the depot)
+    edge_potential[:, 0] = -edge_potential[:, 0] * demand_mask
+    
+    # Ensure that the heuristic is negative for unfeasible edges (where the remaining capacity is not enough)
+    edge_potential *= (remaining_capacity.unsqueeze(1) > 0).float()
+    
+    return edge_potential
+```

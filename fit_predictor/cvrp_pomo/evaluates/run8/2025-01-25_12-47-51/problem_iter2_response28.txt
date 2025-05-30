@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalized inverse distance
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    total_demand = torch.sum(demands)
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Greedy heuristic
+    sorted_indices = torch.argsort(demands[1:])  # Ignore the depot's demand
+    for i in sorted_indices:
+        current_position = 0
+        while True:
+            min_distance = torch.min(distance_matrix[current_position, 1:])
+            next_position = torch.argmin(distance_matrix[current_position, 1:])
+            if demands[next_position] + demands[current_position] <= 1:
+                heuristics[current_position, next_position] = min_distance
+                break
+            current_position = next_position
+
+    # Nearest neighbor heuristic
+    for i in range(1, n):
+        remaining_capacity = 1 - demands[i]
+        if remaining_capacity > 0:
+            closest_node = torch.argmin(distance_matrix[i, 1:])
+            if demands[closest_node] <= remaining_capacity:
+                heuristics[i, closest_node] = distance_matrix[i, closest_node]
+
+    # Integrate the two heuristics
+    heuristics = heuristics + normalized_inv_distance_matrix
+
+    # Enforce capacity constraints
+    for i in range(1, n):
+        for j in range(1, n):
+            if demands[i] + demands[j] > 1:
+                heuristics[i, j] = float('-inf')
+
+    return heuristics
+```

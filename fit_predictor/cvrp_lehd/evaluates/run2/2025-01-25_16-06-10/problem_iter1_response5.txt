@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative distance from the depot to each node
+    cumulative_distance = torch.cumsum(distance_matrix[:, 1:], dim=0)
+    
+    # Calculate the total distance from the depot to each node including return
+    total_distance = cumulative_distance + distance_matrix[1:, 0]
+    
+    # Calculate the cost-to-go heuristic
+    cost_to_go = total_distance - cumulative_demand * (total_distance / cumulative_distance)
+    
+    # Normalize the cost-to-go heuristic by the total vehicle capacity
+    cost_to_go /= demands.sum()
+    
+    # Create a mask for edges that exceed the vehicle capacity
+    capacity_exceeded_mask = cumulative_demand > demands[0]
+    
+    # Set the cost-to-go to negative infinity for edges that exceed the vehicle capacity
+    cost_to_go[capacity_exceeded_mask] = -float('inf')
+    
+    return cost_to_go
+```

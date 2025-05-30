@@ -1,0 +1,25 @@
+```python
+import torch
+from torch.nn.functional import softmax
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = len(demands)
+    vehicle_capacity = 1.0
+    demand_matrix = -torch.cumsum(demands[1:], dim=0) / vehicle_capacity
+    demand_matrix = torch.clamp(demand_matrix, min=float('-inf'))
+    demand_matrix[torch.where(demands[1:] == 0)] = float('-inf')
+    
+    # Non-linear demand scaling using logarithm to give less weight to higher demands
+    log_demand_matrix = torch.log(demand_matrix)
+    
+    # Incorporate a scaling factor to balance the impact of demand and distance
+    balance_factor = 0.5
+    scaled_distance_demand = distance_matrix + balance_factor * log_demand_matrix
+    
+    # Use a temperature parameter for the softmax function to control the randomness
+    temperature = 1.0
+    softmax_matrix = softmax(scaled_distance_demand / temperature, dim=1)
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

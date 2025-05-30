@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Use sparsity to avoid unnecessary computations for zero distance edges
+    zero_distance_mask = distance_matrix == 0
+    distance_matrix[zero_distance_mask] = float('inf')
+    
+    # Calculate the potential of each edge based on the product of distances and the absolute difference in demand
+    heuristic_values = -torch.abs(demand_diff) * distance_matrix
+    
+    # Incorporate a penalty for edges that are far from the depot
+    depot_distance_penalty = (distance_matrix[0, 1:] + distance_matrix[1:, 0]) * -1000
+    
+    # Combine the heuristic values and the penalty
+    combined_heuristic_values = heuristic_values + depot_distance_penalty
+    
+    # Add a priority for high-demand edges
+    high_demand_penalty = torch.where(demand_diff.abs() > average_demand, -5000, 0)
+    combined_heuristic_values += high_demand_penalty
+    
+    # Update the heuristic matrix, considering the sparsity of the distance matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    heuristic_matrix[0, 1:] = combined_heuristic_values[0, 1:]
+    heuristic_matrix[1:, 0] = combined_heuristic_values[1:, 0]
+    heuristic_matrix[0, 0] = -combined_heuristic_values.sum()
+    
+    return heuristic_matrix
+```

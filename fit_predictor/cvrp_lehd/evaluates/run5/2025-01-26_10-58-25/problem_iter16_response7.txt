@@ -1,0 +1,16 @@
+```python
+import torch
+from torch.nn.functional import softmax
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    # Calculate the demand excess penalty
+    demand_excess_penalty = torch.max(demands - vehicle_capacity, 0).values
+    # Combine distance and demand excess penalties into a single matrix
+    combined_penalty_matrix = distance_matrix + demand_excess_penalty
+    # Normalize the combined penalty matrix to a probability distribution
+    probability_matrix = softmax(combined_penalty_matrix, dim=1)
+    # Convert the probabilities to heuristics with negative values for undesirable edges
+    heuristics_matrix = -probability_matrix
+    return heuristics_matrix
+```

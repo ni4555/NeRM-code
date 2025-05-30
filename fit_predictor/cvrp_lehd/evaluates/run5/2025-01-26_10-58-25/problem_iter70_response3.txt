@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate demand-based penalties for over-demand or under-demand scenarios
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Calculate distance-based penalties, ensuring that zero distance is not penalized
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Normalize both penalties to ensure consistent scaling
+    demand_penalty_matrix = (demand_penalty_matrix - demand_penalty_matrix.min()) / (demand_penalty_matrix.max() - demand_penalty_matrix.min())
+    distance_penalty_matrix = (distance_penalty_matrix - distance_penalty_matrix.min()) / (distance_penalty_matrix.max() - distance_penalty_matrix.min())
+    
+    # Combine the normalized penalties to create a potential matrix
+    potential_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(potential_matrix))
+    
+    # Introduce diversity by considering the inverse of the distance as a bonus
+    diversity_bonus_matrix = (1 / (distance_matrix + 1e-6)) * emphasized_matrix
+    
+    # Combine the emphasized matrix and the diversity bonus matrix
+    combined_matrix = emphasized_matrix + diversity_bonus_matrix
+    
+    # Normalize the combined matrix to ensure that values are within a reasonable range
+    combined_matrix = (combined_matrix - combined_matrix.min()) / (combined_matrix.max() - combined_matrix.min())
+    
+    # Ensure non-negativity by applying the ReLU function
+    adjusted_combined_matrix = torch.relu(combined_matrix)
+    
+    return adjusted_combined_matrix
+```

@@ -1,0 +1,38 @@
+{
+  "generation": 10,
+  "description": "Developing a heuristic-based stochastic solution sampler for the Multi-Knapsack Problem (MKP) with a focus on fairness through normalization, direct heuristic calculation, and efficiency under strict multi-dimensional weight constraints. This approach employs a simplified version of adaptive sampling, which iteratively refines candidate solutions through a combination of static and dynamic fitness evaluations, and incorporates robust perturbation techniques to balance exploration and exploitation, resulting in an optimized prize collection strategy without the complexity of full-fledged metaheuristics.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    m = weight.shape[1]\n    heuristic = np.zeros_like(prize, dtype=float)\n    cumulative_weight = np.zeros_like(weight, dtype=float)\n    \n    for j in range(m):\n        sorted_indices = np.argsort(weight[:, j])[::-1]\n        sorted_prize = prize[sorted_indices]\n        sorted_weight = weight[sorted_indices, j]\n        \n        cumulative_weight[sorted_indices] = np.cumsum(sorted_weight)\n        heuristic[sorted_indices] = np.where(cumulative_weight >= 1, sorted_prize, 0)\n    \n    # Normalize the heuristics\n    max_heuristic = np.max(heuristic)\n    if max_heuristic > 0:\n        heuristic /= max_heuristic\n    \n    return heuristic",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 2, confidence: 0.9964)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    normalized_prize = prize / np.sum(prize)\n    heuristic_values = np.dot(normalized_prize, weight)\n    return heuristic_values",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 3, confidence: 0.9990)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    if m != 1:\n        raise ValueError(\"weight dimension should be 1 for the simplified problem\")\n\n    # Calculate utility for each item by summing the prize over all dimensions\n    utility = np.sum(prize, axis=1)\n\n    # Normalize utility by dividing by the total utility to ensure fairness\n    total_utility = np.sum(utility)\n    normalized_utility = utility / total_utility\n\n    # Direct heuristic calculation: the normalized utility is used as the heuristic value\n    heuristics = normalized_utility\n\n    # Perturbation to balance exploration and exploitation\n    # Using a simple Gaussian perturbation\n    perturbation = np.random.normal(0, 0.1, size=n)\n    heuristics += perturbation\n\n    # Ensure that the heuristics are non-negative\n    heuristics = np.clip(heuristics, 0, None)\n\n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 4, confidence: 0.9990)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    normalized_prize = prize / np.sum(prize)\n    normalized_weight = weight / np.sum(weight, axis=1, keepdims=True)\n    fairness_factor = normalized_prize * (1 - normalized_weight)\n    heuristics = np.sum(fairness_factor, axis=1)\n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main\\problems\\mkp_aco\\gpt.py\", line 8, in heuristics_v2\n    fairness_factor = normalized_prize * (1 - normalized_weight)\n                      ~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve\\generation_10\\stdout_0.txt",
+      "code_file": "coevolve\\generation_10\\code_0.py"
+    }
+  ]
+}

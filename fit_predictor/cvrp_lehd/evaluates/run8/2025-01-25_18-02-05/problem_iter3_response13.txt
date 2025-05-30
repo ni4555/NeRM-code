@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Calculate the negative of this ratio to use as a heuristic
+    # Negative values indicate undesirable edges (heuristic score is lower)
+    heuristic_matrix = -demand_to_distance_ratio
+    
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands[1:], dim=0)
+    
+    # Normalize the cumulative demands by the total vehicle capacity
+    normalized_cumulative_demands = cumulative_demands / demands.sum()
+    
+    # Combine the heuristic matrix with the normalized cumulative demands
+    combined_heuristic = heuristic_matrix * normalized_cumulative_demands
+    
+    # Calculate the threshold for undesirable edges by inverting high scores
+    threshold = 1 / (torch.max(combined_heuristic))
+    
+    # Apply the threshold to ensure all undesirable edges have negative values
+    heuristic_matrix = torch.where(combined_heuristic < threshold, combined_heuristic, 0)
+    
+    return heuristic_matrix
+```

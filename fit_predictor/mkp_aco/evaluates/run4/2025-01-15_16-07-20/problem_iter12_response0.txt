@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the ratio of prize to weight for each item
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity bonus by subtracting the average ratio from each item's ratio
+    sparsity_bonus = np.array([r - np.mean(ratio[weight.sum(axis=1) > 0]) for r in ratio])
+    
+    # Apply the sparsity bonus to the ratio to emphasize less crowded knapsacks
+    adjusted_ratio = ratio + sparsity_bonus
+    
+    # Calculate the constraint balance for each item
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate the utility by combining the adjusted ratio and constraint balance
+    utility = adjusted_ratio * (1 - constraint_balance)
+    
+    # Normalize the utility scores
+    utility_normalized = utility / np.max(utility)
+    
+    # Leverage non-linear transformations to enhance feature contribution
+    utility_non_linear = np.tanh(utility_normalized * 5)  # Applying a tanh function to scale and shift the scores
+    
+    # Normalize utility_non_linear scores
+    utility_non_linear_normalized = (utility_non_linear - np.min(utility_non_linear)) / (np.max(utility_non_linear) - np.min(utility_non_linear))
+    
+    # Return the normalized, non-linearly transformed utility as heuristics scores
+    return utility_non_linear_normalized
+```

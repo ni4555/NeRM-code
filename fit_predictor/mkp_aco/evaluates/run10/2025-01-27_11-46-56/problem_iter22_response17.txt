@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    
+    # Diversity factor to ensure different items are considered
+    diversity_factor = np.exp(-utility)
+    
+    # Exploration factor to balance between exploring different options and exploiting known good ones
+    exploration_factor = np.random.normal(0, 0.1, size=utility.shape)
+    
+    # Sharpness factor to enhance the selection of items with higher utility
+    sharpness_factor = 1 / (1 + np.exp(-5 * utility))
+    
+    # Combine factors to get an initial heuristic value
+    heuristics = utility * diversity_factor * exploration_factor * sharpness_factor
+    
+    # Refine peak selection by applying a sigmoid function to emphasize higher values
+    refined_heuristics = np.tanh(heuristics)
+    
+    # Normalize the refined heuristics to ensure they sum to 1, which helps in balancing exploration and exploitation
+    normalized_refined_heuristics = refined_heuristics / refined_heuristics.sum(axis=1, keepdims=True)
+    
+    return normalized_refined_heuristics.sum(axis=1)
+```

@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total prize for each item
+    total_prize = np.sum(prize, axis=1)
+    
+    # Calculate the average prize per unit weight for each item
+    avg_prize_per_weight = total_prize / weight.sum(axis=1)
+    
+    # Calculate the diversity score based on the standard deviation of average prize per unit weight
+    diversity_score = np.std(avg_prize_per_weight)
+    
+    # Combine average prize per unit weight and diversity score using a weighted sum
+    # Higher weights for average prize per unit weight to focus on profitability, lower weight for diversity
+    weighted_score = 0.8 * avg_prize_per_weight + 0.2 * diversity_score
+    
+    # Rank the items based on the weighted score
+    ranked_indices = np.argsort(weighted_score)[::-1]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    
+    # Include the top 60% of the highest scoring items to balance exploration and exploitation
+    heuristics[ranked_indices[:int(len(ranked_indices) * 0.6)]] = 1
+    
+    return heuristics
+```

@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Introduce a penalty for long loops relative to direct distances
+    loop_penalty_factor = 0.1
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Calculate the loop distance and direct distance
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, np.roll(i, 1)] + distance_matrix[np.roll(i, 1), j]
+                direct_distance = distance_matrix[i, np.roll(i, 1)]
+                # Apply a relative penalty if the loop distance is larger than a certain factor of the direct distance
+                heuristics[i, j] += loop_penalty_factor * (loop_distance - direct_distance)
+
+    # Introduce a global penalty for large distances relative to the minimum distance in the matrix
+    global_large_distance_penalty = 1e6
+    min_distance = np.min(distance_matrix)
+    large_distances = distance_matrix > min_distance * global_large_distance_penalty
+    heuristics[large_distances] = global_large_distance_penalty - min_distance * global_large_distance_penalty
+
+    # Apply structure-based normalization to the heuristics
+    structure_penalty_factor = 0.01
+    # Normalize based on the average distance of a node to all others
+    for i in range(num_nodes):
+        # Exclude the distance to itself
+        average_distance = np.sum(distance_matrix[i, :num_nodes]) / (num_nodes - 1)
+        # Apply penalty for each edge to make it proportional to the average distance
+        heuristics[i, :] += structure_penalty_factor / average_distance
+
+    # Introduce a diversity factor to encourage visiting less frequently visited nodes
+    diversity_factor = 1e-3
+    visited_count = np.sum(distance_matrix > 0, axis=0)
+    heuristics += diversity_factor / (visited_count + 1)
+
+    return heuristics
+```

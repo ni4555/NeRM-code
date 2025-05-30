@@ -1,0 +1,22 @@
+```python
+import torch
+from torch.nn.functional import softmax
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum()
+
+    # Calculate the penalty for each edge based on the demand and vehicle capacity
+    demand_penalty_matrix = (demands[:, None] - demands[None, :]).abs()
+    capacity_penalty_matrix = torch.clamp(demand_penalty_matrix / vehicle_capacity, min=0, max=1)
+    
+    # Combine distance and demand-based penalties into a potential matrix
+    potential_matrix = distance_matrix + capacity_penalty_matrix
+
+    # Normalize the potential matrix to form a probability distribution using softmax
+    softmax_matrix = softmax(potential_matrix, dim=1)
+
+    # Convert the probability distribution into heuristics by subtracting from 1
+    heuristics_matrix = 1 - softmax_matrix
+
+    return heuristics_matrix
+```

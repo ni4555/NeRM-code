@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the maximum distances from each node to all other nodes
+    max_distance_from_i = distance_matrix.max(dim=1, keepdim=True).values.squeeze(1)
+    max_distance_from_j = distance_matrix.max(dim=0, keepdim=True).values.squeeze(1)
+    # Compute the heuristics matrix using a modified version of the savings algorithm
+    heuristics_matrix = max_distance_from_i - max_distance_from_j - (normalized_demands.unsqueeze(1) * (max_distance_from_i - max_distance_from_j))
+    # Ensure all values are non-negative
+    heuristics_matrix = torch.clamp(heuristics_matrix, min=0)
+    return heuristics_matrix
+```

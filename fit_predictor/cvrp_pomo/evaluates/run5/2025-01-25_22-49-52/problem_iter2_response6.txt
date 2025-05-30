@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Use a node partitioning technique to identify potential clusters
+    clusters = partition_nodes(demands)
+    
+    # Initialize the potential value matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Calculate the potential value for edges between clusters
+    for i in clusters:
+        for j in clusters:
+            if i != j:
+                potential_values[i, j] = normalized_distances[i, j] - torch.sum(normalized_demands[i]) - torch.sum(normalized_demands[j])
+            else:
+                potential_values[i, j] = 0
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+
+def partition_nodes(demands: torch.Tensor) -> list:
+    # Placeholder for node partitioning algorithm
+    # This function should return a list of sets, where each set represents a cluster of nodes
+    # For simplicity, let's use a trivial partitioning
+    return [set(range(1, len(demands)))]
+
+# Example usage
+distance_matrix = torch.tensor([[0, 2, 3, 4], [2, 0, 5, 6], [3, 5, 0, 1], [4, 6, 1, 0]])
+demands = torch.tensor([1, 2, 1, 2])
+potential_values = heuristics_v2(distance_matrix, demands)
+print(potential_values)
+```

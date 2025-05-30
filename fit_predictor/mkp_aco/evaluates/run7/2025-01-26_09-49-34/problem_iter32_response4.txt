@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to a range [0, 1]
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Calculate the ratio of prize to weight
+    ratio = normalized_prize / weight.sum(axis=1)
+    
+    # Promote diversity by considering the standard deviation of weights
+    std_dev = np.std(weight, axis=1)
+    
+    # Adjust heuristics based on the ratio and standard deviation
+    adjusted_heuristics = ratio / (std_dev + 1)
+    
+    # Introduce sparsity by considering the sum of weights
+    sparsity_factor = 1 / (np.sum(adjusted_heuristics) + 1)
+    
+    # Combine sparsity with the adjusted heuristics
+    heuristics = adjusted_heuristics * sparsity_factor
+    
+    # Introduce a dynamic weight based on the rank of the prize
+    sorted_prize_indices = np.argsort(prize)[::-1]
+    rank_weight = np.zeros_like(prize)
+    rank_weight[sorted_prize_indices] = np.linspace(1, len(prize), len(prize))
+    heuristics *= rank_weight / np.sum(rank_weight)
+    
+    # Refine heuristics by balancing exploration and exploitation through iterative re-weighting
+    for _ in range(3):
+        heuristics /= np.sum(heuristics)
+    
+    # Apply a thresholding method to introduce sparsity
+    threshold = np.percentile(heuristics, 10)
+    heuristics[heuristics < threshold] = 0
+    
+    # Normalize heuristics to ensure a proper sum
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

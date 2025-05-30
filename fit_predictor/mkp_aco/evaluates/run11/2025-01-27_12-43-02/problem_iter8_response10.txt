@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    
+    # Adjusting the percentile threshold based on domain knowledge or experimentation
+    percentile_threshold = np.percentile(score, 80)
+    
+    # Sparsify the heuristics based on the percentile threshold
+    sparsified_score = np.where(score >= percentile_threshold, score, 0)
+    
+    # Apply a domain-specific factor to balance the influence of sparsification
+    domain_factor = 0.9
+    adjusted_sparsified_score = domain_factor * sparsified_score / np.max(sparsified_score)
+    
+    # Normalize the adjusted scores between 0 and 1
+    max_adjusted_score = np.max(adjusted_sparsified_score)
+    min_adjusted_score = np.min(adjusted_sparsified_score)
+    normalized_adjusted_score = (adjusted_sparsified_score - min_adjusted_score) / (max_adjusted_score - min_adjusted_score)
+    
+    return normalized_adjusted_score
+```

@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    
+    # Introduce penalties for infeasibilities
+    infeasibility_penalty = 10000
+    demand_penalty_matrix = torch.zeros_like(distance_matrix)
+    demand_penalty_matrix.scatter_add_(0, torch.arange(n), torch.abs(normalized_demands - avg_demand) * infeasibility_penalty)
+    
+    # Normalize and scale the data
+    min_distance = distance_matrix.min()
+    max_distance = distance_matrix.max()
+    scaled_distance_matrix = (distance_matrix - min_distance) / (max_distance - min_distance)
+    
+    # Vectorized implementation of the heuristic
+    heuristics_matrix = scaled_distance_matrix - (normalized_demands * scaled_distance_matrix.sum(axis=1, keepdim=True) + avg_demand * scaled_distance_matrix.sum(axis=0, keepdim=True)) - demand_penalty_matrix
+    return heuristics_matrix
+```

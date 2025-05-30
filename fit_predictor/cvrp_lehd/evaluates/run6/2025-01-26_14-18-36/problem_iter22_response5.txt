@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate the heuristics value for each edge based on scaled demand and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Explicitly penalize infeasible edges
+    infeasible_penalty = (scaled_demands > 1.0).float() * 1000.0
+    heuristics -= infeasible_penalty
+
+    # Add a small penalty for edges leading back to the depot (index 0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(distance_matrix.shape[0]), 0] = -10.0
+    heuristics += depot_penalty
+
+    # Introduce a strong penalty for edges that are too far from the depot
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 500.0
+    heuristics += distance_penalty
+
+    # Cap extreme heuristic values to prevent dominance
+    max_heuristic = heuristics.max()
+    heuristics = torch.clamp(heuristics, min=-max_heuristic, max=max_heuristic)
+
+    # Normalize heuristics to maintain scale without causing division by zero
+    normalized_heuristics = heuristics / (max_heuristic + 1e-8)
+
+    return normalized_heuristics
+```

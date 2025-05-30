@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Scale demands to the range [0, 1]
+    scaled_demands = demands / demands.max()
+    # Integrate symmetry by using the minimum of the row and column indices
+    symmetrized_distance_matrix = torch.min(normalized_distance_matrix, torch.transpose(normalized_distance_matrix, 0, 1))
+    # Calculate cumulative demand from the depot to each customer
+    cumulative_demand = torch.cumsum(scaled_demands, dim=1)
+    # Use a non-linear transformation for cumulative demand to balance it with distance
+    non_linear_cumulative_demand = torch.exp(-cumulative_demand)
+    # Combine the non-linear cumulative demand with the symmetrized distances
+    combined_heuristic = symmetrized_distance_matrix - non_linear_cumulative_demand
+    # Invert the sign to get negative values for undesirable edges
+    return -combined_heuristic
+```

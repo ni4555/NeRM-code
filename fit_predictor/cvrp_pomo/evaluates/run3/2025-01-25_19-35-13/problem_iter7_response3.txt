@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+    
+    # Apply dynamic programming to find a lower bound on the cost
+    dp = torch.zeros((len(demands), len(demands)))
+    for d in range(1, len(demands)):
+        for s in range(d):
+            dp[d, s] = torch.min(dp[s, :d], dp[:, d-1] + distance_matrix[s, d])
+    
+    # Calculate the potential based on the lower bound and demand
+    epsilon = 1e-8
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+    
+    # Introduce a penalty for high variance in demand per vehicle
+    vehicle_loads = torch.zeros((len(demands), len(demands)))
+    for vehicle in range(1, int(total_demand // demands[0]) + 1):
+        load = torch.zeros(len(demands))
+        for i in range(len(demands)):
+            load[i] = vehicle_loads[i, :i+1].sum()
+        edge_potential = edge_potential - (edge_potential * 0.1 * (load > demands[0] * 1.5).float())
+    
+    # Introduce a discount for shorter distances that are still within a threshold
+    edge_potential = edge_potential + (edge_potential * 0.1 * (distance_matrix < 20).float())
+    
+    return edge_potential
+```

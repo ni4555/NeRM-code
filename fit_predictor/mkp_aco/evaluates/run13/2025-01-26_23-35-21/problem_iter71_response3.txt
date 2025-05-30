@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items by considering only the top N%
+    sorted_indices = np.argsort(density)[::-1]
+    top_n_indices = sorted_indices[:int(n * 0.1)]  # Select top 10% of items by density
+    dominated_mask = np.ones(n, dtype=bool)
+    dominated_mask[sorted_indices] = False
+    density[~dominated_mask] = 0
+    
+    # Introduce a randomness factor to foster diversity
+    randomness_factor = np.random.rand(n)
+    
+    # Calculate a heuristic based on density, randomness, and a diversity factor
+    heuristic = density + randomness_factor
+    
+    # Normalize the heuristic by the maximum value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Balance the heuristic with the sum of weights
+    balance_heuristic = -np.sum(weight, axis=1)
+    normalized_balance_heuristic = balance_heuristic / (np.max(np.abs(balance_heuristic)) + 1e-8)
+    
+    # Combine the heuristics using a weighted sum
+    combined_heuristic = 0.6 * normalized_heuristic + 0.4 * normalized_balance_heuristic
+    
+    # Set zero weights to a small value to maintain diversity
+    combined_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return combined_heuristic
+```

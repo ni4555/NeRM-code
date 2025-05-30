@@ -1,0 +1,51 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+
+    # Enhanced distance scaling using a time factor
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 10))
+    distance_scaling *= time_factor
+
+    # Dynamic capacity scaling with early overflow detection
+    capacity_scaling = torch.clamp(
+        (torch.log1p(torch.abs(demands - total_capacity) - 1e-8) / 
+         (total_capacity_vector / (torch.sqrt(torch.sum(demands)) * 2))),
+        -2.0,
+        2.0
+    )
+    early_overflow = cumulative_demand > total_capacity_vector
+    capacity_scaling *= torch.sigmoid(early_overflow * 5)
+
+    # Randomness factor to maintain exploration
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    randomness_factor *= torch.sigmoid(-cumulative_demand / (total_capacity * 5))
+
+    # Load balance scaling with a balance factor
+    load_balance_scaling = -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector))
+    load_balance_scaling *= torch.sigmoid(cumulative_demand / total_capacity * 5)
+
+    # Combine factors, adjusting for cumulative demand to keep randomness in check
+    combined_factor = (distance_scaling * capacity_scaling +
+                       load_balance_scaling + randomness_factor)
+    
+    # Scale heuristics and apply diversity to enhance solution space exploration
+    scaling_factor = 2.0
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.3
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+
+    # Apply scaling, diversity, and penalties
+    heuristics = scaling_factor * combined_factor + diversity_factor
+    
+    # Introduce time-adaptive early return to control overflow
+    early_return_factor = torch.clamp(early_overflow * 2, -2, 0)
+    heuristics *= (1 + early_return_factor)
+
+    return heuristics
+```

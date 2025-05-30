@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands[1:].sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    for i in range(1, n):
+        for j in range(1, n):
+            if i != j:
+                # Calculate the contribution to the solution, considering the demand and distance
+                contribution = (demands[j] - distance_matrix[i][j]) / total_demand
+                # Normalize the contribution based on the maximum distance in the matrix
+                contribution_normalized = contribution * (distance_matrix[i][j] / distance_matrix.max())
+                # Incentivize low distance and high contribution
+                heuristics[i][j] = contribution_normalized
+                # Apply a smooth decay to avoid uniformity and sharp transitions
+                heuristics[i][j] *= (1 - torch.exp(-distance_matrix[i][j] / distance_matrix.max()))
+    
+    return heuristics
+```

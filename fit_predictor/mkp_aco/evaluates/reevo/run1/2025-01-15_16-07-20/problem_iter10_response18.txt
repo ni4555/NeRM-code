@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the density of each item as a fraction of the total prize per unit weight
+    density = prize / np.sum(weight, axis=1)
+    
+    # Calculate constraint balance for each item, emphasizing items that are close to the weight limit
+    constraint_balance = (np.sum(weight, axis=1) / np.max(weight, axis=1))
+    
+    # Calculate diversity score based on the inverse of the number of items each item can coexist with
+    diversity_score = 1 / np.dot(weight, weight.T)
+    
+    # Calculate utility by combining density, constraint balance, and diversity
+    utility = density * constraint_balance * diversity_score
+    
+    # Normalize the utility scores to ensure they sum to 1
+    normalized_scores = utility / np.sum(utility)
+    
+    # Introduce a penalty for items that contribute less to the overall diversity
+    penalty = 1 / (1 + np.sum(diversity_score, axis=0))
+    
+    # Adjust the scores by the penalty to emphasize diversity
+    adjusted_scores = normalized_scores * penalty
+    
+    # Normalize the adjusted scores to ensure they are on the same scale
+    normalized_adjusted_scores = adjusted_scores / np.sum(adjusted_scores)
+    
+    return normalized_adjusted_scores
+```

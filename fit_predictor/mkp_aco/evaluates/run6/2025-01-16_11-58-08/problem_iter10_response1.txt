@@ -1,0 +1,21 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Normalize the ratio to a range between 0 and 1
+    normalized_ratio = (value_to_weight_ratio - np.min(value_to_weight_ratio)) / (np.max(value_to_weight_ratio) - np.min(value_to_weight_ratio))
+    # Apply a non-linear transformation to emphasize higher values
+    non_linear_transformed_ratio = np.log1p(normalized_ratio)  # log1p is a logarithm of 1 + x, which handles the case when x=0
+    # Apply a logarithmic transformation to balance the influence of high and low ratios
+    log_transformed_ratio = np.log1p(non_linear_transformed_ratio)
+    # Calculate the standard deviation as a diversity metric
+    diversity_metric = np.std(normalized_ratio)
+    # Combine the non-linear and logarithmic transformed ratios with the diversity metric
+    combined_metric = log_transformed_ratio * diversity_metric
+    # Sparsify the heuristics by setting a threshold
+    heuristics = np.where(combined_metric > 1.5, combined_metric, 0)
+    # Normalize the final heuristics to ensure a good distribution
+    heuristics = heuristics / np.sum(heuristics)
+    return heuristics
+```

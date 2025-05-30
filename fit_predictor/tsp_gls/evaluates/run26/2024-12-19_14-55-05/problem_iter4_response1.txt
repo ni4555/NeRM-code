@@ -1,0 +1,40 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Introduce a penalty for each edge based on the sum of the shortest path distances to the nodes it connects
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                shortest_path_distance_i = np.sum(np.argmin(distance_matrix[i, :]))
+                shortest_path_distance_j = np.sum(np.argmin(distance_matrix[j, :]))
+                heuristics[i, j] = distance_matrix[i, j] + (shortest_path_distance_i + shortest_path_distance_j)
+    
+    # Use a balance factor to avoid overly penalizing short edges in a dense graph
+    balance_factor = np.sum(distance_matrix) / (num_nodes * (num_nodes - 1))
+    heuristics *= balance_factor
+    
+    # Add a penalty for high-degree nodes to encourage diversity in the tour
+    degree_penalty = np.sum(distance_matrix, axis=0)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                heuristics[i, j] += degree_penalty[j] / (num_nodes - 1)
+    
+    # Use a diversity factor to promote tours with different edge clusters
+    diversity_factor = np.zeros((num_nodes, num_nodes))
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                shortest_path = np.argmin(distance_matrix[i, :])
+                diversity_factor[i, j] = np.sum(shortest_path == np.arange(num_nodes) != j)
+    heuristics += np.dot(diversity_factor, np.abs(distance_matrix).mean())
+    
+    # Normalize the heuristics to ensure they are on a similar scale
+    heuristics /= np.max(heuristics)
+    
+    return heuristics
+```

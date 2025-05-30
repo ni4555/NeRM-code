@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    import numpy as np
+    from scipy.sparse.csgraph import minimum_spanning_tree, csr_matrix
+
+    # Construct a sparse matrix from the distance matrix
+    sparse_matrix = csr_matrix(distance_matrix)
+    
+    # Compute the minimum spanning tree (MST) using Kruskal's algorithm
+    mst = minimum_spanning_tree(sparse_matrix, weighted=True)
+    
+    # Create a matrix of the shortest distances to the nearest MST node for each edge
+    nearest_mst_node_dist = mst.data
+    row_indices = mst.indices
+    col_indices = mst.indptr[1:] - 1
+    
+    # Calculate the heuristic values for each edge
+    # The heuristic is the negative distance between the nearest MST nodes on either end of the edge
+    heuristic_matrix = -nearest_mst_node_dist
+    for i in range(len(row_indices)):
+        i_u = row_indices[i]
+        i_v = col_indices[i]
+        if distance_matrix[i_u, i_v] < heuristic_matrix[i_u, i_v]:
+            heuristic_matrix[i_u, i_v] = distance_matrix[i_u, i_v]
+            heuristic_matrix[i_v, i_u] = distance_matrix[i_v, i_u]
+    
+    # Normalize the heuristic matrix to avoid negative values and to provide a relative scale
+    row_sums = np.sum(heuristic_matrix, axis=1)
+    epsilon = 1e-10
+    normalized_heuristic_matrix = (heuristic_matrix / (row_sums[:, np.newaxis] + epsilon))
+    
+    return normalized_heuristic_matrix
+```

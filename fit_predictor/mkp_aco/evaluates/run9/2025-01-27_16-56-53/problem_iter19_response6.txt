@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = np.dot(prize[i], weight[i, :])
+        total_weight = weight[i].sum()
+        heuristic[i] = (total_prize / total_weight) / (1 + total_weight)
+    
+    # Introduce exploration and exploitation factors based on diversity
+    diversity_factor = np.array([sum(1 for j in range(m) if weight[i, j] < weight[i].max()) for i in range(n)])
+    exploration_factor = diversity_factor / diversity_factor.sum()
+    
+    # Balance exploration and exploitation
+    exploitation_factor = 1 / (1 + weight.sum(axis=1))
+    balanced_factor = (exploration_factor + exploitation_factor) / 2
+    
+    # Refine heuristic using a balance of exploration and exploitation
+    heuristic *= balanced_factor
+    
+    # Normalize heuristic for all items
+    normalized_heuristic = heuristic / np.linalg.norm(heuristic)
+    
+    # Sparsify by setting low-value items to zero
+    heuristic[heuristic < np.percentile(normalized_heuristic, 10)] = 0
+    
+    return heuristic
+```

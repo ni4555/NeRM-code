@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Normalize the demands to get the penalty factor
+    demand_penalty_factor = torch.abs(demands - vehicle_capacity)
+    
+    # Normalize the distance matrix to highlight close nodes
+    distance_normalized = distance_matrix / distance_matrix.max()
+    
+    # Combine demand and distance penalties with blend ratios to control penalty impact
+    combined_potential = 0.7 * demand_penalty_factor + 0.3 * distance_normalized
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_potential = torch.exp(-torch.abs(combined_potential))
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_potential = emphasized_potential / emphasized_potential.sum(dim=1, keepdim=True)
+    
+    # Optimize normalization and blending for stable heuristic values
+    # We add a small constant to avoid division by zero
+    normalized_emphasized_potential = normalized_emphasized_potential / (normalized_emphasized_potential.sum(dim=1, keepdim=True) + 1e-6)
+    
+    # Create a penalty for edges connecting to the depot
+    depot_penalty = torch.abs(distance_matrix[:, 0])
+    
+    # Combine the normalized potential with the depot penalty
+    combined_matrix = normalized_emphasized_potential + depot_penalty
+    
+    # Transform the combined matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -combined_matrix
+    
+    return heuristics_matrix
+```

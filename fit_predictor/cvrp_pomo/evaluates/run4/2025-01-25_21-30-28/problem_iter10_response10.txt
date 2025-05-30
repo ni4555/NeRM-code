@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Prioritize edges with low travel cost and high demand balance
+    domain_specific = inverse_distance * 0.7 + demand_weight * 0.3
+
+    # Penalize edges that would exceed vehicle capacity
+    capacity_penalty = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - demands))
+
+    # Combine heuristics with proper weighting, focusing on domain-specific insights and capacity constraints
+    combined_heuristic = domain_specific * 0.8 + capacity_penalty * 0.2
+
+    # Reflect domain specifics, balance heuristics, and adapt to previous performance
+    previous_solutions_performance = torch.rand_like(combined_heuristic)  # Simulating previous solutions' performance
+    performance_adjustment = 1.0 / (1 + previous_solutions_performance)
+    combined_heuristic = combined_heuristic * performance_adjustment
+
+    # Integrate domain knowledge into heuristic weights
+    domain_knowledge_adjustment = torch.full_like(combined_heuristic, 0.05)
+    combined_heuristic += domain_knowledge_adjustment
+
+    # Normalize and scale heuristic values
+    combined_heuristic = torch.clamp(combined_heuristic, min=-10.0, max=10.0)
+
+    return combined_heuristic
+```

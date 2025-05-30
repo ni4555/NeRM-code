@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # This heuristic function improves upon the previous versions by focusing on the structure of the problem
+    # specifically tailored to the TSP, using the minimum spanning tree approach as the foundation.
+    
+    # Compute the minimum spanning tree using Prim's algorithm
+    num_nodes = distance_matrix.shape[0]
+    mst = np.zeros((num_nodes, num_nodes), dtype=bool)
+    mst[0, 1:] = distance_matrix[0, 1:] < distance_matrix[0, 0]
+    mst[1:, 0] = distance_matrix[1:, 0] < distance_matrix[0, 0]
+    for i in range(1, num_nodes):
+        if not np.any(mst[i]):
+            min_dist = np.min(distance_matrix[i, ~mst[i]])
+            j = np.where(distance_matrix[i, ~mst[i]] == min_dist)[0][0]
+            mst[i, j] = mst[j, i] = True
+    
+    # Calculate the number of edges in the MST (which is equal to the number of nodes minus 1)
+    mst_edges_count = num_nodes - 1
+    
+    # The heuristic is the ratio of non-MST edges to the total number of edges
+    row_sums = np.sum(~mst, axis=1)
+    heuristic_matrix = (num_nodes - 1 - row_sums) / (mst_edges_count + 1e-10)
+    
+    return heuristic_matrix
+```

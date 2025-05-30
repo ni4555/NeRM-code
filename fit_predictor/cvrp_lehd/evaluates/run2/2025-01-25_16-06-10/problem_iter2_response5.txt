@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for CVRP considering demand and distance synergy."""
+    # Calculate the total demand
+    total_demand = demands.sum()
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the cumulative sum of demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    
+    # Calculate the minimum distances from each node to the depot
+    min_distances_to_depot = torch.min(distance_matrix[:, 0], dim=1).values
+    
+    # Iterate over each node pair
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            # Skip the depot node
+            if i == 0 or j == 0:
+                continue
+            
+            # Calculate the potential total demand of the route if i is included
+            potential_demand = demands[i] + demands[j]
+            
+            # If the potential demand exceeds the vehicle capacity, return to the depot
+            if potential_demand > total_demand:
+                return_distance = distance_matrix[j, 0]
+            else:
+                return_distance = 0
+            
+            # Calculate the heuristic value based on distance and demand
+            heuristic_value = distance_matrix[i, j] - return_distance - demand_cumsum[i] * min_distances_to_depot[j]
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value
+    
+    return heuristic_matrix
+```

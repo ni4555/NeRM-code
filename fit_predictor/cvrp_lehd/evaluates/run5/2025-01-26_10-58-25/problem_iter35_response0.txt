@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the absolute difference from vehicle capacity as penalty
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Use log distance as a weight to balance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine the penalties linearly without a non-linear emphasis
+    combined_penalty_matrix = (0.3 * penalty_matrix) + (0.7 * distance_penalty_matrix)
+    
+    # Normalize combined penalty matrix to balance scales and ensure non-negativity
+    normalized_combined_matrix = F.softmax(combined_penalty_matrix, dim=1)
+    
+    # Ensure the normalization process is efficient by using built-in functions
+    heuristics_matrix = normalized_combined_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Introduce diversity by using a non-linear transformation of demand penalties
+    demand_penalty_matrix = torch.exp(-torch.abs(demands - vehicle_capacity))
+    
+    # Normalize the demand penalty matrix to emphasize diverse penalties
+    normalized_demand_penalty_matrix = demand_penalty_matrix / demand_penalty_matrix.sum(dim=1, keepdim=True)
+    
+    # Introduce a secondary diversity mechanism by applying a non-linear transformation to distance penalties
+    distance_penalty_matrix = torch.log(distance_matrix + 1e-6)
+    diverse_distance_penalty_matrix = torch.exp(-distance_penalty_matrix)
+    
+    # Normalize the diverse distance penalty matrix to balance diversity and scale
+    normalized_diverse_distance_penalty_matrix = diverse_distance_penalty_matrix / diverse_distance_penalty_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine the normalized demand and distance penalty matrices to form a diversity potential matrix
+    diversity_potential_matrix = normalized_demand_penalty_matrix + normalized_diverse_distance_penalty_matrix
+    
+    # Apply a noise term to the diversity potential matrix to introduce randomness
+    noise_matrix = torch.randn_like(diversity_potential_matrix) * 1e-2
+    
+    # Introduce additional randomness while ensuring the matrix remains balanced
+    balanced_random_matrix = diversity_potential_matrix + noise_matrix
+    
+    # Normalize the balanced random matrix to maintain scale balance
+    normalized_balanced_random_matrix = balanced_random_matrix / balanced_random_matrix.sum(dim=1, keepdim=True)
+    
+    # Apply a final non-linear transformation to emphasize the constraints and promote solution diversity
+    emphasized_matrix = torch.relu(normalized_balanced_random_matrix)
+    
+    # Return the emphasized matrix as the heuristics matrix
+    # Positive values represent promising edges, while negative values represent less promising ones
+    heuristics_matrix = emphasized_matrix - torch.min(emphasized_matrix)
+    
+    return heuristics_matrix
+```

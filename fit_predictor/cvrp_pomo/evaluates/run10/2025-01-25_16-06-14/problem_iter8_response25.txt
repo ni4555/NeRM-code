@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate cumulative demand for each node
+    cumulative_demand = demands.cumsum(0)
+    # Calculate the difference between cumulative demand and vehicle capacity
+    capacity = 1.0  # Assuming the vehicle capacity is 1 for normalization
+    demand_diff = (cumulative_demand - capacity).clamp(min=0)
+    # Normalize the demand difference and apply a non-linear transformation
+    # Use an exponential transformation to emphasize lower demand differences
+    demand_diff_exp = torch.exp(-demand_diff)
+    # Scale the distance matrix by the exponential of the demand difference to give weight to distance
+    scaled_distance_matrix = distance_matrix * demand_diff_exp
+    # Calculate the heuristic by considering both scaled distance and scaled demand
+    # Use a square root transformation for the scaled distance to emphasize shorter distances
+    sqrt_scaled_distance = torch.sqrt(scaled_distance_matrix)
+    # Use a logarithmic transformation to emphasize lower heuristic values
+    log_scaled_distance = torch.log(1 + sqrt_scaled_distance)
+    # Invert the sign to get negative values for undesirable edges
+    return -log_scaled_distance
+```

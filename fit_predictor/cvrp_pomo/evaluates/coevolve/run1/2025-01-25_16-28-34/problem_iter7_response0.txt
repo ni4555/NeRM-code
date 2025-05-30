@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Initialize a heuristic based on the ratio of the square of the distance and the demand
+    heuristics = torch.log1p(distance_matrix * (demands[:, None] + demands[None, :] / total_capacity))
+    
+    # Implement a local search heuristic by adjusting the heuristic values for overloading and underloading
+    # This is a simple penalty based heuristic for illustration purposes
+    for i in range(n):
+        for j in range(i+1, n):
+            if distance_matrix[i, j] > 0:
+                if demands[i] + demands[j] > total_capacity:
+                    heuristics[i, j] = -torch.abs(heuristics[i, j])
+                elif demands[i] + demands[j] < total_capacity / 2:
+                    heuristics[i, j] = -torch.abs(heuristics[i, j]) + 1
+    
+    # Normalize the heuristics to ensure negative values for undesirable edges
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

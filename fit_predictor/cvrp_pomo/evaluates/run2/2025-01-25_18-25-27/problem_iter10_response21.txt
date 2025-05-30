@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Introduce a cost for each edge based on the difference from average demand
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+
+    # Introduce randomness for exploration on feasible edges
+    random_factor = torch.rand(n) * 2 - 1
+
+    # Add a penalty for infeasible edges
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+
+    # Combine the random factor and the infeasibility penalty
+    heuristics_matrix += random_factor + infeasibility_penalty
+    return heuristics_matrix
+```

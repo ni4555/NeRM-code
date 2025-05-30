@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize array to a range between 0 and 1 for uniformity
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    # Apply log scaling to emphasize high prize values while smoothing the distribution
+    log_scaled_prize = np.log(normalized_prize + 1)
+    # Calculate the average weight for normalization
+    average_weight = np.mean(np.sum(weight, axis=1))
+    # Calculate the weighted prize, where higher weights are given more importance
+    weighted_prize = log_scaled_prize * (np.sum(weight, axis=1) / average_weight)
+    # Amplify the high-value features by multiplying with a threshold
+    amplified_heuristics = weighted_prize * (weighted_prize > 0.5)
+    # Incorporate randomness for diversity by adding Gaussian noise with zero mean and a small variance
+    noise = np.random.normal(0, 0.01, amplified_heuristics.shape)
+    random_diversity = amplified_heuristics * noise
+    # Combine the amplified heuristics with the random diversity factor
+    combined_heuristics = amplified_heuristics + random_diversity
+    # Apply sparsity by setting values below a small threshold to zero
+    sparsified_heuristics = np.where(combined_heuristics > 0.01, combined_heuristics, 0)
+    # Normalize the sparsified heuristics to sum to 1
+    heuristics = sparsified_heuristics / np.sum(sparsified_heuristics)
+    return heuristics
+```

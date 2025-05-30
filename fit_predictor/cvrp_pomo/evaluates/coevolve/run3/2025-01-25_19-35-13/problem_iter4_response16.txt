@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    epsilon = 1e-8
+    
+    # Define a high penalty for nodes with excessive demand
+    demand_penalty = (torch.abs(normalized_demands - 1.0) * 10.0).clamp(min=0)
+    
+    # Define a high bonus for short distances to encourage local clustering
+    distance_bonus = (1.0 / (distance_matrix + epsilon)).clamp(min=1e-5)
+    
+    # Combine penalties and bonuses, emphasizing penalties more than bonuses
+    edge_potential = (1 - demand_penalty) * distance_bonus
+    
+    # Ensure the potential values are within a specific range
+    edge_potential = torch.clamp(edge_potential, min=1e-5, max=1e5)
+    
+    return edge_potential
+```

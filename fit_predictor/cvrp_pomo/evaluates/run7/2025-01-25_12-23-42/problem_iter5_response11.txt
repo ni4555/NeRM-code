@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Use a more refined heuristic by incorporating both distance and load
+    # The load factor is now scaled to be in a range where it can influence the heuristic effectively
+    load_scaled = node_loads * (norm_distances * 10)
+    
+    # Combine normalized distances and scaled load to form heuristics
+    heuristics = norm_distances - load_scaled.sum(-1)
+    
+    # Adjust heuristics to ensure they have a meaningful range for selection
+    heuristics = torch.clamp(heuristics, min=-10, max=10)
+    
+    return heuristics
+```

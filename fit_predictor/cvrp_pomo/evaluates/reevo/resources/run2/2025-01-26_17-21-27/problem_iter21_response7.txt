@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_threshold = torch.ceil((demands * total_capacity) / demands.sum()).float()
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    demand_weight = (cumulative_demand / total_capacity) ** 2
+    dynamic_capacity_balance = (total_capacity - cumulative_demand) / total_capacity
+    overflow_penalty = torch.zeros_like(distance_matrix)
+    
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                if cumulative_demand[j] > demand_threshold[j]:
+                    overflow_penalty[i, j] = -torch.log1p(demands[j] - demand_threshold[j] - 1e-8)
+    
+    heuristics = (distance_penalty * demand_weight) + (dynamic_capacity_balance ** 2) + overflow_penalty
+    return heuristics
+```

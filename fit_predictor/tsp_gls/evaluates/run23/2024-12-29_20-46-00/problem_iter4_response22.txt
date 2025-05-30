@@ -1,0 +1,46 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    longest_path = 2 * (n - 1) * np.amax(distance_matrix)
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Incorporate node and edge attributes
+    node_degrees = np.random.randint(1, n, size=n)  # Random degrees for nodes
+    edge_path_lengths = distance_matrix + 1e-5  # Path length is distance plus a small constant
+    
+    # Use local information to penalize short edges
+    penalty_factor = 1 / edge_path_lengths
+    
+    # Use global information to avoid edges on the longest path
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                if distance_matrix[i, j] == longest_path - distance_matrix[i, j]:
+                    heuristic_matrix[i, j] = 1  # High penalty for edges on the longest path
+                else:
+                    # Combine local and global heuristics, considering node degrees
+                    heuristic_matrix[i, j] += penalty_factor[i, j] + (longest_path - distance_matrix[i, j]) * node_degrees[i] * node_degrees[j]
+    
+    # Adapt penalties dynamically based on a function that takes problem-specific metrics
+    def adapt_penalty(contextual_metric):
+        return 0.5 * (1 + contextual_metric)  # Sigmoid function for smoothness
+    
+    # Introduce a problem-specific metric, e.g., the current route's total distance
+    contextual_metric = np.sum(distance_matrix) / longest_path
+    
+    # Add an adaptive exploration heuristic
+    exploration_factor = adapt_penalty(contextual_metric)
+    
+    # Add exploration heuristic to encourage diversification
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Randomly perturb the heuristic values to encourage exploration
+                if np.random.rand() < 0.1:  # 10% chance of perturbation
+                    perturbation = np.random.normal(0, 0.1, 1)
+                    heuristic_matrix[i, j] += perturbation * exploration_factor
+    
+    return heuristic_matrix
+```

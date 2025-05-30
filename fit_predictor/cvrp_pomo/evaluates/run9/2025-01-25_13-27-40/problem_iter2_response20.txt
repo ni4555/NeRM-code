@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the start node
+    cum_demands = torch.cumsum(demands, dim=0)
+    # Calculate the capacity left for each vehicle at each node
+    capacity_left = demands[0] - cum_demands
+    # Apply a negative exponential decay to the distance matrix to weight the edges
+    decayed_distances = torch.exp(-distance_matrix * 0.1)
+    # Calculate the potential of each edge based on the capacity left
+    potential = decayed_distances * capacity_left
+    # Create a penalty for edges leading to nodes that exceed capacity
+    capacity_penalty = torch.where(capacity_left <= 0, -1e4, torch.zeros_like(capacity_left))
+    # Apply a penalty to nodes with high demand
+    high_demand_penalty = demands * torch.where(capacity_left <= 0, torch.ones_like(demands), torch.zeros_like(demands))
+    # Combine the penalties and the potential to create the heuristic values
+    heuristics = potential - capacity_penalty - high_demand_penalty
+    return heuristics
+```

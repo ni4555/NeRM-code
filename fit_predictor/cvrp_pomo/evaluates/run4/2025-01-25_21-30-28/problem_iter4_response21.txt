@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Early heuristic combination: combine heuristics early to simplify subsequent steps
+    combined_heuristic = inverse_distance + demand_weight
+
+    # Heuristic range adjustment: adapt range based on performance
+    performance_metric = torch.rand(n)  # Placeholder for actual performance metric
+    range_adjustment = 1.0 / (performance_metric + 1e-8)
+    combined_heuristic *= range_adjustment
+
+    # Load balancing strategy: dynamically adjust heuristic values based on load distribution
+    load_balance_factor = torch.sum(demands, dim=0) / total_capacity
+    load_balance_heuristic = (1 - load_balance_factor) * combined_heuristic
+
+    return load_balance_heuristic
+```

@@ -1,0 +1,30 @@
+Fitness: 21.410755157470703
+
+Description:
+Design a robust algorithm for solving the Capacitated Vehicle Routing Problem (CVRP) by incorporating a predictive dynamic routing system, real-time customer demand forecasting, and a set of cutting-edge optimization heuristics. Leverage a combination of metaheuristics such as genetic algorithms and constraint-based optimization to synergistically solve the routing sub-problems, thereby enhancing the effectiveness of local search procedures. Implement a multi-objective optimization approach that meticulously balances the objectives of minimizing travel distance, optimizing vehicle load, and shortening service response times, ultimately achieving an efficient allocation of resources and lowering operational costs.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure demands are normalized
+    demands = demands / demands.sum()
+
+    # Initialize the savings matrix with zeros
+    savings_matrix = torch.zeros_like(distance_matrix)
+
+    # Compute the savings for each customer
+    # Savings are computed as the distance from the depot to the customer plus
+    # the distance from the customer to the end of the route minus the distance
+    # from the depot to the end of the route
+    for i in range(1, len(demands)):
+        savings_matrix[0, i] = distance_matrix[0, i] + distance_matrix[i, 0] - 2 * distance_matrix[i, 0]
+        for j in range(i + 1, len(demands)):
+            savings_matrix[i, j] = distance_matrix[i, j] + distance_matrix[j, 0] + distance_matrix[i, 0] - 2 * distance_matrix[i, 0]
+            savings_matrix[j, i] = savings_matrix[i, j]  # Since the matrix is symmetric
+
+    # Normalize the savings matrix by the vehicle capacity (which is 1 after normalization)
+    savings_matrix = savings_matrix * demands.unsqueeze(0)
+
+    return savings_matrix

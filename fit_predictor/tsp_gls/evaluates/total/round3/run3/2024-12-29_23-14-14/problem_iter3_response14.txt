@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Encourage diversification by considering the interaction between edges
+    # and their effect on the overall tour length.
+    # This heuristic will focus on the difference between an edge's length
+    # and the average of the shortest paths to its neighbors.
+    
+    # Calculate the shortest path to each node using a greedy approach
+    n_nodes = distance_matrix.shape[0]
+    for i in range(n_nodes):
+        local_min = distance_matrix[i, :].argmin()
+        distance_matrix[i, local_min] = float('inf')  # Disconnect the node from its minimum neighbor
+    
+    # Calculate the average of the shortest paths for each edge
+    avg_shortest_paths = (distance_matrix[:, :-1].mean(axis=1) +
+                          distance_matrix[:, 1:].mean(axis=1)) / 2
+    
+    # Calculate the deviation from the average shortest path
+    deviations = distance_matrix - avg_shortest_paths
+    
+    # Normalize the deviations to a range of [0, 1]
+    deviations = (deviations - deviations.min()) / (deviations.max() - deviations.min())
+    
+    # Introduce a penalty for edges that are significantly longer than the average shortest paths
+    # and for edges that are part of the local optimal route
+    for i in range(n_nodes):
+        for j in range(n_nodes):
+            if distance_matrix[i, j] == float('inf'):
+                deviations[i, j] = 1  # Most severe penalty for disconnected edges
+    
+    return deviations
+```

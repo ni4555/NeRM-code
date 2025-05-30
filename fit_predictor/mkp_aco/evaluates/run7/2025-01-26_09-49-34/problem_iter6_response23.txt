@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the ratio of prize to total weight per item
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Sparsify by considering the average weight in the other dimensions
+    average_weight = np.mean(weight, axis=1)
+    
+    # Incorporate dimension sparsity by considering the sum of non-zero weights
+    sparsity = np.sum(weight != 0, axis=1)
+    
+    # Combine the above factors to create heuristics
+    heuristics = ratio * average_weight * sparsity
+    
+    # penalize high variance in item weights by considering the standard deviation
+    std_deviation = np.std(weight, axis=1)
+    global_insight = 1 / (1 + std_deviation)
+    
+    # Combine heuristics with global insight
+    heuristics = heuristics * global_insight
+    
+    # Normalize heuristics to a range [0, 1]
+    max_heuristic = np.max(heuristics)
+    min_threshold = max_heuristic / 10
+    
+    # Apply a strategic threshold to filter out less promising items
+    heuristics[heuristics < min_threshold] = 0
+    
+    return heuristics
+```

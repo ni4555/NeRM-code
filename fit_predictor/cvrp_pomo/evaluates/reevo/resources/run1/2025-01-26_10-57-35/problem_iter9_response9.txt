@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the difference in demand for each pair of nodes and normalize it
+    demand_diff = demands[:, None] - demands[None, :]
+    demand_diff = torch.clamp(demand_diff, min=0)
+    demand_diff /= demand_diff.sum(dim=1, keepdim=True)
+    
+    # Calculate the normalized distance matrix
+    normalized_distance_matrix = distance_matrix / distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine demand difference and distance to create a heuristic matrix
+    heuristic_matrix = demand_diff + normalized_distance_matrix
+    
+    # Integrate capacity constraints by considering the inverse of demand
+    heuristic_matrix *= (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(heuristic_matrix, min=0)
+    
+    return heuristics
+```

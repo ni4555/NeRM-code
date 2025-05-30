@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    cumulative_distance = torch.cumsum(distance_matrix[:, 0], dim=0)
+    last_node_distance = distance_matrix[:, 0].unsqueeze(1)
+    
+    # Calculate the difference in cumulative distance and demand
+    distance_diff = cumulative_distance[:, None] - cumulative_distance[None, :]
+    demand_diff = cumulative_demand[:, None] - cumulative_demand[None, :]
+    
+    # Calculate the potential cost
+    potential_cost = distance_diff * demand_diff * (1 - demand_diff)
+    
+    # Incorporate demand awareness directly into the heuristic
+    demand_mask = demand_diff > 0
+    potential_cost = potential_cost * demand_mask
+    
+    # Adjust for the return to the depot
+    potential_cost += cumulative_distance[:, None] - last_node_distance
+    
+    # Apply a penalty for edges that exceed the capacity
+    capacity_penalty = (cumulative_demand > 1).float() * -1000
+    
+    # Combine the potential cost and penalty to get the heuristic values
+    heuristic_values = potential_cost + capacity_penalty
+    
+    return heuristic_values
+```

@@ -1,0 +1,13 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_sensitivity = torch.relu((demands / total_capacity - 0.5) * 2) ** 2
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    balance = (cumulative_demand * demand_sensitivity * distance_penalty) * 0.5
+    # Use a logarithmic scale for the depot priority
+    depot_priority = torch.log1p(torch.arange(n) * 1.5)
+    heuristics = balance + depot_priority.unsqueeze(0)
+    return heuristics
+```

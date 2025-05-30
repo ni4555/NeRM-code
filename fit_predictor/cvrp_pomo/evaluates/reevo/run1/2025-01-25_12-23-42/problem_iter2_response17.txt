@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic considering demand impact, normalization, and balancing heuristic scales."""
+    total_demand = demands.sum()
+    average_demand = total_demand / len(demands)
+    
+    # Normalize the demands to the range [0, 1] with respect to the average demand
+    normalized_demands = (demands - average_demand) / average_demand
+    
+    # Normalize the distances to the range [0, 1] with respect to the maximum distance
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Combine demand and distance in the heuristic
+    heuristics = 1 / (1 + normalized_distances) * normalized_demands
+    
+    # Ensure the heuristics matrix has the same shape as the distance matrix
+    heuristics = heuristics.view_as(distance_matrix)
+    
+    return heuristics
+```

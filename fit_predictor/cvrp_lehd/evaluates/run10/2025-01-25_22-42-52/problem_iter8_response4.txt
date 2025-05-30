@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Calculate the distance to the nearest customer with a positive demand that can be served
+    nearest_customer = torch.argmin(torch.abs(cumulative_demand - cumulative_capacity[:, None]), dim=1)
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Assign a heuristic value for the edge from the depot to the nearest customer
+    heuristics_matrix[torch.arange(n), nearest_customer] = -distance_matrix[torch.arange(n), nearest_customer]
+    
+    # Calculate the maximum demand up to each node
+    max_demand_up_to_node = torch.maximum.accumulate(demands)
+    
+    # Vectorized operations to calculate the heuristics for subsequent edges
+    for i in range(1, n):
+        remaining_capacity = vehicle_capacity[i] - cumulative_capacity[i - 1]
+        # If the current customer cannot be served, reset to the depot
+        if demands[i] > remaining_capacity:
+            heuristics_matrix[0, i] = -distance_matrix[0, i]
+        else:
+            # Calculate the distance to the nearest customer with a positive demand that can be served
+            nearest_customer_from_i = torch.argmin(torch.abs(cumulative_demand[i:] - (demands[i] + max_demand_up_to_node[i:])), dim=0) + i
+            heuristics_matrix[nearest_customer_from_i, i] = -distance_matrix[nearest_customer_from_i, i]
+    
+    return heuristics_matrix
+```

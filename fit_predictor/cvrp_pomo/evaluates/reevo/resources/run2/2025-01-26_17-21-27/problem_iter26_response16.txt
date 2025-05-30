@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Apply exponential decay to distances
+    distance_decay = torch.exp(-distance_matrix / 100.0)
+    
+    # Apply exponential decay to cumulative demand to simulate a demand decay over time
+    demand_decay = torch.exp(-cumulative_demand / 100.0)
+    
+    # Calculate capacity penalty
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Integrate overflow detection with nuanced scaling
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balance load heuristic with dynamic scaling
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Combine all heuristics with decay
+    heuristics = distance_decay * demand_decay + capacity_penalty + overflow_penalty + load_balance_penalty
+    
+    # Normalize heuristics to have a range of 0 to 1
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    
+    return heuristics
+```

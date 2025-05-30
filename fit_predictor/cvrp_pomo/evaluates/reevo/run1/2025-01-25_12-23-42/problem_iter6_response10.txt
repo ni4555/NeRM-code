@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = demands.unsqueeze(1)  # Ensure demands are a 2D tensor for broadcasting
+    distance_matrix_squared = distance_matrix ** 2
+    min_distance_to_depot = torch.min(distance_matrix, dim=1)[0] ** 2  # Squared distance to nearest depot
+    max_demand = torch.max(demands, dim=0)[0]  # Maximum demand in the network
+    
+    # Normalize distances and demands
+    norm_distances = distance_matrix / distance_matrix.max()
+    demand_normalized = demands / demands.sum()
+    
+    # Calculate load at each node
+    node_loads = demand_normalized * demands
+    
+    # Use a sigmoid function to balance the load and distance
+    load_weight = torch.sigmoid(node_loads * 5)  # 5 is a tunable parameter for exploration
+    
+    # Combine the normalized distance and the load factor using the sigmoid weight
+    heuristics = (1 - load_weight) * norm_distances - load_weight * (node_loads * norm_distances).sum(-1)
+    
+    # Avoid revisits by penalizing edges leading back to the depot
+    revisits_penalty = (distance_matrix == 0) * -1e6
+    heuristics += revisits_penalty
+    
+    # Ensure that all elements are of the same shape as the distance matrix
+    heuristics = heuristics.view(n, n)
+    
+    return heuristics
+```

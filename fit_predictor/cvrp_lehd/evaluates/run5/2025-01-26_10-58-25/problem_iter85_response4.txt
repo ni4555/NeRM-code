@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Normalize the potential matrix to emphasize constraints early
+    normalized_potential_matrix = potential_matrix / (potential_matrix.abs().sum(dim=1, keepdim=True) + 1e-6)
+    
+    # Introduce noise to balance randomness and diversity
+    noise_matrix = torch.randn_like(normalized_potential_matrix) * 1e-2
+    
+    # Combine the original potential matrix with noise
+    combined_potential_matrix = normalized_potential_matrix + noise_matrix
+    
+    # Normalize the combined potential matrix to ensure non-negativity and scale balance
+    normalized_combined_matrix = combined_potential_matrix / (combined_potential_matrix.sum(dim=1, keepdim=True) + 1e-6)
+    
+    # Introduce a second noise term for further randomness
+    second_noise_matrix = torch.randn_like(normalized_combined_matrix) * 1e-2
+    
+    # Combine the normalized combined matrix with the second noise term
+    adjusted_combined_matrix = normalized_combined_matrix + second_noise_matrix
+    
+    # Simplify the heuristics by using a softplus transformation to avoid negative values
+    heuristics_matrix = torch.nn.functional»ÌªØplus(adjusted_combined_matrix)
+    
+    return heuristics_matrix
+```

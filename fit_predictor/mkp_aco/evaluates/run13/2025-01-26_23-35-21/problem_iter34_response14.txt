@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate the weight sum
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Incorporate dimensionality-aware metrics
+    dimensionalityAware = np.mean(weight, axis=1) / np.mean(weight)
+    
+    # Encourage diversity by considering the inverse of the density
+    diversityFactor = 1 / (density + 1e-8)
+    
+    # Create a heuristic value by combining density, sparsity, and dimensionality
+    heuristicValue = density * (1 - sparsity) + diversityFactor + dimensionalityAware
+    
+    # Normalize the heuristic values
+    normalizedHeuristic = heuristicValue / (np.max(heuristicValue) + 1e-8)
+    
+    # Introduce a balance factor to ensure that high density and low sparsity are favored
+    balanceFactor = (density - sparsity) / (density + sparsity + 1e-8)
+    
+    # Combine the heuristics with the balance factor
+    combinedHeuristic = normalizedHeuristic * balanceFactor
+    
+    # Introduce a penalty for items with a high weight sum to prevent overloading the knapsack
+    penalty = weight_sum / (np.max(weight_sum) + 1e-8)
+    
+    # Combine the heuristics with the penalty
+    finalHeuristic = combinedHeuristic * (1 - penalty)
+    
+    # Ensure non-negative heuristics
+    finalHeuristic = np.maximum(finalHeuristic, 0)
+    
+    return finalHeuristic
+```

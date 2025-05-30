@@ -1,0 +1,38 @@
+```python
+import torch
+
+def sigmoid(x):
+    return 1 / (1 + torch.exp(-x))
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Create a matrix with negative infinity for edges where demand is greater than vehicle capacity
+    demand_matrix = torch.clamp(-torch.cumsum(demands, dim=0) / vehicle_capacity, min=float('-inf'))
+    
+    # Adjust the matrix for edges where the demand is exactly zero
+    demand_matrix[torch.where(demands == 0)] = 0
+    
+    # Normalize distances to create a preference for closer nodes
+    normalized_distances = distance_matrix / (distance_matrix + 1)
+    
+    # Combine normalized distances and demand matrix to create a potential function
+    potential_matrix = normalized_distances + demand_matrix
+    
+    # Normalize the potential matrix using a sigmoid function to ensure values are between 0 and 1
+    transformed_potential_matrix = sigmoid(potential_matrix)
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    heuristics_matrix = 1 - transformed_potential_matrix
+    
+    # Normalize the heuristics matrix to maintain a consistent scale
+    max_heuristic = heuristics_matrix.max()
+    min_heuristic = heuristics_matrix.min()
+    heuristics_matrix = (heuristics_matrix - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # To encourage visiting all customers, add a penalty for not visiting each customer
+    not_visited_penalty = -demands
+    heuristics_matrix += not_visited_penalty
+    
+    return heuristics_matrix
+```

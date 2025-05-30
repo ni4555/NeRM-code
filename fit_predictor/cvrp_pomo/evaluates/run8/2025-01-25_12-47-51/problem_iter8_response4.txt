@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    demand_normalized = demands / total_demand
+
+    # Combine distance and demand heuristics with a penalty for edges that would exceed capacity
+    heuristic_matrix = inv_distance_matrix - inv_distance_matrix * demand_normalized
+
+    capacity_penalty = demands[:, None] + demands[None, :] > 1
+    heuristic_matrix[capacity_penalty] = -float('inf')
+
+    return heuristic_matrix
+```

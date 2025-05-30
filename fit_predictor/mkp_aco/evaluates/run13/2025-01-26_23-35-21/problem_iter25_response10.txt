@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize and weights by dividing by their max value
+    normalized_prize = prize / np.max(prize)
+    normalized_weight = weight / np.max(weight)
+    
+    # Calculate a balance metric by penalizing items with high sparsity and high density
+    balance_metric = (normalized_prize - normalized_weight) / (normalized_prize + normalized_weight + 1e-8)
+    
+    # Normalize the balance metric
+    max_balance = np.max(balance_metric)
+    normalized_balance = balance_metric / (max_balance + 1e-8)
+    
+    # Calculate a diversity metric based on the spread of normalized prizes
+    diversity_metric = np.std(normalized_prize) / np.mean(normalized_prize)
+    
+    # Create a heuristic value by combining balance and diversity metrics
+    heuristic_value = 0.7 * normalized_balance + 0.3 * diversity_metric
+    
+    # Apply a penalty for items that do not contribute significantly to the solution
+    heuristic_value[np.sum(normalized_weight, axis=1) < 1e-8] = 1e-8
+    
+    # Return the final heuristics
+    return heuristic_value
+```

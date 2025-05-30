@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Calculate the distance to the nearest customer with a positive demand that can be served
+    nearest_customer = torch.argmin(torch.abs(cumulative_demand - cumulative_capacity[:, None]), dim=1)
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Assign a heuristic value for the edge from the depot to the nearest customer
+    heuristics_matrix[torch.arange(distance_matrix.shape[0]), nearest_customer] = -distance_matrix[torch.arange(distance_matrix.shape[0]), nearest_customer]
+    
+    # For each subsequent edge, calculate the remaining capacity and demand
+    for i in range(1, len(demands)):
+        remaining_capacity = vehicle_capacity[i] - cumulative_capacity[i - 1]
+        current_demand = demands[i]
+        if current_demand <= remaining_capacity:
+            # If the current customer can be served within the remaining capacity
+            nearest_customer[i] = torch.argmin(torch.abs(cumulative_demand[i:] - current_demand), dim=0) + i
+            heuristics_matrix[nearest_customer[i], i] = -distance_matrix[nearest_customer[i], i]
+        else:
+            # If the current customer cannot be served, reset to the depot
+            nearest_customer[i] = 0
+            heuristics_matrix[0, i] = -distance_matrix[0, i]
+    
+    return heuristics_matrix
+```

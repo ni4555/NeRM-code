@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a random seed for reproducibility
+    np.random.seed(42)
+    
+    # Calculate normalized density and sparsity
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Introduce randomness to promote diversity
+    randomness = np.random.rand(len(prize))
+    
+    # Calculate a heuristic combining density, sparsity, and randomness
+    heuristic = density * (1 - sparsity) + randomness
+    
+    # Introduce a diversity factor based on the average density
+    average_density = np.mean(density)
+    diversity_factor = 1 / (np.exp(average_density) + 1e-8)
+    
+    # Prune dominated items by setting their heuristic to a very low value
+    dominated_items = np.where(np.max(weight, axis=1) == 0)[0]
+    heuristic[dominated_items] = 0
+    
+    # Normalize the heuristic to ensure all values are between 0 and 1
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    return normalized_heuristic
+```

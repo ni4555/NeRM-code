@@ -1,0 +1,61 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Introduce a demand-aware distance penalty to account for potential overloads
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_penalty *= (cumulative_demand / total_capacity + 1)
+    
+    # Incorporate a demand-driven dynamic capacity penalty for overflow detection
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    dynamic_capacity_penalty *= torch.where(
+        cumulative_demand > total_capacity_vector,
+        1 + 0.5 * (cumulative_demand - total_capacity_vector) / total_capacity,
+        1
+    )
+    
+    # Use a load balance heuristic with a demand-weighted balance factor
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance *= (1 / (1 + cumulative_demand / total_capacity))
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Include a diversity factor to enhance the exploration of the solution space
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Scale the heuristics to prioritize core objectives
+    scaling_factor = 3.0
+    heuristics = (
+        scaling_factor * (
+            distance_penalty +
+            dynamic_capacity_penalty +
+            overflow_penalty +
+            load_balance_penalty
+        ) +
+        diversity_factor
+    )
+    
+    # Add a time-adaptive diversity factor to encourage exploration
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 2))
+    diversity_factor *= time_factor
+    
+    # Introduce an imbalance penalty to detect and correct imbalances
+    imbalance_penalty = torch.max(torch.abs(cumulative_demand - total_capacity_vector), dim=0)[0]
+    imbalance_penalty = -torch.log1p(imbalance_penalty - 1e-8)
+    
+    # Adjust heuristics to ensure stability and efficiency
+    heuristics += imbalance_penalty
+    heuristics *= (1 + (cumulative_demand > total_capacity_vector).float())
+    
+    return heuristics
+```

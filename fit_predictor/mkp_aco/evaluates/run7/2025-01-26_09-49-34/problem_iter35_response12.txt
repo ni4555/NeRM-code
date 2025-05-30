@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Introduce a balance factor by incorporating both high prize and low weight
+    balance_factor = normalized_prize * np.exp(-np.sum(weight, axis=1))
+    
+    # Calculate the sparsity factor based on the number of non-zero weight dimensions
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Introduce a diversity factor by adding a random perturbation
+    diversity_factor = np.random.normal(0, 0.01, size=normalized_prize.shape) * sparsity_factor
+    
+    # Combine factors to calculate initial heuristics
+    heuristics = balance_factor * sparsity_factor + diversity_factor
+    
+    # Adapt thresholds based on the current distribution of heuristics
+    threshold = np.percentile(heuristics, 75)  # Adjusted threshold for balancing exploration and exploitation
+    heuristics[heuristics > threshold] *= 1.2
+    
+    # Introduce sparsity by setting heuristics below a certain percentile to zero
+    lower_threshold = np.percentile(heuristics, 10)  # Lower threshold for introducing sparsity
+    heuristics[heuristics < lower_threshold] = 0
+    
+    # Normalize heuristics by dividing by the sum of heuristics to avoid division by zero
+    heuristic_sum = np.sum(heuristics)
+    if heuristic_sum > 0:
+        heuristics /= heuristic_sum
+    
+    # Refine heuristics iteratively by balancing exploration and exploitation
+    # Increase heuristics for items that are close to the threshold but not too sparse
+    for i in range(len(heuristics)):
+        if heuristics[i] > threshold and sparsity_factor[i] > 0.5:
+            heuristics[i] *= 1.2
+    
+    return heuristics
+```

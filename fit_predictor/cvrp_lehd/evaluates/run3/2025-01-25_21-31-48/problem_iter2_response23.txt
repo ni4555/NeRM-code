@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic that incorporates multiple criteria with appropriate weighting."""
+    # Calculate the inverse of the distance matrix to emphasize shorter distances
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)  # Add a small value to avoid division by zero
+    
+    # Multiply the inverse distance matrix by the demands to emphasize nodes with higher demand
+    demand_weighted_distance_matrix = distance_matrix_inv * demands
+    
+    # Calculate the distance from each node to the depot to emphasize closer nodes
+    depot_distances = 1 / (distance_matrix[:, 0] + 1e-10)  # Add a small value to avoid division by zero
+    
+    # Combine the demand-weighted distances and the depot distances
+    combined_distances = demand_weighted_distance_matrix * demands + depot_distances
+    
+    # Normalize the combined distances to ensure all values are within a certain range
+    max_combined_distance = combined_distances.max()
+    min_combined_distance = combined_distances.min()
+    normalized_combined_distances = (combined_distances - min_combined_distance) / (max_combined_distance - min_combined_distance)
+    
+    # The heuristic value is now the normalized combined distances
+    heuristic_values = normalized_combined_distances
+    return heuristic_values
+```

@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a balance heuristic
+    # The heuristic considers the balance between distance and demand
+    # It uses a weighted sum of the normalized demand and the normalized distance
+    demand_weight = 2.0
+    distance_weight = 0.5
+    balance_threshold = 0.5  # Threshold to determine if the edge should be penalized for imbalance
+    
+    # Create a balance term for edges that are too imbalanced between demand and distance
+    balance_term = torch.where(normalized_distances > balance_threshold, 
+                                normalized_distances - balance_threshold, 
+                                torch.zeros_like(normalized_distances))
+    
+    # Combine potential values with balance term
+    potential_values = (distance_weight * normalized_distances + 
+                        demand_weight * normalized_demands - 
+                        balance_term).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

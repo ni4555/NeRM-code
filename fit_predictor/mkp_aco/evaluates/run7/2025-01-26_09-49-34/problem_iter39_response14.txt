@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to ensure items are not dominated by high prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate a balance factor considering both sparsity and variance
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    balance_factor = sparsity_factor * inv_variance_factor
+    
+    # Incorporate diversity by adding a random component
+    np.random.seed(0)
+    diversity = np.random.normal(0, 0.02, size=normalized_prize.shape)
+    diversity = np.maximum(diversity, 0)  # Ensure non-negative diversity
+    balanced_prize = normalized_prize * balance_factor + diversity
+    
+    # Use a dynamic threshold based on the mean value of the prize to introduce sparsity
+    mean_prize = np.mean(balanced_prize)
+    sparsity_threshold = mean_prize * 0.5  # 50% threshold for sparsity
+    balanced_prize[balanced_prize < sparsity_threshold] = 0
+    
+    # Amplify the heuristics of items with higher potential and exploit known good values
+    amplification_threshold = np.percentile(balanced_prize, 80)  # 80% threshold
+    good_values = balanced_prize > amplification_threshold
+    balanced_prize[good_values] *= 1.5
+    
+    # Refine the heuristics by iterating over the weights and amplifying promising items
+    for i in range(len(weight)):
+        if balanced_prize[i] > 0:
+            # Amplify based on the item's potential to fit in remaining space
+            remaining_space = 1 - weight[i].sum()
+            amplification_factor = 1 + (1 - balanced_prize[i]) * remaining_space
+            balanced_prize[i] *= amplification_factor
+    
+    # Normalize the final heuristics
+    heuristic_sum = np.sum(balanced_prize)
+    if heuristic_sum > 0:
+        balanced_prize /= heuristic_sum
+    
+    return balanced_prize
+```

@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+    dampened_demand_diff = torch.clamp(1.0 / (demand_diff + 1e-5), max=1.0)
+    heuristics = dampened_demand_diff * remaining_capacity
+
+    exploration_noise = torch.randn_like(heuristics) * 0.05
+    heuristics += exploration_noise
+
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty
+
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty
+
+    distance_preference = distance_matrix[:, 0] / distance_matrix[:, 0].max()
+    heuristics += distance_preference
+
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

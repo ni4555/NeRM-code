@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the diagonal of the distance matrix (no distance to itself)
+    diag = np.diag(distance_matrix)
+    
+    # Calculate the distance matrix without self-loops
+    distance_matrix_no_diag = np.copy(distance_matrix)
+    np.fill_diagonal(distance_matrix_no_diag, np.inf)
+    
+    # Calculate the minimum distance for each edge (excluding self-loops)
+    min_distances = np.min(distance_matrix_no_diag, axis=0)
+    
+    # Normalize the distance to its respective minimum distance
+    normalized_distances = distance_matrix / min_distances
+    
+    # Calculate Manhattan distance for each edge considering its minimum distance
+    manhattan_distance = np.abs(distance_matrix - np.tril(np.triu(distance_matrix), k=-1))
+    
+    # Combine the normalized distance with the Manhattan distance
+    combined_distance = normalized_distances + penalty_factor * (manhattan_distance - min_distances)
+    
+    # Add a penalty to encourage shorter paths to be visited first
+    combined_distance -= 1
+    
+    # Calculate the maximum combined distance for each edge
+    max_combined_distance = np.max(combined_distance, axis=0)
+    
+    # It's bad to include edges with maximum combined distance in the early part of the path
+    heuristics = (1 - combined_distance) * (max_combined_distance / combined_distance)
+    
+    # Add a small penalty to edges with minimum combined distance to avoid early inclusion
+    local_minima = np.where(combined_distance == np.min(combined_distance, axis=0))
+    heuristics[local_minima] += 0.1
+    
+    return heuristics
+```

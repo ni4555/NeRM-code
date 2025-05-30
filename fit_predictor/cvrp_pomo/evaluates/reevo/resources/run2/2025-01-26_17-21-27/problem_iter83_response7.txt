@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Core objective: minimize distance with demand and overflow penalties
+    distance_heuristic = torch.log1p(-distance_matrix) * (1 - cumulative_demand / total_capacity)
+    
+    # Introduce a dynamic penalty for the load balance
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector))
+    
+    # Add a penalty for edges that would cause overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Encourage diversity by adding random noise
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics with scaling for the core objective
+    heuristics = distance_heuristic + load_balance_penalty + overflow_penalty + randomness_factor
+    
+    # Introduce a time-adaptive factor to encourage exploration
+    time_adaptive_factor = torch.exp(-cumulative_demand / (total_capacity * 10))
+    heuristics *= time_adaptive_factor
+    
+    # Normalize heuristics to maintain scale consistency
+    max_heuristic = heuristics.max()
+    heuristics /= (max_heuristic + 1e-8)
+    
+    return heuristics
+```

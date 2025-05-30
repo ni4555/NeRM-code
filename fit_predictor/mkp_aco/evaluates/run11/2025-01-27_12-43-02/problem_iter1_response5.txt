@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    # Calculate the normalized weight of each item
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    # Calculate the normalized prize
+    normalized_prize = prize / np.max(prize)
+    # Calculate the average weight of items that are twice as valuable
+    high_valued_avg_weight = np.mean(weight[prize > 2 * np.mean(prize)], axis=0)
+    # Calculate the average weight of items that are half as valuable
+    low_valued_avg_weight = np.mean(weight[prize < np.mean(prize)/2], axis=0)
+    # Create the heuristic score combining the normalized prize, normalized weight,
+    # and adjusted weights for high and low prize values
+    score = normalized_prize * (1 + normalized_weights * 0.5 +
+                                (np.maximum(prize - high_valued_avg_weight, 0) / high_valued_avg_weight) * 0.2 +
+                                (np.maximum(low_valued_avg_weight - prize, 0) / low_valued_avg_weight) * 0.2)
+    # Sparsify the heuristics by setting unpromising elements to zero
+    sparsified_score = np.where(score > 0, score, 0)
+    return sparsified_score
+```

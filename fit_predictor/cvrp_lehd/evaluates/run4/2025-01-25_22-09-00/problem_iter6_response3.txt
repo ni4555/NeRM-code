@@ -1,0 +1,14 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_threshold = (cumulative_demand / demands.unsqueeze(1)).max() * demands.max()
+    load = torch.min(cumulative_demand, capacity_threshold) / demands.unsqueeze(1)
+    distance_scale = 1 / (distance_matrix + 1e-6)
+    heuristics = load * distance_scale
+    global_balance = 1 / torch.exp(torch.arange(n) * 0.1)
+    final_heuristics = heuristics * global_balance
+    return final_heuristics
+```

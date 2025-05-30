@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the value per unit weight for each item
+    value_per_weight = prize / np.sum(weight, axis=1)
+    
+    # Calculate the diversity factor for each item
+    diversity_factor = np.sum(weight, axis=1) / np.sqrt(np.sum(weight**2, axis=1) + 1e-8)
+    
+    # Normalize the prize to ensure numerical stability
+    normalized_prize = prize / (np.sqrt(np.sum(prize**2) + 1e-8) + 1e-8)
+    
+    # Calculate sparsity factor, which measures how "sparse" the item is
+    sparsity = np.sum(weight, axis=1) / (np.sqrt(np.sum(weight**2, axis=1) + 1e-8) + 1e-8)
+    
+    # Combine all factors into the heuristic value
+    heuristics = value_per_weight * diversity_factor * normalized_prize * sparsity
+    
+    # Set a threshold to avoid having zero heuristics for items that should not be neglected
+    sparsity_threshold = 1e-3
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    # Ensure that no heuristic value is negative by taking the maximum of zero and the heuristic value
+    heuristics = np.maximum(0, heuristics)
+    
+    return heuristics
+```

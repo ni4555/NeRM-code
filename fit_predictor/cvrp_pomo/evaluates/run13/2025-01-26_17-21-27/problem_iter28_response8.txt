@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate distance penalty
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Calculate capacity penalty
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity))
+    
+    # Introduce a balance penalty to encourage more balanced load distribution
+    balance_factor = (cumulative_demand - total_capacity / 2) / total_capacity
+    balance_penalty = -balance_factor ** 2
+    
+    # Scale penalties dynamically with demand
+    dynamic_capacity_penalty = capacity_penalty * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    dynamic_distance_penalty = distance_penalty * (1 + cumulative_demand)
+    
+    # Use a vectorized approach to calculate overflow penalties
+    overflow_penalty = torch.max(torch.zeros_like(distance_matrix), 
+                                 -torch.log1p(torch.abs(cumulative_demand + demands - total_capacity) - 1e-8))
+    
+    # Combine penalties with a scaling factor
+    scaling_factor = 1.5
+    heuristics = scaling_factor * (dynamic_distance_penalty + dynamic_capacity_penalty + balance_penalty + overflow_penalty)
+    
+    # Incentivize remaining capacity explicitly
+    remaining_capacity = total_capacity - cumulative_demand
+    capacity_incentive = torch.exp(-remaining_capacity / total_capacity)
+    
+    # Initialize the heuristic matrix with the incentive for the depot node
+    depot_mask = (torch.arange(n) == 0).float()
+    heuristics = capacity_incentive * depot_mask.unsqueeze(0)
+    
+    # Add a uniform positive heuristic for the depot to encourage its inclusion
+    heuristics += 0.1 * depot_mask.unsqueeze(0).unsqueeze(1)
+    
+    # Combine the incentives with the heuristic values
+    heuristics = heuristics + heuristics.new(n, n).fill_(0.1) * heuristics
+    
+    return heuristics
+```

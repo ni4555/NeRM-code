@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands[1:].sum()
+    vehicle_capacity = 1.0 / (1.0 / total_demand + 1.0 / demands[depot])
+
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Vectorized implementation of the heuristics
+    load_vector = demands / demands[depot]  # Load vector for each customer
+    cost_vector = -distance_matrix  # Cost vector, inverted for positive values
+    capacity_vector = vehicle_capacity - load_vector  # Capacity vector for each edge
+
+    # Heuristic for outgoing edges
+    outgoing_loads = demands[1:] / demands[depot]
+    outgoing_loads = torch.clamp(outgoing_loads, min=0, max=vehicle_capacity)
+    heuristics[1:, 1:] = cost_vector[1:, 1:] * outgoing_loads[None, :] * capacity_vector[None, :]
+
+    # Heuristic for incoming edges to the depot
+    incoming_loads = demands[1:] / demands[depot]
+    incoming_loads = torch.clamp(incoming_loads, min=0, max=vehicle_capacity)
+    heuristics[1:, depot] = cost_vector[1:, depot] * incoming_loads[None, :] * (vehicle_capacity + demands[depot])
+
+    # Heuristic for outgoing edge from the depot
+    outgoing_loads[depot] = 1.0  # Load from depot to itself is always 1
+    heuristics[depot, 1:] = cost_vector[depot, 1:] * outgoing_loads[None, :] * (vehicle_capacity - demands[1:])
+
+    return heuristics
+```

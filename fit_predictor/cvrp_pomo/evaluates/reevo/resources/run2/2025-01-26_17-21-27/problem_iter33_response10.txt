@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Dynamic penalties based on remaining capacity and distance
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Core objective: minimize distance, weighted by remaining capacity
+    core_objective = dynamic_distance_penalty * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Adaptive scaling for the core objective
+    scaling_factor = torch.clamp(1 + cumulative_demand / total_capacity, min=1, max=5)
+    scaled_core_objective = core_objective * scaling_factor
+    
+    # Diversity heuristic: encourage visiting nodes that have not been visited recently
+    diversity_heuristic = torch.exp(-cumulative_demand)
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balance load heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Combine heuristics with penalties
+    heuristics = scaled_core_objective + diversity_heuristic - overflow_penalty - load_balance_penalty
+    
+    # Avoid negative values by adding a very small constant
+    heuristics = torch.clamp(heuristics, min=1e-8)
+    
+    return heuristics
+```

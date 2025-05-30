@@ -1,0 +1,46 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the average normalized weight for each item across all dimensions
+    average_normalized_weight = np.mean(weight, axis=1)
+    
+    # Calculate the inverse of the average normalized weight for each item
+    # Adding a small value to avoid division by zero
+    inverse_average_weight = 1 / (average_normalized_weight + 1e-8)
+    
+    # Calculate the sparsity factor based on the number of dimensions with zero weight
+    sparsity_factor = 1 - (np.sum(weight == 0, axis=1) / m)
+    
+    # Calculate the diversity factor based on the average normalized weight
+    diversity_factor = np.mean(average_normalized_weight)
+    
+    # Combine the factors to create initial heuristics
+    heuristics = normalized_prize * inverse_average_weight * sparsity_factor * diversity_factor
+    
+    # Adjust heuristics based on the variance of the weights
+    # Reward items with low variance
+    weight_variance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)
+    variance_adjustment = 1 / (1 + weight_variance)
+    heuristics *= variance_adjustment
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Apply a dynamic sparsification threshold that considers the sparsity factor and average normalized weight
+    # Setting elements below the threshold to zero
+    sparsity_threshold = np.mean(average_normalized_weight) * sparsity_factor
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    # Final heuristics based on a weighted combination of the factors
+    heuristics *= (normalized_prize + sparsity_factor + diversity_factor + variance_adjustment)
+    
+    return heuristics
+```

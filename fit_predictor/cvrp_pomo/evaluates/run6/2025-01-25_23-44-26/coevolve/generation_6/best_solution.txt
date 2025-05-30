@@ -1,0 +1,30 @@
+Fitness: 49.78913116455078
+
+Description:
+Develop a novel heuristic approach for solving the Capacitated Vehicle Routing Problem (CVRP) that integrates a normalization process for customer demand and distance. The heuristic should initially utilize an Inverse Distance Heuristic (IDH) to assign customers to vehicles based on the reciprocal of their distance from the depot, ensuring a balanced distribution. To respect capacity constraints, a demand penalty function will be employed, increasing the cost of assigning high-demand customers to vehicles near their capacity limits. The solution will further incorporate a combination of a Genetic Algorithm (GA) for iterative route improvement, Simulated Annealing (SA) to escape local optima, and Ant Colony Optimization (ACO) for path exploration and learning. This hybrid framework must be equipped with a real-time rerouting mechanism to adapt to dynamic changes in customer demands and vehicle availability within a predefined response time frame, thereby maintaining optimized vehicle assignments and route distances.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Normalize customer demands by total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse Distance Heuristic (IDH) - Promote closer customers
+    idh_scores = 1.0 / distance_matrix
+
+    # Demand penalty function - Penalize high-demand customers near capacity
+    demand_penalty = demands / (demands.sum() + 1e-6)  # Avoid division by zero
+
+    # Combine IDH and demand penalty scores
+    combined_scores = idh_scores * normalized_demands * (1 - demand_penalty)
+
+    # Ensure that the heuristics matrix has negative values for undesirable edges
+    combined_scores[distance_matrix == 0] = 0  # Exclude depot itself
+    combined_scores[combined_scores < 0] = 0
+    combined_scores[combined_scores >= 0] -= combined_scores[combined_scores >= 0].min()  # Normalize to ensure positive values
+
+    return combined_scores

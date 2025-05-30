@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """
+    A heuristic function for the Capacitated Vehicle Routing Problem (CVRP) using a combination of distance-based
+    desirability and demand-based feasibility checks.
+
+    :param distance_matrix: A tensor of shape (n, n) representing the distance between nodes.
+    :param demands: A tensor of shape (n,) representing the demand at each node.
+    :return: A tensor of shape (n, n) where each element is the heuristics value for that edge.
+    """
+
+    # Use inverse demand as a factor to prioritize edges with lower demand
+    inverse_demand = 1 / (demands + 1e-8)  # Adding a small constant to avoid division by zero
+
+    # Use distance matrix as a penalty for longer distances
+    distance_penalty = 1 / (distance_matrix + 1e-8)
+
+    # Calculate the initial heuristics based on demand and distance
+    initial_heuristics = (inverse_demand + distance_penalty)
+
+    # For the depot, prioritize the edges with the lowest distance to the first customer
+    depot_index = 0
+    min_distance_to_customer = torch.min(distance_matrix[depot_index, 1:])
+    initial_heuristics[depot_index, 1:] += torch.min(initial_heuristics[depot_index, 1:])
+
+    # For customers, prioritize the edges from the customer with the lowest demand
+    lowest_demand_customer = torch.argmin(demands[1:])
+    min_demand_edge = torch.min(initial_heuristics[lowest_demand_customer, 1:])
+    initial_heuristics[lowest_demand_customer, 1:] += min_demand_edge
+
+    # Adjust the heuristics for the edges to the depot for all customers to ensure they are not
+    # prioritized over other customer to customer edges
+    initial_heuristics[:, 0] = -initial_heuristics[1:, 0]
+
+    return initial_heuristics
+```

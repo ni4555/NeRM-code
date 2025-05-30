@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Scale the distances to have a maximum of 1
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the cumulative demand to get the vehicle load at each node
+    cumulative_demand = torch.cumsum(demands[:, None], dim=1)
+    
+    # Calculate the cumulative distance scaled by the demand to account for load
+    scaled_cumulative_distance = (cumulative_demand / demands.sum()).unsqueeze(-1) * norm_distances
+    
+    # The heuristics is the scaled cumulative distance minus the actual cumulative distance
+    # which gives a measure of the potential cost reduction if an edge is included in the solution
+    heuristics = scaled_cumulative_distance - cumulative_demand
+    return heuristics
+```

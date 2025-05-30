@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum().item()
+    cumulative_demand = demands.cumsum(0)
+    max_demand_index = torch.argmax(cumulative_demand)
+    max_demand = cumulative_demand[max_demand_index]
+    
+    # Initialize the heuristics matrix
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Normalize distances by the maximum distance
+    normalized_distances = distance_matrix / distance_matrix.max()
+    
+    # Normalize demands by the total capacity
+    normalized_demands = demands / total_capacity
+    
+    # Calculate the potential of each edge based on demand and distance
+    edge_potential = (1 - (cumulative_demand / max_demand) * normalized_distances) * (1 - normalized_demands)
+    
+    # Vectorized computation to add demand penalties for high cumulative loads
+    for i in range(1, n):
+        edge_potential[i, 0] -= (cumulative_demand[i] / max_demand)
+        edge_potential[0, i] -= (cumulative_demand[i] / max_demand)
+    
+    # Ensure that the heuristics matrix contains only negative values for undesirable edges
+    heuristics = edge_potential.clamp(min=0)
+    
+    return heuristics
+```

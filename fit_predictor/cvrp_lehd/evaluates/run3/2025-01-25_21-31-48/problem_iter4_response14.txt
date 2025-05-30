@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distance matrix
+    normalized_distance = distance_matrix / torch.max(distance_matrix, dim=1)[0].unsqueeze(1)
+    
+    # Calculate the demand-based heuristic
+    demand_heuristic = -demands
+    
+    # Combine the normalized distance and demand-based heuristic
+    combined_heuristic = normalized_distance + demand_heuristic
+    
+    # Incorporate domain knowledge: reward edges leading to nodes with lower demand
+    # and penalize edges leading to nodes with higher demand by their deviation from the average demand
+    average_demand = demands.mean()
+    demand_deviation = demands - average_demand
+    demand_influence = torch.where(demand_deviation < 0, demand_deviation, torch.zeros_like(demand_deviation))
+    demand_influence *= -1  # Make the influence positive for lower demand
+    
+    # Incorporate a small penalty for distances to the depot to prevent premature returns
+    depot_penalty = 1 / (torch.abs(demands) + 1e-10)
+    
+    # Combine all the heuristics
+    heuristic_values = combined_heuristic + demand_influence + depot_penalty
+    
+    return heuristic_values
+```

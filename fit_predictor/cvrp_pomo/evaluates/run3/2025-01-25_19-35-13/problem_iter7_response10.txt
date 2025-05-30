@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+    
+    # Use a more advanced DP approach, considering vehicle capacity
+    dp = torch.zeros((len(demands), len(demands)))
+    for capacity in range(1, int(total_demand) + 1):
+        for d in range(1, len(demands)):
+            for s in range(d):
+                if dp[s, d-1] + distance_matrix[s, d] <= capacity:
+                    dp[d, s] = min(dp[d, s], dp[s, d-1] + distance_matrix[s, d])
+    
+    # Calculate the potential based on the lower bound and demand
+    epsilon = 1e-8
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+    
+    # Introduce a dynamic penalty based on the vehicle's capacity
+    for i in range(len(demands)):
+        for j in range(len(demands)):
+            if demands[i] > 1.5:
+                edge_potential[i, j] -= edge_potential[i, j] * 0.1
+            if distance_matrix[i, j] < 10:
+                edge_potential[i, j] += edge_potential[i, j] * 0.05
+    
+    # Adjust the potential to ensure non-negative values
+    edge_potential = torch.clamp(edge_potential, min=0)
+    
+    return edge_potential
+```

@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    edge_mask = demands[:, None] + demands.T <= 1  # Assuming demands are normalized by the total capacity
+    return_to_depot_mask = demands > 0.5  # A threshold for deciding if a return to the depot is needed
+    heuristic_values = distance_matrix.clone()
+    
+    # Use a single pass through the cumulative sum to compute heuristics
+    for start_node in range(1, n_nodes):
+        # Calculate cumulative demand from the start node to each other node
+        demand_cumsum = torch.cumsum(demands[start_node:], dim=0)
+        # Compute heuristics for the edges from the start node to others
+        heuristic_values[start_node, start_node:] -= demand_cumsum[:, 0]  # Subtract demand at the first node in the path
+        if return_to_depot_mask[start_node]:
+            heuristic_values[start_node, 0] = -distance_matrix[start_node, 0]  # Add cost to return to depot
+
+    # Ensure that edges with demand exceeding the capacity are penalized
+    heuristic_values[~edge_mask] = -float('inf')
+    
+    return heuristic_values
+```

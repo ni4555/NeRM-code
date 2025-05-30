@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    demand_scale = (demands / total_demand).unsqueeze(1)
+    
+    cost_weight = 0.5  # Cost weight
+    demand_weight = 0.5  # Demand weight
+    
+    cost_component = cost_weight * distance_matrix
+    demand_component = demand_weight * (demand_scale - demand_scale.transpose(0, 1))
+    
+    heuristic_values = cost_component + demand_component
+    
+    max_abs_value = torch.max(torch.abs(heuristic_values))
+    heuristic_values = heuristic_values / max_abs_value
+    
+    penalty = torch.zeros_like(distance_matrix)
+    penalty[torch.arange(n), 0] = -1
+    heuristic_values += penalty
+    
+    overflow_penalty = torch.max(torch.tensor(-1000.0), torch.sub(demands.unsqueeze(1), demands.unsqueeze(0)))
+    penalty = torch.where(demands.unsqueeze(1) > 1.0, overflow_penalty, torch.zeros_like(demands.unsqueeze(1)))
+    penalty = torch.where(penalty != 0, penalty, torch.zeros_like(heuristic_values))
+    heuristic_values += penalty
+    
+    return heuristic_values
+```

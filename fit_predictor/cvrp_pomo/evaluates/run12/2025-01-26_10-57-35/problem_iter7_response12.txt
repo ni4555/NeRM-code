@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= demand_matrix.diag()
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate the cumulative distance from the depot
+    cumulative_distance = distance_matrix[:, 1:].sum(dim=1)
+    
+    # Integrate capacity constraints by considering demand variance
+    demand_variance = (demands - demands.mean()).pow(2).sum() / (n - 1)
+    
+    # Normalize the cumulative distance and demand variance
+    normalized_cumulative_distance = cumulative_distance / cumulative_distance.sum()
+    normalized_demand_variance = demand_variance / demand_variance.sum()
+    
+    # Calculate the heuristic by combining normalized distance, demand variance, and demand matrix
+    heuristics = normalized_cumulative_distance + normalized_demand_variance * demand_matrix
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

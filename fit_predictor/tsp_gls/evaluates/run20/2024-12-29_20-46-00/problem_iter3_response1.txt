@@ -1,0 +1,55 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    longest_path = 2 * (n - 1) * np.amax(distance_matrix)
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Local information: penalize short edges based on their deviation from the average edge length
+    average_length = np.mean(distance_matrix)
+    local_penalty_factor = (average_length - distance_matrix) / average_length
+    
+    # Global information: avoid edges on the longest path
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                if distance_matrix[i, j] == longest_path - distance_matrix[i, j]:
+                    heuristic_matrix[i, j] = 1  # High penalty for longest path edges
+                else:
+                    # Combine local and global heuristics
+                    heuristic_matrix[i, j] = local_penalty_factor[i, j] + (longest_path - distance_matrix[i, j])
+    
+    # Exploration heuristic: adaptively penalize edges that are too similar to the shortest path
+    shortest_path = np.argsort(np.sum(distance_matrix, axis=1))[1:]
+    path = shortest_path[0] + shortest_path[1:] + shortest_path[0]  # Create a closed loop path
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                if i in path and j in path:
+                    distance_diff = abs(path.index(i) - path.index(j))
+                    exploration_factor = distance_diff / (len(path) - 1)
+                    heuristic_matrix[i, j] += exploration_factor
+    
+    # Exploitation heuristic: exploit node attributes such as centrality
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Assuming centrality attributes are available
+                centrality_i = centrality(j)  # Function to get centrality of node i
+                centrality_j = centrality(j)  # Function to get centrality of node j
+                centrality_punishment = 1 - (centrality_i + centrality_j) / (2 * max_centrality)
+                heuristic_matrix[i, j] += centrality_punishment
+    
+    return heuristic_matrix
+
+# Dummy function to represent centrality calculation
+def centrality(node_index):
+    # Placeholder for actual centrality calculation logic
+    return 0  # Return the centrality of the given node_index
+
+# Dummy function to represent the maximum centrality
+def max_centrality():
+    # Placeholder for actual max centrality logic
+    return 0
+```

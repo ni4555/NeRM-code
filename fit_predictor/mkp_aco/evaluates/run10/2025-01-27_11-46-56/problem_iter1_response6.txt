@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+    # Normalize the weights
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    
+    # Calculate utility
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    
+    # Factor in sparsity to promote diversity
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float) / n
+    
+    # Combine factors and normalize
+    combined_utility = (utility * sparsity_factor).sum(axis=1)
+    max_combined_utility = combined_utility.max(axis=1)
+    
+    # Create a mask to identify items with zero combined utility
+    zero_utility_mask = (combined_utility == 0)
+    
+    # Replace items with zero utility with a small random value to maintain diversity
+    random_values = np.random.rand(n) * max_combined_utility
+    heuristics = np.where(zero_utility_mask, random_values, combined_utility)
+    
+    # Normalize heuristics to be between 0 and 1
+    heuristics /= heuristics.max()
+    
+    return heuristics
+```

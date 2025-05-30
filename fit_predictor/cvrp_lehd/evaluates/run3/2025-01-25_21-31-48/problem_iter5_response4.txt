@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the distance matrix by dividing each distance by the maximum distance
+    normalized_distance = distance_matrix / distance_matrix.max()
+    
+    # Normalize the demands by dividing each demand by the sum of demands
+    normalized_demand = demands / demands.sum()
+    
+    # Use inverse distance as a feature since closer nodes might be more promising
+    inverse_distance = 1 / normalized_distance
+    
+    # Combine the features to create a heuristic matrix
+    heuristic_matrix = (inverse_distance * normalized_demand).unsqueeze(0)
+    
+    # Add a term that balances distance and demand by subtracting the product of distance and demand
+    balancing_term = normalized_distance * normalized_demand
+    
+    # Sum the features to create the final heuristic matrix
+    final_heuristic_matrix = (heuristic_matrix - balancing_term).squeeze()
+    
+    return final_heuristic_matrix
+```

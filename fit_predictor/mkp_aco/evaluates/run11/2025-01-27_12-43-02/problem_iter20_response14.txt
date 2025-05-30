@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+
+    # Normalize weights
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+
+    # Calculate importance based on ratio of prize to average weight
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    importance = np.sum(prize * normalized_weights, axis=1) * ratio
+
+    # Normalize importance scores
+    importance_normalized = importance / np.sum(importance)
+
+    # Calculate diversity score based on standard deviation of normalized weights
+    diversity_score = np.std(normalized_weights, axis=1)
+
+    # Combine importance and diversity with a dynamic balance factor
+    balance_factor = np.percentile(importance_normalized * diversity_score, 50)  # Dynamic balance factor
+    combined_score = importance_normalized * balance_factor + diversity_score * (1 - balance_factor)
+
+    # Refine thresholds dynamically
+    threshold = np.percentile(combined_score, 75)  # Dynamic threshold based on the distribution
+
+    # Apply thresholding to determine the heuristics
+    heuristics = (combined_score >= threshold).astype(float)
+
+    # Introduce randomness to balance exploration and exploitation
+    random_factor = np.random.rand(n)
+    heuristics = heuristics * random_factor + (1 - random_factor) * heuristics
+
+    # Fine-tune the sparsity parameter based on the distribution of the combined score
+    sparsity_param = np.percentile(combined_score, 90)  # Sparsity level as an example
+    heuristics[combined_score < sparsity_param] = 0
+
+    return heuristics
+```

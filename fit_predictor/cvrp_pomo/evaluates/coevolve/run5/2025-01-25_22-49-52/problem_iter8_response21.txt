@@ -1,0 +1,52 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize the distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize the demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demands = normalized_demands.cumsum(0)
+    
+    # Initialize the potential values matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Loop over all pairs of nodes
+    for i in range(1, n):
+        for j in range(1, n):
+            # Calculate node weights based on their normalized cumulative demand
+            node_weight_i = 1 / (1 + torch.exp(-5 * cumulative_demands[i - 1]))
+            node_weight_j = 1 / (1 + torch.exp(-5 * cumulative_demands[j - 1]))
+            
+            # Calculate the combined node weight
+            combined_node_weight = node_weight_i + node_weight_j
+            
+            # Calculate edge weight by multiplying node weights
+            edge_weight = node_weight_i * node_weight_j
+            
+            # Adjust the distance based on the combined node weight
+            adjusted_distance = normalized_distances[i, j] * combined_node_weight
+            
+            # Further penalize the distance for edges that lead to a demand overflow
+            if cumulative_demands[j] - cumulative_demands[i - 1] > 1:
+                adjusted_distance *= 1.5
+            
+            # Incorporate dynamic and adaptive weights based on demand proximity
+            demand_diff = cumulative_demands[j] - cumulative_demands[i - 1]
+            dynamic_weight = 1 / (1 + torch.exp(-demand_diff * 3))
+            
+            # Update potential value
+            potential_values[i, j] = adjusted_distance * dynamic_weight
+            potential_values[j, i] = adjusted_distance * dynamic_weight
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that considers a weighted combination of demand, distance, and demand variance."""
+    n = distance_matrix.shape[0]
+    demand_weight = 1 - demands
+    distance_weight = torch.exp(-distance_matrix)
+    demand_variance = torch.var(demands)
+    
+    # Normalize demand variance to avoid dominant influence
+    demand_variance /= demand_variance.max()
+    
+    heuristic_matrix = -demand_weight * distance_weight - demand_variance
+    # Adding a bonus to return to the depot
+    diagonal_bonus = 1 - (1 - demand_weight).sum()
+    heuristic_matrix[torch.arange(n), torch.arange(n)] += diagonal_bonus
+    
+    return heuristic_matrix
+```

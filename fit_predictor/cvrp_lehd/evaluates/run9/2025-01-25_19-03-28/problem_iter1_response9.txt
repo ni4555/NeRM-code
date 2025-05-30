@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Calculate the maximum cumulative demand for each vehicle capacity
+    max_cumulative_demand = cumulative_demand.cumsum(dim=0) / demands.sum()
+
+    # Use the negative of the maximum cumulative demand to penalize longer routes
+    # that could exceed the vehicle capacity. Also, use a distance factor to promote
+    # edges with lower distances.
+    heuristic_matrix = -torch.mul(distance_matrix, max_cumulative_demand)
+
+    return heuristic_matrix
+```

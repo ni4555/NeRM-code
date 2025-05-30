@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Normalize demand and distance matrix by the total demand
+    normalized_demand = demands / total_demand
+    normalized_distance = distance_matrix / distance_matrix.max()
+    
+    # Calculate the initial heuristic values based on normalized demands and distances
+    heuristic_matrix = -normalized_demand.unsqueeze(1) * normalized_demand.unsqueeze(0) * normalized_distance
+    
+    # Incorporate a penalty for high relative demand
+    high_demand_penalty = (demands > normalized_demand.mean()).float() * -1000
+    
+    # Incorporate a penalty for exceeding capacity
+    exceeds_capacity = (demands > 1).to(torch.float32)
+    heuristic_matrix += exceeds_capacity * (heuristic_matrix.max() + 1)
+    
+    # Incorporate a bonus for shorter distances
+    short_distance_bonus = (normalized_distance < 1).float() * 100  # Using 1 for short distance threshold
+    
+    # Combine all factors into a single heuristic matrix
+    heuristics = heuristic_matrix + high_demand_penalty + short_distance_bonus
+    
+    return heuristics
+```

@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum().item()
+    normalized_distances = distance_matrix / distance_matrix.max()
+    
+    # Create a diagonal matrix of normalized demands
+    diag_demands = torch.diag(demands / total_capacity)
+    
+    # Calculate the potential of each edge by combining distance and demand
+    potential_edges = normalized_distances - diag_demands
+    
+    # Integrate capacity constraints by using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))
+    
+    # Normalize the potential by total capacity
+    heuristics = potential_edges * capacity_factor
+    
+    # Clip negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

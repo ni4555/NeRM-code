@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # High demand penalty
+    demand_penalty = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Capacity violation penalty
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+
+    # Penalty for edges leading back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+
+    # Preference for edges close to the depot
+    distance_preference = distance_matrix[:, 0] - distance_matrix[:, 0].mean()
+    distance_preference = torch.clamp(distance_preference, min=-0.2, max=0.0)
+
+    # Combine penalties and preferences
+    penalties = demand_penalty * remaining_capacity + capacity_penalty + depot_penalty * 0.1
+    preferences = distance_preference * 0.2
+
+    # Normalize penalties and preferences
+    penalties = penalties / (penalties.abs().max() + 1e-8)
+    preferences = preferences / (preferences.abs().max() + 1e-8)
+
+    # Combine and apply a non-linear transformation to promote diversity
+    heuristics = penalties - preferences
+    heuristics = torch.tanh(heuristics)
+
+    # Introduce diversity with noise
+    noise = torch.randn_like(heuristics) * 0.1
+    heuristics += noise
+
+    # Ensure the heuristic values are within the [0, 1] range
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

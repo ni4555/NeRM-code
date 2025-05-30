@@ -1,0 +1,63 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+
+    # Adjust the demand normalization to balance capacity and demand
+    normalized_demand = (demands - demands.min()) / (demands.max() - demands.min())
+
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * normalized_demand
+
+    # Integrate capacity constraint by considering the inverse of demand
+    capacity_factor = 1 / (demands + 1e-8)  # Avoid division by zero
+
+    # Combine weighted distance, demand, and capacity factor
+    heuristics = weighted_distance_matrix * capacity_factor
+
+    # Apply a logarithmic scale to dampen the effect of large values
+    heuristics = torch.log1p(heuristics)
+
+    # Normalize heuristics to maintain stability
+    max_heuristic = heuristics.max()
+    normalized_heuristics = heuristics / max_heuristic
+
+    # Adjust the balance between distance and demand
+    demand_balance_factor = normalized_demand
+    heuristics *= demand_balance_factor
+
+    # Reduce the weight of undesirable edges
+    overcapacity_penalty = (demands > 1).float() * -20
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += normalized_heuristics * overcapacity_penalty - undercapacity_penalty
+
+    # Enhance the importance of capacity constraint
+    heuristics += (capacity_factor - 1) * demands
+
+    # Minimize loops by reducing the weight of edges that would form a loop
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics += loop_heuristics
+
+    # Ensure that no edge is overly dominated by another
+    dominated_edges = heuristics.unsqueeze(1) + heuristics.unsqueeze(0) - heuristics.unsqueeze(2)
+    dominated_edges[dominated_edges > 0] = 0
+    dominated_edges = dominated_edges.view(n, n, n)
+    dominated_edges = dominated_edges.min(dim=2)[0]
+    heuristics = torch.max(heuristics, dominated_edges)
+
+    # Apply a dampening factor to all heuristic values
+    dampening_factor = 0.9
+    heuristics *= dampening_factor
+
+    # Adjust loop minimization to reduce its weight
+    loop_minimization_factor = 0.5
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = loop_minimization_factor * loop_heuristics[loop_heuristics > 0]
+    heuristics += loop_heuristics
+
+    # Apply a final dampening to prevent aggressive heuristics
+    final_dampening_factor = 0.8
+    heuristics *= final_dampening_factor
+
+    return heuristics
+```

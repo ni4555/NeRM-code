@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the inverse of the distance matrix to emphasize shorter distances
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)  # Add a small value to avoid division by zero
+    
+    # Weight the inverse distance by the demand to emphasize nodes with higher demand
+    demand_weighted_distance_matrix = distance_matrix_inv * demands
+    
+    # Apply a penalty for nodes that are not close to the depot
+    depot_distance_penalty = 1 / (torch.min(distance_matrix[:, 1:], dim=1).values + 1e-10)
+    demand_weighted_distance_matrix *= depot_distance_penalty
+    
+    # Normalize the matrix to ensure all values are within a certain range
+    max_demand_weighted_distance = demand_weighted_distance_matrix.max()
+    min_demand_weighted_distance = demand_weighted_distance_matrix.min()
+    normalized_demand_weighted_distance_matrix = (demand_weighted_distance_matrix - min_demand_weighted_distance) / (max_demand_weighted_distance - min_demand_weighted_distance)
+    
+    # Add a small random noise to break symmetry
+    random_noise = torch.rand_like(normalized_demand_weighted_distance_matrix) * 0.1
+    
+    # Final heuristic value, balancing distance and demand with some randomness
+    final_heuristic_values = normalized_demand_weighted_distance_matrix + random_noise
+    
+    # Invert the heuristic to give negative values to undesirable edges
+    final_heuristic_values = 1 - final_heuristic_values
+    
+    return final_heuristic_values
+```

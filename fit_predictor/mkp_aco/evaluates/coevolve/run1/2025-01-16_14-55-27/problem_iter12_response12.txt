@@ -1,0 +1,38 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Dynamic item sorting based on multiple criteria: inverse of weighted prize ratio, sparsity, and total weight
+    combined_scores = (-prize / weight.sum(axis=1) - np.count_nonzero(weight, axis=1) - weight.sum(axis=1))
+    sorted_indices = np.argsort(combined_scores)[::-1]
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Initialize the dynamic threshold and sample size
+    threshold = np.median(combined_scores)
+    sample_size = int(n * 0.1)
+
+    # Iterate over the sorted items and adjust heuristic values
+    for i in sorted_indices[:sample_size]:
+        heuristic_value = prize[i] / (np.count_nonzero(weight[i, :]) + weight[i, :].sum())
+        # Update the threshold based on the maximum heuristic encountered
+        threshold = max(threshold, heuristic_value)
+        heuristics[i] = heuristic_value
+
+    # Sparsify the heuristics by setting lower values to zero
+    sparsity_threshold = threshold * 0.1
+    heuristics[heuristics < sparsity_threshold] = 0
+
+    # Apply an exponential decay to enhance the importance of higher scoring items
+    decay_factor = 0.95
+    heuristics = np.exp(heuristics * np.log(decay_factor))
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= heuristics.sum()
+
+    return heuristics
+```

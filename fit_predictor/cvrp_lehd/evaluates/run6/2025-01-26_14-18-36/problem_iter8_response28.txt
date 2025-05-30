@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_scale = demands / total_capacity
+    distance_scale = distance_matrix / distance_matrix.max()
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(demand_scale, dim=0)
+    # Calculate the maximum cumulative demand up to each node to use as a threshold
+    max_cumulative_demand = torch.max(cumulative_demand, dim=0)[0]
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate the heuristics value for each edge based on scaled demand, remaining capacity,
+    # and penalty for exceeding the maximum cumulative demand
+    heuristics = torch.zeros_like(distance_matrix)
+    heuristics[1:, 1:] = -distance_scale * demand_scale * remaining_capacity
+    heuristics[1:, 1:][cumulative_demand[1:, 1:] >= max_cumulative_demand[1:]] *= -1
+
+    # Include the heuristic for the edge to the depot
+    heuristics[0, 1:] = demand_scale[1:]
+    heuristics[1:, 0] = demand_scale[1:]
+
+    # Avoid negative values and ensure non-negative heuristic values
+    heuristics = torch.clamp(heuristics, min=0)
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = heuristics.max()
+    if max_heuristic != 0:
+        heuristics = heuristics / max_heuristic
+
+    return heuristics
+```

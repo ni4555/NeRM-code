@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = 0
+        for j in range(m):
+            total_prize += prize[i] * weight[i, j]
+        # Normalize by total weight to get a per-item heuristic
+        heuristic[i] = total_prize / weight[i].sum()
+    
+    # Introduce exploration and exploitation factors
+    exploration_factor = np.random.rand(n)
+    exploitation_factor = 1 / (1 + weight.sum(axis=1))
+    
+    # Incorporate the balance between exploration and exploitation
+    adaptive_heuristic = (exploration_factor + exploitation_factor) * heuristic
+    
+    # Promote diversity by adjusting heuristic based on non-maximum weight dimensions
+    diversity_factor = np.ones(n)
+    for i in range(n):
+        for j in range(m):
+            if weight[i, j] < weight[i].max():
+                diversity_factor[i] += 1
+    adaptive_heuristic *= diversity_factor / n
+    
+    # Encourage sparsity by penalizing high total weight and low-value items
+    sparsity_factor = 1 / (1 + weight.sum(axis=1))
+    low_value_penalty = np.zeros(n)
+    low_value_threshold = prize.max() / 2
+    for i in range(n):
+        if prize[i] < low_value_threshold:
+            low_value_penalty[i] = 1
+    sparsity_factor *= (1 + low_value_penalty)
+    
+    # Adjust heuristic using sparsity and diversity factors
+    final_heuristic = adaptive_heuristic * sparsity_factor
+    
+    # Set low-value and overly heavy items to zero
+    final_heuristic[final_heuristic < final_heuristic.max() / 10] = 0
+    final_heuristic[weight.sum(axis=1) > m * 0.8] = 0
+    
+    return final_heuristic
+```

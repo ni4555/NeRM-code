@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a penalty for edges with demand above the vehicle capacity threshold
+    overload_penalty = torch.log1p(average_demand_per_edge / total_capacity - 1)
+    
+    # Introduce a penalty for very short edges to avoid unnecessary detours
+    edge_length_penalty = torch.log1p(1 - distance_matrix / (distance_matrix.max()))
+    
+    # Introduce a diversity factor that encourages exploration by penalizing edges that are highly connected
+    diversity_factor = 1 / (distance_matrix.sum(dim=1) + 1)
+    
+    # Combine the penalties into a single heuristic value
+    heuristics = overload_penalty + edge_length_penalty - diversity_factor
+    
+    # Implement adaptive PSO-inspired velocity and position update rules
+    adaptive_factor = torch.rand_like(heuristics)
+    heuristics *= adaptive_factor
+    
+    # Integrate dynamic tabu search by avoiding previously evaluated edges
+    tabu_list = torch.zeros_like(heuristics)
+    heuristics[tabu_list != 0] += 1000  # Adding a large penalty to suboptimal solutions
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

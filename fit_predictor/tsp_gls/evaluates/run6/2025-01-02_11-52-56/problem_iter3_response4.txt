@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Focus on relative distances by using the difference from the average edge weight
+    for i in range(num_nodes):
+        for j in range(i + 1, num_nodes):
+            avg_distance = np.mean(distance_matrix[i, :]) + np.mean(distance_matrix[j, :])
+            heuristic_value = abs(distance_matrix[i, j] - avg_distance)
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value
+    
+    # Balance domain knowledge by incorporating node degree (symmetry and problem structure)
+    node_degrees = np.sum(distance_matrix > 0, axis=1)
+    for i in range(num_nodes):
+        for j in range(i + 1, num_nodes):
+            # Increase heuristic value if either node has a low degree
+            heuristic_value = heuristic_matrix[i, j]
+            if node_degrees[i] < num_nodes / 2 or node_degrees[j] < num_nodes / 2:
+                heuristic_value *= 1.1
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value
+    
+    return heuristic_matrix
+```

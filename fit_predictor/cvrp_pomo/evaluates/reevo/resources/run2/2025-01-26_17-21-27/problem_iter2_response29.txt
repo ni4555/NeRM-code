@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Normalize by demand to prioritize high-demand nodes
+    demand_normalized = (demands / total_demand) * 10
+    
+    # Incorporate distance and demand into heuristic, avoiding absolute values
+    heuristic_matrix = (distance_matrix ** 2) + demand_normalized
+    
+    # Add a balancing factor to control the influence of distance and demand
+    balancing_factor = torch.zeros_like(distance_matrix)
+    balancing_factor[distance_matrix < 50] = 1.2  # Example balancing factor
+    balancing_factor[distance_matrix >= 50] = 1.0
+    
+    # Apply the balancing factor
+    heuristic_matrix *= balancing_factor
+    
+    # Ensure no negative values by clamping
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=0)
+    
+    return heuristic_matrix
+```

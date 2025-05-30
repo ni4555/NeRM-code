@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Normalize the penalty matrix to control the impact of penalties
+    normalized_penalty_matrix = penalty_matrix / penalty_matrix.max()
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Normalize the distance penalty matrix to ensure it's balanced with the demand penalty
+    normalized_distance_penalty_matrix = distance_penalty_matrix / distance_penalty_matrix.max()
+    
+    # Combine the normalized demand and distance penalties into a single potential matrix
+    potential_matrix = normalized_penalty_matrix + normalized_distance_penalty_matrix
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.relu(potential_matrix)
+    
+    # Use blend ratios to control the impact of the penalties and distance
+    blend_ratio = 0.7
+    combined_matrix = blend_ratio * emphasized_matrix + (1 - blend_ratio) * normalized_distance_penalty_matrix
+    
+    # Normalize the combined matrix to ensure non-negativity and scale balance
+    normalized_combined_matrix = combined_matrix / combined_matrix.sum(dim=1, keepdim=True)
+    
+    # Adjust the normalized combined matrix to ensure that the values are not too close to zero
+    adjusted_combined_matrix = normalized_combined_matrix - torch.min(normalized_combined_matrix)
+    
+    # Transform the adjusted combined matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -adjusted_combined_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,49 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize the distance matrix to ensure no single edge dominates
+    min_distance = distance_matrix.min()
+    max_distance = distance_matrix.max()
+    normalized_distance_matrix = (distance_matrix - min_distance) / (max_distance - min_distance)
+    
+    # Integrate capacity constraint by using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))  # Avoid division by zero
+    
+    # Calculate heuristic by combining normalized distance, demand, and capacity factor
+    heuristics = normalized_distance_matrix * demand_matrix * capacity_factor
+    
+    # Apply a logarithmic scale to balance demand and distance
+    heuristics = torch.log1p(heuristics)
+    
+    # Apply penalties for overcapacity and undercapacity to emphasize the capacity constraints
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += demand_matrix * overcapacity_penalty - undercapacity_penalty
+    
+    # Normalize the heuristics to avoid dominance and ensure stability
+    max_heuristic = heuristics.max()
+    normalized_heuristics = heuristics / max_heuristic
+    
+    # Adjust the heuristics to minimize loops by reducing the heuristic values of edges that form a loop
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics += loop_heuristics
+    
+    # Apply a dampening factor to all heuristic values
+    dampening_factor = 0.8
+    heuristics *= dampening_factor
+    
+    # Normalize the capacity factor to emphasize the importance of capacity during the iteration
+    normalized_capacity_factor = capacity_factor / capacity_factor.sum()
+    heuristics += normalized_capacity_factor * demands
+    
+    return heuristics
+```

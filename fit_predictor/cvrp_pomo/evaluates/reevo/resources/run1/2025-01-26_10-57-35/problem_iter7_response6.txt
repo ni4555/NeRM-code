@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate demand variance
+    demand_variance = (demands ** 2).mean() - (demands.mean() ** 2)
+    
+    # Calculate the distance correlation matrix
+    distance_correlation_matrix = (distance_matrix - distance_matrix.mean()).corr()
+    
+    # Normalize demands by capacity to balance capacity constraint
+    demand_normalized = (demands - demands.mean()) / demand_variance
+    
+    # Calculate the weighted distance matrix based on normalized demand
+    weighted_distance_matrix = distance_matrix * demand_normalized[:, None]
+    
+    # Normalize the weighted distance matrix
+    normalized_weighted_distance_matrix = weighted_distance_matrix / weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine heuristics using normalized demand variance and distance correlation
+    heuristics = normalized_weighted_distance_matrix * distance_correlation_matrix
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

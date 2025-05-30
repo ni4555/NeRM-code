@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the demand-to-distance ratio as a heuristic to penalize longer routes
+    demand_to_distance_ratio = normalized_demands.unsqueeze(1) / (distance_matrix + 1e-6)
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Calculate the load on each edge as a heuristic (lighter loads are better)
+    load_heuristic = 1 / (distance_matrix + 1e-6) * demands.unsqueeze(1) * demands.unsqueeze(0)
+    
+    # Combine the demand-to-distance ratio, distance heuristic, and load heuristic to get the final heuristic values
+    combined_heuristic = demand_to_distance_ratio * distance_heuristic + load_heuristic
+    
+    # Apply a dynamic routing technique by considering the current load on the vehicle
+    # We simulate this by adding a load-based penalty to the heuristic values
+    current_load_penalty = (1 - demands.unsqueeze(1) * demands.unsqueeze(0)).unsqueeze(0)
+    combined_heuristic -= current_load_penalty
+    
+    # Normalize the heuristic values to ensure they sum to 1 along each row (to maintain the balance in vehicle assignment)
+    normalized_combined_heuristic = combined_heuristic / combined_heuristic.sum(dim=1, keepdim=True)
+    
+    return normalized_combined_heuristic
+```

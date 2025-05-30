@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a modified balance heuristic
+    # The heuristic still favors high-demand nodes but now also incorporates a
+    # dynamic window approach to adjust weights in real-time based on the problem's
+    # dynamic nature.
+    demand_weight = 1.5
+    penalty_threshold = 0.8  # Nodes with demand greater than 0.8 times the average demand are penalized
+    average_demand = normalized_demands.mean()
+    
+    # Adjust weights dynamically based on the current load factor of the vehicle
+    load_factor = demands.mean()
+    dynamic_weight = 1.0 + (load_factor - 1.0) * 0.5  # Weight adjustment between 1.0 and 1.5
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                normalized_demands - average_demand, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Combine potential values with dynamic weight
+    potential_values = (normalized_distances + 
+                        dynamic_weight * normalized_demands - 
+                        penalty_term).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

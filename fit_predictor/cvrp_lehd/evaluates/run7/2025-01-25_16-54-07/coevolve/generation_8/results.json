@@ -1,0 +1,54 @@
+{
+  "generation": 8,
+  "description": "Designing an optimization heuristic for a Capacitated Vehicle Routing Problem (CVRP) where the focus is on utilizing cumulative demand to efficiently route vehicles, while ensuring each route respects the vehicle's capacity constraints. The heuristic should create a simplified approach to manage demand and capacity, avoiding complexity and ensuring clarity in route prioritization. This involves developing a cumulative demand mask to dynamically assess the load distribution along potential routes, and an edge feasibility mask to rigorously evaluate the impact of adding an edge on the vehicle's capacity before including it in the route. The algorithm will prioritize edges based on their contribution to balanced load distribution, emphasizing computational efficiency and maintaining simplicity in managing demand and capacity constraints.",
+  "solutions": [
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    vehicle_capacity = demands.sum()\n    \n    # Create cumulative demand mask\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    \n    # Create edge feasibility mask based on vehicle capacity\n    edge_feasibility = (cumulative_demand - demands[:, None]) <= vehicle_capacity\n    \n    # Calculate contribution to balanced load distribution\n    load_contribution = (vehicle_capacity - (cumulative_demand - demands[:, None])) / vehicle_capacity\n    \n    # Combine the masks with load contribution\n    heuristics = load_contribution * edge_feasibility.float() - (1 - edge_feasibility.float())\n    \n    return heuristics",
+      "fitness": 21.411426544189453,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_8\\stdout_0.txt",
+      "code_file": "coevolve\\generation_8\\code_0.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    total_capacity = demands.sum()\n    demands = demands / total_capacity  # Normalize demands by total capacity\n    \n    # Initialize the heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # Cumulative demand mask\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    \n    # Edge feasibility mask\n    for i in range(n):\n        for j in range(n):\n            if i != j:\n                if cumulative_demand[j] - cumulative_demand[i] <= 1:\n                    heuristics[i, j] = 1 - cumulative_demand[j] + cumulative_demand[i]\n    \n    return heuristics",
+      "fitness": 21.411426544189453,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_8\\stdout_5.txt",
+      "code_file": "coevolve\\generation_8\\code_5.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    vehicle_capacity = demands.sum()\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    \n    # Calculate the cumulative demand mask\n    cumulative_demand_mask = (cumulative_demand <= vehicle_capacity).float()\n    \n    # Calculate the edge feasibility mask\n    edge_feasibility_mask = (distance_matrix != 0) * cumulative_demand_mask[:, None]\n    \n    # Calculate the contribution to balanced load distribution\n    load_distribution_contribution = (vehicle_capacity - cumulative_demand) * edge_feasibility_mask\n    \n    # Prioritize edges based on their contribution\n    edge_priority = load_distribution_contribution / load_distribution_contribution.sum(dim=1, keepdim=True)\n    \n    # Convert to negative values for undesirable edges and positive values for promising ones\n    heuristics = (edge_priority - 1) * edge_feasibility_mask\n    \n    return heuristics",
+      "fitness": 21.541446685791016,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_8\\stdout_9.txt",
+      "code_file": "coevolve\\generation_8\\code_9.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    total_capacity = demands.sum()\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    \n    # Calculate the cumulative load distribution\n    load_distribution = cumulative_demand / total_capacity\n    \n    # Create a cumulative demand mask\n    cumulative_demand_mask = (load_distribution < 1).float()\n    \n    # Create an edge feasibility mask\n    edge_feasibility_mask = (distance_matrix < total_capacity).float()\n    \n    # Calculate the priority of each edge based on its contribution to balanced load distribution\n    priority = (cumulative_demand_mask * edge_feasibility_mask * (1 - load_distribution)).neg()\n    \n    return priority",
+      "fitness": 21.582298278808594,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_8\\stdout_7.txt",
+      "code_file": "coevolve\\generation_8\\code_7.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    vehicle_capacity = demands.sum()\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    \n    # Calculate the cumulative load for each edge\n    cumulative_load = cumulative_demand.unsqueeze(1) + distance_matrix.unsqueeze(0)\n    \n    # Calculate the capacity left for each edge\n    capacity_left = vehicle_capacity - cumulative_demand.unsqueeze(1)\n    \n    # Create a mask for edge feasibility\n    edge_feasibility_mask = (capacity_left > 0) & (distance_matrix != 0)\n    \n    # Calculate the contribution of each edge to balanced load distribution\n    edge_contribution = (capacity_left * distance_matrix) * edge_feasibility_mask\n    \n    # Normalize the edge contribution by the maximum possible contribution to get a heuristic value\n    max_contribution = edge_contribution.max()\n    heuristic_values = edge_contribution / max_contribution\n    \n    # Invert the sign to have negative values for undesirable edges\n    heuristic_values = -1 * heuristic_values\n    \n    return heuristic_values",
+      "fitness": 21.590299606323242,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_8\\stdout_4.txt",
+      "code_file": "coevolve\\generation_8\\code_4.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    total_capacity = demands.sum()\n    \n    # Calculate cumulative demand mask\n    cumulative_demand = (demands.cumsum(dim=0) / total_capacity).unsqueeze(1)\n    cumulative_demand = cumulative_demand.repeat(1, n)\n    \n    # Calculate edge feasibility mask\n    edge_capacity_mask = (distance_matrix < 1e6) & (demands.unsqueeze(1) < 1e6)\n    \n    # Calculate load difference\n    load_difference = (cumulative_demand * distance_matrix).sum(dim=1) - cumulative_demand.sum(dim=1)\n    \n    # Prioritize edges based on their contribution to balanced load distribution\n    heuristics = load_difference * edge_capacity_mask.float()\n    \n    return heuristics",
+      "fitness": 38.75143051147461,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_8\\stdout_2.txt",
+      "code_file": "coevolve\\generation_8\\code_2.py"
+    }
+  ]
+}

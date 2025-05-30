@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Normalize the demand to be in [0, 1]
+    normalized_demands = demands / demands.max()
+    
+    # Use the square of distances as a proxy for soft thresholding and to reduce dominance
+    squared_distance_matrix = (distance_matrix ** 2)
+    
+    # Combine demand and squared distance in a way that reduces the influence of dominant features
+    combined_matrix = (1 - 0.3) * normalized_demands + (0.3) * squared_distance_matrix
+    
+    # Use a simple soft thresholding to create a potential matrix
+    potential_matrix = -torch.clamp(combined_matrix, min=0)
+    
+    # Normalize the potential matrix to ensure non-negativity
+    normalized_potential_matrix = F.softmax(potential_matrix, dim=1)
+    
+    # Adjust the normalized potential matrix to maintain balance in the heuristic
+    balanced_matrix = (1 - 0.2) * normalized_potential_matrix + (0.2) * (1 - normalized_potential_matrix)
+    
+    # Convert the balanced matrix into a heuristics matrix with negative values for undesirable edges
+    heuristics_matrix = -balanced_matrix
+    
+    return heuristics_matrix
+```

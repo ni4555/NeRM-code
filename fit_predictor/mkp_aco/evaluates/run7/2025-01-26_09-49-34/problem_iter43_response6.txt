@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    
+    # Normalize prize to mitigate dominance and enhance sparsity
+    min_prize = np.min(prize)
+    max_prize = np.max(prize)
+    normalized_prize = (prize - min_prize) / (max_prize - min_prize)
+    
+    # Calculate a dynamic threshold for exploration-exploitation balance
+    dynamic_threshold = np.percentile(normalized_prize, 50)
+    
+    # Create a heuristic based on normalized prize and dynamic exploration factor
+    exploration_factor = np.random.uniform(0.1, 0.3, size=n)
+    heuristics = normalized_prize * exploration_factor
+    
+    # Apply controlled noise for diversity, with a minimum floor to avoid negative values
+    noise = np.random.normal(0, 0.01, size=n)
+    noise = np.maximum(noise, 0)
+    heuristics += noise
+    
+    # Amplify higher heuristics for exploitation, while keeping balance with exploration
+    amplification_factor = np.where(heuristics > dynamic_threshold, 1.1, 1)
+    heuristics *= amplification_factor
+    
+    # Refine the heuristics by reducing the contribution of items that are too sparse
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    heuristics *= sparsity_factor
+    
+    # Normalize to maintain overall balance and encourage diversity
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

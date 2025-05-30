@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    # Incorporate demand constraints: Promote edges from depot to nodes with positive demand
+    demand_mask = demands > 0
+    demand_heuristic = torch.full_like(distance_matrix, float('-inf'))
+    demand_heuristic[depot, demand_mask] = demands[demand_mask]
+
+    # Use distance patterns: Promote edges with smaller distance
+    distance_heuristic = -distance_matrix
+
+    # Balance global & local: Use the combination of demand and distance heuristics
+    combined_heuristic = demand_heuristic + distance_heuristic
+
+    # Early constraint satisfaction: If adding a customer would exceed capacity, penalize that edge
+    for i in range(1, n):
+        for j in range(1, n):
+            current_capacity = demands[depot]
+            if current_capacity + demands[j] > 1.0:
+                combined_heuristic[depot, j] -= torch.clamp(demands[j] * 1000, min=0)
+    
+    return combined_heuristic
+```

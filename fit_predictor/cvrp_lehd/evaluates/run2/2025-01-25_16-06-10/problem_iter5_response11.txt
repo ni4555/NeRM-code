@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    # Precompute cumulative demand differences and the demand threshold for each node
+    cumulative_demand_diff = torch.diff(demands, prepend=0)
+    demand_threshold = torch.clamp(demands.cumsum(dim=0) - demands, min=0)
+    
+    # Iterate over all nodes as potential starting points
+    for start_node in range(n_nodes):
+        remaining_capacity = demands[start_node]
+        # Use binary search to find the farthest reachable node
+        while remaining_capacity > 0:
+            # Find the next destination node using binary search
+            left, right = 0, n_nodes - 1
+            while left < right:
+                mid = (left + right) // 2
+                if cumulative_demand_diff[mid] <= remaining_capacity:
+                    left = mid + 1
+                else:
+                    right = mid
+            # Calculate the distance from the start node to the destination node
+            distance = distance_matrix[start_node, left]
+            # Update the heuristic value for the edge between the start and destination nodes
+            heuristics[start_node, left] = 1 - distance
+            # Update the remaining capacity
+            remaining_capacity -= cumulative_demand_diff[left]
+            # If the remaining capacity is zero, the vehicle returns to the depot
+            if remaining_capacity <= 0:
+                heuristics[start_node, 0] = 1 - distance_matrix[start_node, 0]
+                break  # No need to continue to other destination nodes
+    return heuristics
+```

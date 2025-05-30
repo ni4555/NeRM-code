@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_factor = demands / demands.sum()  # Normalize demand factors
+    local_promise = -torch.pow(distance_matrix, 2)  # Use squared distance as a local promise
+    global_promise = demand_factor.unsqueeze(1) * demand_factor.unsqueeze(0) * distance_matrix  # Scale distance by demand factors
+    refined_local = torch.clamp(local_promise, min=-1e10)  # Ensure non-negative local promise
+    edge_potential = (refined_local + global_promise) / (n + 1)  # Refine potential by balancing local and global
+    
+    # Adjust the heuristics for the depot to all other nodes
+    depot_index = 0
+    for i in range(1, n):
+        route_demand = demands[i] + (total_capacity - demands[i])
+        edge_potential[depot_index, i] = -route_demand * torch.abs(distance_matrix[depot_index, i])
+        edge_potential[i, depot_index] = edge_potential[depot_index, i]
+    
+    return edge_potential
+```

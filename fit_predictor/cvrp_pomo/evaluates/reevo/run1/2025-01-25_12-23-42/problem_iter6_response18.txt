@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_threshold = total_demand / len(demands)
+    
+    # Create a matrix to track if a customer demand exceeds the threshold
+    demand_exceeds_threshold = demands > demand_threshold
+    
+    # Initialize the heuristics matrix with high values for undesirable edges
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # For edges with demand exceeding the threshold, set heuristic value to 0
+    heuristics[demand_exceeds_threshold] = 0
+    
+    # For other edges, reduce the heuristic value as a function of the distance
+    heuristics[demand_exceeds_threshold == False] = (distance_matrix / torch.max(distance_matrix)) ** 2
+    
+    return heuristics
+```

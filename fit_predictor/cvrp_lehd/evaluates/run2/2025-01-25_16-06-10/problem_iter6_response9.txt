@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Create a mask for all edges with non-zero distance
+    non_zero_edges = (distance_matrix != 0)
+    # Calculate the cumulative sum of demands excluding the depot
+    demand_cumsum = torch.cumsum(demands[1:], dim=0)
+    # Iterate over all nodes as potential starting points
+    for start_node in range(1, n_nodes):
+        # Calculate remaining capacity for the vehicle starting at the depot
+        remaining_capacity = demands[0]
+        # Update the demand_cumsum to include the current start node's demand
+        demand_cumsum = torch.cat([demands[:start_node+1], demand_cumsum])
+        # Calculate the feasible edges for the current vehicle
+        feasible_edges = (distance_matrix[start_node, :] < demand_cumsum)
+        # Vectorized implementation of the heuristic calculation
+        heuristics[start_node, feasible_edges] = 1 - distance_matrix[start_node, feasible_edges]
+        # Update remaining capacity and check if it has been exceeded
+        demands_taken = demands[feasible_edges]
+        remaining_capacity -= demands_taken.sum()
+        if remaining_capacity <= 0:
+            heuristics[start_node, 0] = 1 - distance_matrix[start_node, 0]
+            break
+    # Return to the depot is always feasible
+    heuristics[1:, 0] = heuristics[1:, 0].clamp(min=0)
+    return heuristics
+```

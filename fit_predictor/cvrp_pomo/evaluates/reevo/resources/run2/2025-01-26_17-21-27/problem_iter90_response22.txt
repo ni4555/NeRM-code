@@ -1,0 +1,51 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Enhanced distance penalty with time-adaptive scaling
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_penalty *= (1 + cumulative_demand / total_capacity) * time_factor
+    
+    # Dynamic capacity penalty with early overflow detection
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    early_overflow = cumulative_demand > total_capacity_vector
+    dynamic_capacity_penalty *= (1 + 0.3 * (total_capacity - cumulative_demand) / total_capacity) * (1 + early_overflow)
+    
+    # Load balance heuristic with refined balance factor
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Randomness factor with controlled impact based on cumulative demand
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Introduce time-adaptive diversity factor to encourage exploration
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Core objectives: distance, capacity, and load balance
+    core_objectives = distance_penalty + dynamic_capacity_penalty + load_balance_penalty
+    
+    # Combine heuristics, prioritizing core objectives while introducing diversity
+    heuristics = core_objectives + randomness_factor + diversity_factor
+    
+    # Adjust heuristics based on early overflow
+    heuristics *= (1 + early_overflow)
+    
+    # Mutation: Introduce a demand-based penalty to favor routes with more balanced demands
+    demand_balance_penalty = torch.abs(torch.randn_like(demands)) * 0.1
+    demand_balance_penalty *= (1 - torch.abs(cumulative_demand / total_capacity - 0.5))
+    
+    # Add the demand-based penalty to the heuristics
+    heuristics += demand_balance_penalty
+    
+    # Apply a large penalty for the depot to return to itself
+    heuristics[0, 0] = -1e7
+    
+    return heuristics
+```

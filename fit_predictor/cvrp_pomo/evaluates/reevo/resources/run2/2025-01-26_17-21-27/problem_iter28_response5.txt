@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Demand-based penalty inversely proportional to the cumulative demand
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Distance penalty inversely proportional to the remaining capacity
+    remaining_capacity = total_capacity - cumulative_demand
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Overflow penalty for when the demand exceeds the vehicle capacity
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance penalty to distribute the load evenly across the routes
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Dynamic scaling to adjust the penalty based on the remaining capacity
+    dynamic_capacity_penalty = capacity_penalty * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    dynamic_distance_penalty = distance_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Combine the penalties with a priority for distance
+    scaling_factor = 1.5
+    heuristics = scaling_factor * (dynamic_distance_penalty + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty)
+    
+    # Apply a penalty for the depot to return to itself
+    heuristics[0] = -1000
+    
+    return heuristics
+```

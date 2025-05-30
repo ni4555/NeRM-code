@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Problem-specific Local Search: Calculate heuristics based on load factor
+    for i in range(n):
+        for j in range(i + 1, n):
+            if distance_matrix[i, j] != 0:
+                edge_demand = (demands[i] + demands[j]) * distance_matrix[i, j]
+                if edge_demand > total_capacity:
+                    heuristics[i, j] = -float('inf')
+                    heuristics[j, i] = -float('inf')
+                else:
+                    heuristics[i, j] = (edge_demand / total_capacity) - 1
+                    heuristics[j, i] = heuristics[i, j]
+
+    # Adaptive PSO with population management
+    swarm_size = 10  # Example swarm size
+    iterations = 100  # Example number of iterations
+    for _ in range(iterations):
+        # Update velocity and position based on local and global best
+        # This is a simplified example and should be replaced with actual PSO logic
+        for i in range(n):
+            for j in range(i + 1, n):
+                if distance_matrix[i, j] != 0:
+                    heuristics[i, j] += (torch.rand_like(heuristics) - 0.5) * 0.1
+
+    # Dynamic Tabu Search with Adaptive Cost Function
+    tabu_list = set()
+    for _ in range(iterations):
+        for i in range(n):
+            for j in range(i + 1, n):
+                if (i, j) not in tabu_list and distance_matrix[i, j] != 0:
+                    if (demands[i] + demands[j]) * distance_matrix[i, j] <= total_capacity:
+                        heuristics[i, j] *= 0.95
+                        heuristics[j, i] = heuristics[i, j]
+                        tabu_list.add((i, j))
+
+    # Ensure heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+
+    return heuristics
+```

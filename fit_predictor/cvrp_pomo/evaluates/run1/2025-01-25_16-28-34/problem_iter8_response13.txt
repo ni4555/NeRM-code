@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a non-linear scaling to balance the impact of edge demands
+    non_linear_demand = torch.log1p(average_demand_per_edge)
+    
+    # Introduce dynamic local search by considering a penalty for highly loaded edges
+    # Increase penalty for edges with high average demand, capped by vehicle capacity
+    load_penalty = torch.clamp(non_linear_demand / total_capacity, max=1) * -1
+    
+    # Calculate penalties for overloading and underloading
+    overload_penalty = torch.abs(load_penalty)
+    underload_penalty = torch.abs(1 - non_linear_demand)
+    
+    # Weighted combination of overloading and underloading penalties
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Introduce a diversity factor that encourages exploration of the solution space
+    diversity_factor = (torch.abs(non_linear_demand) - 0.1) * torch.log(distance_matrix) / (n - 2)
+    heuristics += diversity_factor
+    
+    # Introduce exploration and exploitation mechanisms
+    exploration = torch.rand_like(heuristics) * 0.1
+    exploitation = (1 - non_linear_demand) ** 3
+    
+    # Integrate exploration and exploitation
+    heuristics = heuristics + exploration - exploitation
+    
+    # Set edges with zero distance to zero
+    heuristics[distance_matrix == 0] = 0
+    
+    # Normalize heuristics to ensure they are negative for undesirable edges
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

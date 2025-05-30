@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    
+    # Apply a sparsity-based heuristic by penalizing dense areas
+    sparsity_penalty = torch.sum(distance_matrix) / (distance_matrix.numel() - distance_matrix.sum())
+    sparsity_matrix = -sparsity_penalty * torch.ones_like(distance_matrix)
+    
+    # Apply a non-linear transformation to the cumulative demand and distance
+    non_linear_demands = torch.exp(-cumulative_demands)
+    non_linear_distances = torch.exp(-cumulative_distances)
+    
+    # Create a dynamic threshold based on the average non-linear demand and distance
+    dynamic_threshold = torch.mean(non_linear_demands / non_linear_distances)
+    
+    # Calculate the heuristic values based on the non-linear transformed ratio
+    heuristic_matrix = non_linear_demands / non_linear_distances
+    
+    # Apply the dynamic threshold to set high heuristic values to negative values
+    heuristic_matrix = torch.where(heuristic_matrix < dynamic_threshold, heuristic_matrix, -dynamic_threshold)
+    
+    # Combine the non-linear heuristic with the sparsity penalty
+    heuristic_matrix += sparsity_matrix
+    
+    # Clip the values to be within the desired range to ensure they are within [-1, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

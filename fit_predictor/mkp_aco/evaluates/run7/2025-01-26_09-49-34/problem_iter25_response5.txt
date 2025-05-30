@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the diversity factor based on the standard deviation of weight dimensions
+    diversity_factor = np.std(weight, axis=1)
+    
+    # Calculate the utility factor based on the prize-to-weight ratio
+    utility_factor = normalized_prize / weight
+    
+    # Combine factors to create initial heuristics
+    heuristics = normalized_prize * diversity_factor * utility_factor
+    
+    # Introduce domain-specific adjustments by considering the number of zero weight dimensions
+    domain_factor = (weight.sum(axis=1) == 0).astype(float)
+    heuristics *= domain_factor
+    
+    # Integrate domain-specific knowledge by increasing heuristics for items with higher diversity
+    # and lower utility factor variance
+    variance_utility_factor = np.mean(utility_factor, axis=1) / np.mean(utility_factor ** 2, axis=1)
+    heuristics *= variance_utility_factor
+    
+    # Apply post-processing to refine the heuristics
+    # Use a percentile-based threshold to differentiate promising from unpromising items
+    threshold = np.percentile(heuristics, 80)  # 80% threshold
+    heuristics[heuristics > threshold] *= 1.2
+    
+    # Balance the heuristics to maintain diversity and utility
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Sparsify the heuristics by zeroing out a portion of the lowest heuristics
+    num_to_zero = int(len(heuristics) * 0.05)  # Zero out 5% of the lowest heuristics
+    heuristics[np.argsort(heuristics)[:num_to_zero]] = 0
+    
+    return heuristics
+```

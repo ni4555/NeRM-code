@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristics to zeros
+    heuristics = np.zeros_like(prize)
+    
+    # Calculate the ratio of prize to the sum of weights across dimensions
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate the variance of weights across dimensions for each item
+    weight_variance = np.var(weight, axis=1)
+    
+    # Calculate a diversity score based on the difference from the average ratio
+    average_ratio = np.mean(value_to_weight_ratio)
+    diversity_scores = np.abs(value_to_weight_ratio - average_ratio)
+    
+    # Combine the value to weight ratio, variance, and diversity into a single score
+    scores = value_to_weight_ratio + weight_variance * -0.1 + diversity_scores * 0.2
+    
+    # Rank items based on the score
+    ranked_indices = np.argsort(scores)[::-1]
+    
+    # Dynamically adjust the top percentage of items to include based on their score
+    top_percentage = 0.5
+    top_count = int(len(scores) * top_percentage)
+    heuristics[ranked_indices[:top_count]] = 1
+    
+    return heuristics
+```

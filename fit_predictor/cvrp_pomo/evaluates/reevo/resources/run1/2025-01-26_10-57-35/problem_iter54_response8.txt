@@ -1,0 +1,58 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    weighted_distance_matrix /= weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))  # Avoid division by zero
+    
+    # Calculate heuristic by combining weighted distance, demand, and capacity factor
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Enhance balance between distance and demand by adding demands
+    demand_balance_factor = 1 + demands
+    
+    # Normalize the heuristics by the maximum value to avoid dominance
+    max_heuristic = heuristics.max()
+    normalized_heuristics = heuristics / max_heuristic
+    
+    # Normalize to keep the heuristics consistent
+    normalized_heuristics *= demand_balance_factor
+    
+    # Apply decay to distant nodes using a logarithmic scale
+    distance_decay_factor = torch.log1p(distance_matrix)
+    heuristics *= distance_decay_factor
+    
+    # Apply penalties for overcapacity and undercapacity, normalize by the max heuristic
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += normalized_heuristics * overcapacity_penalty - undercapacity_penalty
+    
+    # Ensure that the heuristic for the depot is the highest to encourage visiting it
+    depot_cost = demands[0]
+    heuristics[0, :] += depot_cost
+    heuristics[:, 0] += depot_cost
+    
+    # Add diversity by incorporating a small random factor
+    random_factor = torch.rand(n, n) * 0.1
+    heuristics += random_factor
+    
+    # Adjust the penalties to be more aggressive and re-normalize the heuristics
+    overcapacity_penalty *= 1.5
+    undercapacity_penalty *= 1.5
+    heuristics += normalized_heuristics * overcapacity_penalty - undercapacity_penalty
+    
+    return heuristics
+```

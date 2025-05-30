@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Normalize demands
+    demands_sum = demands.sum()
+    normalized_demands = demands / demands_sum
+    # Compute the demand-based weight
+    demand_weight = torch.clamp(normalized_demands[:, None], min=0)
+    # Compute the distance-based weight
+    distance_weight = distance_matrix / distance_matrix.sum(axis=1, keepdim=True)
+    # Compute the depot proximity weight
+    depot_proximity = distance_matrix[:, 0] * normalized_demands
+    # Combine weights
+    heuristics_matrix = demand_weight * distance_weight + depot_proximity
+    # Incorporate a penalty for edges that exceed the vehicle capacity
+    penalty = (1 - normalized_demands) * (distance_matrix.max() - distance_matrix)
+    # Final heuristic matrix
+    heuristics_matrix -= penalty
+    return heuristics_matrix
+```

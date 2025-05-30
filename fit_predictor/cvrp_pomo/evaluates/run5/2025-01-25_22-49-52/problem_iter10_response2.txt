@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using an adaptive weight heuristic
+    # that considers both distance and demand, with a strict capacity constraint
+    demand_weight = 1.5
+    distance_weight = 0.5
+    penalty_threshold_demand = 0.8  # Nodes with demand greater than 0.8 times the average demand are penalized
+    penalty_threshold_capacity = 0.95  # Nodes with demand greater than 0.95 times the total capacity are penalized
+    total_capacity = demands.sum().item()
+    average_demand = normalized_demands.mean()
+    
+    # Create penalty terms for high demand nodes
+    penalty_term_high_demand = torch.where(normalized_demands > penalty_threshold_demand, 
+                                           normalized_demands - average_demand, 
+                                           torch.zeros_like(normalized_demands))
+    penalty_term_capacity = torch.where(normalized_demands > penalty_threshold_capacity, 
+                                        normalized_demands - average_demand, 
+                                        torch.zeros_like(normalized_demands))
+    
+    # Calculate the weight for demand and distance based on the normalized demands
+    demand_weights = normalized_demands * demand_weight
+    distance_weights = normalized_distances * distance_weight
+    
+    # Combine potential values with adaptive weights and penalty terms
+    potential_values = (distance_weights + demand_weights - 
+                        penalty_term_high_demand - 
+                        penalty_term_capacity).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

@@ -1,0 +1,51 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Create a demand matrix with each element representing the product of two demands
+    demand_matrix = demands[:, None] * demands
+    
+    # Normalize the demand matrix
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize the distance matrix
+    normalized_distance_matrix = distance_matrix / distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = normalized_distance_matrix * demand_matrix
+    
+    # Apply a logarithmic scale to balance demand and distance
+    weighted_distance_matrix = torch.log1p(weighted_distance_matrix)
+    
+    # Adjust the demand matrix with a capacity factor
+    capacity_factor = 1 / (demands + 1e-8)
+    demand_matrix *= capacity_factor
+    
+    # Combine weighted distance, adjusted demand, and log demand for heuristic calculation
+    heuristics = weighted_distance_matrix + demand_matrix * torch.log1p(demand_matrix)
+    
+    # Prevent edges leading to the depot from dominating
+    depot_decay_factor = torch.log1p(torch.abs(distance_matrix[:, 0]))
+    heuristics[:, 0] *= depot_decay_factor
+    heuristics[0, :] *= depot_decay_factor
+    
+    # Normalize the heuristics to avoid dominance
+    max_heuristic = heuristics.max()
+    normalized_heuristics = heuristics / max_heuristic
+    
+    # Promote feasibility by penalizing overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += normalized_heuristics * overcapacity_penalty - undercapacity_penalty
+    
+    # Balance the heuristic between demand and distance
+    demand_balance_factor = 1 + demands
+    heuristics *= demand_balance_factor
+    
+    # Minimize loops by setting heuristic value for a loop to zero
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics += loop_heuristics
+    
+    return heuristics
+```

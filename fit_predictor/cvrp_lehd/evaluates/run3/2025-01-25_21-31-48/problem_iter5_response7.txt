@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the distance matrix by the sum of demands to balance the distance and demand
+    normalized_distance = distance_matrix / demands.unsqueeze(1) + demands.unsqueeze(0) / distance_matrix
+    
+    # Use the inverse of distance as a feature for encouraging closer nodes
+    inverse_distance = 1 / (normalized_distance.clamp(min=1e-6))
+    
+    # Incorporate demand features
+    demand_features = demands.unsqueeze(1) + demands.unsqueeze(0)
+    
+    # Combine features and apply a simple non-linear transformation
+    combined_features = inverse_distance * demand_features
+    heuristic_values = torch.relu(combined_features - torch.sum(combined_features, dim=1, keepdim=True))
+    
+    return heuristic_values
+```

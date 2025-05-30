@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+
+    # Initialize priority queue with depot
+    priority_queue = [0]
+    visited = torch.zeros_like(demands)
+    visited[0] = 1
+    total_distance = 0
+    visited_nodes = [0]
+
+    while len(priority_queue) > 0:
+        # Pop the nearest customer from the queue
+        current_node = priority_queue.pop(0)
+        total_distance += distance_matrix[visited_nodes[-1], current_node]
+        visited_nodes.append(current_node)
+
+        # Iterate through the unvisited nodes to find the next closest node
+        distances = distance_matrix[current_node, (visited == 0) & (demands[:, None] <= 1)]
+        min_distances, indices = torch.min(distances, dim=0)
+
+        for i, distance in zip(indices, min_distances):
+            if visited[i] == 0 and demands[i] + demands[visited_nodes[-1]] <= 1:
+                visited[i] = 1
+                priority_queue.append(i)
+                total_distance += distance
+
+        # Update heuristics
+        for node in visited_nodes[1:]:
+            heuristics[node][current_node] = -distance_matrix[node][current_node] * (demands[node] > 0)
+            heuristics[current_node][node] = -distance_matrix[current_node][node] * (demands[node] > 0)
+
+        # Check for capacity constraint and apply penalty if necessary
+        if len(visited_nodes) > 1 and demands[visited_nodes[-2]] + demands[visited_nodes[-1]] > 1:
+            penalty = distance_matrix[visited_nodes[-1], visited_nodes[-2]]
+            heuristics[visited_nodes[-1]][visited_nodes[-2]] = -penalty
+            heuristics[visited_nodes[-2]][visited_nodes[-1]] = -penalty
+
+    return heuristics
+```

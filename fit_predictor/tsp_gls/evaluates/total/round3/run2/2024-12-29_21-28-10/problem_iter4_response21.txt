@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = np.zeros_like(distance_matrix)
+
+    # Calculate the relative distance to the nearest neighbor for each node
+    relative_distances = np.full((num_nodes, num_nodes), np.inf)
+    for i in range(num_nodes):
+        nearest_neighbor = np.argmin(distance_matrix[i, :])
+        relative_distances[i, nearest_neighbor] = distance_matrix[i, nearest_neighbor]
+        relative_distances[nearest_neighbor, i] = distance_matrix[i, nearest_neighbor]
+
+    # Calculate the number of neighbors for each node
+    num_neighbors = np.sum(relative_distances != np.inf, axis=1)
+
+    # Prioritize short relative distances and avoid isolated nodes
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j and distance_matrix[i, j] > relative_distances[i, j] * 1.1:
+                # Increase the heuristic value for longer than 10% over the relative distance
+                heuristic_matrix[i, j] = distance_matrix[i, j] / relative_distances[i, j] * 1.1
+            # Avoid edges that connect to only one node
+            if num_neighbors[j] < 2:
+                heuristic_matrix[i, j] *= 0.9
+
+    return heuristic_matrix
+```

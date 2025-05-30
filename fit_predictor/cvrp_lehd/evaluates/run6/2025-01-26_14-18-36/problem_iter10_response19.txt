@@ -1,0 +1,51 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Incorporate demand constraints
+    demand_excess = (demands > total_demand / n).float()
+    
+    # Incorporate distance constraints
+    distance_excess = (distance_matrix > distance_matrix.mean()).float()
+    
+    # Balance demand and distance penalties
+    demand_penalty = torch.abs(demands - total_demand / n)
+    distance_penalty = distance_matrix - distance_matrix.mean()
+    
+    # Normalize penalties
+    demand_penalty /= demand_penalty.sum()
+    distance_penalty /= distance_penalty.sum()
+    
+    # Incorporate pattern recognition
+    pattern = demand_excess * distance_excess
+    
+    # Normalize the pattern
+    pattern /= pattern.sum()
+    
+    # Incorporate distance decay to give priority to shorter distances
+    distance_decay = torch.exp(-distance_matrix / distance_matrix.mean())
+    
+    # Incorporate demand decay to prioritize routes that meet demand constraints
+    demand_decay = torch.exp(-pattern)
+    
+    # Combine the decays with the pattern
+    combined_decay = distance_decay * demand_decay
+    
+    # Normalize the combined decay
+    combined_decay /= combined_decay.sum()
+    
+    # Combine penalties and decay with the pattern
+    combined_values = pattern * combined_decay + demand_penalty * demand_penalty + distance_penalty * distance_penalty
+    
+    # Normalize the combined values
+    combined_values /= combined_values.sum()
+    
+    # Scale heuristics to ensure non-negative values and proper normalization
+    heuristics = torch.clamp(combined_values, min=0)
+    heuristics /= heuristics.sum()
+    
+    return heuristics
+```

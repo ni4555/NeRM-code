@@ -1,0 +1,16 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Create a matrix where the value of each edge is the demand of the node it connects
+    demand_matrix = demands[:, None] * demands
+    # Subtract the demand of the current node from the demand of the connected node
+    demand_matrix -= demand_matrix.diag()
+    # Normalize the demand matrix by the sum of all demands (which is 1 in this case)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    # Calculate the heuristic value as the difference between the distance and the normalized demand
+    heuristics = distance_matrix - demand_matrix
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(heuristics, min=0)
+    return heuristics
+```

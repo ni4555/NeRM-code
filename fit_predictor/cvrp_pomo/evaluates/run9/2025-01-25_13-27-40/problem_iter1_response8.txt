@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the demands to use in the heuristic
+    inverse_demands = 1.0 / (demands + 1e-8)  # Add a small constant to avoid division by zero
+
+    # Compute the "centrality" of each node as the inverse of the sum of inverse demands
+    node_centrality = 1.0 / (torch.sum(inverse_demands, dim=1) + 1e-8)
+
+    # Normalize the centrality values
+    node_centrality /= torch.sum(node_centrality)
+
+    # Calculate the heuristic as the product of node centrality and the distance to each node
+    heuristic = torch.outer(node_centrality, distance_matrix)
+
+    return heuristic
+```

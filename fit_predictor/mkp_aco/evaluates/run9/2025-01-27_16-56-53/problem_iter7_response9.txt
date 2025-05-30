@@ -1,0 +1,50 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = 0
+        total_weight = 0
+        for j in range(m):
+            total_prize += prize[i] * weight[i, j]
+            total_weight += weight[i, j]
+        # Normalize by weight to get a per-item heuristic and penalize high weight
+        heuristic[i] = (total_prize / total_weight) / (1 + weight[i].sum())
+    
+    # Incorporate sparsity by penalizing low-value or high-weight items
+    # High-value to weight ratio and weight sparsity
+    for i in range(n):
+        value_to_weight_ratio = prize[i] / weight[i].sum()
+        weight_sparsity = 1 - (weight[i].sum() / m)
+        heuristic[i] = heuristic[i] * value_to_weight_ratio * weight_sparsity
+    
+    # Further refine the heuristic to favor diversity in selected items
+    for i in range(n):
+        diversity_factor = 1
+        for j in range(m):
+            if weight[i, j] < weight[i].max():
+                diversity_factor += 1
+        heuristic[i] *= diversity_factor
+    
+    # Introduce an adaptive mechanism to adjust the heuristic dynamically
+    # Increase the heuristic for items that are not at the maximum weight in any dimension
+    for i in range(n):
+        adaptive_factor = 1
+        for j in range(m):
+            if weight[i, j] < weight[i].max():
+                adaptive_factor += 1
+        heuristic[i] *= adaptive_factor
+    
+    # Introduce exploration and exploitation by balancing the influence of high-value and diversity
+    exploration_factor = 0.5
+    exploitation_factor = 0.5
+    heuristic = (exploration_factor * (heuristic / heuristic.sum())) + (exploitation_factor * heuristic)
+    
+    # Set low-value items and those with high total weight to zero
+    heuristic[heuristic < heuristic.max() / 10] = 0
+    heuristic[weight.sum(axis=1) > m * 0.8] = 0
+    
+    return heuristic
+```

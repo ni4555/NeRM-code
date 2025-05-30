@@ -1,0 +1,21 @@
+```python
+import torch
+import numpy as np
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Non-linear transformation to amplify larger distances
+    distance_matrix_transformed = torch.clamp(distance_matrix / distance_matrix.max(), min=0.5)
+
+    # Calculate heuristics for each edge, considering distance and demand
+    edge_demands = demands[torch.arange(1, n), :] - demands[torch.arange(1, n), :]
+    edge_heuristics = torch.clamp(edge_demands / demands[torch.arange(1, n)], min=0)
+
+    # Use element-wise multiplication and transformation to combine the two heuristics
+    heuristics[torch.arange(1, n), :] = heuristics[torch.arange(1, n), :] + edge_heuristics * distance_matrix_transformed
+
+    return heuristics
+```

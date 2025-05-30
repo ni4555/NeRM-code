@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    heuristics_matrix = np.zeros_like(distance_matrix)
+
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the heuristic considering domain-specific penalties
+                local_min = np.min(distance_matrix[i, distance_matrix[i] != float('inf')])
+                domain_min = np.min(distance_matrix[distance_matrix[:, i] != float('inf'), i])
+                # Introduce a domain-specific penalty for large gaps
+                penalty = distance_matrix[i, j] / local_min
+                heuristics_matrix[i, j] = (local_min + domain_min + penalty) / 2
+            else:
+                heuristics_matrix[i, j] = float('inf')
+
+    # Normalize the heuristics to ensure they are all non-negative and can be compared
+    min_value = np.min(heuristics_matrix[heuristics_matrix != float('inf')])
+    heuristics_matrix[heuristics_matrix != float('inf')] -= min_value
+    heuristics_matrix /= np.max(heuristics_matrix[heuristics_matrix != float('inf')])
+
+    return heuristics_matrix
+```

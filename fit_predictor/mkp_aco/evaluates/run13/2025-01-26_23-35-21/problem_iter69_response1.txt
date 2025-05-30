@@ -1,0 +1,47 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items by removing those with lower density than the average
+    average_density = np.mean(density)
+    dominated_indices = np.where(density < average_density)[0]
+    density[dominated_indices] = 0
+    
+    # Introduce randomness to allow for some exploration
+    np.random.shuffle(density)
+    
+    # Balance metrics by adding a sparsity factor
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    balance_factor = 0.5 * (1 - sparsity)
+    
+    # Introduce a diversity factor based on the average density
+    diversity_factor = density / (np.mean(density[density > 0]) + 1e-8)
+    
+    # Create a final heuristic by combining the factors
+    heuristic = (balance_factor * density) + (0.5 * diversity_factor)
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Introduce an additional heuristic based on the balance between high density and low sparsity
+    balance_heuristic = (density - sparsity) / (density + sparsity + 1e-8)
+    
+    # Combine the heuristics using a weighted sum
+    combined_heuristic = 0.6 * normalized_heuristic + 0.4 * balance_heuristic
+    
+    # Ensure exploration and exploitation balance by adjusting the combined heuristic
+    exploration_exploitation_balance = np.random.rand(len(density))
+    combined_heuristic *= exploration_exploitation_balance
+    
+    # Prune dominated items again to ensure diversity in the heuristic
+    dominated_indices = np.where(combined_heuristic < np.mean(combined_heuristic[combined_heuristic > 0]))[0]
+    combined_heuristic[dominated_indices] = 0
+    
+    # Set zero weights to a small value to maintain diversity
+    combined_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return combined_heuristic
+```

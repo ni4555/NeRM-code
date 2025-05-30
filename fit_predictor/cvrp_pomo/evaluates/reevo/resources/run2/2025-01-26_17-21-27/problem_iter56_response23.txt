@@ -1,0 +1,56 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Dynamic capacity penalty
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Distance scaling
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Overflow penalty with early return
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Scaling factors
+    capacity_scale = 3.0
+    distance_scale = 1.5
+    overflow_scale = 2.0
+    balance_scale = 1.5
+    
+    # Heuristics calculation
+    heuristics = (
+        capacity_scale * dynamic_capacity_penalty +
+        distance_scale * distance_scaling +
+        overflow_scale * overflow_penalty +
+        balance_scale * load_balance_penalty
+    )
+    
+    # Introduce controlled randomness
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Dynamic scaling for early overflow and imbalance
+    early_overflow = torch.where(cumulative_demand > total_capacity / n, torch.ones_like(cumulative_demand), torch.zeros_like(cumulative_demand))
+    imbalance_factor = torch.where(load_balance > 1e-5, torch.ones_like(load_balance), torch.zeros_like(load_balance))
+    dynamic_scaling_factor = early_overflow + imbalance_factor
+    
+    # Adaptively scale heuristics
+    heuristics *= dynamic_scaling_factor
+    heuristics += diversity_factor
+    
+    # Normalize heuristics
+    heuristics = torch.clamp(heuristics, min=-10, max=10)
+    
+    return heuristics
+```

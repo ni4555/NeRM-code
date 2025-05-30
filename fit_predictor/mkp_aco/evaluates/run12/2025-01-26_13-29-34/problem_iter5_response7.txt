@@ -1,0 +1,63 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Simulate deep reinforcement learning model
+    model_scores = np.random.rand(n)
+
+    # Adaptive constraint-driven filtering
+    # Check feasibility by ensuring that the sum of weights in each dimension does not exceed the constraint
+    feasible_items = np.all(weight <= 1, axis=1)
+
+    # Particle swarm optimization
+    # Initialize the swarm
+    num_particles = 10
+    positions = np.random.rand(num_particles, n)
+    velocities = np.random.rand(num_particles, n)
+    best_positions = positions.copy()
+    best_scores = model_scores.copy()
+
+    # PSO parameters
+    inertia_weight = 0.5
+    cognitive_constant = 1.5
+    social_constant = 1.5
+
+    # PSO iteration
+    for _ in range(100):  # 100 iterations for demonstration
+        for i in range(num_particles):
+            # Update velocities
+            velocities[i] = (inertia_weight * velocities[i] +
+                             cognitive_constant * np.random.rand() * (best_positions[i] - positions[i]) +
+                             social_constant * np.random.rand() * (positions[i] - positions[:i].mean()))
+
+            # Update positions
+            positions[i] += velocities[i]
+
+            # Evaluate new positions
+            current_scores = model_scores[positions[i]]
+
+            # Update personal bests
+            if current_scores > best_scores[i]:
+                best_scores[i] = current_scores
+                best_positions[i] = positions[i]
+
+    # Global best position
+    global_best_position = best_positions[np.argmax(best_scores)]
+    global_best_score = best_scores[np.argmax(best_scores)]
+
+    # Update heuristics based on model scores, PSO, and feasibility
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            heuristic[i] = model_scores[i] * (prize[i] / (global_best_score + 1e-6))
+
+    # Sparsify heuristics by setting unpromising elements to zero
+    heuristic[heuristic < 0.1] = 0
+
+    return heuristic
+```

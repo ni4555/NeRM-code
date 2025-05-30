@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic array with zeros
+    heuristic = np.zeros_like(prize)
+    
+    # Calculate the density of each item
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the sparsity of each item
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Introduce randomness for exploration
+    randomness = np.random.rand(len(prize))
+    
+    # Prune dominated items by setting their heuristic to zero
+    dominated_indices = np.argsort(density)[::-1]
+    for i in range(1, len(dominated_indices)):
+        if density[dominated_indices[i]] < density[dominated_indices[i-1]]:
+            heuristic[dominated_indices[i]] = 0
+    
+    # Blend the density and sparsity to create a heuristic value
+    heuristic = density - sparsity + randomness
+    
+    # Normalize the heuristic values to ensure they sum to 1
+    heuristic /= np.sum(heuristic)
+    
+    # Ensure the heuristic for items with weight sum less than a threshold is zero
+    threshold = 1e-8
+    weight_sum = np.sum(weight, axis=1)
+    heuristic[weight_sum < threshold] = 0
+    
+    return heuristic
+```

@@ -1,0 +1,26 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Introduce a penalty factor based on edge usage with exponential decay
+    num_edges = distance_matrix.size
+    usage_frequency = np.zeros_like(distance_matrix)
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                usage_frequency[i, j] = np.sum(distance_matrix[i] * distance_matrix[:, j])
+    penalty_factor = np.exp(-np.mean(usage_frequency))
+    
+    # Introduce a bonus for edges with higher average distance in the used ones
+    used_edges = usage_frequency.sum()
+    bonus_factor = np.sum(distance_matrix) / used_edges
+    bonus_matrix = bonus_factor * usage_frequency
+    
+    # Combine penalties and bonuses into a heuristic
+    heuristic_matrix = (penalty_factor * (1 - bonus_matrix)) + (1 - penalty_factor)
+    
+    # Ensure the heuristic matrix is within [0, 1]
+    heuristic_matrix = np.clip(heuristic_matrix, 0, 1)
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized density
+    density = prize / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity ratio
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Define a metric for balance between high density and low sparsity
+    balance_metric = (1 - density) / (1 - density + sparsity + 1e-8)
+    
+    # Calculate the diversity factor based on the variance of density
+    diversity_factor = density / np.std(density + 1e-8)
+    
+    # Define a randomness factor to balance the heuristic
+    randomness_factor = np.random.rand(len(density))
+    
+    # Create a combined heuristic using a weighted sum
+    combined_heuristic = (0.5 * density) + (0.3 * balance_metric) + (0.2 * diversity_factor)
+    
+    # Introduce randomness in a way that does not overly dominate the combined heuristic
+    combined_heuristic = combined_heuristic * randomness_factor + (1 - randomness_factor) * combined_heuristic
+    
+    # Normalize the combined heuristic to ensure a proper distribution
+    normalized_heuristic = combined_heuristic / np.sum(combined_heuristic)
+    
+    # Prune dominated solutions by setting their heuristic values to zero
+    for i in range(len(normalized_heuristic)):
+        dominated = np.sum(normalized_heuristic * weight[i]) < prize[i]
+        if dominated:
+            normalized_heuristic[i] = 0
+    
+    # Ensure diversity by avoiding zero heuristics
+    min_heuristic_value = np.min(normalized_heuristic[normalized_heuristic > 0])
+    normalized_heuristic[normalized_heuristic == 0] = min_heuristic_value
+    
+    return normalized_heuristic
+```

@@ -1,0 +1,27 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Create a penalty matrix based on the demand of each customer
+    penalty_matrix = (demands[:, None] - demands[None, :]).abs()
+    penalty_matrix[penalty_matrix > vehicle_capacity] = vehicle_capacity
+    
+    # Combine the penalty matrix with the distance matrix
+    combined_matrix = penalty_matrix + distance_matrix
+    
+    # Normalize the combined matrix by subtracting the minimum value from each element
+    # and dividing by the range to ensure all values are between 0 and 1
+    normalized_matrix = (combined_matrix - combined_matrix.min()) / (combined_matrix.max() - combined_matrix.min())
+    
+    # Apply softmax to normalize the matrix into a probability distribution
+    softmax_matrix = F.softmax(normalized_matrix, dim=1)
+    
+    # Subtract from 1 to promote the selection of edges with lower combined cost
+    # resulting in negative values for undesirable edges
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,62 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Initialize Deep Reinforcement Learning (DRL) component with a simple reward function
+    model_scores = np.random.rand(n)
+    reward_function = lambda x: -np.sum(x * np.log(1 + x))  # Minimize penalty for over-weighted items
+    model_rewards = [reward_function(model_scores)]
+
+    # Maintain multi-dimensional feasibility
+    feasible_items = np.ones(n, dtype=bool)
+    constraint_violation = np.sum(weight, axis=1) > 1
+    feasible_items[constraint_violation] = False
+
+    # Define adaptive sparsity and learning rate
+    sparsity_threshold = np.percentile(model_scores, 50)
+    learning_rate = 0.01
+
+    # Run PSO with adaptive learning rate
+    for _ in range(10):  # Using a small number of iterations for demonstration
+        for i in range(n):
+            # Update the velocity and position
+            pso_velocity = learning_rate * np.random.rand()
+            pso_position = np.clip(pso_position[i] + pso_velocity, 0, 1)
+            
+            # Update personal best and its score
+            if model_scores[i] > pso_position:
+                pso_position = model_scores[i]
+                
+            # Update global best and its score if the personal best is better
+            if pso_position > model_scores[i]:
+                model_scores[i] = pso_position
+
+        # Update global best index after PSO update
+        global_best_index = np.argmax(model_scores)
+
+        # Update RL scores based on the best PSO score
+        model_scores[~feasible_items] = float('-inf')
+        model_scores[global_best_index] = np.exp(reward_function(model_scores[global_best_index]))
+
+    # Calculate the weighted average of RL and PSO scores, considering feasibility
+    for i in range(n):
+        heuristic[i] = model_scores[i] * (prize[i] / (prize[global_best_index] + 1e-6))
+
+    # Sparsify heuristics using a dynamic threshold based on model scores
+    dynamic_threshold = np.percentile(model_scores, 50)
+    heuristic[heuristic < dynamic_threshold] = 0
+
+    # Enhance exploration-exploitation balance with dynamic rates
+    exploration_rate = 0.1 + 0.9 * np.random.rand()
+    exploitation_rate = 0.9 - 0.1 * np.random.rand()
+    heuristic = (exploration_rate * np.random.rand(n)) + (exploitation_rate * heuristic)
+
+    # Ignore non-feasible items in the final heuristic
+    heuristic[~feasible_items] = 0
+
+    return heuristic
+```

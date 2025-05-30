@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Vectorized cumulative sum to determine the demand threshold for each node
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Vectorized calculation of remaining capacity for the vehicle starting at the current node
+    remaining_capacity = demands
+    # Iterate over all nodes as potential starting points
+    for start_node in range(n_nodes):
+        # Vectorized comparison to find reachable destination nodes without exceeding vehicle capacity
+        edge_potential = demand_cumsum <= remaining_capacity[start_node]
+        # Update the distance for the reachable edges
+        distance = distance_matrix[start_node, edge_potential]
+        # Update the heuristic value for the reachable edges
+        heuristics[start_node, edge_potential] = 1 - distance
+        # Update the remaining capacity for the edges that were considered
+        remaining_capacity = torch.maximum(remaining_capacity, demand_cumsum[edge_potential])
+        # Check if the current vehicle is returning to the depot
+        if remaining_capacity[start_node] == 0:
+            heuristics[start_node, 0] = 1 - distance_matrix[start_node, 0]
+    return heuristics
+```

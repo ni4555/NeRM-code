@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Normalize demands to encourage exploration of diverse routes
+    normalized_demands = torch.log1p(scaled_demands)
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Introduce randomness to promote diversity
+    random_factor = torch.rand_like(distance_matrix) * 0.1
+
+    # Calculate the heuristic value for each edge
+    heuristics = (normalized_demands.unsqueeze(1) - normalized_demands.unsqueeze(0)).abs() * remaining_capacity + random_factor
+
+    # Add a dampened penalty for edges leading back to the depot (index 0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * 0.5
+
+    # Introduce a penalty for edges with high cumulative demand to avoid dominance
+    high_demand_penalty = torch.clamp((cumulative_demand > 0.7 * total_capacity).float() * 1000.0, min=0.0)
+    heuristics -= high_demand_penalty * 0.3
+
+    # Apply a non-linear transformation to the heuristic values
+    heuristics = torch.tanh(heuristics)
+
+    # Normalize the heuristic values to the range [0, 1] using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Further balancing of penalties to promote a better heuristic distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

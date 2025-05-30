@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that balances demand, distance, and applies non-linear transformations."""
+    n = distance_matrix.shape[0]
+    demand_diff = demands - demands.mean()
+    distance_penalty = distance_matrix * (1 - torch.exp(-demands / 10.0))
+    demand_balance = demands / demands.mean()
+    
+    # Combine the features with a weighted sum to emphasize different aspects
+    heuristic_matrix = -torch.abs(demand_diff) - distance_penalty + demand_balance
+    
+    # Apply a non-linear transformation to further differentiate between promising and non-promising edges
+    heuristic_matrix = torch.sqrt(heuristic_matrix)
+    
+    # Adding a bonus to return to the depot
+    heuristic_matrix[torch.arange(n), torch.arange(n)] += 1
+    
+    return heuristic_matrix
+```

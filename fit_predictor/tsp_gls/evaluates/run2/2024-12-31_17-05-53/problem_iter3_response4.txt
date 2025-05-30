@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # This improved heuristic function uses the sum of the distances from a given node to all others
+    # and the mean distance of all edges as the heuristic value for each edge.
+    # However, it also includes a local feature that considers the distances from the node to
+    # its nearest neighbor in the matrix, which can help in guiding the search towards more
+    # promising areas of the solution space.
+    
+    # Calculate the sum of distances from each node to all others
+    node_distances = np.sum(distance_matrix, axis=1)
+    
+    # Calculate the mean distance of all edges
+    total_edge_distance = np.sum(distance_matrix)
+    mean_distance = total_edge_distance / (distance_matrix.shape[0] * (distance_matrix.shape[0] - 1))
+    
+    # Calculate the heuristic as the ratio of the node distance to the mean distance
+    heuristic_matrix = (node_distances / mean_distance) * (-distance_matrix)
+    
+    # Calculate the nearest neighbor distance for each node
+    nearest_neighbor_distance = np.min(distance_matrix, axis=1)
+    
+    # Adjust the heuristic to include a local feature that penalizes edges with a distance
+    # greater than the nearest neighbor distance by a factor of 1.5
+    adjusted_heuristic_matrix = np.where(distance_matrix > nearest_neighbor_distance[:, np.newaxis],
+                                        heuristic_matrix * 1.5,
+                                        heuristic_matrix)
+    
+    # Normalize the adjusted heuristic matrix to avoid negative values and to provide a relative scale
+    row_sums = np.sum(adjusted_heuristic_matrix, axis=1)
+    epsilon = 1e-10
+    normalized_heuristic_matrix = (adjusted_heuristic_matrix / (row_sums[:, np.newaxis] + epsilon))
+    
+    return normalized_heuristic_matrix
+```

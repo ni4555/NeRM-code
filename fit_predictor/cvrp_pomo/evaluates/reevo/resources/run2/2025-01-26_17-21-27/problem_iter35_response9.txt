@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize heuristics matrix with zero values
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Loop over each edge and calculate the heuristic value
+    for i in range(n):
+        for j in range(i + 1, n):
+            edge_demand = demands[j]
+            total_demand = cumulative_demand[i] + edge_demand
+            
+            # Dynamic penalty based on the current load of the vehicle
+            dynamic_penalty = torch.log1p(torch.abs(total_demand - total_capacity) - 1e-8)
+            
+            # Distance penalty
+            distance_penalty = torch.log1p(torch.abs(distance_matrix[i, j]) - 1e-8)
+            
+            # Check for overflow and add overflow penalty if necessary
+            if total_demand > total_capacity:
+                overflow_penalty = torch.log1p(total_demand - total_capacity - 1e-8)
+                heuristics[i, j] = dynamic_penalty + distance_penalty + overflow_penalty
+            else:
+                heuristics[i, j] = dynamic_penalty + distance_penalty
+    
+    # Encourage diversity by occasionally choosing edges with lower penalties
+    diversity_factor = torch.rand_like(heuristics) * 0.1
+    heuristics += diversity_factor
+    
+    # Adjust penalties to balance the load and prevent imbalances
+    for i in range(n):
+        for j in range(i + 1, n):
+            load_balance = torch.abs(cumulative_demand[i] + edge_demand - total_capacity / n)
+            load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+            heuristics[i, j] += load_balance_penalty
+    
+    return heuristics
+```

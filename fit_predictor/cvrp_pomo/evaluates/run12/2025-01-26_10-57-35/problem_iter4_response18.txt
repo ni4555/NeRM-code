@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Demand-based cost matrix where the value of each edge is the difference in demand between the two nodes it connects
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= demand_matrix.diag()
+    
+    # Normalize the demand matrix to ensure the sum of each row is 1
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate the cost difference as the sum of the distance and the demand-based cost
+    cost_difference = distance_matrix + demand_matrix
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(cost_difference, min=0)
+    
+    return heuristics
+```

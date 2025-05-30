@@ -1,0 +1,15 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    norm_distances = distance_matrix / distance_matrix.max()
+    fractional_loads = demands / total_demand
+    cumulative_loads = torch.cumsum(fractional_loads, dim=0)
+    load_heuristics = -cumulative_loads.unsqueeze(-1) * norm_distances
+    improvement_heuristics = (1 / (1 + cumulative_loads)) * norm_distances
+    heuristics = load_heuristics + improvement_heuristics
+    heuristics = torch.clamp(heuristics, min=0)
+    return heuristics
+```

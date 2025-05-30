@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    # Use the Euclidean distance as a base for the heuristic
+    distances = distance_matrix.copy()
+
+    # Calculate the relative importance of each node
+    n = distance_matrix.shape[0]
+    degrees = np.sum(distance_matrix, axis=0)
+    # Normalize the degree by the number of nodes to get a relative measure
+    relative_degrees = (degrees - np.min(degrees)) / (np.max(degrees) - np.min(degrees))
+    
+    # Calculate the distance weighted by the relative degree
+    weighted_distances = distances * relative_degrees
+    
+    # Apply triangle inequality as a penalty
+    triangle_inequality_penalty = np.zeros_like(weighted_distances)
+    for i in range(n):
+        for j in range(n):
+            for k in range(n):
+                if i != j and j != k and i != k:
+                    triangle_inequality = distances[i, j] + distances[j, k] + distances[i, k] - distance_matrix[i, j] - distance_matrix[j, k] - distance_matrix[i, k]
+                    if triangle_inequality > 0:
+                        triangle_inequality_penalty[i, j] = triangle_inequality
+
+    # Combine the weighted distance with the triangle inequality penalty
+    combined_heuristic = weighted_distances + triangle_inequality_penalty
+    # Make sure that self-loops (i.e., when the distance is 0) are not considered in the heuristic
+    np.fill_diagonal(combined_heuristic, np.inf)
+    
+    return combined_heuristic
+```

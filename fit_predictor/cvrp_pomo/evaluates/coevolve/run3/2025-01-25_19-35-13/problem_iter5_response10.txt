@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Use dynamic programming to calculate a cost matrix for the TSP subproblem
+    dp = torch.zeros((len(demands), len(demands)))
+    for d in range(1, len(demands)):
+        for s in range(d):
+            dp[d, s] = torch.min(dp[s, :][:d], torch.cat((distance_matrix[s, 1:d], dp[s, d-1].unsqueeze(0)), dim=0))
+    
+    # Calculate the heuristic values using the cost matrix and normalized demands
+    epsilon = 1e-8
+    cost_normalized = dp / total_demand.unsqueeze(0).unsqueeze(1)
+    heuristic_values = cost_normalized * (normalized_demands**2)
+    
+    # Define dynamic weights for demand and distance
+    demand_weight = torch.linspace(0.6, 0.8, steps=len(demands))
+    distance_weight = 1 - demand_weight
+    
+    # Calculate the heuristics combining demand and distance weights
+    edge_potential = heuristic_values * (demand_weight.unsqueeze(1) * normalized_demands.unsqueeze(0) +
+                                         distance_weight.unsqueeze(1) * torch.sqrt(normalized_demands.unsqueeze(0)))
+    
+    # Apply penalties for infeasible routes
+    edge_potential = edge_potential - (torch.abs(edge_potential) * 0.1 * (demands > 1.5).float())
+    
+    # Normalize the potential to ensure a range for the edge potentials
+    edge_potential = edge_potential / edge_potential.sum()
+    
+    return edge_potential
+```

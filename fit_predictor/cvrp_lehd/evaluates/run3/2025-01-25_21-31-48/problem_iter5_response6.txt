@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize distance matrix by the total demand
+    normalized_distance = distance_matrix / demands.unsqueeze(1)
+    
+    # Inverse of the normalized distance to give more weight to shorter distances
+    inverse_normalized_distance = 1 / (normalized_distance + 1e-8)  # Adding epsilon to avoid division by zero
+    
+    # Balance distance and demand by considering the product of the two
+    balanced_distance_demand = inverse_normalized_distance * demands
+    
+    # Incorporate domain knowledge by giving more weight to edges with lower demand
+    demand_weight = 1 / (demands + 1e-8)  # Adding epsilon to avoid division by zero
+    
+    # Combine the weighted features to get the heuristic
+    heuristic = balanced_distance_demand * demand_weight
+    
+    return heuristic
+```

@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = torch.cat((torch.zeros(1), demands))  # Shift demands vector to include the depot
+    total_demand = demands.sum().item() - demands[0]  # Exclude the depot demand from total demand
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the demand-based heuristic
+    # We scale the heuristic by the inverse of the demand to give preference to nodes with lower demands
+    demand_heuristic = (1 / (demands + 1e-6)) * (demands > 0).float()  # Adding 1e-6 to avoid division by zero
+
+    # Calculate the distance-based penalty
+    # We penalize distances by using a logarithmic function to discourage longer distances
+    distance_penalty = torch.log(distance_matrix + 1)  # Adding 1 to avoid log(0)
+
+    # Calculate the distance-based demand heuristic
+    # This heuristic is designed to encourage the selection of nodes that are close to other nodes
+    distance_demand_heuristic = (distance_matrix + 1) ** (-1)  # Normalize distances
+
+    # Combine the heuristics
+    # The combined heuristic is a sum of demand heuristic and distance-based demand heuristic
+    # We subtract the distance penalty to discourage longer paths
+    heuristics = demand_heuristic + distance_demand_heuristic - distance_penalty
+
+    # Normalize the heuristics by the total demand to ensure that the sum of heuristics over all edges
+    # is proportional to the total demand
+    heuristics /= total_demand
+
+    return heuristics
+```

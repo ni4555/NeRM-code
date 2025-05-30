@@ -1,0 +1,27 @@
+Fitness: 23.317523956298828
+
+Description:
+To address the Capacitated Vehicle Routing Problem (CVRP) effectively, our algorithm will employ a sophisticated hybrid approach that synergizes between local and global optimization techniques. The strategy will involve a multi-phase heuristic that initializes with a demand normalization step to guarantee fairness across customer demands. This will be followed by an iterative process that combines a dynamic programming approach for sub-route optimization with an adaptive neighborhood search for continuous solution refinement. To ensure computational efficiency without compromising solution quality, we will integrate a novel potential function that effectively guides the search towards efficient routes while adhering to strict vehicle capacity constraints. Furthermore, the algorithm will incorporate state-of-the-art local search algorithms to enhance the final solution's robustness. Throughout the optimization process, we will prioritize minimizing total route distance while maintaining high-quality solutions, achieving an optimal balance between efficiency and performance.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize customer demands
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+    
+    # Compute the negative of distances for heuristics
+    # (we want to promote short distances as positive values)
+    negative_distances = -distance_matrix
+    
+    # Combine normalized demands with the negative distances
+    # We add demands to encourage selection of nodes with high demand
+    heuristics = negative_distances + normalized_demands
+    
+    # Avoid promoting edges that lead to overflow by adding the total capacity
+    # This ensures that edges with higher than total capacity are not selected
+    heuristics += demands[:, None] - total_capacity
+    
+    return heuristics

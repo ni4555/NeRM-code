@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Precompute inverse distance matrix and normalize by total demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Demand-based heuristic: prioritize edges with higher demand
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = normalized_inv_distance_matrix * demand_normalized
+
+    # Remaining capacity-based heuristic: prioritize edges with higher remaining capacity
+    remaining_capacity = 1 - demands
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Nearest-neighbor heuristic: add the closest node for each customer
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # Integrate domain constraints: penalize infeasible edges
+    infeasible_edges = demands[:, None] + demands[None, :] > 1
+    feasible_edges = ~infeasible_edges
+    feasible_capacity_weighted_distance = capacity_weighted_distance * feasible_edges.type_as(capacity_weighted_distance)
+    feasible_demand_weighted_distance = demand_weighted_distance * feasible_edges.type_as(demand_weighted_distance)
+
+    # Balance between capacity and demand by adding weights to each heuristic component
+    weight_capacity = 0.6
+    weight_demand = 0.3
+    weight_nearest_neighbor = 0.1
+
+    # Combine heuristics with balancing weights
+    combined_heuristic = weight_capacity * feasible_capacity_weighted_distance \
+                          + weight_demand * feasible_demand_weighted_distance \
+                          + weight_nearest_neighbor * nearest_neighbor
+
+    return combined_heuristic
+```

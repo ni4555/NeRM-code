@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the negative of the demand for each edge to penalize high demand edges
+    demand_penalty = -torch.matmul(normalized_demands.unsqueeze(1), normalized_demands.unsqueeze(0))
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    distance_heuristic = 1 / (distance_matrix + 1e-6)
+    
+    # Add a load balancing factor by considering the difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Introduce a dynamic load balancing factor that decreases as the cumulative demand increases
+    cumulative_demands = torch.cumsum(normalized_demands, dim=0)
+    dynamic_load_balance = 1 - (cumulative_demands.unsqueeze(1) - 0.5)
+    
+    # Integrate time dynamics based on edge usage and demand distribution
+    edge_usage_frequency = (1 / (distance_matrix + 1e-6)).sum(dim=0)
+    time_dynamic_factor = 1 - (edge_usage_frequency.unsqueeze(1) / edge_usage_frequency.max())
+    
+    # Weigh the factors based on their importance for the problem specifics
+    weight_demand = 0.5
+    weight_distance = 0.3
+    weight_load_balance = 0.2
+    weight_time = 0.1
+    
+    # Combine the weighted factors using matrix multiplication for efficiency
+    combined_heuristic = (
+        weight_demand * demand_penalty +
+        weight_distance * distance_heuristic +
+        weight_load_balance * load_balance +
+        weight_time * time_dynamic_factor
+    )
+    
+    return combined_heuristic
+```

@@ -1,0 +1,53 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Introduce randomness through shuffled indices
+    n, _ = distance_matrix.shape
+    indices = torch.randperm(n)
+    shuffled_indices = indices[1:] + indices[:1]
+    distance_matrix_shuffled = distance_matrix[indices, shuffled_indices]
+    
+    # Calculate the penalty for shuffled distances
+    shuffled_penalty_matrix = -torch.log(distance_matrix_shuffled + 1e-6)
+    
+    # Combine original demand penalties with shuffled distance penalties
+    combined_potential_matrix = penalty_matrix + shuffled_penalty_matrix
+    
+    # Normalize for scale by dividing by the maximum potential value
+    max_potential = combined_potential_matrix.max()
+    normalized_potential_matrix = combined_potential_matrix / max_potential
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(normalized_potential_matrix))
+    
+    # Introduce a small random perturbation for diversity
+    perturbation = torch.randn_like(emphasized_matrix) * 1e-2
+    
+    # Adjust the emphasized matrix with perturbation
+    adjusted_emphasized_matrix = emphasized_matrix + perturbation
+    
+    # Normalize the adjusted matrix to maintain non-negativity and scale balance
+    normalized_emphasized_matrix = adjusted_emphasized_matrix / adjusted_emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine the normalized emphasized matrix with a scaled distance penalty matrix
+    combined_matrix = normalized_emphasized_matrix + 0.3 * -torch.log(distance_matrix + 1e-6)
+    
+    # Apply a final non-linear transformation to introduce diversity
+    final_transformed_matrix = torch.tanh(combined_matrix)
+    
+    # Introduce mutation by adding a small random perturbation
+    mutation_factor = torch.rand_like(final_transformed_matrix)
+    mutated_combined_matrix = final_transformed_matrix + torch.randn_like(final_transformed_matrix) * 1e-3 * mutation_factor
+    
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -mutated_combined_matrix
+    
+    return heuristics_matrix
+```

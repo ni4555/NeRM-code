@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    import numpy as np
+
+    num_nodes = distance_matrix.shape[0]
+    degrees = np.sum(distance_matrix, axis=1)
+    high_degree_threshold = np.percentile(degrees, 90)  # Define a threshold for high degree
+
+    # Initialize a cost matrix
+    cost_matrix = np.zeros_like(distance_matrix)
+
+    # Assign a cost to each edge
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                if degrees[i] > high_degree_threshold and degrees[j] > high_degree_threshold:
+                    # Both nodes have high degrees, increase the cost
+                    cost_matrix[i, j] = 1.5  # Example multiplier, can be tuned
+                elif degrees[i] > high_degree_threshold or degrees[j] > high_degree_threshold:
+                    # One of the nodes has a high degree, increase the cost
+                    cost_matrix[i, j] = 1.2  # Example multiplier, can be tuned
+                else:
+                    # Neither node has a high degree, keep the original cost
+                    cost_matrix[i, j] = distance_matrix[i, j]
+
+    # Normalize the cost matrix to have a maximum value of 1
+    max_cost = np.max(cost_matrix)
+    if max_cost > 0:
+        cost_matrix /= max_cost
+    
+    return cost_matrix
+```

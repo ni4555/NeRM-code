@@ -1,0 +1,74 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Initialize a Random Walk process to ensure sparsity initially
+    random_walk = np.random.rand(n)
+    heuristic = np.log(random_walk + 1) - np.log(1 - random_walk + 1e-6)
+
+    # Deep Reinforcement Learning (DRL) for real-time decision-making
+    model_scores = np.random.rand(n)
+    for _ in range(100):  # Number of episodes
+        model_scores = np.log(model_scores + 1) - np.log(1 - model_scores + 1e-6)
+
+    # Update heuristic with DRL scores, considering the adaptive reward
+    for i in range(n):
+        reward = np.sum(weight[i] * model_scores) - np.sum(weight[i] * heuristic[i])
+        heuristic[i] += reward
+
+    # Employ adaptive constraint-driven filtering for maintaining multi-dimensional feasibility
+    for _ in range(50):  # Number of constraint updates
+        feasible_items = np.sum(weight, axis=1) <= 1
+        infeasible_items = ~feasible_items
+        if np.any(infeasible_items):
+            heuristic[infeasible_items] *= 0
+
+    # Use Particle Swarm Optimization (PSO) to refine heuristics for swarm intelligence
+    for _ in range(20):  # Number of PSO iterations
+        swarm_size = 30
+        particles = np.random.rand(swarm_size, n)
+        velocities = np.zeros_like(particles)
+        local_best = particles
+        local_best_scores = heuristic.copy()
+        global_best = np.copy(local_best[0])
+        global_best_score = np.max(local_best_scores)
+
+        for iteration in range(100):  # Number of PSO generations per iteration
+            for i in range(swarm_size):
+                velocities[i] = 0.5 * (np.random.rand() - 0.5) * velocities[i] + \
+                                (0.5 * (np.random.rand() - 0.5)) * (local_best[i] - particles[i])
+                particles[i] += velocities[i]
+                particles[i] = np.clip(particles[i], 0, 1)
+
+                # Update local best
+                if np.sum(particles[i] * heuristic) > np.sum(local_best[i] * heuristic):
+                    local_best[i] = particles[i]
+
+                # Update global best
+                if np.sum(local_best[i] * heuristic) > global_best_score:
+                    global_best = np.copy(local_best[i])
+                    global_best_score = np.sum(local_best[i] * heuristic)
+
+            # Update heuristic with global best
+            heuristic = np.copy(global_best)
+
+    # Integrate deep reinforcement learning for adaptability in dynamic environments
+    learning_rate = 0.01
+    for _ in range(100):  # Additional episodes for adaptability
+        for i in range(n):
+            # Adjust the reward based on the new heuristic
+            model_scores[i] *= (prize[i] / (prize[global_best_score] + 1e-6))
+
+        # Update DRL scores
+        model_scores = np.log(model_scores + 1) - np.log(1 - model_scores + 1e-6)
+
+    # Refine the heuristics with the latest DRL scores
+    for i in range(n):
+        heuristic[i] = model_scores[i]
+
+    return heuristic
+```

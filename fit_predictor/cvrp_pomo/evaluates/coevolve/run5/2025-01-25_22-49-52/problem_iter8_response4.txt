@@ -1,0 +1,51 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the average demand for dynamic weight adjustment
+    average_demand = normalized_demands.mean()
+    
+    # Define dynamic weight based on average demand
+    demand_weight = 2.0
+    dynamic_weight = torch.where(normalized_demands > average_demand,
+                                 demand_weight / (1 + (normalized_demands - average_demand) / (1 - average_demand)),
+                                 demand_weight)
+    
+    # Node partitioning to separate nodes based on demand
+    partitioning_threshold = 0.8  # Nodes with demand greater than this threshold are more penalized
+    partitioning_factor = 0.5
+    partitioning = torch.where(normalized_demands > partitioning_threshold,
+                               partitioning_factor * normalized_demands,
+                               1 - partitioning_factor)
+    
+    # Calculate potential values with partitioning and dynamic weights
+    potential_values = (normalized_distances * partitioning +
+                        (1 - partitioning) * normalized_distances +
+                        dynamic_weight * normalized_demands).abs()
+    
+    # Introduce a penalty for high demand nodes
+    penalty_threshold = 0.8
+    penalty_factor = 0.5
+    high_demand_penalty = torch.where(normalized_demands > penalty_threshold,
+                                      normalized_demands - penalty_threshold,
+                                      torch.zeros_like(normalized_demands))
+    
+    # Adjust potential values with penalties
+    potential_values -= penalty_factor * high_demand_penalty
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

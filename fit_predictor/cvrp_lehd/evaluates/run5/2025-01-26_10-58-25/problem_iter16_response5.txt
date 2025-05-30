@@ -1,0 +1,15 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    penalty_matrix = -torch.pow(torch.abs(demands - vehicle_capacity), 2)
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    log_softmax_matrix = F.log_softmax(potential_matrix, dim=1)
+    probability_matrix = torch.exp(log_softmax_matrix)
+    normalized_heuristics_matrix = probability_matrix - torch.min(probability_matrix)
+    heuristics_matrix = -normalized_heuristics_matrix
+    return heuristics_matrix
+```

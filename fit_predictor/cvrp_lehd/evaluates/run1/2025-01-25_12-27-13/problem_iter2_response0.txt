@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic considering demand and distance interaction, and local neighborhood insights."""
+    n = distance_matrix.shape[0]
+    # Calculate the total demand for each path
+    path_demand = torch.cumsum(demands[:, None], dim=0).squeeze()
+    # Calculate the distance to the depot for each path
+    distance_to_depot = torch.cumsum(distance_matrix[None, :], dim=0).squeeze(0)
+    # Calculate a penalty for high cumulative demand
+    demand_penalty = torch.max(torch.zeros_like(distance_to_depot), -path_demand - 1)
+    # Calculate a reward for short distances
+    distance_reward = torch.log(distance_to_depot + 1)
+    # Calculate the heuristic value
+    heuristic = -demand_penalty + distance_reward
+    # Normalize the heuristic values to be in a range that can be used directly as weights
+    min_heuristic, max_heuristic = torch.min(heuristic), torch.max(heuristic)
+    heuristic_normalized = (heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    return heuristic_normalized
+```

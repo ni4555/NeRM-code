@@ -1,0 +1,15 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_balance = 1 - (torch.abs(cumulative_demand) - cumulative_demand.abs()).max()
+    dynamic_scaling = torch.where(demands < total_capacity, 1 + cumulative_demand, 1)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    heuristics = distance_penalty * dynamic_scaling * demand_balance + capacity_penalty
+    heuristics = heuristics.clamp(min=0)  # Ensure all values are non-negative
+    return heuristics
+```

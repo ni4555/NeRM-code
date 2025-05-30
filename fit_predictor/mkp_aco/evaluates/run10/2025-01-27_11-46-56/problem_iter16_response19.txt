@@ -1,0 +1,16 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    diversity_factor = np.exp(-utility)
+    exploration_factor = np.random.normal(0, 0.1, size=utility.shape)
+    heuristics = utility * diversity_factor * exploration_factor
+    heuristics = np.clip(heuristics, a_min=0, a_max=1)
+    normalized_heuristics = heuristics / heuristics.sum(axis=1, keepdims=True)
+    # Adjusting the diversity by penalizing low utility items more
+    adjusted_diversity = np.where(normalized_heuristics < 0.5, 1 - normalized_heuristics, normalized_heuristics)
+    return adjusted_diversity.sum(axis=1)
+```

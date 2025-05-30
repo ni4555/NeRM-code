@@ -1,0 +1,69 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total vehicle capacity
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Calculate the heuristics based on the average demand per edge
+    heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    # Validate neighborhood and adjust heuristics
+    for i in range(n):
+        for j in range(i + 1, n):
+            if distance_matrix[i, j] > 0:  # Ignore zero distances (no edge)
+                current_load = demands[i] + demands[j]
+                # Swap nodes to balance load if necessary
+                if current_load > total_capacity:
+                    # Find a node to swap with
+                    for k in range(n):
+                        if k != i and k != j and distance_matrix[i, k] > 0:
+                            # Calculate potential load after swap
+                            potential_load = current_load - demands[j] + demands[k]
+                            if potential_load <= total_capacity:
+                                # Perform swap
+                                demands[j] = demands[k]
+                                demands[k] = 0
+                                distance_matrix[i, j], distance_matrix[j, i] = distance_matrix[j, i], distance_matrix[i, j]
+                                break
+                    # Recalculate heuristics after swap
+                    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+                    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+                    heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    # Apply PSO-inspired velocity updates
+    swarm_size = 10  # Example swarm size
+    for _ in range(100):  # Example number of iterations
+        for i in range(swarm_size):
+            # Update velocity and position based on cost gradients
+            # This is a simplified example and should be replaced with actual PSO logic
+            heuristics += (torch.rand_like(heuristics) - 0.5) * 0.1
+    
+    # Apply dynamic tabu search with time-decaying penalty
+    tabu_list = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            if distance_matrix[i, j] > 0 and (i, j) not in tabu_list:
+                # Calculate tabu penalty based on time decay
+                tabu_penalty = 0.95 ** (len(tabu_list) // (len(tabu_list) + 1))
+                # Update heuristics based on tabu search
+                heuristics[i, j] *= tabu_penalty
+                heuristics[j, i] *= tabu_penalty
+                tabu_list.add((i, j))
+    
+    # Adjust the heuristics to ensure they are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0  # Avoid division by zero
+    heuristics[heuristics >= 0] = 0  # Set non-negative values to zero
+    
+    return heuristics
+```

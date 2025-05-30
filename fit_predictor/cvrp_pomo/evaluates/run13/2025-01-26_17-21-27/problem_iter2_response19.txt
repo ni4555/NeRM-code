@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_normalized = (demands / total_demand) * 10
+
+    # Utilize a mask to avoid self-loops in the heuristic matrix
+    self_loop_mask = torch.eye(n, dtype=torch.bool)
+    self_loop_mask[0, 0] = False  # Allow self-loop for the depot
+
+    # Calculate the heuristic value for each edge, considering distance and demand
+    heuristic_matrix = -torch.abs(distance_matrix) + demand_normalized
+
+    # Invert the heuristic matrix to prioritize higher values
+    heuristic_matrix = -heuristic_matrix
+
+    # Ensure no negative values by clamping and applying the mask
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=0)
+    heuristic_matrix[self_loop_mask] = 0
+
+    return heuristic_matrix
+```

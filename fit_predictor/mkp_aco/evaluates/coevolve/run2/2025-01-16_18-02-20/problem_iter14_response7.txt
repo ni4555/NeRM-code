@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight
+    normalized_prize = prize / total_weight
+    
+    # Calculate a diversity score based on the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - normalized_prize.reshape(-1, 1)), axis=0)
+    
+    # Calculate a sparsity score based on the number of non-zero dimensions
+    sparsity_scores = np.mean(weight != 0, axis=1)
+    
+    # Calculate the weight variance for each item
+    weight_variance = np.var(weight, axis=1)
+    
+    # Calculate a risk score as the inverse of the weight variance
+    risk_score = 1 / (1 + weight_variance)
+    
+    # Combine the scores into a single heuristic score
+    heuristic_score = normalized_prize * 0.4 + diversity_scores * 0.3 + sparsity_scores * 0.2 - risk_score * 0.1
+    
+    # Normalize the heuristic score to ensure they are on the same scale
+    max_score = np.max(heuristic_score)
+    min_score = np.min(heuristic_score)
+    normalized_score = (heuristic_score - min_score) / (max_score - min_score)
+    
+    # Dynamically adapt the percentage of the highest scoring items to include
+    top_n = int(0.6 * len(prize))  # Including top 60% of the highest scoring items
+    
+    # Rank the items based on their normalized heuristic score
+    ranked_indices = np.argsort(normalized_score)[::-1]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    heuristics[ranked_indices[:top_n]] = 1
+    
+    return heuristics
+```

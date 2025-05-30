@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_balance = torch.abs(cumulative_demand - total_capacity / 2)
+    balance_factor = torch.log1p(demand_balance - 1e-8)
+
+    # Distance scaling based on cumulative demand
+    distance_scaling = distance_matrix * (1 + cumulative_demand)
+
+    # Capacity scaling with a dynamic factor
+    capacity_scaling = torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+
+    # Overflow penalty for edges that lead to exceeding capacity
+    overflow_penalty = torch.zeros_like(distance_matrix)
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                total_demand = cumulative_demand[j] + demands[j]
+                if total_demand > total_capacity:
+                    overflow_penalty[i, j] = -torch.log1p(total_demand - total_capacity - 1e-8)
+
+    # Aggressive scaling factor
+    scaling_factor = 2.0
+
+    # Combine the factors with dynamic scaling and balance factors
+    heuristics = scaling_factor * (distance_scaling + capacity_scaling + overflow_penalty * balance_factor)
+
+    # Add a penalty for the depot to return to itself
+    heuristics[0] = -1000
+
+    return heuristics
+```

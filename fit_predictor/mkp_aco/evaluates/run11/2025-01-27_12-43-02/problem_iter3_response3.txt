@@ -1,0 +1,20 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    # Value-based heuristic
+    value_heuristic = prize / np.linalg.norm(weight, axis=1)[:, None]
+    # Weight-based heuristic
+    weight_heuristic = 1 / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    # Diversity heuristic - use the standard deviation of weights
+    diversity_heuristic = 1 / (np.std(weight, axis=1) + 1e-8)
+    # Combine heuristics with some weights
+    combined_heuristic = value_heuristic * 0.5 + weight_heuristic * 0.3 + diversity_heuristic * 0.2
+    # Normalize combined heuristics
+    normalized_heuristics = combined_heuristic / np.linalg.norm(combined_heuristic)
+    # Sparsify based on a threshold
+    threshold = np.mean(normalized_heuristics)
+    sparsified_heuristics = np.where(normalized_heuristics > threshold, normalized_heuristics, 0)
+    return sparsified_heuristics
+```

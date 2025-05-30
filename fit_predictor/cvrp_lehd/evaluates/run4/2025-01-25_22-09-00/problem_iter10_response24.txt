@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    num_nodes = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Calculate demand diversity for each customer
+    demand_diversity = 1 / (1 + torch.abs(demands - total_demand / num_nodes))
+
+    # Calculate demand ratio for each customer
+    demand_ratio = demands / total_demand
+
+    # Calculate attractiveness based on distance, demand ratio, and demand diversity
+    attractiveness = distance_matrix * demand_ratio * demand_diversity
+
+    # Dampen local bias by considering global demand balance
+    global_demand_balance = demand_ratio / (1 + torch.sum(torch.abs(demand_ratio)))
+
+    # Combine attractiveness with global demand balance
+    heuristic_matrix = attractiveness * global_demand_balance
+
+    # Exclude the depot node from the heuristic matrix
+    heuristic_matrix[0, :] = 0
+    heuristic_matrix[:, 0] = 0
+
+    # Apply a dampening factor to the attractiveness of longer distances
+    dampen = torch.exp(-distance_matrix / (torch.max(distance_matrix) + 1))
+    heuristic_matrix = heuristic_matrix * dampen
+
+    return heuristic_matrix
+```

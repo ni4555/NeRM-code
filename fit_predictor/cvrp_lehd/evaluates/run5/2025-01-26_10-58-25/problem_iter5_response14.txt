@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = demands.max()
+    
+    # Create a matrix where each edge is penalized if the demand exceeds the vehicle capacity
+    # This penalty is scaled by the distance to ensure that closer nodes are penalized more
+    penalty_matrix = torch.where(demands > vehicle_capacity, demands / vehicle_capacity * distance_matrix, torch.zeros_like(distance_matrix))
+    
+    # Normalize the penalty matrix to ensure the values are between 0 and 1
+    normalized_penalty_matrix = penalty_matrix / penalty_matrix.max()
+    
+    # Create a potential matrix by adding the distance matrix to the normalized penalty matrix
+    potential_matrix = distance_matrix + normalized_penalty_matrix
+    
+    # Softmax over each row to create a probability distribution
+    softmax_matrix = torch.nn.functional.softmax(potential_matrix, dim=1)
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

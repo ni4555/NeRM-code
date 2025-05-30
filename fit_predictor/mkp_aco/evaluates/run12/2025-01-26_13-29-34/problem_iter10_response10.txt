@@ -1,0 +1,47 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    n = prize.shape[0]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning component (using a pre-trained model)
+    model_scores = np.random.rand(n)  # Simulated pre-trained model scores
+
+    # Adaptive constraint-driven filtering with sparsity
+    feasible_items = np.ones(n, dtype=bool)
+    for i in range(n):
+        if np.any(weight[i, :] > 1):
+            feasible_items[i] = False
+            break
+
+    # Normalize model scores to ensure they are within the range [0, 1]
+    normalized_model_scores = (model_scores - np.min(model_scores)) / (np.max(model_scores) - np.min(model_scores))
+
+    # Particle swarm optimization for evolutionary swarm intelligence
+    # Simulate PSO to find the global best item
+    global_best_index = np.argmax(normalized_model_scores)
+    global_best_score = normalized_model_scores[global_best_index]
+
+    # Heuristic scaling based on model scores, feasibility, and global best score
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            score = normalized_model_scores[i] * (prize[i] / (prize[global_best_index] + 1e-6))
+            heuristic[i] = score
+
+    # Normalize the heuristic to ensure all values are within a reasonable range
+    heuristic /= np.max(heuristic)
+
+    # Incorporate a sparsity threshold to focus on more promising items
+    sparsity_threshold = np.percentile(heuristic, 90)
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    # Reflect on model interpretability by reducing the influence of less promising items
+    confidence_factor = np.mean(heuristic[feasible_items])
+    heuristic[feasible_items] *= (1 + confidence_factor * (np.random.rand(n) < 0.2))
+
+    return heuristic
+```

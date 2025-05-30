@@ -1,0 +1,57 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate potential value using a modified balance heuristic
+    distance_weight = 0.5
+    demand_weight = 2.0
+    penalty_threshold = 0.8  # Nodes with demand greater than 0.8 times the average demand are penalized
+    average_demand = normalized_demands.mean()
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                normalized_demands - average_demand, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Introduce a node partitioning approach to separate nodes based on their demand
+    partitioning_factor = 0.5
+    partitioning = torch.where(normalized_demands > average_demand, 
+                                normalized_demands, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Adjust potential values based on partitioning
+    potential_values = (normalized_distances * (1 - partitioning) +
+                        distance_weight * normalized_distances +
+                        demand_weight * normalized_demands - 
+                        penalty_term * partitioning).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Introduce a dynamic window approach to adapt weights based on current vehicle capacity
+    vehicle_capacity = demands.sum().item() / n
+    dynamic_weight = 1.0 / (1.0 + vehicle_capacity)
+    potential_values *= dynamic_weight
+    
+    # Integrate a multi-objective evolutionary algorithm approach by considering demand variance
+    demand_variance = torch.var(normalized_demands)
+    variance_weight = 0.1
+    potential_values -= variance_weight * demand_variance
+    
+    # Avoid redundancy by penalizing edges to the same node
+    redundancy_penalty = 0.1
+    potential_values = torch.min(potential_values, redundancy_penalty)
+    
+    return potential_values
+```

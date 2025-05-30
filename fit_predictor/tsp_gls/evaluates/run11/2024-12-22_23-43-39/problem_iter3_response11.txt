@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    heuristics_matrix = np.zeros_like(distance_matrix)
+
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the heuristic as the distance to the nearest neighbor for both nodes
+                # Add a penalty for longer edges to discourage their selection
+                edge_length = distance_matrix[i, j]
+                heuristics_matrix[i, j] = (np.min(distance_matrix[i, ~np.isin(np.arange(n), [i])]) +
+                                           np.min(distance_matrix[j, ~np.isin(np.arange(n), [j])]) +
+                                           edge_length) / 2 + 0.1 * edge_length
+            else:
+                # Set the heuristic value to a high number if it's the same node (self-loop)
+                heuristics_matrix[i, j] = float('inf')
+
+    # Incorporate domain knowledge by reducing the heuristic value for edges that connect high population areas
+    # Example: Assuming there's a known population matrix
+    population_matrix = np.random.rand(n, n)  # Placeholder for actual population matrix
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Check if the edges connect high population areas
+                if population_matrix[i].max() > 0.5 and population_matrix[j].max() > 0.5:
+                    heuristics_matrix[i, j] *= 0.8  # Discount the heuristic for these edges
+
+    return heuristics_matrix
+```

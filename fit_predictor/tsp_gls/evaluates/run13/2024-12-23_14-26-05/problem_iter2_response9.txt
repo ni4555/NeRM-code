@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=0)
+    
+    # Normalize the degrees to get a probability distribution
+    probabilities = degrees / np.sum(degrees)
+    
+    # Create a new distance matrix based on the probabilities
+    new_distance_matrix = np.outer(probabilities, probabilities) * distance_matrix
+    
+    # Add a small constant to avoid division by zero
+    epsilon = 1e-10
+    new_distance_matrix = np.where(new_distance_matrix == 0, epsilon, new_distance_matrix)
+    
+    # Normalize the new distance matrix to keep the sum of distances constant
+    total_distance = np.sum(new_distance_matrix)
+    new_distance_matrix = new_distance_matrix / total_distance
+    
+    # Adjust the distances to avoid local minima by penalizing frequently used edges
+    # More used edges will have higher probabilities of being avoided
+    edge_usage = np.sum(distance_matrix, axis=0)
+    new_distance_matrix = new_distance_matrix * (1 - edge_usage / np.sum(edge_usage))
+    
+    return new_distance_matrix
+```

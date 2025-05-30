@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_per_node = total_capacity / n
+    
+    # Initialize heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Early overflow detection
+    overflow = cumulative_demand > capacity_per_node
+    
+    # Add distance-based heuristic
+    heuristics += -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Add dynamic capacity penalty
+    heuristics -= torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    heuristics[overflow] *= 2  # Increase penalty for overflow
+    
+    # Add overflow penalty
+    heuristics[overflow] -= torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8)
+    
+    # Add load balance heuristic
+    heuristics -= torch.log1p(torch.abs(cumulative_demand - capacity_per_node) - 1e-8)
+    
+    # Introduce controlled randomness to encourage diversity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    heuristics += randomness_factor
+    
+    # Normalize heuristics to ensure they are in a suitable range
+    heuristics /= heuristics.abs().max() + 1e-8
+    
+    return heuristics
+```

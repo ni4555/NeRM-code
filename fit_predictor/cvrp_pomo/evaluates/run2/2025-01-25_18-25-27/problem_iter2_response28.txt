@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Initialize the heuristics matrix with the Manhattan distance
+    heuristics_matrix = distance_matrix.sum(dim=1)
+    # Adjust the heuristics based on customer demands
+    heuristics_matrix[1:] -= (distance_matrix * demands.unsqueeze(1)).sum(dim=0)
+    # Adjust the heuristics for the first node
+    heuristics_matrix[0] -= distance_matrix[1:].sum()
+    # Normalize the heuristics matrix by the maximum heuristic value
+    heuristics_matrix /= heuristics_matrix.max()
+    # Adjust the heuristics to promote capacity management by penalizing larger demands
+    heuristics_matrix *= (1 - torch.exp(-normalized_demands))
+    return heuristics_matrix
+```

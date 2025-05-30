@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Initialize the heuristic array with a small value
+    heuristic = np.zeros_like(prize) + 1e-8
+    
+    # Calculate the normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the average density to use as a threshold
+    average_density = np.mean(density)
+    
+    # Items above the average density are considered more promising
+    heuristic[density > average_density] = density[density > average_density]
+    
+    # Introduce randomness to explore beyond the threshold
+    random Exploration = np.random.rand(*heuristic.shape)
+    heuristic[Exploration < 0.5] = 0.0
+    
+    # Normalize to maintain a scale for comparison
+    max_heuristic = np.max(heuristic)
+    heuristic /= max_heuristic
+    
+    # Prune dominated items (those with lower heuristic than any dominated item)
+    non_dominated_indices = np.ones_like(heuristic, dtype=bool)
+    for i in range(len(heuristic)):
+        dominated_by = np.where((heuristic > heuristic[i]) & (prize > prize[i]))
+        if dominated_by[0].size > 0:
+            non_dominated_indices[i] = False
+    
+    # Set the heuristics of dominated items to zero
+    heuristic[~non_dominated_indices] = 0.0
+    
+    return heuristic
+```

@@ -1,0 +1,56 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+
+    def dynamic_capacity_penalty():
+        return -torch.log1p(torch.abs(demands - total_capacity) - 1e-8) * (1 + 0.3 * (total_capacity - cumulative_demand) / total_capacity)
+
+    def distance_scaling():
+        scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+        scaling *= (1 + cumulative_demand / total_capacity)
+        scaling *= torch.exp(-cumulative_demand / (total_capacity * 5))
+        return scaling
+
+    def overflow_penalty():
+        penalty = torch.where(
+            (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+            -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+            torch.zeros_like(cumulative_demand)
+        )
+        return penalty
+
+    def load_balance_penalty():
+        balance = torch.abs(cumulative_demand - total_capacity_vector)
+        return -torch.log1p(balance - 1e-8)
+
+    def randomness_factor():
+        return torch.abs(torch.randn_like(demands)) * 0.1 * (1 - cumulative_demand / total_capacity)
+
+    # Calculate each heuristic component
+    dynamic_capacity = dynamic_capacity_penalty()
+    scaling = distance_scaling()
+    overflow = overflow_penalty()
+    load_balance = load_balance_penalty()
+    randomness = randomness_factor()
+
+    # Combine heuristics with a weighted sum
+    heuristics = (dynamic_capacity * 0.3 +
+                  scaling * 0.5 +
+                  overflow * 0.1 +
+                  load_balance * 0.1 +
+                  randomness * 0.1)
+
+    # Add diversity factor to promote exploration
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+
+    # Combine heuristics and diversity factor
+    heuristics += diversity_factor
+
+    return heuristics
+```

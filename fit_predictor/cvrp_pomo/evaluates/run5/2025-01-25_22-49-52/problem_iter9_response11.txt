@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Define a heuristic that focuses on proximity and demand relaxation
+    proximity_heuristic = 0.5 * normalized_distances
+    demandRelaxation_heuristic = 2.0 * normalized_demands
+    
+    # Introduce a node partitioning heuristic to balance the load between high and low demand nodes
+    demand_partitioning = torch.clamp(0.5 - (normalized_demands - 0.5), min=0.0, max=1.0)
+    
+    # Apply a penalty for edges leading to nodes with high demand, encouraging more spread-out routes
+    penalty = torch.where(normalized_demands > 0.8, 1.0 - demand_partitioning, 0.0)
+    
+    # Create the potential value heuristic that combines the proximity and demand relaxation heuristics
+    potential_values = proximity_heuristic + demandRelaxation_heuristic - penalty
+    
+    # Introduce a dynamic window approach to adapt the heuristic based on current vehicle capacity
+    vehicle_capacity = demands.sum().item() / n
+    dynamic_factor = 1.0 / (1.0 + vehicle_capacity)
+    potential_values *= dynamic_factor
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

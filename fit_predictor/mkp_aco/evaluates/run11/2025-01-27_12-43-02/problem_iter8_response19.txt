@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    combined_score = score  # Using the score directly to maintain stability
+
+    # Sparsify the score by considering the distribution and focusing on high-score items
+    mean_score = np.mean(combined_score)
+    std_score = np.std(combined_score)
+    sparsified_score = np.where(combined_score > mean_score + std_score, combined_score, 0)
+
+    # Apply a domain-specific insight: give a slight boost to items with a high prize-to-weight ratio
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    heuristics = (sparsified_score * ratio) > (mean_score * ratio)
+
+    return heuristics
+```

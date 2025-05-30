@@ -1,0 +1,47 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to prevent dominance by high prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate a balance factor considering sparsity and variance
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    balance_factor = sparsity_factor * inv_variance_factor
+    
+    # Introduce exploration and exploitation by combining normalized prize and balance factor
+    exploration_exploitation_factor = np.random.choice([0.8, 1.2], size=normalized_prize.shape)
+    combined_factor = normalized_prize * balance_factor * exploration_exploitation_factor
+    
+    # Encourage diversity through a random component
+    diversity = np.random.normal(0, 0.02, size=combined_factor.shape)
+    combined_factor = np.maximum(combined_factor + diversity, 0)
+    
+    # Apply sparsity by zeroing out low-value heuristic values
+    sparsity_threshold = np.percentile(combined_factor, 20)  # 20% threshold for sparsity
+    combined_factor[combined_factor < sparsity_threshold] = 0
+    
+    # Iterate to refine heuristics
+    for _ in range(3):
+        # Amplify heuristics that are not dominated by others
+        for i in range(combined_factor.shape[0]):
+            dominated_by = np.any(combined_factor > combined_factor[i])
+            if not dominated_by:
+                combined_factor[i] *= 1.1
+        
+        # Dynamically adapt thresholds based on the current distribution
+        amplification_threshold = np.percentile(combined_factor, 80)  # 80% threshold
+        combined_factor[combined_factor > amplification_threshold] *= 1.2
+        
+        # Optimize sparsity based on the average sparsity factor
+        average_sparsity = np.mean(sparsity_factor)
+        combined_factor *= (average_sparsity + 0.5)
+    
+    # Normalize the final heuristics
+    heuristic_sum = np.sum(combined_factor)
+    if heuristic_sum > 0:
+        combined_factor /= heuristic_sum
+    
+    return combined_factor
+```

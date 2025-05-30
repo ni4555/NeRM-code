@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the start node
+    cum_demands = torch.cumsum(demands, dim=0)
+    # Create a binary mask where a 1 indicates the vehicle is still under capacity
+    capacity_mask = cum_demands < demands[0]
+    # Apply an exponential decay to the distance matrix to weight the edges
+    decayed_distances = torch.exp(-distance_matrix * 0.1)
+    # Normalize the distances using the natural logarithm to ensure all values are positive
+    normalized_distances = torch.log(decayed_distances + 1)
+    # Apply a penalty to edges leading to nodes with high demand, scaled with the inverse demand
+    high_demand_penalty = -demands * (1 / (demands + 1e-6))
+    # Combine the normalized distances, inverse demand, and high demand penalty to create the heuristic values
+    heuristics = normalized_distances + high_demand_penalty
+    # Clamp the heuristics to the range [0, 1] before scaling to maintain non-negative values
+    heuristics = torch.clamp(heuristics, min=0, max=1)
+    # Scale the heuristics to the range [-1, 1]
+    max_val = torch.max(heuristics)
+    heuristics = 2 * heuristics / max_val - 1
+    return heuristics
+```

@@ -1,0 +1,53 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce randomness with a Gaussian noise to encourage diversity and robustness
+    exploration_noise = torch.randn_like(remaining_capacity) * 0.05
+    remaining_capacity += exploration_noise
+
+    # Normalize demand differences to encourage diversity
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Combine the demand differences and remaining capacity to get a heuristic
+    combined_heuristic = demand_diff * remaining_capacity
+
+    # Introduce non-linear dampening of high penalties
+    combined_heuristic = torch.clamp(combined_heuristic, max=1.0)
+
+    # Normalize combined heuristic values to maintain a balanced heuristic scale
+    max_heuristic = combined_heuristic.max()
+    min_heuristic = combined_heuristic.min()
+    combined_heuristic = (combined_heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Use non-linear transformation to dampen high penalties and encourage balance
+    combined_heuristic = torch.sigmoid(combined_heuristic)
+
+    # Apply penalties for nodes with demands exceeding capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    combined_heuristic -= capacity_penalty
+
+    # Introduce a penalty for edges leading back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    combined_heuristic += depot_penalty
+
+    # Introduce a local preference for edges closer to the depot
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+    combined_heuristic += torch.clamp(distance_penalty, min=0.0)
+
+    # Ensure that heuristic values are within a certain range to maintain balance
+    combined_heuristic = torch.clamp(combined_heuristic, min=0.0, max=1.0)
+
+    return combined_heuristic
+```

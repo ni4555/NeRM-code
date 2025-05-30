@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands to determine the demand threshold for each node
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Iterate over all nodes as potential starting points
+    for start_node in range(distance_matrix.shape[0]):
+        # Calculate the remaining capacity for the vehicle starting at the current node
+        remaining_capacity = total_demand - demands[start_node]
+        # Iterate over all possible end nodes for the current start node
+        for end_node in range(distance_matrix.shape[0]):
+            # Calculate the demand from the start node to the end node
+            edge_demand = demand_cumsum[end_node] - demand_cumsum[start_node - 1] if start_node > 0 else demand_cumsum[end_node]
+            # Check if the edge is feasible based on the remaining capacity and demand
+            if edge_demand <= remaining_capacity and distance_matrix[start_node, end_node] > 0:
+                # Update the heuristic value for the edge
+                heuristics[start_node, end_node] = 1 - distance_matrix[start_node, end_node]
+    return heuristics
+```

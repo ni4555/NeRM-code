@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Core objectives
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + 0.3 * (total_capacity - cumulative_demand) / total_capacity)
+    
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_scaling *= (1 + cumulative_demand / total_capacity) * time_factor
+    
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    core_objectives = dynamic_capacity_penalty + distance_scaling + load_balance_penalty
+    
+    # Auxiliary objectives
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Final heuristics combination
+    scaling_factor = 2.5
+    heuristics = scaling_factor * core_objectives + randomness_factor + diversity_factor
+    
+    # Early overflow detection and penalty
+    early_overflow = cumulative_demand > total_capacity_vector
+    overflow_penalty = (dynamic_capacity_penalty * early_overflow).clamp(min=0)
+    
+    # Normalize the heuristics
+    heuristics += overflow_penalty
+    heuristics /= (heuristics.sum() + 1e-8)
+    
+    # Exclude the depot from itself
+    depot_penalty = torch.arange(n) == 0
+    heuristics -= depot_penalty.float().unsqueeze(0)
+    
+    return heuristics
+```

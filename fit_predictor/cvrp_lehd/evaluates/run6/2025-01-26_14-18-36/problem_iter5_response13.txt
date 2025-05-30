@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot_demand = demands[0]  # Depot demand is zero
+
+    # Normalize demands to the vehicle capacity
+    normalized_demands = demands / demands.sum()
+
+    # Compute the cost for each edge based on demand
+    cost_based_costs = (normalized_demands[:, None] * normalized_demands[None, :]).abs() * distance_matrix
+
+    # Initialize a large negative value for all edges
+    heuristics = torch.full_like(cost_based_costs, -float('inf'))
+
+    # Add the depot to the heuristics
+    heuristics[0, :] = -1
+    heuristics[:, 0] = -1
+
+    # Use a greedy approach to balance global and local
+    visited = torch.zeros_like(demands, dtype=torch.bool)
+    for _ in range(demands.sum().int()):
+        # Find the node with the smallest edge cost to a visited node
+        unvisited_indices = ~visited
+        min_edge_cost = cost_based_costs[unvisited_indices, visited].min(0)[0]
+        best_node = cost_based_costs[unvisited_indices, visited].argmin(0)[0]
+
+        # Update heuristics for this node
+        heuristics[best_node, visited] = -min_edge_cost
+        heuristics[visited, best_node] = -min_edge_cost
+
+        # Update visited nodes and the cost matrix
+        visited[best_node] = True
+
+    return heuristics
+```

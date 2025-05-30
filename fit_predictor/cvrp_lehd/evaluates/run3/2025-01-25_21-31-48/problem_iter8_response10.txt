@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic incorporating domain knowledge, balancing distance and demand, and using vectorized operations."""
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Normalize the demands to scale them with the same magnitude as distances
+    normalized_demands = demands / total_demand
+    
+    # Calculate the inverse of the distance matrix, adding a small value to avoid division by zero
+    inverse_distances = 1 / (distance_matrix + 1e-6)
+    
+    # Calculate the weight for each edge by combining the inverse distance with the normalized demand
+    combined_weight = inverse_distances * normalized_demands
+    
+    # Adjust the weight by the demand to prioritize heavily demanded nodes
+    adjusted_weight = combined_weight * demands
+    
+    # Incorporate a balance factor that encourages visiting all nodes with similar frequency
+    balance_factor = (torch.abs(torch.diff(demands)) < 1e-6).float()
+    
+    # Use a negative weight for edges that are not desirable
+    edge_weight = -torch.abs(adjusted_weight + balance_factor)
+    
+    return edge_weight
+```

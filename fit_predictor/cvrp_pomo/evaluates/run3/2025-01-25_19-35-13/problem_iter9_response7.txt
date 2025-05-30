@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.6
+    distance_weight = 0.4
+    
+    # Apply a modified form of dynamic programming to find a lower bound on the cost
+    dp = torch.zeros((len(demands), len(demands)))
+    for d in range(1, len(demands)):
+        for s in range(d):
+            dp[d, s] = dp[s, d-1] + distance_matrix[s, d]
+            dp[d, s] = max(dp[d, s], dp[s, 0] + distance_matrix[s, d])
+    
+    # Use a greedy approach to assign demand to vehicles to balance the route loads
+    vehicle_loads = torch.zeros(len(demands))
+    route_potentials = torch.zeros_like(distance_matrix)
+    for i in range(1, len(demands)):
+        if vehicle_loads[i] + demands[i] > 1:
+            # Assign demand to the next vehicle if the load exceeds the capacity
+            vehicle_loads[i] = 0
+        vehicle_loads[i] += demands[i]
+        route_potentials[i] = (dp[i, 0] / (distance_matrix[i] + 1e-8)) * normalized_demands[i]
+    
+    # Incorporate a neighborhood search strategy to refine the route
+    for i in range(len(demands)):
+        for j in range(i + 1, len(demands)):
+            if demands[i] + demands[j] <= 1:
+                # Check if swapping these nodes would lead to a better load balance
+                new_loads_i = vehicle_loads[i] - demands[i] + demands[j]
+                new_loads_j = vehicle_loads[j] - demands[j] + demands[i]
+                if (new_loads_i <= 1 and new_loads_j <= 1) and (new_loads_i + new_loads_j == vehicle_loads[i] + vehicle_loads[j]):
+                    # Swap demands and update the route potential
+                    demands[i], demands[j] = demands[j], demands[i]
+                    vehicle_loads[i], vehicle_loads[j] = new_loads_i, new_loads_j
+                    route_potentials[i], route_potentials[j] = route_potentials[j], route_potentials[i]
+    
+    # Calculate the final heuristic values based on load balance and distance
+    edge_potential = route_potentials - (route_potentials * 0.1 * (demands > 1.5).float())
+    edge_potential = edge_potential + (route_potentials * 0.05 * (distance_matrix < 10).float())
+    
+    return edge_potential
+```

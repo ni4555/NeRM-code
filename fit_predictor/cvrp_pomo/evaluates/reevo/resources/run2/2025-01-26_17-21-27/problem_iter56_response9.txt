@@ -1,0 +1,52 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Scaled distance penalty based on distance and cumulative demand
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    demand_scaled_distance = distance_penalty * (cumulative_demand / total_capacity)
+    
+    # Capacity penalty that adapts to the level of utilization
+    capacity_penalty = -torch.log1p(torch.abs(demands) - 1e-8)
+    capacity_penalty *= torch.clamp((demands / total_capacity), 0, 1)
+    
+    # Overflow penalty that is more aggressive when approaching full capacity
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    overflow_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Introduce randomness for diversity, with its impact decreasing as capacity is reached
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Load balance heuristic that encourages distribution of loads
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Dynamic scaling factors for penalties
+    scaling_factors = {
+        'distance': 1.5,
+        'capacity': 2.0,
+        'overflow': 1.0,
+        'randomness': 0.5,
+        'load_balance': 1.0
+    }
+    
+    # Combine the penalties with the randomness factor
+    heuristics = (
+        scaling_factors['distance'] * demand_scaled_distance +
+        scaling_factors['capacity'] * capacity_penalty +
+        scaling_factors['overflow'] * overflow_penalty +
+        scaling_factors['randomness'] * randomness_factor +
+        scaling_factors['load_balance'] * load_balance_penalty
+    )
+    
+    return heuristics
+```

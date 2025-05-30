@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    import numpy as np
+
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Calculate the distance to the nearest neighbor for both nodes
+                min_dist_i = np.min(distance_matrix[i, :])
+                min_dist_j = np.min(distance_matrix[j, :])
+                
+                # Use a weighted average to balance the local minimum distance with the edge distance
+                edge_weight = distance_matrix[i, j]
+                nearest_neighbor_weight = 0.5  # Adjust this weight for balancing
+                heuristics[i, j] = ((1 - nearest_neighbor_weight) * edge_weight +
+                                    nearest_neighbor_weight * (min_dist_i + min_dist_j) / 2)
+                
+                # Optionally, add a penalty for high edge weights, to avoid too large jumps in the heuristic
+                heuristics[i, j] += (1 / (1 + edge_weight)) * 0.1  # Additional penalty term
+                heuristics[i, j] = np.clip(heuristics[i, j], 0, 1)  # Ensure the heuristic is between 0 and 1
+
+    return heuristics
+```

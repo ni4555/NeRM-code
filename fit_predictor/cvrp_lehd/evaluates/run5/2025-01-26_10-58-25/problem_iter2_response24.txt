@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand sum
+    total_demand = demands.sum()
+
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the minimum distance from the depot to each customer
+    min_distance_to_customer = torch.min(distance_matrix[0, 1:], dim=0).values
+
+    # Calculate the minimum distance from each customer to the depot
+    min_distance_from_customer = torch.min(distance_matrix[1:, 0], dim=0).values
+
+    # Calculate the heuristics values
+    heuristics[0, 1:] = total_demand - min_distance_to_customer
+    heuristics[1:, 0] = total_demand - min_distance_from_customer
+    heuristics[1:, 1:] = heuristics[1:, 0] - distance_matrix[1:, 1:]
+
+    # Normalize the heuristics values
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+
+    return heuristics
+```

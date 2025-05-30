@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = np.dot(prize[i], weight[i])
+        total_weight = weight[i].sum()
+        heuristic[i] = (total_prize / total_weight) / (1 + total_weight)
+    
+    # Introduce an adaptive mechanism that adjusts heuristics in real-time
+    for i in range(n):
+        if weight[i].sum() > m:
+            heuristic[i] *= 0.5  # Reduce heuristic for items exceeding dimension-specific limits
+        heuristic[i] *= np.random.rand()  # Add randomness to avoid getting stuck in local optima
+    
+    # Promote diversity in selected items by considering non-fulfilled dimensions
+    for i in range(n):
+        diversity = sum(1 for j in range(m) if weight[i, j] < 1)
+        heuristic[i] *= (1 + diversity / m)
+    
+    # Control randomness to prevent over-fitting to a particular region of the solution space
+    exploration_factor = np.random.rand(n)
+    adaptive_heuristic = exploration_factor * heuristic
+    
+    # Sparsify heuristics by penalizing low-value items and items that are too heavy
+    heuristic[prize < heuristic.max() / 10] = 0
+    heuristic[weight.sum(axis=1) > m * 0.8] = 0
+    
+    return adaptive_heuristic
+```

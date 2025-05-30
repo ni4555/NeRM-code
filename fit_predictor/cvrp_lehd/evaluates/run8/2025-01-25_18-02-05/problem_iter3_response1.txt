@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Calculate the cumulative demand for each node starting from the depot
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the normalized cumulative demand
+    normalized_cumulative_demand = cumulative_demand / demands
+    
+    # Combine the demand-to-distance ratio with the normalized cumulative demand
+    combined_heuristic = (1 - normalized_cumulative_demand) * demand_to_distance_ratio
+    
+    # Apply a threshold to filter out low-priority edges
+    threshold = torch.min(combined_heuristic)
+    
+    # Apply the threshold to ensure all low-priority edges have a reduced heuristic score
+    combined_heuristic = torch.where(combined_heuristic < threshold, combined_heuristic, 0)
+    
+    # Invert the scores to have positive values for more promising edges
+    heuristic_matrix = -combined_heuristic
+    
+    return heuristic_matrix
+```

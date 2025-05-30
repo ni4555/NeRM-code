@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the diversity factor by considering the standard deviation
+    diversity_factor = np.std(weight, axis=1)
+    
+    # Calculate the sparsity factor based on the number of non-zero weight dimensions
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Calculate the utility factor based on the normalized prize
+    utility_factor = normalized_prize
+    
+    # Combine factors to create an initial heuristic
+    initial_heuristics = utility_factor * diversity_factor * sparsity_factor
+    
+    # Adaptively adjust thresholds to balance exploration and exploitation
+    # This can be done by applying a sigmoid function to the heuristics
+    threshold_adjustment = 1 / (1 + np.exp(-initial_heuristics))
+    
+    # Apply the threshold adjustment to the heuristics
+    heuristics = initial_heuristics * threshold_adjustment
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Apply sparsifying by setting a lower threshold to zero
+    lower_threshold = np.percentile(heuristics, 25)  # 25th percentile as a threshold
+    heuristics[heuristics < lower_threshold] = 0
+    
+    return heuristics
+```

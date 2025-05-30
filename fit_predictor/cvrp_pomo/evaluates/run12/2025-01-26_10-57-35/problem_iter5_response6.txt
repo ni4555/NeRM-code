@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate cumulative demand
+    cum_demand = demands.cumsum(dim=0)
+    # Calculate cumulative distance
+    cum_distance = distance_matrix.cumsum(dim=1)
+    # Calculate total demand for each vehicle
+    total_demand = cum_demand[-1]
+    # Calculate cumulative distance for each vehicle
+    max_cum_distance = cum_distance[-1]
+    # Normalize the cumulative demand by total demand
+    normalized_cum_demand = cum_demand / total_demand.unsqueeze(1)
+    # Normalize the cumulative distance by max cumulative distance
+    normalized_cum_distance = cum_distance / max_cum_distance.unsqueeze(0)
+    # Calculate a heuristic value based on the ratio of normalized demand and distance
+    heuristic_values = (normalized_cum_demand - normalized_cum_distance) * 0.5
+    # Adjust heuristic values to be negative for undesirable edges
+    heuristic_values[heuristic_values > 0] = -heuristic_values[heuristic_values > 0]
+    return heuristic_values
+```

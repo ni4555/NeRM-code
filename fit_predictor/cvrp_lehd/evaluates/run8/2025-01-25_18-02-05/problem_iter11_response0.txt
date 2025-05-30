@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    
+    # Avoid division by zero in cases where cumulative_distances might be zero
+    with torch.no_grad():
+        safe_distances = torch.where(cumulative_distances == 0, torch.tensor(1.0e-8), cumulative_distances)
+    
+    # Calculate the heuristic values based on the ratio of cumulative demand to cumulative distance
+    heuristic_matrix = cumulative_demands / safe_distances
+    
+    # Apply a non-linear transformation to the heuristic values to emphasize sparsity
+    # Use a sigmoid function to transform the values to a range between 0 and 1
+    # The steepness of the sigmoid can be adjusted with 'alpha'
+    alpha = 0.1
+    transformed_heuristic_matrix = torch.sigmoid(alpha * (heuristic_matrix - torch.min(heuristic_matrix)))
+    
+    # Set high heuristic values to negative values by subtracting from the threshold
+    threshold = torch.max(transformed_heuristic_matrix)
+    transformed_heuristic_matrix = torch.where(transformed_heuristic_matrix < threshold, transformed_heuristic_matrix, -threshold)
+    
+    # Apply a dynamic threshold based on the sparsity of the distance matrix
+    # The threshold will be larger if the matrix is sparse
+    sparsity = (distance_matrix == 0).float().sum() / (distance_matrix.numel())
+    dynamic_threshold = threshold * (1 + sparsity)
+    
+    # Clip the values to be within the desired range to ensure they are within [-1, 1]
+    heuristic_matrix = torch.clamp(transformed_heuristic_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

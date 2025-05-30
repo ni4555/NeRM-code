@@ -1,0 +1,14 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for CVRP that emphasizes edge properties, demand imbalance, and distance."""
+    vehicle_capacity = demands.sum()
+    demand_diff = 2 * torch.abs(vehicle_capacity - demands)  # Promote edges with high absolute demand difference
+    distance_weight = -0.5 * distance_matrix  # Penalize edges with higher distances
+    # Adjust the weight for edges that are close to the capacity boundary
+    edge_close_to_capacity = (demands <= vehicle_capacity / 2) & (demands > 0)
+    penalty_for_edge_close_to_capacity = edge_close_to_capacity.float() * -2
+    # Combine weights with a normalization to keep values in a similar range
+    return demand_diff + distance_weight + penalty_for_edge_close_to_capacity
+```

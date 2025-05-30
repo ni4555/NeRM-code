@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Create a mask for nodes with positive demand
+    demand_mask = (demands > 0).float()
+
+    # Non-linear transformation of the distance matrix
+    distance_matrix_non_linear = torch.pow(distance_matrix, 2)
+
+    # Calculate the scaled demand differences
+    scaled_demand_diff = (demands * demand_mask)[:, None] - (demands * demand_mask)[None, :]
+
+    # Combine scaled demand differences with non-linear distances
+    combined_heuristic = scaled_demand_diff / distance_matrix_non_linear
+
+    # Apply the mask to keep only positive heuristics and clamp to avoid overflow
+    heuristics = torch.clamp(combined_heuristic, min=0)
+
+    return heuristics
+```

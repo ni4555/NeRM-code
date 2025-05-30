@@ -1,0 +1,48 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize usage and average distance matrices
+    edge_usage = np.zeros_like(distance_matrix)
+    edge_average_distance = np.zeros_like(distance_matrix)
+
+    # Calculate edge usage and average distance
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                edge_usage[i, j] = np.sum(np.isin([i, j], np.argwhere(distance_matrix[i] < distance_matrix).flatten()))
+                edge_average_distance[i, j] = np.mean(distance_matrix[i] if i < j else distance_matrix[j])
+
+    # Initialize penalty and bonus factors
+    penalty_factor = 0.1
+    bonus_factor = 0.1
+
+    # Initialize heuristic matrix
+    heuristic_matrix = penalty_factor * edge_usage + (1 - penalty_factor) * edge_average_distance
+
+    # Iterate over the edges to dynamically adjust the heuristic factors
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Calculate the potential improvement by changing the heuristic for this edge
+                potential_improvement = distance_matrix[i, j] - heuristic_matrix[i, j]
+                # Update the heuristic matrix with this potential improvement
+                heuristic_matrix[i, j] += potential_improvement
+                # Reflect the symmetry of the matrix
+                heuristic_matrix[j, i] = heuristic_matrix[i, j]
+
+    # Adjust the heuristic factors based on the performance of the heuristic matrix
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Calculate the actual improvement by using the heuristic matrix
+                actual_improvement = distance_matrix[i, j] - heuristic_matrix[i, j]
+                # Dynamically adjust the penalty and bonus factors
+                penalty_factor = max(penalty_factor - 0.01 * actual_improvement, 0)
+                bonus_factor = min(bonus_factor + 0.01 * actual_improvement, 1)
+
+    # Update the heuristic matrix with the new factors
+    heuristic_matrix = penalty_factor * edge_usage + (1 - penalty_factor) * edge_average_distance
+
+    return heuristic_matrix
+```

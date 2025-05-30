@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+
+    n = distance_matrix.shape[0]
+    # Normalize the demands
+    normalized_demands = demands / demands.sum()
+    # Calculate the potential heuristics value for each edge
+    heuristic_values = normalized_demands[1:] - normalized_demands[:-1]
+    # Scale the heuristic values by the distance matrix
+    heuristic_values *= distance_matrix[1:, :-1]
+    # Apply a penalty for edges that lead to exceeding the vehicle capacity
+    heuristic_values[heuristic_values < 0] = 0
+    # Convert to the same shape as the distance matrix
+    heuristic_matrix = heuristic_values.unsqueeze(0).unsqueeze(-1)
+    # Add a bonus for returning to the depot
+    depot_bonus = torch.ones_like(heuristic_matrix[:, 0, :])
+    heuristic_matrix = torch.cat((depot_bonus, heuristic_matrix), dim=1)
+    return heuristic_matrix
+```

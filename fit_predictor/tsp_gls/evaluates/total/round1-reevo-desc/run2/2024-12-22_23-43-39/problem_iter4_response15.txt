@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the average distance for each edge
+    avg_edge_distance = np.mean(distance_matrix)
+    # Calculate the average distance from each node to all other nodes
+    avg_distances_to_each_node = np.mean(distance_matrix, axis=0)
+    avg_distances_from_each_node = np.mean(distance_matrix, axis=1)
+    # Calculate the standard deviation for each node's distances to others
+    std_distances_to_each_node = np.std(distance_matrix, axis=0)
+    std_distances_from_each_node = np.std(distance_matrix, axis=1)
+    # Create a heuristic based on the deviation from the average distance
+    heuristic = distance_matrix - avg_edge_distance
+    # Adjust the heuristic based on the weighted difference from the average distances
+    # Use the standard deviation to weight the differences
+    weighted_diff = (heuristic * (avg_distances_to_each_node - avg_distances_from_each_node) /
+                     (std_distances_to_each_node + std_distances_from_each_node))
+    # Consider the directionality of the deviation
+    directionality = np.sign(weighted_diff)
+    # Encourage deviation in both directions but penalize very small differences
+    heuristic = (1 / (1 + np.abs(weighted_diff))) * directionality
+    # Ensure that the heuristic is positive to encourage the search
+    heuristic = np.maximum(heuristic, 0)
+    return heuristic
+```

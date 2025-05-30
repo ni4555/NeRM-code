@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize and average weight for each item
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    
+    # Calculate density based on prize and average weight
+    density = prize / (average_weight + 1e-10)  # Add a small constant to avoid division by zero
+    
+    # Calculate constraint balance for each item
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate utility considering both density and constraint balance
+    utility = density * (1 - constraint_balance)
+    
+    # Calculate sparsity based on the ratio of utility to maximum prize
+    sparsity = (utility > max_prize / np.sum(prize)) * 1.0
+    
+    # Factor to account for sparsity
+    sparsity_factor = sparsity
+    
+    # Dimension-specific factors based on the standard deviation of each dimension
+    dimension_factors = np.exp(-np.std(weight, axis=1))
+    
+    # Combining all factors to create the heuristic
+    heuristics = utility * (1 + sparsity_factor * dimension_factors)
+    
+    # Normalize the heuristics to be non-negative and bounded between 0 and 1
+    heuristics = np.clip(heuristics, 0, 1)
+    
+    return heuristics
+```

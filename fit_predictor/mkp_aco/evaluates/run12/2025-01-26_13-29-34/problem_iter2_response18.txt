@@ -1,0 +1,58 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning for real-time decision-making
+    # Initialize reinforcement learning model with random weights
+    rl_weights = np.random.rand(n)
+
+    # Initialize adaptive constraint-driven filtering parameters
+    alpha = 0.1  # Learning rate for adaptive filtering
+    threshold = 0.95  # Threshold for feasibility
+
+    # Initialize particle swarm optimization parameters
+    particles = np.random.rand(n, n)
+    velocities = np.random.rand(n, n)
+    best_position = particles
+    best_fitness = heuristic
+
+    # Deep reinforcement learning for real-time decision-making
+    for episode in range(1000):
+        for i in range(n):
+            action = np.random.choice([0, 1], p=[1 - rl_weights[i], rl_weights[i]])
+            if action == 1:
+                rl_weights[i] *= (1 - alpha)
+            else:
+                rl_weights[i] *= (1 - alpha * 2)  # Reduce the effect of non-inclusion
+            heuristic[i] = np.sum(prize[i] * (1 - action))
+
+    # Adaptive constraint-driven filtering to maintain multi-dimensional feasibility
+    for episode in range(1000):
+        for i in range(n):
+            total_weight = np.sum(weight[i])
+            feasible = all(np.sum(weight[j]) <= 1 - total_weight for j in range(i, n))
+            if not feasible:
+                heuristic[i] = 0
+            else:
+                heuristic[i] *= (1 - alpha)
+
+    # Particle swarm optimization for evolutionary swarm intelligence
+    for iteration in range(100):
+        for i in range(n):
+            for j in range(n):
+                velocities[i][j] = 0.5 * velocities[i][j] + 0.1 * (best_position[i][j] - particles[i][j])
+                particles[i][j] += velocities[i][j]
+                particles[i][j] = np.clip(particles[i][j], 0, 1)  # Keep the particle within bounds
+            if heuristic[i] > best_fitness[i]:
+                best_position[i] = particles[i]
+                best_fitness[i] = heuristic[i]
+
+    # Integrate evolutionary diversity by incorporating diversity in the heuristic calculation
+    diversity_factor = np.exp(-np.linalg.norm(particles - best_position, axis=(0, 1), keepdims=True) ** 2)
+    heuristic = rl_weights * best_fitness + diversity_factor * (1 - rl_weights)
+
+    return heuristic
+```

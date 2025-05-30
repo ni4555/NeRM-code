@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that incorporates demand, distance, and dampening."""
+    total_demand = demands.sum()
+    # Normalize demands by total vehicle capacity
+    normalized_demands = demands / total_demand
+    # Normalize distance matrix by the maximum distance to normalize the scale
+    normalized_distances = distance_matrix / distance_matrix.max()
+    # Calculate the potential contribution of each edge based on demand and distance
+    potential = -normalized_distances * normalized_demands
+    # Apply a dampening factor to penalize longer distances
+    dampen = torch.exp(-distance_matrix / 10)
+    # Combine potential and dampening
+    heuristics = potential * dampen
+    # Normalize the heuristics to have a range between -1 and 1
+    heuristics = (2 * (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min()) - 1)
+    return heuristics
+```

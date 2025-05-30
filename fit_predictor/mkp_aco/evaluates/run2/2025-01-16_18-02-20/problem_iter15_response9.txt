@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate a diversity score based on the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - np.roll(normalized_prize, 1)), axis=0)
+    
+    # Combine normalized prize and diversity score with a trade-off factor
+    trade_off_factor = 0.5
+    total_score = normalized_prize * trade_off_factor + diversity_scores * (1 - trade_off_factor)
+    
+    # Sparsify the heuristics by setting the elements with a score above a threshold to 1
+    threshold = np.percentile(total_score, 70)
+    heuristics = (total_score > threshold).astype(int)
+    
+    # Dynamically adapt the trade-off factor based on the average diversity score
+    average_diversity = np.mean(diversity_scores)
+    if average_diversity < 0.5:
+        trade_off_factor = 0.3
+    elif average_diversity < 0.8:
+        trade_off_factor = 0.6
+    else:
+        trade_off_factor = 0.8
+    
+    # Incorporate a sparsity score based on the sum of weights across dimensions
+    sparsity_scores = np.sum(weight, axis=1)
+    
+    # Update the score with the trade-off factor
+    heuristics *= normalized_prize * trade_off_factor + diversity_scores * (1 - trade_off_factor)
+    
+    # Rank the items based on their score
+    ranked_indices = np.argsort(-heuristics)
+    
+    # Return the top 30% of items with score 1 and the rest with score 0
+    return np.zeros_like(prize)
+```

@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    max_demand = demands.max()
+    
+    # Enhanced distance penalty, adjusted for the total demand
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity)
+    
+    # Dynamic capacity penalty based on the difference between the current load and the average load
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(cumulative_demand - (total_capacity / n)) - 1e-8)
+    
+    # Overflow penalty, with early return
+    overflow_penalty = torch.where(
+        (cumulative_demand + demands) > total_capacity,
+        -torch.log1p((cumulative_demand + demands) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balancing penalty to ensure the load is distributed evenly
+    load_balance_penalty = torch.abs(cumulative_demand - (total_capacity / n))
+    load_balance_penalty = -torch.log1p(load_balance_penalty - 1e-8)
+    
+    # Combine the penalties and apply a scaling factor
+    combined_penalties = (distance_scaling + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty)
+    
+    # Cap the penalties to avoid dominance of any single term
+    capped_penalties = torch.clamp(combined_penalties, min=-10.0, max=10.0)
+    
+    # Apply a randomness factor to introduce diversity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    capped_penalties += randomness_factor
+    
+    # Apply penalties for the depot to return to itself
+    capped_penalties[0, 0] = -1000
+    
+    return capped_penalties
+```

@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic considering both demand and distance, using relative values."""
+    # Normalize the distance matrix to ensure the scale of distance and demand are comparable
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    
+    # Calculate the difference in demand between each node and the depot relative to the depot demand
+    demand_diff = (demands - demands[0]) / demands[0]
+    
+    # Create a heuristic value that combines distance and demand difference
+    # The distance component is made relative to the average distance in the matrix
+    average_distance = torch.mean(distance_matrix)
+    relative_distance = normalized_distance_matrix / average_distance
+    
+    # Use a weighted sum of relative distance and demand difference
+    weights = torch.tensor([0.5, 0.5], dtype=distance_matrix.dtype)  # Example weights
+    heuristic_values = weights[0] * relative_distance + weights[1] * demand_diff.abs()
+    
+    return heuristic_values
+```

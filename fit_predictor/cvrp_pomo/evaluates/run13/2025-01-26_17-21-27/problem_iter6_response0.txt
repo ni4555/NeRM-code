@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    vehicle_capacity = demands.max()
+
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    savings = (distance_matrix**2 - torch.clamp(distance_matrix, min=1e-8)) * (demands[:, None] - demands[None, :])
+
+    # Create a mask to check if adding a node exceeds the vehicle capacity
+    demand_mask = cumulative_demand <= vehicle_capacity
+
+    # Apply non-linear scaling to the savings to emphasize short paths and high demands
+    non_linear_scaled_savings = torch.exp(-savings)
+
+    # Adjust the non-linear scaled savings by the cumulative demand mask to penalize edges that exceed capacity
+    adjusted_savings = non_linear_scaled_savings * demand_mask
+
+    # Normalize the savings by the total demand to balance the weight of different demands
+    normalized_savings = adjusted_savings / (total_demand + 1e-8)
+
+    # Apply penalties for edges that would cause a vehicle to return to the depot prematurely
+    penalty_mask = cumulative_demand - vehicle_capacity > 0
+    penalty_factor = (cumulative_demand - vehicle_capacity).unsqueeze(1)
+    normalized_savings[penalty_mask] -= penalty_factor * 10
+
+    return normalized_savings
+```

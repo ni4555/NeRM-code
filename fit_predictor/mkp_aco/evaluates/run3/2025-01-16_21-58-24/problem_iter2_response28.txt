@@ -1,0 +1,24 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Combine normalized ratio, its logarithm (to reduce influence of high ratios),
+    # and penalties for both high weights and dimensions
+    penalty_weight = weight.sum(axis=1)
+    penalty_dimension = weight / np.maximum(1e-8, weight.sum(axis=1))
+    heuristics = (1 / value_to_weight_ratio) * np.log(1 / value_to_weight_ratio) + 1 / penalty_weight + penalty_dimension
+    
+    # Sparsify the heuristics by setting elements with low heuristics to zero
+    threshold = np.mean(heuristics)
+    heuristics[heuristics < threshold] = 0
+    
+    return heuristics
+```

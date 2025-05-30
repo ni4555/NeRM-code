@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    edge_usage = np.zeros_like(distance_matrix)
+    
+    # Calculate the usage of each edge
+    for i in range(n):
+        for j in range(i+1, n):
+            edge_usage[i, j] += 1
+            edge_usage[j, i] += 1
+    
+    # Normalize the usage frequency
+    edge_usage /= (2 * n)
+    
+    # Calculate the probability distribution of edge usage
+    prob_dist = edge_usage / np.sum(edge_usage)
+    
+    # Calculate the cumulative distribution function
+    cum_prob_dist = np.cumsum(prob_dist)
+    
+    # Determine the perturbation scale
+    perturbation_scale = np.random.rand(n) * 0.01
+    
+    # Adjust distances based on probability and cumulative distribution
+    adjusted_distances = distance_matrix * (1 - perturbation_scale * (1 - cum_prob_dist))
+    
+    # Introduce variability through Gaussian noise
+    noise = np.random.normal(0, perturbation_scale * 0.05, (n, n))
+    
+    # Ensure the noise does not increase the distances above the original matrix
+    adjusted_distances += np.maximum(noise, 0)
+    
+    # Ensure the adjusted distances are not negative
+    adjusted_distances = np.maximum(adjusted_distances, 0)
+    
+    return adjusted_distances
+```

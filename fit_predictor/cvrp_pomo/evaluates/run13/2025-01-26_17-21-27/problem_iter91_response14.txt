@@ -1,0 +1,54 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Scaled demand violation to avoid excessive overflow with time decay
+    scaled_demand_violation = (demands - total_capacity_vector) / total_capacity_vector
+    scaled_demand_violation = -torch.log1p(torch.abs(scaled_demand_violation) - 1e-8)
+    time_decay = torch.exp(-cumulative_demand / (total_capacity * 2))
+    scaled_demand_violation *= time_decay
+    
+    # Proximity-based distance scaling with early cutoff
+    proximity_factor = 1 / (distance_matrix + 1e-8)
+    early_cutoff = cumulative_demand / total_capacity >= 0.7
+    proximity_factor *= (1 + (1 - early_cutoff) * torch.exp(-cumulative_demand / (total_capacity * 3)))
+    
+    # Load balance factor with adaptive penalty based on imbalance
+    load_balance = (cumulative_demand - total_capacity_vector) / total_capacity_vector
+    load_balance_penalty = -torch.log1p(torch.abs(load_balance) - 1e-8)
+    
+    # Randomness factor with reduced variance when approaching full capacity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * (0.05 / (1 + cumulative_demand / total_capacity))
+    
+    # Core objective priority with balanced factor
+    core_priority = (
+        -torch.log1p(torch.abs(distance_matrix) - 1e-8) +
+        scaled_demand_violation +
+        load_balance_penalty
+    )
+    
+    # Introduce diversity with a variance scaling
+    diversity_factor = torch.abs(torch.randn_like(demands)) * (0.2 / (torch.sum(torch.abs(torch.randn_like(demands))) + 1e-8))
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    
+    # Combine heuristics with controlled randomness
+    heuristics = (
+        2.5 * (
+            proximity_factor +
+            core_priority
+        ) +
+        randomness_factor
+    )
+    
+    # Add diversity factor with a decay to avoid overlap
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    heuristics += diversity_factor
+    
+    return heuristics
+```

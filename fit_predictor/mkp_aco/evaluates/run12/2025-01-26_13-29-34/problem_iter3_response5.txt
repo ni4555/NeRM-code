@@ -1,0 +1,57 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    heuristic = np.zeros((prize.shape[0],))
+
+    # Define RL and PSO components (simplified)
+    def deep_rl_reward(prize_partial):
+        # Dummy reward function for demonstration; can be a neural network output.
+        return prize_partial.sum()  # This is a simple reward function that just returns the sum of partial prize.
+
+    def particle_swarm_optimization(prize, weight, max_iterations):
+        # Simplified PSO with a random initialization and random movement.
+        positions = np.random.rand(prize.shape[0])
+        velocities = np.random.rand(prize.shape[0])
+        best_individual = np.random.rand(prize.shape[0])
+        best_score = float('-inf')
+
+        for _ in range(max_iterations):
+            new_positions = positions + velocities
+            new_scores = deep_rl_reward(prize * new_positions)
+
+            for i in range(prize.shape[0]):
+                if new_scores[i] > best_score:
+                    best_score = new_scores[i]
+                    best_individual[i] = new_positions[i]
+
+            positions = new_positions
+            velocities = velocities + (np.random.randn(prize.shape[0]) * 0.1)
+
+        return best_individual * prize
+
+    # Deep RL decision-making with adaptive constraint-driven filtering
+    def decision_making_with_rl(weight, max_iterations=100):
+        optimal_individual = particle_swarm_optimization(prize, weight, max_iterations)
+        feasible_indices = np.where(np.sum(weight * optimal_individual, axis=1) <= 1)[0]
+        heuristic[feasible_indices] = prize[feasible_indices].max()
+
+    decision_making_with_rl(weight)
+
+    # Apply adaptive constraint-driven filtering
+    total_weight = np.sum(weight, axis=1)
+    feasible_indices = np.where(total_weight <= 1)[0]
+    for i in range(prize.shape[0]):
+        if i not in feasible_indices:
+            for j in feasible_indices:
+                for k in range(m):
+                    total_weight[j] += weight[i][k]
+                    if total_weight[j] <= 1:
+                        break
+                if total_weight[j] <= 1:
+                    heuristic[j] = max(heuristic[j], prize[i])
+                    break
+
+    return heuristic
+```

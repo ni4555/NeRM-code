@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Calculate the ratio of the distance from the current node to the total demand
+    # multiplied by the inverse of the distance to the next node.
+    demand_to_distance_ratios = demands / distance_matrix
+
+    # Prioritize edges by potential early cost savings by taking the logarithm of the ratio
+    # and adding the negative of the demand ratio to penalize higher demands.
+    heuristic_matrix = torch.log(demand_to_distance_ratios) - demands
+
+    # Apply a dampening factor to penalize longer distances
+    dampen = torch.exp(-distance_matrix / 10)
+
+    # Normalize the heuristics to have a range between -1 and 1
+    min_val = heuristic_matrix.min()
+    max_val = heuristic_matrix.max()
+    normalized_heuristics = (heuristic_matrix - min_val) / (max_val - min_val)
+
+    # Apply the dampening factor to the normalized heuristics
+    heuristics = normalized_heuristics * dampen
+
+    return heuristics
+```

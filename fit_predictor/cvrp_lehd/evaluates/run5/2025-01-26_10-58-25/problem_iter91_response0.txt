@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Use the inverse distance matrix to weigh proximity to the depot more heavily
+    inverse_distance_matrix = 1 / (distance_matrix + 1e-6)
+    
+    # Combine demand penalty with a weighted distance matrix
+    weighted_potential_matrix = penalty_matrix * inverse_distance_matrix
+    
+    # Introduce a small Gaussian noise for randomness
+    noise_matrix = torch.randn_like(weighted_potential_matrix) * 1e-2
+    
+    # Add noise to the potential matrix
+    noisy_potential_matrix = weighted_potential_matrix + noise_matrix
+    
+    # Use a sigmoid function to non-linearly transform the matrix, ensuring non-negative values
+    transformed_matrix = torch.sigmoid(noisy_potential_matrix)
+    
+    # Normalize the matrix to maintain scale balance
+    normalized_matrix = transformed_matrix / transformed_matrix.sum(dim=1, keepdim=True)
+    
+    # Apply a second non-linear transformation, possibly another sigmoid
+    secondary_transform = torch.sigmoid(normalized_matrix)
+    
+    # Add a third noise term to ensure diversity in the solution space
+    additional_noise_matrix = torch.randn_like(secondary_transform) * 1e-3
+    
+    # Incorporate additional noise to enhance randomness
+    with_noise_matrix = secondary_transform + additional_noise_matrix
+    
+    # Use a mutation technique by introducing small random perturbations
+    mutation_factor = torch.rand_like(with_noise_matrix)
+    mutated_matrix = with_noise_matrix + torch.randn_like(with_noise_matrix) * 1e-3 * mutation_factor
+    
+    # Finally, convert the matrix to heuristics by applying a threshold transformation
+    heuristics_matrix = torch.sign(mutated_matrix) * torch.relu(mutated_matrix)
+    
+    return heuristics_matrix
+```

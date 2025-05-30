@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Calculate the distance to the nearest customer with a positive demand that can be served
+    nearest_customer = torch.argmin(torch.abs(cumulative_demand - cumulative_capacity[:, None]), dim=1)
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the negative distance to the nearest customer for all edges
+    heuristics_matrix[torch.arange(n), nearest_customer] = -distance_matrix[torch.arange(n), nearest_customer]
+    
+    # Identify edges that cannot be served due to exceeding capacity
+    overcapacity = cumulative_demand[nearest_customer] > cumulative_capacity[:, None]
+    
+    # Apply a penalty to these edges
+    heuristics_matrix[~torch.isin(torch.arange(n), nearest_customer)] -= 1  # Penalty for edges that cannot be served
+    
+    # Apply a penalty for overcapacity edges
+    heuristics_matrix[overcapacity] -= 1000
+    
+    return heuristics_matrix
+```

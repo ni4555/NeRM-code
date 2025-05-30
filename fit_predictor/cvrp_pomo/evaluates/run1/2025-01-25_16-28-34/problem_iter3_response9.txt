@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total vehicle capacity
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adjust the average demand per edge to be relative to the total capacity
+    adjusted_average_demand = average_demand_per_edge / total_capacity
+    
+    # Implement a more complex heuristic that includes penalties for edges that are likely to exceed vehicle capacity
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the load if vehicle i were to visit customer j
+                load = adjusted_average_demand[i, j] + demands[j]
+                # Calculate the penalty if the load exceeds the capacity
+                penalty = torch.clamp((load - 1) * 100, min=0)  # Using 100 as a constant penalty factor
+                # Update the heuristics matrix
+                heuristics[i, j] = penalty
+    
+    # Return the heuristics matrix with edges with zero distance set to zero
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

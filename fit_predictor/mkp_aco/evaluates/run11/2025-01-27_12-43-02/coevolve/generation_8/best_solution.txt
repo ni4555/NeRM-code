@@ -1,0 +1,67 @@
+Fitness: inf
+
+Description:
+Designing an optimization heuristic for the Multi-Knapsack Problem (MKP) that incorporates stochastic solution sampling and ensemble learning. The heuristic should leverage a combination of Genetic Algorithms (GAs) and Stochastic Local Search (SLS) algorithms to identify an optimal subset of items for each knapsack, aiming to maximize the total prize while respecting the weight constraints. The approach should prioritize clarity in algorithm design and implementation, utilizing adaptive sampling techniques to explore diverse solution spaces effectively.
+
+Code:
+import numpy as np
+import numpy as np
+
+def fitness(solution, prize, weight, knapsack_capacity):
+    total_weight = sum(weight[solution > 0])
+    if total_weight <= knapsack_capacity:
+        return sum(prize[solution > 0])
+    else:
+        return 0
+
+def genetic_algorithm(prize, weight, population_size=50, max_iterations=100, knapsack_capacity=1):
+    n, m = prize.shape[0], weight.shape[1]
+    population = np.random.randint(2, size=(population_size, n))
+    best_fitness = 0
+    best_solution = np.zeros(n)
+
+    for _ in range(max_iterations):
+        fitness_values = np.array([fitness(sol, prize, weight, knapsack_capacity) for sol in population])
+        if np.max(fitness_values) > best_fitness:
+            best_fitness = np.max(fitness_values)
+            best_solution = population[np.argmax(fitness_values)]
+
+        new_population = np.copy(population)
+        for i in range(population_size // 2):
+            parent1 = population[np.argmax(fitness_values)]
+            parent2 = population[np.argmax(fitness_values)]
+            child1 = np.random.choice([0, 1], size=n, p=[0.5, 0.5])
+            child2 = np.random.choice([0, 1], size=n, p=[0.5, 0.5])
+            cross_point = np.random.randint(1, n)
+            child1[:cross_point] = parent2[:cross_point]
+            child2[:cross_point] = parent1[:cross_point]
+            new_population[2*i] = child1
+            new_population[2*i+1] = child2
+
+        population = new_population
+
+    return best_solution
+
+def stochastic_local_search(prize, weight, solution, knapsack_capacity):
+    while True:
+        neighbor = np.copy(solution)
+        for i in range(solution.shape[0]):
+            if np.random.rand() < 0.5:
+                neighbor[i] = 1 - neighbor[i]
+        neighbor_fitness = fitness(neighbor, prize, weight, knapsack_capacity)
+        solution_fitness = fitness(solution, prize, weight, knapsack_capacity)
+        if neighbor_fitness >= solution_fitness:
+            solution = neighbor
+        else:
+            break
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    knapsack_capacity = 1
+    population_size = 50
+    max_iterations = 100
+    initial_solution = genetic_algorithm(prize, weight, population_size, max_iterations, knapsack_capacity)
+    stochastic_local_search(prize, weight, initial_solution, knapsack_capacity)
+    heuristic_values = np.exp(fitness(initial_solution, prize, weight, knapsack_capacity))
+    heuristic_values /= np.sum(heuristic_values)
+    return heuristic_values

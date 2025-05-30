@@ -1,0 +1,61 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Initialize heuristic array with high scores for items that are feasible
+    heuristic = np.full(n, float('-inf'))
+
+    # Adaptive constraint-driven filtering
+    feasible_items = np.ones(n, dtype=bool)
+
+    # Deep reinforcement learning for real-time decision-making
+    # Simulating a pre-trained model that returns a probability for each item
+    # These probabilities are derived from item utility and are high for more promising items
+    model_probabilities = np.random.rand(n)
+
+    # Particle swarm optimization for evolutionary swarm intelligence
+    # Initializing global and personal best positions
+    global_best_score = 0
+    personal_best_indices = np.arange(n)
+    personal_best_scores = model_probabilities
+
+    # Run PSO for a few iterations
+    for _ in range(5):  # Number of iterations can be adjusted based on the problem scale
+        for i in range(n):
+            if not feasible_items[i]:
+                continue
+
+            # Update personal best
+            if model_probabilities[i] > personal_best_scores[i]:
+                personal_best_indices[i] = i
+                personal_best_scores[i] = model_probabilities[i]
+
+            # Update global best
+            if model_probabilities[i] > global_best_score:
+                global_best_score = model_probabilities[i]
+                global_best_index = i
+
+        # Update feasibility based on the new scores
+        for i in range(n):
+            # Check if the item is within the weight constraint of all dimensions
+            if all(weight[i, dim] <= 1 for dim in range(m)):
+                feasible_items[i] = True
+            else:
+                feasible_items[i] = False
+
+        # Update the heuristic based on personal and global bests
+        for i in range(n):
+            if feasible_items[i]:
+                # Weight the heuristic by the probability of the personal best
+                heuristic[i] = model_probabilities[i] * (prize[i] / (prize[global_best_index] + 1e-6))
+
+    # Sparsify the heuristic by setting unpromising elements to zero
+    # This threshold can be adjusted based on the problem domain
+    threshold = 0.5
+    heuristic[heuristic < threshold] = 0
+
+    return heuristic
+```

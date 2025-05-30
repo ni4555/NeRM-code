@@ -1,0 +1,24 @@
+```python
+import numpy as np
+
+def get_combination_score(prize, weight, item_idx):
+    weighted_ratio = prize[item_idx] / weight[item_idx].sum()
+    sparsity = np.count_nonzero(weight[item_idx] > 0) / weight.shape[1]
+    return weighted_ratio + sparsity
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+
+    def get_scores():
+        return [-get_combination_score(prize, weight, i) for i in range(n)]
+
+    sorted_indices = np.argsort(get_scores())
+
+    heuristics = np.zeros(n)
+    heuristics[sorted_indices] = np.array(get_scores())[sorted_indices]
+
+    heuristics[heuristics < np.max(heuristics) * 0.1] = 0
+    heuristics /= heuristics.sum()
+
+    return heuristics
+```

@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate a simplified weighted distance based on demands only
+    demand_weighted_distance = (distance_matrix + 1) / demands
+    
+    # Normalize demand-weighted distance to scale values
+    normalized_demand_weighted_distance = (demand_weighted_distance / demand_weighted_distance.max(dim=1, keepdim=True)[0] - 
+                                           demand_weighted_distance / demand_weighted_distance.min(dim=1, keepdim=True)[0]) / 2 + 0.5
+    
+    # Include a capacity balance by reducing weight on heavily loaded routes
+    capacity_balance_factor = demands / demands.max()
+    
+    # Create a basic heuristic matrix that balances capacity constraints and travel distances
+    basic_heuristics = (capacity_balance_factor.unsqueeze(1) * 
+                         normalized_demand_weighted_distance +
+                         demand_weighted_distance.min(dim=1, keepdim=True)[0] / (demands.max() + 1))
+    
+    # Emphasize stability and dampen extreme differences by reducing extreme values
+    dampening_factor = 0.95
+    heuristics = basic_heuristics * dampening_factor
+    
+    # Ensure stability and normalize heuristics
+    heuristics = (heuristics / heuristics.sum(dim=1, keepdim=True) - heuristics / heuristics.min(dim=1, keepdim=True)[0]) / 2 + 0.5
+    
+    # Avoid loops by penalizing highly heuristic edges
+    loop_penalty_factor = 0.9
+    loop_edges = (normalized_demand_weighted_distance.unsqueeze(1) * demand_weighted_distance.unsqueeze(0) -
+                  normalized_demand_weighted_distance * normalized_demand_weighted_distance.unsqueeze(1).transpose(0, 1))
+    loop_edges[loop_edges > 0] = loop_penalty_factor
+    heuristics -= loop_edges
+    
+    # Apply dampening and capacity constraints more consistently
+    heuristics *= dampening_factor
+    
+    return heuristics
+```

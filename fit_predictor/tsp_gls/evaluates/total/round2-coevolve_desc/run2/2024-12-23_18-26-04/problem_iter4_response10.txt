@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    n = distance_matrix.shape[0]
+    
+    # Initialize the heuristic matrix with the same values as the distance matrix
+    heuristic_matrix = np.copy(distance_matrix)
+    
+    # Calculate edge usage
+    edge_usage = np.zeros_like(distance_matrix)
+    for i in range(n):
+        for j in range(n):
+            edge_usage[i, j] += 1
+            if i != j:
+                edge_usage[j, i] += 1
+    
+    # Calculate edge importance
+    edge_importance = (edge_usage / (n - 1)) * (1 / (distance_matrix + 1e-10))
+    
+    # Incorporate neighborhood influence
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the average usage in the neighborhood
+                neighborhood_size = 3  # Define the neighborhood size
+                neighborhood_usage = np.sum(edge_usage[max(0, i-neighborhood_size):min(n, i+neighborhood_size+1),
+                                                      max(0, j-neighborhood_size):min(n, j+neighborhood_size+1)])
+                # Adjust the heuristic value based on the usage and importance
+                heuristic_matrix[i, j] *= (1 + neighborhood_usage / (edge_usage[i, j] + 1))
+                # Balance the importance with the usage
+                heuristic_matrix[i, j] *= edge_importance[i, j]
+    
+    # Normalize the heuristic matrix to avoid dominance
+    min_value = np.min(heuristic_matrix)
+    if min_value > 0:
+        heuristic_matrix = (heuristic_matrix - min_value) / np.max(heuristic_matrix - min_value)
+    
+    return heuristic_matrix
+```

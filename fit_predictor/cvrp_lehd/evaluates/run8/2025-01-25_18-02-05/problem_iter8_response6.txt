@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    
+    # Avoid division by zero in cases where cumulative_distances might be zero
+    with torch.no_grad():
+        safe_distances = torch.where(cumulative_distances == 0, torch.tensor(1.0e-8), cumulative_distances)
+    
+    # Normalize the cumulative demands and distances by the total demand
+    normalized_cumulative_demands = cumulative_demands / cumulative_demands[-1]
+    normalized_cumulative_distances = cumulative_distances / cumulative_distances[-1]
+    
+    # Calculate the heuristic values based on the ratio of normalized cumulative demand to normalized cumulative distance
+    heuristic_matrix = normalized_cumulative_demands / normalized_cumulative_distances
+    
+    # Apply a non-linear transformation (tanh) to emphasize larger values
+    heuristic_matrix = torch.tanh(heuristic_matrix)
+    
+    # Use a threshold to filter out less promising edges based on the standard deviation of the heuristic values
+    mean_heuristic = torch.mean(heuristic_matrix)
+    std_heuristic = torch.std(heuristic_matrix)
+    threshold = mean_heuristic + std_heuristic * 2  # Filtering out values that are more than 2 standard deviations away from the mean
+    heuristic_matrix = torch.where(torch.abs(heuristic_matrix) > threshold, torch.zeros_like(heuristic_matrix), heuristic_matrix)
+    
+    # Clip the values to be within the desired range to ensure they are within [-1, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

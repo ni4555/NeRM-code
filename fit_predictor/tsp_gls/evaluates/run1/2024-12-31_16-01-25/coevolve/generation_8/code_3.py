@@ -1,0 +1,21 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Assume the distance matrix is symmetric
+    if not np.array_equal(distance_matrix, distance_matrix.T):
+        raise ValueError("The distance matrix must be symmetric.")
+    
+    # Calculate Manhattan distances as heuristics
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # For simplicity, we only calculate the Manhattan distance without considering the return leg
+                heuristic_matrix[i][j] = abs(i - j) * distance_matrix[i][j]
+            else:
+                # The distance from a node to itself should be 0
+                heuristic_matrix[i][j] = 0
+    
+    return heuristic_matrix

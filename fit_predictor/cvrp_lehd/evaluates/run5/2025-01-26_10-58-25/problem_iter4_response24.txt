@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0  # Assuming the vehicle capacity is normalized to 1.0
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the minimum distance from the depot to each customer
+    min_distance_to_customer = torch.min(distance_matrix[0, 1:], dim=0).values
+    
+    # Calculate the minimum distance from each customer to the depot
+    min_distance_from_customer = torch.min(distance_matrix[1:, 0], dim=0).values
+    
+    # Calculate the penalty for each customer based on its demand relative to the vehicle capacity
+    penalty = demands * torch.clamp((1.0 - demands) / vehicle_capacity, min=0)
+    
+    # Combine distance and penalty into the potential function
+    potential = min_distance_to_customer + min_distance_from_customer + penalty
+    
+    # Non-linearly transform the potential function
+    potential = torch.exp(-potential)
+    
+    # Normalize the potential function to create a probability distribution
+    row_sums = torch.sum(potential, dim=1, keepdim=True)
+    normalized_potential = potential / row_sums
+    
+    # Create the heuristics matrix by taking the negative log of the normalized potential
+    heuristics = -torch.log(normalized_potential)
+    
+    # Ensure the heuristics matrix is of the same shape as the distance matrix
+    heuristics = heuristics.squeeze(1)
+    
+    return heuristics
+```

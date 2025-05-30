@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands = demands / total_capacity
+    demand_scale = demands.unsqueeze(1) - demands.unsqueeze(0)
+    distance_scale = distance_matrix / distance_matrix.max()
+    
+    heuristic_matrix = distance_scale * demand_scale
+    
+    # The depot node should return to the start after visiting all customers.
+    # We calculate the penalty for returning to the depot and add it to the heuristic values.
+    # Since the depot has zero demand, we subtract the average demand from the heuristic
+    # value for the edge connecting the depot to itself (which is zero) to get the penalty.
+    return_penalty = -demands[0]
+    heuristic_matrix[torch.arange(n), 0] += return_penalty
+    heuristic_matrix[0, torch.arange(n)] += return_penalty
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,12 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    nearest_customer = torch.argmin(torch.abs(cumulative_demand - cumulative_capacity[:, None]), dim=1)
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    heuristics_matrix[torch.arange(n), nearest_customer] = -distance_matrix[torch.arange(n), nearest_customer]
+    heuristics_matrix[nearest_customer, torch.arange(n)] = distance_matrix[nearest_customer, torch.arange(n)]
+    return heuristics_matrix
+```

@@ -1,0 +1,38 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray, local_optimal_route: np.ndarray) -> np.ndarray:
+    num_vertices = distance_matrix.shape[0]
+    penalty = 100  # High penalty for long edges
+    bonus = 10     # Bonus for good local route edges
+
+    # Initialize the heuristics matrix
+    heuristics_matrix = np.zeros_like(distance_matrix)
+
+    # Apply penalty for long edges
+    heuristics_matrix[distance_matrix > 100] = penalty
+
+    # Calculate bonus based on the local optimal route
+    for i in range(num_vertices):
+        for j in range(num_vertices):
+            if i in local_optimal_route and j in local_optimal_route:
+                # If both vertices are in the local optimal route, give a bonus
+                heuristics_matrix[i][j] += bonus
+            elif i in local_optimal_route or j in local_optimal_route:
+                # If only one vertex is in the local optimal route, give a partial bonus
+                heuristics_matrix[i][j] += bonus // 2
+
+    # Apply neighborhood awareness: If an edge is close to one in the local optimal route, reduce penalty
+    for i in range(num_vertices):
+        for j in range(num_vertices):
+            if i not in local_optimal_route and j not in local_optimal_route:
+                # Find the closest vertex in the local optimal route to the current edge
+                closest_index = np.argmin(np.sum((local_optimal_route - [i, j]) ** 2, axis=1))
+                if closest_index in local_optimal_route:
+                    # Reduce the penalty for edges that are close to the local optimal route
+                    distance_to_closest = np.linalg.norm(local_optimal_route[closest_index] - [i, j])
+                    if distance_to_closest < 2:  # Example threshold, adjust as needed
+                        heuristics_matrix[i][j] -= penalty // 2
+
+    return heuristics_matrix
+```

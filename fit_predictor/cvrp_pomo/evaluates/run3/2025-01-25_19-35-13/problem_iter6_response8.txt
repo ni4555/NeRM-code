@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+    
+    # Initialize the edge potential matrix with large negative values
+    edge_potential = -torch.ones_like(distance_matrix)
+    
+    # Calculate lower bound on the cost using dynamic programming
+    epsilon = 1e-8
+    dp = torch.zeros((len(demands), len(demands)))
+    for d in range(1, len(demands)):
+        for s in range(d):
+            dp[d, s] = torch.min(dp[s, d-1] + distance_matrix[s, d], dp[d, s])
+    
+    # Define the maximum demand allowed before adding a penalty
+    max_demand_threshold = 0.5
+    
+    # Compute potential based on the lower bound, demand, and distance
+    edge_potential += (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential += (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+    
+    # Apply a penalty for high demand and long distances
+    high_demand_penalty = torch.where(normalized_demands > max_demand_threshold,
+                                      max_demand_threshold * demand_weight * 2,
+                                      0)
+    long_distance_penalty = torch.where(distance_matrix > 20,
+                                         20 * distance_weight,
+                                         0)
+    
+    edge_potential -= high_demand_penalty
+    edge_potential -= long_distance_penalty
+    
+    # Give a bonus to the edges going from the depot to other nodes
+    depot_bonus = torch.ones_like(distance_matrix)
+    depot_bonus[distance_matrix == 0] = 0
+    edge_potential += depot_bonus
+    
+    # Adjust potential values to avoid too small or too large differences
+    min_value, max_value = edge_potential.min(), edge_potential.max()
+    edge_potential = 10 * (edge_potential - min_value) / (max_value - min_value)
+    
+    return edge_potential
+```

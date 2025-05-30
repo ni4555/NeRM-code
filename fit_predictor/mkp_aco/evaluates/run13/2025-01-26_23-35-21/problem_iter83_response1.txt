@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize to consider the scale of the problem
+    normalized_prize = prize / np.max(prize)
+
+    # Calculate the normalized density considering the dimensionality of the weight
+    density = normalized_prize / (np.sum(weight, axis=1) + 1e-8)
+
+    # Calculate sparsity in the perspective of total weights
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1)
+
+    # Introduce randomness to avoid local optima
+    random_factor = np.random.rand(len(density))
+
+    # Define the heuristic using a weighted sum of density, sparsity, and randomness
+    heuristic = 0.5 * density + 0.3 * (1 - sparsity) + 0.2 * random_factor
+
+    # Normalize the heuristic to make it comparable across items
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+
+    # Set the heuristics for items with zero weight to a lower value
+    normalized_heuristic[weight.sum(axis=1) < 1e-8] = 0.1
+
+    # Ensure non-negative heuristics
+    normalized_heuristic = np.maximum(normalized_heuristic, 0)
+
+    return normalized_heuristic
+```

@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    balance_factor = torch.abs(cumulative_demand - total_capacity / 2)
+    
+    # Prioritize edges with lower demand and shorter distance
+    demand_term = (1 - (demands / demands.max())) * (1 - (distance_matrix / distance_matrix.max()))
+    
+    # Introduce capacity awareness with dynamic scaling
+    capacity_awareness = -(torch.abs(demands - total_capacity / (n - 1)) - 1e-8)
+    
+    # Implement overflow penalty for edges leading to overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Introduce load balance heuristic with a penalty for imbalance
+    load_balance_penalty = -torch.log1p(balance_factor - 1e-8)
+    
+    # Use a randomness factor to encourage diversity and avoid local optima
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Integrate time-adaptive factor
+    time_adaptive_factor = torch.exp(-cumulative_demand / total_capacity)
+    
+    # Combine terms with a scaling factor to prioritize core objectives
+    scaling_factor = 2.0
+    heuristics = (
+        scaling_factor * (
+            demand_term +
+            capacity_awareness +
+            overflow_penalty +
+            load_balance_penalty
+        ) +
+        randomness_factor +
+        time_adaptive_factor
+    )
+    
+    # Normalize heuristics to ensure they are on a similar scale
+    heuristics /= heuristics.max()
+    
+    return heuristics
+```

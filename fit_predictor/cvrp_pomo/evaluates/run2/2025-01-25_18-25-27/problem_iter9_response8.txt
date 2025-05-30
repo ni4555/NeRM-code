@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    
+    # Introduce a penalty for edges that are not promising
+    penalty = (heuristics_matrix <= 0).float()
+    # Introduce randomness and a penalty for infeasibilities
+    random_factor = (torch.rand(n) * 2 - 1) * (1 - penalty)
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    
+    # Adjust the heuristics matrix based on the penalties and random factor
+    heuristics_matrix = heuristics_matrix + random_factor + infeasibility_penalty * penalty
+    
+    # Normalize the heuristics matrix to ensure it is within the desired range
+    heuristics_matrix = (heuristics_matrix - heuristics_matrix.min()) / (heuristics_matrix.max() - heuristics_matrix.min())
+    
+    return heuristics_matrix
+```

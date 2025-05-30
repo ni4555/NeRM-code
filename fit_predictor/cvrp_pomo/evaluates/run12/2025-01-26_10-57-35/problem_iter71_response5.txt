@@ -1,0 +1,57 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize heuristics matrix with large negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # Calculate demand-based heuristic
+    demand_heuristic = demands[:, None] * demands
+    demand_heuristic = demand_heuristic - torch.diag(demand_heuristic)
+    demand_heuristic /= demand_heuristic.sum(dim=1, keepdim=True)
+    
+    # Calculate distance-based heuristic
+    distance_heuristic = distance_matrix / distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine demand and distance heuristics
+    combined_heuristic = demand_heuristic * distance_heuristic
+    
+    # Normalize the combined heuristic
+    max_combined_heuristic = combined_heuristic.max()
+    combined_heuristic /= max_combined_heuristic
+    
+    # Adjust for capacity constraints
+    capacity_factor = (1 / (demands + 1e-8))
+    combined_heuristic *= capacity_factor
+    
+    # Integrate the combined heuristic into the initial heuristics matrix
+    heuristics = combined_heuristic
+    
+    # Apply dampening factor to stabilize the heuristics
+    dampening_factor = 0.8
+    heuristics *= dampening_factor
+    
+    # Emphasize capacity constraints by adjusting the heuristics
+    heuristics += (capacity_factor - 1) * demands
+    
+    # Normalize the heuristics to avoid dominance
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    # Apply penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += overcapacity_penalty - undercapacity_penalty
+    
+    # Ensure the depot heuristic is the highest
+    depot_cost = demands[0]
+    heuristics[0, :] += depot_cost
+    heuristics[:, 0] += depot_cost
+    
+    # Minimize loops by reducing the heuristic values of edges that form a loop
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics += loop_heuristics
+    
+    return heuristics
+```

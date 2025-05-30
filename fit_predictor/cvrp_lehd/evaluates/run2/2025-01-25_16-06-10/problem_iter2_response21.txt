@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand excluding the depot
+    total_demand = demands[1:].sum()
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the distance from any node to the depot
+    depot_distance = distance_matrix[:, 0]
+    
+    # Iterate through all possible edges, excluding the depot node
+    for i in range(1, distance_matrix.shape[0]):
+        for j in range(1, distance_matrix.shape[1]):
+            # Calculate the current total demand if this edge is taken
+            current_demand = demands[i] + demands[j]
+            
+            # If the current demand is less than the vehicle capacity, consider it
+            if current_demand <= total_demand:
+                # Calculate the heuristic value
+                heuristic_value = -distance_matrix[i, j] + depot_distance[i] + depot_distance[j]
+                heuristic_matrix[i, j] = heuristic_value
+                heuristic_matrix[j, i] = heuristic_value
+            else:
+                # If the current demand exceeds the capacity, make the edge undesirable
+                heuristic_matrix[i, j] = -float('inf')
+                heuristic_matrix[j, i] = -float('inf')
+    
+    return heuristic_matrix
+```

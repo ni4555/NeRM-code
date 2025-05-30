@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    total_demand = demands.sum()
+    
+    # Demand factor with non-linear dampening: enhance the value for high-demand nodes
+    demand_factor = (1 - demands / total_capacity) ** 0.5
+    
+    # Local balance factor: reduce the weight of short edges with low demand
+    local_balance_factor = torch.where(
+        torch.abs(distance_matrix) < torch.mean(torch.abs(distance_matrix)),
+        demands / total_capacity * (1 - 2 * torch.abs(distance_matrix) / torch.mean(torch.abs(distance_matrix))),
+        0
+    )
+    
+    # Global balance factor with problem-specific adjustments: balance the impact of distant edges
+    global_balance_factor = demands / (total_capacity + torch.pow(torch.mean(torch.abs(distance_matrix)), 0.75))
+    
+    # Refine distance scaling with non-linear dampening: decrease the weight of distant edges
+    distance_scaling = 1 / (1 + torch.exp(-distance_matrix / torch.pow(torch.mean(torch.abs(distance_matrix)), 0.25)))
+    
+    # Combine the factors into the heuristics matrix
+    heuristic_matrix = demand_factor * local_balance_factor + global_balance_factor * distance_scaling
+    
+    # Normalize the heuristics matrix to ensure non-negative values
+    heuristic_matrix = heuristic_matrix.clamp(min=0)
+    
+    # Adjust the heuristics for the depot to all other nodes with problem-specific adjustments
+    depot_distance = distance_matrix[:, 0]
+    for i in range(1, n):
+        route_demand = demands[i] + (total_demand - demands[i])
+        # Introduce a penalty that discourages visiting nodes with high travel costs
+        cost_penalty = -torch.mean(depot_distance) * route_demand
+        heuristic_matrix[0, i] = -route_demand * (depot_distance[i] + cost_penalty)
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    return heuristic_matrix
+```

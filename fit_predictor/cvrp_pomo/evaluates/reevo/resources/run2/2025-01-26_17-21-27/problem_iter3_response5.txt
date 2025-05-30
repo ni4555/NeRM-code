@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand from the depot (node 0)
+    cumulative_demand = demands.cumsum()
+    # Calculate the total distance from the depot to each node
+    total_distance = distance_matrix.sum(dim=1)
+    # Calculate the interaction between demand and distance
+    demand_distance_interaction = cumulative_demand * total_distance
+    # Calculate the capacity-aware penalty based on the current vehicle capacity
+    vehicle_capacity = demands.sum()  # Assuming each vehicle can carry the total demand
+    capacity_penalty = torch.clamp(-cumulative_demand / vehicle_capacity, min=-1.0)
+    # Combine all factors to form the heuristic values
+    heuristic_values = demand_distance_interaction + capacity_penalty
+    # Add a small positive value to non-zero edges to ensure sparsity
+    heuristic_values += (distance_matrix > 0).float() * 0.01
+    return heuristic_values
+```

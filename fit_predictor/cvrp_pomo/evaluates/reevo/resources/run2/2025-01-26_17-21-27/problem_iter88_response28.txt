@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Define penalties and scales
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_penalty *= (1 + cumulative_demand / total_capacity) * torch.exp(-cumulative_demand / (total_capacity * 5))
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity / n) - 1e-8)
+    
+    # Combine factors into a single heuristic score
+    heuristics = (
+        distance_penalty +
+        2 * dynamic_capacity_penalty +
+        1.5 * overflow_penalty +
+        load_balance_penalty
+    )
+    
+    # Add randomness and diversity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    heuristics += randomness_factor + diversity_factor
+    
+    # Penalize the depot returning to itself
+    heuristics[0, 0] = -1e7
+    
+    return heuristics
+```

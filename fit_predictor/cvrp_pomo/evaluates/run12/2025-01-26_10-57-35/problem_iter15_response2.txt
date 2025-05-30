@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the total demand
+    total_demand = demands.sum()
+    
+    # Calculate the relative demand for each customer
+    relative_demand = demands / total_demand
+    
+    # Calculate the relative demand-based heuristic
+    demand_based_heuristic = torch.abs(relative_demand[:, None] * relative_demand)
+    
+    # Calculate the capacity-based heuristic
+    capacity_factor = (1 / (demands + 1e-8))  # Avoid division by zero
+    
+    # Calculate the distance-based heuristic
+    distance_based_heuristic = distance_matrix * demand_based_heuristic
+    
+    # Normalize the distance-based heuristic
+    distance_based_heuristic = distance_based_heuristic / distance_based_heuristic.sum(dim=1, keepdim=True)
+    
+    # Combine the two heuristics
+    heuristics = distance_based_heuristic + demand_based_heuristic * capacity_factor
+    
+    # Clip negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

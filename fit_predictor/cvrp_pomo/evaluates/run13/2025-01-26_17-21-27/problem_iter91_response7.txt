@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    balance_factor = torch.mean(demands)
+
+    # Priority for closer nodes
+    priority_distance = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    priority_demand = torch.log1p(torch.abs(demands) - 1e-8)
+
+    # Adaptive scaling based on capacity constraint
+    dynamic_scaling = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    scaling = (1 + cumulative_demand / total_capacity) * (1 + priority_demand / balance_factor)
+
+    # Penalty for capacity overflows
+    overflow_penalty = torch.where(
+        cumulative_demand[:, None] > total_capacity,
+        -torch.log1p(cumulative_demand[:, None] - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balancing between early and late penalties for overcapacity
+    balancing_penalty = torch.log1p(torch.abs(overflow_penalty) - 1e-8)
+
+    # Control randomness by introducing it in the late stage of route construction
+    randomness = torch.abs(torch.randn_like(demands)) * 0.05
+    randomness *= (1 - cumulative_demand / total_capacity)
+
+    # Diversity heuristic for better exploration
+    diversity = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity /= (torch.sum(torch.abs(diversity)) + 1e-8)
+
+    # Core objective weights
+    core_weights = torch.tensor([0.3, 0.5, 0.1, 0.1])  # distance, demand, overflow, load balance
+
+    # Combine all factors and apply scaling
+    heuristics = core_weights[0] * (priority_distance * scaling) + \
+                 core_weights[1] * (priority_demand * scaling) + \
+                 core_weights[2] * (dynamic_scaling + balancing_penalty) + \
+                 core_weights[3] * (1 + overflow_penalty)
+    heuristics += randomness
+    heuristics += diversity
+
+    return heuristics
+```

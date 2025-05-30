@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic incorporating nearest neighbor and demand feasibility."""
+    n = distance_matrix.shape[0]
+    total_demand = demands[1:].sum()  # Exclude the depot node from total demand calculation
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Function to calculate the shortest path between two nodes using nearest neighbor heuristic
+    def calculate_shortest_path(demand, start_node):
+        visited = torch.zeros(n)
+        visited[start_node] = 1
+        total = demand[start_node]
+        current_node = start_node
+        
+        while total < demand.max():
+            current_demand = demand[current_node]
+            # Find the nearest non-visited node
+            next_node = torch.where((distance_matrix[current_node, 1:] < distance_matrix[current_node, torch.where(visited==0, torch.full_like(visited), torch.zeros_like(visited))]).any(dim=1) & 
+                                    (demand[1:] < (total_demand - total)) & 
+                                    (visited == 0))[0].min()
+            # Check if the next node is reachable within capacity
+            if distance_matrix[current_node, next_node] > total_demand - total:
+                break
+            visited[next_node] = 1
+            total += demand[next_node]
+            current_node = next_node
+        
+        return heuristic_matrix[current_node, start_node] + (total_demand - total)
+
+    # Calculate heuristic for each edge based on the nearest neighbor
+    for i in range(1, n):  # Exclude the depot node
+        for j in range(1, n):  # Exclude the depot node
+            # Calculate the shortest path heuristic for the edge i-j
+            heuristic_value = calculate_shortest_path(demands[i:j+1], i)
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value
+
+    # Set the diagonal elements to zero, as a node cannot visit itself
+    torch.fill_diagonal_(heuristic_matrix, 0)
+    
+    return heuristic_matrix
+```

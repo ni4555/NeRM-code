@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    
+    # Calculate the heuristics based on the average demand
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    
+    # Introduce randomness to avoid premature convergence
+    random_factor = (torch.rand(n) * 2 - 1) * (heuristics_matrix > 0).float()
+    
+    # Introduce a penalty for infeasibilities
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    
+    # Introduce a demand adherence heuristic
+    demand_adherence_heuristic = torch.clamp(normalized_demands, 0, 1) * distance_matrix
+    
+    # Combine all factors into the final heuristics matrix
+    heuristics_matrix += random_factor + infeasibility_penalty + demand_adherence_heuristic
+    
+    # Normalize the heuristics matrix to ensure efficient computation
+    positive_heuristics = heuristics_matrix[heuristics_matrix > 0]
+    heuristics_matrix[heuristics_matrix > 0] = positive_heuristics / positive_heuristics.sum()
+    
+    return heuristics_matrix
+```

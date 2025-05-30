@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    # Normalize the capacity to 1
+    capacity = 1.0
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    # Calculate cumulative demands from the depot
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    # Calculate cumulative distances from the depot
+    cumulative_distances = torch.cumsum(distance_matrix[:, 0], dim=0)
+    # Calculate the potential cost of visiting nodes in sequence
+    potential_costs = cumulative_demands * cumulative_distances
+    # Calculate the cumulative heuristics
+    cumulative_heuristics = cumulative_distances - potential_costs
+    # Calculate the heuristics matrix by taking the difference between the distance matrix and the cumulative heuristics
+    heuristics = distance_matrix - cumulative_heuristics
+    # Subtract the demand of the last node from the others to get the correct heuristic values
+    heuristics = heuristics - demands[:, None]
+    # Ensure that all edges have positive heuristics
+    heuristics = torch.clamp(heuristics, min=1e-10)
+    return heuristics
+```

@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Normalize the demands to a range that reflects the importance of each demand relative to others
+    scaled_demands = demands / demands.max()
+    # Apply a logarithmic transformation to the demands to emphasize smaller demands
+    log_scaled_demands = torch.log(1 + scaled_demands)
+    # Combine the transformed distances and demands using a weighted sum, with more emphasis on distance
+    combined_heuristic = 0.5 * torch.log(normalized_distance_matrix + 1e-10) - 0.5 * log_scaled_demands
+    # Use a ReLU activation to introduce a threshold effect, making less promising edges negative
+    heuristic_with_threshold = torch.relu(-combined_heuristic)
+    # Return the positive part of the heuristics matrix as a torch.Tensor
+    return heuristic_with_threshold
+```

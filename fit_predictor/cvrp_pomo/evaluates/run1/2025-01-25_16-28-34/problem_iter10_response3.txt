@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands = demands / total_capacity
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = torch.clamp((demands[:, None] + demands[None, :]) * distance_matrix, min=0)
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce penalties for overloading, underloading, and short edges
+    overload_penalty = torch.clamp(average_demand_per_edge / total_capacity - 1, min=0)
+    underload_penalty = torch.clamp(1 - average_demand_per_edge / total_capacity, min=0)
+    short_edge_penalty = torch.clamp(1 - distance_matrix / (distance_matrix.max()), min=0)
+    
+    # Combine penalties based on a weighted approach
+    combined_penalty = 0.5 * (overload_penalty + underload_penalty) + 0.1 * short_edge_penalty
+    
+    # Adjust the penalties to maintain a balance between exploration and exploitation
+    adjusted_penalty = combined_penalty * (1 - torch.sigmoid(torch.abs(combined_penalty)))
+    
+    # Encourage diversity by adding a perturbation
+    perturbation = torch.rand_like(adjusted_penalty)
+    perturbation = perturbation * torch.sigmoid(adjusted_penalty) - 0.5 * perturbation
+    adjusted_penalty -= perturbation * 0.1
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics = -adjusted_penalty
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

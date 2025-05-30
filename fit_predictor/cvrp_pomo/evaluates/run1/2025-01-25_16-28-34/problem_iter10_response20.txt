@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands = demands / total_capacity
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = torch.clamp((demands[:, None] + demands[None, :]) * distance_matrix, min=0)
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Apply penalties for edges that exceed the vehicle's capacity
+    overload_penalty = torch.clamp(average_demand_per_edge / total_capacity - 1, min=0)
+    
+    # Apply a penalty for very short edges to avoid unnecessary detours
+    edge_length_penalty = 1 - distance_matrix / (distance_matrix.max())
+    
+    # Apply a penalty for very long edges to avoid unnecessary detours
+    edge_length_penalty -= (distance_matrix / distance_matrix.mean())
+    
+    # Apply a penalty for high deviation from the optimal load distribution
+    optimal_load = 1.0 / (n - 1)
+    deviation_penalty = torch.abs((average_demand_per_edge - optimal_load) ** 2)
+    
+    # Combine penalties into a single heuristic
+    heuristics = -torch.abs(overload_penalty + edge_length_penalty + deviation_penalty)
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

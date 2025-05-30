@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    base_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic penalties based on demand
+    dynamic_demand_penalty = base_penalty * (1 + torch.abs(demands - total_capacity / n))
+    
+    # Adaptive scaling for distance based on cumulative demand
+    distance_scaling = base_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Diversity heuristic to encourage different vehicle paths
+    diversity = (cumulative_demand - cumulative_demand.mean()).abs()
+    diversity_penalty = -torch.log1p(diversity - 1e-8)
+    
+    # Core objective: minimize distance and demand penalty
+    core_objective = distance_scaling + dynamic_demand_penalty
+    
+    # Scaling factor for core objective
+    scaling_factor = 2.0
+    
+    # Apply penalties and scaling to get heuristics
+    heuristics = scaling_factor * core_objective + diversity_penalty
+    
+    # Avoid overloading any single vehicle
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    heuristics += overflow_penalty
+    return heuristics
+```

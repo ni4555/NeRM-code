@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the ratio of prize to total weight per item
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Sparsify by considering the average weight in the other dimensions
+    average_weight = np.mean(weight, axis=1)
+    
+    # Incorporate additional factors such as the maximum prize per dimension
+    max_prize_per_dim = np.max(prize, axis=0)
+    dimension_ratio = max_prize_per_dim / np.sum(weight, axis=1)
+    
+    # Balance the importance of prize and sparsity with a weighted sum
+    prize_importance = 0.6
+    sparsity_importance = 0.4
+    
+    # Combine factors with a balanced approach
+    combined_factor = prize_importance * ratio + sparsity_importance * (average_weight / (1 - average_weight))
+    
+    # Incorporate the maximum prize per dimension into the heuristic
+    combined_factor *= dimension_ratio
+    
+    # Apply dynamic threshold based on the combined factor
+    dynamic_threshold = np.percentile(combined_factor, 95)
+    heuristics = combined_factor
+    heuristics[combined_factor < dynamic_threshold] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Scaled distance penalty to account for dynamic load
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Capacity penalty, emphasizing high load penalties
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Overflow penalty for nodes that cause overflow, scaled with the demand
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic, favoring loads closer to the average
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Aggressive scaling factor to prioritize the most promising edges
+    scaling_factor = 2.0
+    heuristics = scaling_factor * (distance_scaling + capacity_penalty + overflow_penalty + load_balance_penalty)
+    
+    # Adjust for the total demand not being a perfect multiple of the vehicle capacity
+    heuristics[:, 0] -= scaling_factor * cumulative_demand[-1]
+    
+    return heuristics
+```

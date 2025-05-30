@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    depot = 0
+
+    # Initialize the heuristics matrix with large negative values
+    heuristics = -torch.full((n, n), float('inf'))
+
+    # Calculate minimum distances from the depot to all other nodes
+    min_distance_to_all = torch.min(distance_matrix[depot], dim=1).values
+
+    # Calculate minimum distances from all other nodes to the depot
+    min_distance_from_all = torch.min(distance_matrix[:, depot], dim=1).values
+
+    # Calculate the total travel distance if the vehicle starts at the depot, visits all nodes, and returns to the depot
+    total_distance = (min_distance_to_all.sum() + min_distance_from_all.sum() + (n - 1) * total_demand)
+
+    # Compute the heuristics values
+    heuristics[depot] = min_distance_to_all
+    heuristics[:, depot] = min_distance_from_all
+    heuristics[1:, 1:] = heuristics[1:, depot] - distance_matrix[1:, 1:]
+
+    # Normalize the heuristics values to ensure they are between 0 and 1
+    heuristics -= heuristics.min()
+    heuristics /= heuristics.max()
+
+    # Add penalties for infeasible edges (where the demand exceeds the vehicle capacity)
+    for i in range(1, n):
+        for j in range(1, n):
+            if i != j and demands[i] > 0:
+                heuristics[i, j] = float('-inf')
+
+    return heuristics
+```

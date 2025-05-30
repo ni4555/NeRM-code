@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Invert distances to give higher priority to shorter paths
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)
+    
+    # Emphasize higher demand nodes by increasing the demand weight
+    demand_weight = demands / (demands.sum() + 1e-10)
+    
+    # Consider the proximity to the depot by adding a factor for the distance from each node to the depot
+    depot_distance_inv = 1 / (distance_matrix[:, 0] + 1e-10)
+    
+    # Combine the weighted distances, demand weights, and proximity bonuses
+    combined_heuristic = distance_matrix_inv * demand_weight + depot_distance_inv
+    
+    # Normalize the heuristic values using min-max scaling
+    max_value = combined_heuristic.max()
+    min_value = combined_heuristic.min()
+    normalized_heuristic = (combined_heuristic - min_value) / (max_value - min_value)
+    
+    # Apply a sigmoid function to transform the normalized values into a range between 0 and 1
+    sigmoid_normalized_heuristic = torch.sigmoid(normalized_heuristic)
+    
+    return sigmoid_normalized_heuristic
+```

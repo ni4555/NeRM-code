@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, vehicle_capacity: float) -> torch.Tensor:
+    """Improved heuristic that incorporates demand-to-capacity ratio, distance-based weighting, and balance considerations."""
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+    
+    # Calculate the inverse of distance matrix
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    # Normalize the inverse distance matrix by the total demand
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+    
+    # Calculate the demand-to-capacity ratio for each customer
+    demand_to_capacity_ratio = demands / vehicle_capacity
+    
+    # Combine the normalized inverse distance with the demand-to-capacity ratio
+    combined_weighting = normalized_inv_distance_matrix * demand_to_capacity_ratio
+    
+    # Introduce a balance term that favors nodes with lower demand-to-capacity ratio
+    balance_term = 1 / (1 + demand_to_capacity_ratio)
+    
+    # Final heuristic matrix
+    heuristic_matrix = -combined_weighting + balance_term
+    
+    return heuristic_matrix
+```

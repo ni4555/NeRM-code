@@ -1,0 +1,70 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+    
+    # Problem-specific Local Search
+    # Calculate the total demand per edge
+    edge_demand = demands[:, None] + demands[None, :]
+    # Calculate the load factor for each edge
+    load_factor = (edge_demand * distance_matrix) / total_capacity
+    
+    # Calculate the heuristics based on the load factor
+    heuristics = load_factor - 1
+    
+    # Apply adaptive PSO with population management
+    # Initialize PSO parameters
+    swarm_size = 10  # Example swarm size
+    max_iterations = 100  # Example number of iterations
+    w = 0.5  # Inertia weight
+    c1, c2 = 1.5, 1.5  # Cognitive and social coefficients
+    
+    # Initialize particles (solutions)
+    particles = torch.rand((swarm_size, n, n))
+    velocities = torch.zeros_like(particles)
+    best_local = particles.clone()
+    best_global = particles[0].clone()
+    
+    for _ in range(max_iterations):
+        for i in range(swarm_size):
+            # Update velocity
+            velocities[i] = w * velocities[i] + c1 * torch.rand_like(velocities) * (best_local[i] - particles[i]) + c2 * torch.rand_like(velocities) * (best_global - particles[i])
+            # Update position
+            particles[i] += velocities[i]
+            # Apply local search to particles
+            for j in range(n):
+                for k in range(j + 1, n):
+                    if (j, k) in particles[i].nonzero(as_tuple=False):
+                        # Swap to balance loads
+                        particles[i][j, k], particles[i][k, j] = particles[i][k, j], particles[i][j, k]
+                        # Update load factor and heuristics
+                        edge_demand = demands[j] + demands[k]
+                        load_factor = (edge_demand * distance_matrix) / total_capacity
+                        heuristics = load_factor - 1
+                        break
+            # Update local best
+            if torch.norm(best_local[i] - particles[i]) > 1e-3:
+                best_local[i] = particles[i].clone()
+            # Update global best
+            if torch.norm(best_global - particles[i]) > 1e-3:
+                best_global = particles[i].clone()
+    
+    # Apply dynamic tabu search with adaptive cost function
+    tabu_list = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            if (i, j) not in tabu_list and load_factor[i, j] <= 1:
+                # Update heuristics based on tabu search
+                heuristics[i, j] *= 0.95
+                heuristics[j, i] *= 0.95
+                tabu_list.add((i, j))
+    
+    # Adjust the heuristics to ensure they are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0  # Avoid division by zero
+    heuristics[heuristics >= 0] = 0  # Set non-negative values to zero
+    
+    return heuristics
+```

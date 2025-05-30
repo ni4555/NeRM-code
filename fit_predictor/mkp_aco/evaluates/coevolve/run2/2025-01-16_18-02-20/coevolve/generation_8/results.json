@@ -1,0 +1,30 @@
+{
+  "generation": 8,
+  "description": "Develop an innovative algorithm for tackling the Multiple Knapsack Problem (MKP) that leverages a hybrid approach combining item ranking through optimized value-to-weight ratio normalization, probabilistic item selection, and adaptive sampling mechanisms. The algorithm must emphasize the selection of items with the highest normalized value-to-weight ratio, treating each item's acceptance as a probabilistic event. Furthermore, the algorithm must be capable of dynamically adjusting to evolving weight constraints and iteratively choosing items to maximize the cumulative reward, all while respecting the individual weight limits of each knapsack. This solution aims to enhance the MKP's prize optimization process by mitigating the risks associated with raw ratio reliance and the lack of stochastic item selection.",
+  "solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Normalize the value-to-weight ratio for each item\n    normalized_ratio = prize / weight.sum(axis=1)\n    \n    # Normalize the ratios to sum to 1\n    normalized_ratio /= normalized_ratio.sum()\n    \n    # Initialize a list to store the heuristics for each item\n    heuristics = np.zeros_like(prize)\n    \n    # Initialize a random number generator\n    rng = np.random.default_rng()\n    \n    # Iterate over each item and assign a heuristic based on the normalized ratio\n    for i in range(prize.shape[0]):\n        # Generate a random number to simulate probabilistic item selection\n        random_number = rng.random()\n        \n        # Calculate the cumulative probability up to the current item\n        cumulative_probability = np.cumsum(normalized_ratio)\n        \n        # Assign the heuristic based on whether the random number falls within the cumulative probability\n        heuristics[i] = 1 if random_number < cumulative_probability[i] else 0\n    \n    return heuristics",
+      "fitness": 17.25715581710777,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve/generation_8/stdout_7.txt",
+      "code_file": "coevolve/generation_8/code_7.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom scipy.stats import poisson\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Normalize the value-to-weight ratio for each item\n    value_to_weight_ratio = prize / weight.sum(axis=1)\n    \n    # Calculate the maximum ratio to normalize all ratios to be between 0 and 1\n    max_ratio = np.max(value_to_weight_ratio)\n    normalized_ratio = value_to_weight_ratio / max_ratio\n    \n    # Define a probability distribution based on the normalized ratio\n    # Higher normalized ratios correspond to higher probabilities of being selected\n    probabilities = normalized_ratio ** 2  # Squaring to emphasize higher ratios\n    \n    # Normalize the probabilities to ensure they sum to 1\n    probabilities /= probabilities.sum()\n    \n    # Generate heuristics based on the probabilities\n    heuristics = np.random.choice(np.arange(len(prize)), size=len(prize), p=probabilities)\n    \n    return heuristics",
+      "fitness": 17.479528642560428,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve/generation_8/stdout_11.txt",
+      "code_file": "coevolve/generation_8/code_11.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nimport random\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the value-to-weight ratio for each item\n    value_to_weight_ratio = prize / weight.sum(axis=1)\n    \n    # Normalize the value-to-weight ratio to ensure all items are on the same scale\n    # This step ensures that items with extreme values do not dominate the ranking\n    max_ratio = np.max(value_to_weight_ratio)\n    normalized_ratio = value_to_weight_ratio / max_ratio\n    \n    # Apply a probabilistic selection mechanism\n    # The probability of selecting an item is proportional to its normalized value-to-weight ratio\n    probabilities = normalized_ratio / normalized_ratio.sum()\n    \n    # Initialize the heuristics array with the probabilities\n    heuristics = probabilities\n    \n    # Adaptive sampling mechanism\n    # We adjust the sampling probability based on the remaining space in the knapsacks\n    # This can be a simple greedy approach where we increase the probability of items\n    # that can be added without exceeding the knapsack's weight limit\n    for i in range(len(prize)):\n        remaining_space = 1 - weight[i].sum()\n        if remaining_space > 0:\n            # Increase the probability for items that can be added\n            # This is a simple linear increase, but more complex adaptive mechanisms can be used\n            probabilities[i] *= (1 + remaining_space / prize[i])\n    \n    # Normalize the probabilities again after the adaptive adjustment\n    heuristics = probabilities / probabilities.sum()\n    \n    return heuristics",
+      "fitness": 21.29173374178942,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve/generation_8/stdout_10.txt",
+      "code_file": "coevolve/generation_8/code_10.py"
+    }
+  ]
+}

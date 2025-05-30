@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    total_demand = demands.sum()
+    
+    # Sort the demands in descending order
+    sorted_indices = torch.argsort(-demands)
+    
+    # Initialize the total demand for the first vehicle
+    current_demand = demands[sorted_indices[1]]
+    total_demand -= current_demand
+    
+    # Calculate the initial heuristic values for the first edge
+    heuristic_matrix[sorted_indices[0], sorted_indices[1]] = total_demand
+    
+    # Iterate over the sorted demands
+    for i in range(2, n):
+        current_demand = demands[sorted_indices[i]]
+        # Check if adding the current node exceeds the capacity
+        if total_demand + current_demand <= 1:
+            total_demand += current_demand
+            # Calculate the heuristic value for the edge
+            heuristic_matrix[sorted_indices[i-1], sorted_indices[i]] = total_demand
+        else:
+            # Calculate the heuristic value for the edge
+            heuristic_matrix[sorted_indices[i-1], sorted_indices[i]] = 0
+
+    return heuristic_matrix
+```

@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # Calculate the cumulative sum of demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    
+    # Vectorize the iteration over destination nodes
+    mask = (demand_cumsum <= demands) * (demand_cumsum <= demands.cumsum(dim=0))
+    
+    # Calculate distances and update heuristics
+    heuristics = (1 - distance_matrix) * mask.float()
+    
+    # Handle cases where no feasible route is possible
+    no_feasible_route_mask = (demands.cumsum(dim=0) >= demands).float()
+    heuristics = heuristics - no_feasible_route_mask * heuristics.abs()
+    
+    return heuristics
+```

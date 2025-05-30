@@ -1,0 +1,35 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    vehicle_capacity = demands.sum() / demands.numel()
+
+    # Nuanlced demand penalty
+    penalty_demand = (torch.abs(demands) ** 0.5) * (vehicle_capacity - demands)
+
+    # Non-linear distance penalty using the negative of log, avoiding log(0)
+    penalty_distance = -torch.log(distance_matrix + 1e-6)
+
+    # Combine demand and distance penalties with a non-linear weight to each component
+    penalty_combined = torch.relu(penalty_demand * 2.5) + torch.relu(penalty_distance)
+
+    # Use the sigmoid non-linear activation function to introduce smooth transitions
+    potential_matrix = torch.sigmoid(penalty_combined)
+
+    # Apply softmax to normalize the potential matrix
+    # The normalization allows the potential matrix to sum to 1 over each row
+    softmax_matrix = F.softmax(potential_matrix, dim=1)
+
+    # Amplify the differences between high and low potential edges
+    amplified_softmax_matrix = torch.exp(softmax_matrix - torch.max(softmax_matrix, dim=1, keepdim=True)[0])
+
+    # Adjust the amplified matrix to ensure that the values are not too close to zero
+    adjusted_amplified_softmax_matrix = amplified_softmax_matrix - torch.min(amplified_softmax_matrix)
+
+    # Invert the values to ensure that negative values represent undesirable edges
+    heuristics_matrix = -adjusted_amplified_softmax_matrix
+
+    return heuristics_matrix
+```

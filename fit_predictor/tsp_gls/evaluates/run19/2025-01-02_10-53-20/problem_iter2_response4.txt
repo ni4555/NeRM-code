@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    edge_usage = np.zeros_like(distance_matrix)
+    for i in range(n):
+        for j in range(i+1, n):
+            edge_usage[i, j] += 1
+    
+    # Calculate the median usage to determine the threshold
+    median_usage = np.median(edge_usage)
+    threshold = median_usage / n
+    
+    # Adjust distances based on usage and introduce randomness
+    adjusted_distances = distance_matrix
+    for i in range(n):
+        for j in range(i+1, n):
+            if edge_usage[i, j] > threshold:
+                adjusted_distances[i, j] *= 1.1  # Increase the penalty for highly used edges
+                adjusted_distances[j, i] *= 1.1
+    
+    # Introduce a small amount of randomness to avoid local minima
+    perturbation = np.random.random((n, n)) * 0.01 - 0.005
+    adjusted_distances += perturbation
+    
+    # Ensure the matrix is symmetric
+    adjusted_distances = (adjusted_distances + adjusted_distances.T) / 2
+    
+    return adjusted_distances
+```

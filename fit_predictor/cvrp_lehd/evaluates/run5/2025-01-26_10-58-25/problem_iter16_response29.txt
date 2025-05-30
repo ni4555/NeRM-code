@@ -1,0 +1,36 @@
+```python
+import torch
+from torch.nn.functional import log_softmax, logsumexp
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the non-linear demand penalty based on overcapacity
+    non_linear_demand_penalty = -torch.log(torch.abs(demands - vehicle_capacity) + 1e-6)
+    
+    # Normalize the distance matrix by vehicle capacity
+    normalized_distance = distance_matrix / vehicle_capacity
+    
+    # Calculate the non-linear distance penalty
+    non_linear_distance_penalty = -torch.log(normalized_distance + 1e-6)
+    
+    # Combine the penalties to form the potential matrix
+    potential_matrix = non_linear_demand_penalty + non_linear_distance_penalty
+    
+    # Use log-softmax to normalize the potential matrix and ensure non-negativity
+    log_prob_matrix = log_softmax(potential_matrix, dim=1)
+    
+    # Scale the log-softmax matrix to balance the scale of values
+    scaled_log_prob_matrix = log_prob_matrix - torch.logsumexp(log_prob_matrix, dim=1, keepdim=True)
+    
+    # Convert the log probabilities to probabilities for better differentiation
+    probability_matrix = torch.exp(scaled_log_prob_matrix)
+    
+    # Subtract the minimum probability from all probabilities to avoid small values
+    adjusted_probability_matrix = probability_matrix - torch.min(probability_matrix)
+    
+    # Convert the probability matrix to a heuristics matrix where negative values represent undesirable edges
+    heuristics_matrix = -adjusted_probability_matrix
+    
+    return heuristics_matrix
+```

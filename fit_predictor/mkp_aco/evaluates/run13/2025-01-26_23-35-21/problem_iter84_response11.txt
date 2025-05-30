@@ -1,0 +1,40 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Normalize density to ensure non-negative values
+    normalized_density = prize / (np.sum(weight, axis=1) + 1e-8)
+
+    # Sparsify by setting weights that are not contributing to the knapsack (e.g., <= threshold)
+    threshold = 1e-6
+    sparsity = np.sum(weight <= threshold, axis=1)
+
+    # Prune dominated items by keeping only those with higher density
+    dominated_indices = np.where(normalized_density <= np.min(normalized_density, axis=0))[0]
+    pruned_density = np.delete(normalized_density, dominated_indices)
+
+    # Balance exploitation by considering a penalty for items with high sparsity
+    penalty_factor = 1 / (sparsity + 1e-8)
+
+    # Introduce randomness to diversify the selection
+    random_factor = np.random.rand(len(pruned_density))
+
+    # Combine factors into heuristic value
+    heuristic_value = pruned_density * (1 - penalty_factor) * random_factor
+
+    # Normalize the heuristic to ensure non-negative and balanced selection
+    normalized_heuristic = heuristic_value / (np.max(heuristic_value) + 1e-8)
+
+    # Adjust the heuristic for dominated items by setting them to zero
+    for index in dominated_indices:
+        normalized_heuristic[index] = 0
+
+    # Set sparsely contributing items to zero to encourage diversity
+    combined_heuristic = np.zeros(n)
+    combined_heuristic[np.arange(n)[sparsity <= threshold]] = normalized_heuristic
+
+    return combined_heuristic
+```

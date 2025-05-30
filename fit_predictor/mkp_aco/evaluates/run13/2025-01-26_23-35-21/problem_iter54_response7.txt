@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Normalize the density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+
+    # Normalize the sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+
+    # Calculate the balance score by considering both density and sparsity
+    balance_score = 0.6 * density + 0.4 * (1 - sparsity)
+
+    # Calculate the diversity score by considering the variance of the density
+    variance_density = np.var(density)
+    diversity_score = 1 / (variance_density + 1e-8)
+
+    # Combine balance and diversity scores into a single heuristic
+    heuristic = balance_score * diversity_score
+
+    # Normalize the heuristic to ensure the sum is one
+    heuristic = heuristic / np.sum(heuristic)
+
+    # Set zero weights to a small value to maintain diversity
+    weight_sum = np.sum(weight, axis=1)
+    heuristic[weight_sum < 1e-8] = 1e-8
+
+    return heuristic
+```

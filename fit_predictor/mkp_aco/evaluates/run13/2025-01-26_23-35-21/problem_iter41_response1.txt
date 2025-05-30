@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Initialize a list to store heuristic components
+    heuristic_components = []
+
+    # Calculate the normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    heuristic_components.append(density)
+
+    # Calculate the normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    heuristic_components.append(1 - sparsity)
+
+    # Integrate additional metrics such as the sum of weights
+    weight_sum = np.sum(weight, axis=1)
+    heuristic_components.append(-weight_sum)
+
+    # Introduce randomness
+    random_factor = np.random.rand(len(prize))
+    heuristic_components.append(random_factor)
+
+    # Calculate a weighted sum of the heuristic components
+    combined_heuristic = np.sum([0.2 * c for c in heuristic_components], axis=0)
+
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = combined_heuristic / (np.max(combined_heuristic) + 1e-8)
+
+    # Sparsify by setting small values to zero
+    sparsified_heuristic = np.where(normalized_heuristic > 0.1, normalized_heuristic, 0)
+
+    return sparsified_heuristic
+```

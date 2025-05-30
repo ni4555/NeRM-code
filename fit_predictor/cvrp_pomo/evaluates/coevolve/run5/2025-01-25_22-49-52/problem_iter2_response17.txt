@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Initialize the potential value matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Improved node partitioning: use demand relaxation to identify potential clusters
+    relaxed_demands = torch.clamp(normalized_demands, min=0.1, max=0.9)
+    clusters = partition_nodes(relaxed_demands)
+    
+    # Calculate the potential value for edges between clusters
+    for i in range(n):
+        for j in range(i + 1, n):
+            if i in clusters[i] and j in clusters[j]:
+                potential_values[i, j] = normalized_distances[i, j] - torch.sum(normalized_demands[clusters[i]]) - torch.sum(normalized_demands[clusters[j]])
+            else:
+                potential_values[i, j] = -float('inf')
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+
+def partition_nodes(relaxed_demands: torch.Tensor) -> list:
+    n = relaxed_demands.shape[0]
+    clusters = [[] for _ in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            if relaxed_demands[i] + relaxed_demands[j] <= 1.0:
+                clusters[i].append(j)
+                clusters[j].append(i)
+    # Convert list of lists to set of sets for unique clusters
+    clusters = [set(cluster) for cluster in clusters]
+    return clusters
+```

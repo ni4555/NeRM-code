@@ -1,0 +1,41 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Use a linear combination to balance demand and distance penalties
+    demand_weight = 0.5
+    distance_weight = 0.5
+    
+    # Create a penalty for exceeding the vehicle capacity
+    penalty_matrix = torch.abs(demands - vehicle_capacity) * demand_weight
+    
+    # Create a distance-based penalty, scaling by the distance_weight
+    distance_penalty_matrix = distance_weight * -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine the demand and distance penalties
+    combined_penalty_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Use a non-linear transformation to amplify the effect of penalty for high demand
+    amplified_penalty_matrix = torch.exp(-combined_penalty_matrix)
+    
+    # Normalize the amplified penalty matrix to ensure non-negativity
+    normalized_penalty_matrix = F.softmax(amplified_penalty_matrix, dim=1)
+    
+    # Use a distance-based heuristic to attract vehicles to nodes
+    distance_heuristic_matrix = torch.exp(-distance_penalty_matrix)
+    
+    # Combine the normalized penalties with the distance heuristic to balance the heuristics
+    combined_matrix = normalized_penalty_matrix + distance_heuristic_matrix
+    
+    # Scale the combined matrix to balance the influence of demand and distance
+    scaled_combined_matrix = combined_matrix / (combined_matrix.sum() + 1e-6)
+    
+    # Transform the scaled combined matrix into a heuristics matrix
+    heuristics_matrix = scaled_combined_matrix - torch.min(scaled_combined_matrix)
+    
+    return heuristics_matrix
+```

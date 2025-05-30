@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Demand significance: Higher for high demand nodes
+    demand_significance = 1 - demands / total_capacity
+    
+    # Local balance: Reduce short distance edges with low demand
+    local_balance = torch.where(
+        torch.abs(distance_matrix) < torch.mean(torch.abs(distance_matrix)),
+        -demands / total_capacity * torch.abs(distance_matrix),
+        0
+    )
+    
+    # Global balance: Balance effect of distant edges
+    global_balance = demands / (total_capacity + torch.mean(torch.abs(distance_matrix)))
+    
+    # Distance dampening: Decrease weight of distant edges
+    distance_dampening = 1 / (1 + torch.exp(-distance_matrix / torch.mean(torch.abs(distance_matrix))))
+    
+    # Combine factors and ensure non-negative values
+    heuristic_matrix = (demand_significance + local_balance + global_balance + distance_dampening) - 1
+    heuristic_matrix = heuristic_matrix.clamp(min=0)
+    
+    # Adjust heuristics for the depot to all other nodes
+    for i in range(1, n):
+        route_demand = demands[i] + (total_capacity - demands[i])
+        heuristic_matrix[0, i] = -route_demand * distance_matrix[0, i]
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    # Integrate diverse demand factors
+    diversity_factor = (demands / total_capacity).pow(2)
+    heuristic_matrix *= diversity_factor
+    
+    # Fine-tune dampening
+    dampening_factor = torch.exp(-torch.arange(n) * 0.1)
+    heuristic_matrix *= dampening_factor
+    
+    return heuristic_matrix
+```

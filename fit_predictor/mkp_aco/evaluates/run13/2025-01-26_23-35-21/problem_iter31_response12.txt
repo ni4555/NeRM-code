@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Randomly initialize heuristic with high variance to ensure diversity
+    random_factor = np.random.normal(size=prize.shape) * 10
+    initial_heuristic = random_factor / np.abs(random_factor).max()
+    
+    # Calculate density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate the balance factor
+    balance_factor = (density + sparsity) / (density + sparsity + 1e-8)
+    
+    # Penalize high variance to encourage uniform heuristic values
+    variance_penalty = np.sum((initial_heuristic - np.mean(initial_heuristic)) ** 2) / len(initial_heuristic)
+    
+    # Create heuristic value based on the combination of the above metrics
+    heuristic_value = density * (1 - sparsity) + balance_factor - variance_penalty
+    
+    # Introduce an additional random walk to add more diversity
+    heuristic_random_walk = np.random.normal(size=prize.shape)
+    
+    # Normalize the combined heuristics
+    combined_heuristic = (heuristic_value + heuristic_random_walk) / (np.abs(heuristic_value + heuristic_random_walk).max() + 1e-8)
+    
+    # Set zero weights to a small positive value to avoid zero heuristics
+    combined_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return combined_heuristic
+```

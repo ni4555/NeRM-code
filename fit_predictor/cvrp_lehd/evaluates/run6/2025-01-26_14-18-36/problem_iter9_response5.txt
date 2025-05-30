@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Demand-driven sorting: sort by the most urgent demand first
+    sorted_indices = torch.argsort(scaled_demands[1:])  # Exclude the depot node
+    sorted_indices = torch.cat([torch.tensor([0]), sorted_indices])  # Include the depot node
+
+    # Precompute the distance and demand from the depot to each node
+    precomputed_distances = distance_matrix[0, sorted_indices]
+    precomputed_demands = torch.cat([scaled_demands[:1], scaled_demands[sorted_indices + 1]])  # Exclude the last demand (depot)
+
+    # Calculate remaining capacity at each node
+    cumulative_demand = torch.cumsum(precomputed_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Normalize and dampen the remaining capacity
+    dampened_capacity = remaining_capacity / (remaining_capacity.sum() + 1)
+
+    # Calculate the heuristics value for each edge
+    heuristics = (precomputed_demands.unsqueeze(1) - precomputed_demands.unsqueeze(0)).abs() * dampened_capacity
+
+    # Use vectorized operations to add penalties
+    penalties = torch.zeros_like(distance_matrix)
+    penalties[torch.arange(distance_matrix.shape[0]), 0] = -1  # Penalty for returning to the depot
+    penalties[sorted_indices + 1:, 0] = -1000  # Penalty for starting the route from nodes with high demand
+
+    # Combine penalties and heuristics, ensuring penalties dominate
+    combined = heuristics + penalties
+    combined = torch.min(combined, torch.zeros_like(combined))  # Apply the smallest value (penalty or heuristic)
+
+    # Normalize the heuristic values to maintain balance and stability
+    max_combined = combined.max()
+    min_combined = combined.min()
+    normalized_heuristics = (combined - min_combined) / (max_combined - min_combined)
+
+    return normalized_heuristics
+```

@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum().item()
+    
+    # Create a matrix where each element is the demand of the row node for the column node
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= demand_matrix.diag()
+    
+    # Normalize the demand matrix to get a probability distribution
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate the weighted demand matrix by multiplying with the distance matrix
+    weighted_demand_matrix = demand_matrix * distance_matrix
+    
+    # Normalize the weighted demand matrix by the total capacity to get heuristics
+    heuristics = weighted_demand_matrix / total_capacity
+    
+    # Ensure all elements are non-negative
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

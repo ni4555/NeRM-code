@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Create a matrix of negative values
+    negative_matrix = -normalized_distance_matrix
+    # Use a non-linear transformation (e.g., logarithm) to increase the weight of shorter distances
+    log_distance_matrix = torch.log(negative_matrix + 1e-5)  # Add a small constant to avoid log(0)
+    # Compute the difference between the transformed matrix and the original to get promising edges
+    transformed_difference = torch.abs(log_distance_matrix - normalized_distance_matrix)
+    # Use a sigmoid function to convert the differences to a promising matrix with negative and positive values
+    sigmoid_matrix = 1 / (1 + torch.exp(-transformed_difference))
+    return sigmoid_matrix
+```

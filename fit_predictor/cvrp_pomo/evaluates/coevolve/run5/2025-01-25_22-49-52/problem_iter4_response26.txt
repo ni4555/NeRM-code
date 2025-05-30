@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix and demand vector
+    max_distance = distance_matrix.max().item()
+    max_demand = demands.max().item()
+    
+    normalized_distances = distance_matrix / max_distance
+    normalized_demands = demands / max_demand
+    
+    # Use a weighted sum of distance and demand to create potential values
+    # Higher weight to demand for closer nodes and lower weight for farther nodes
+    weight = 0.5
+    potential_values = (weight * normalized_distances) + ((1 - weight) * (1 - normalized_demands))
+    
+    # Incorporate demand flexibility by adding a factor that decreases with distance
+    flexibility_factor = torch.exp(-normalized_distances)
+    
+    # Combine potential values with demand flexibility
+    potential_values *= flexibility_factor
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

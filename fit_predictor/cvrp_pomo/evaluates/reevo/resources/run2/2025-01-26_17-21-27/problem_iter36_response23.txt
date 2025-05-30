@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize heuristics matrix with zero values
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Vectorized approach to calculate dynamic penalties
+    edge_demand = demands.unsqueeze(1)
+    total_demand = cumulative_demand.unsqueeze(1) + edge_demand
+    dynamic_penalty = torch.log1p(torch.abs(total_demand - total_capacity) - 1e-8)
+    
+    # Vectorized approach to calculate distance penalties
+    distance_penalty = torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Combine dynamic and distance penalties
+    combined_penalty = dynamic_penalty + distance_penalty
+    
+    # Apply overflow penalty where necessary
+    overflow_penalty = torch.where(
+        total_demand > total_capacity,
+        torch.log1p(total_demand - total_capacity - 1e-8),
+        torch.zeros_like(total_demand)
+    )
+    heuristics = torch.where(
+        total_demand > total_capacity,
+        combined_penalty + overflow_penalty,
+        combined_penalty
+    )
+    
+    # Encourage diversity by occasionally choosing edges with lower penalties
+    diversity_factor = torch.rand_like(heuristics) * 0.1
+    heuristics += diversity_factor
+    
+    # Vectorized approach to adjust penalties to balance the load
+    load_balance = torch.abs(cumulative_demand.unsqueeze(1) + edge_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    heuristics += load_balance_penalty
+    
+    # Scale heuristics to prioritize core objectives
+    heuristics *= 2
+    
+    return heuristics
+```

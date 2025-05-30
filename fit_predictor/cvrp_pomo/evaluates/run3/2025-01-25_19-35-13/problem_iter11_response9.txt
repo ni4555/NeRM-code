@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Initialize the potential matrix
+    n = distance_matrix.shape[0]
+    potential_matrix = torch.full((n, n), fill_value=-1e10)
+    
+    # Precompute the normalized demand vector
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Apply demand-based heuristics
+    for i in range(1, n):
+        for j in range(1, n):
+            if i != j and demands[i] != 0:
+                potential_matrix[i, j] = -1 * demands[i] * normalized_demands[j]
+    
+    # Apply distance-based heuristics
+    distance_heuristic = 1 / (distance_matrix + 1e-8)
+    potential_matrix += distance_heuristic
+    
+    # Apply penalties and shape the search space
+    # Reward short distances and low demands
+    potential_matrix[distance_matrix < 10] += 1e8
+    potential_matrix[demands > 1.5] -= 1e8
+    
+    # Apply metaheuristic-like features
+    # Here we use a simple random walk to simulate a local search
+    for _ in range(50):
+        i, j = torch.randint(0, n, (2,)).tolist()
+        potential_matrix[i, j] = torch.max(potential_matrix[i, j], potential_matrix[j, i])
+    
+    return potential_matrix
+```

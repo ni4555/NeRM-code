@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized prize-to-weight ratio
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity factor based on the number of non-zero weights
+    sparsity_factor = 1 - (np.sum(weight == 0, axis=1) / weight.shape[1])
+    
+    # Calculate the average sparsity across all items
+    average_sparsity = np.mean(sparsity_factor)
+    
+    # Calculate the variance of the weights
+    weight_variance = np.sum(weight**2, axis=1) / weight.shape[1]
+    
+    # Combine various factors for the heuristic value
+    heuristics = ratio * sparsity_factor * (1 / (1 + weight_variance))
+    
+    # Normalize the heuristics to ensure that they sum up to 1
+    heuristics /= np.sum(heuristics)
+    
+    # Apply dynamic sparsification by thresholding the heuristics
+    # Set a sparsity threshold based on the average sparsity
+    sparsity_threshold = average_sparsity
+    
+    # Apply the threshold to the heuristics
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_threshold = total_demand / (n - 1)
+    
+    # Normalize distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Load factor to discourage heavily loaded nodes
+    load_factor = node_loads.sum(-1) * (norm_distances.sum(-1) ** 0.5)
+    
+    # Distance factor, with non-linear scaling by squaring
+    distance_factor = (norm_distances ** 2)
+    
+    # Balance load factor to encourage visiting lightly loaded nodes
+    balance_load_factor = (1 - torch.abs(demands - demand_threshold / 2) / (demand_threshold / 2)).pow(2)
+    
+    # Revisit penalty for customers that exceed demand threshold
+    revisit_penalty = (demands > demand_threshold).type(torch.float32) * (1 + demands)
+    
+    # Combine factors to create heuristics
+    heuristics = distance_factor * load_factor * balance_load_factor * revisit_penalty
+    
+    # Add exploration element with noise
+    noise = torch.randn_like(heuristics) * 0.1
+    
+    # Adaptively balance exploration and exploitation
+    std_load_factor = load_factor.std()
+    adjusted_range = 2.0 * std_load_factor
+    heuristics = torch.clamp(heuristics + noise, min=-adjusted_range, max=adjusted_range)
+    
+    return heuristics
+```

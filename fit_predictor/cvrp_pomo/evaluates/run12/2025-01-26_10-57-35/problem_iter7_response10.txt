@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= demand_matrix.diag()
+    demand_matrix = (demand_matrix - demand_matrix.min()) / demand_matrix.max()
+    
+    # Calculate the cumulative demand
+    cumulative_demand = torch.cumsum(torch.cat([torch.tensor([0]), demands]), dim=0)
+    
+    # Vectorize to calculate the sum of demands from the current node to any node
+    demand_sum_to_node = (cumulative_demand[None, :] - cumulative_demand[:, None]).abs()
+    demand_sum_to_node -= demand_sum_to_node.diag()
+    
+    # Use vectorized operations to ensure symmetry and efficient data transformation
+    min_demand_sum_to_node = torch.min(demand_sum_to_node, dim=1, keepdim=True)[0]
+    
+    # Calculate the weighted distance matrix based on demand
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    normalized_weighted_distance_matrix = weighted_distance_matrix / min_demand_sum_to_node
+    
+    # Calculate the heuristic by combining normalized demand and normalized distance
+    heuristics = normalized_weighted_distance_matrix + demand_matrix
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

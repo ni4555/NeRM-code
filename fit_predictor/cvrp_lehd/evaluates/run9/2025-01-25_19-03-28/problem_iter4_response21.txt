@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic for each edge using a combination of factors:
+    # - The normalized demand to prioritize nodes with high demand
+    # - The inverse of the distance (with a penalty term for longer distances)
+    # - A demand diversity term that penalizes nodes with similar demands
+    # - A weight that balances the importance of the factors
+    distance_squared = distance_matrix ** 2
+    distance_inverse = 1 / (distance_squared + 1e-8)  # Adding a small constant to avoid division by zero
+    demand_diversity = torch.mean(torch.abs(demands - torch.mean(demands, keepdim=True)))
+    weights = torch.tensor([0.5, 0.3, 0.1, 0.1])  # Example weights for the factors
+    heuristic_matrix = -torch.sum(torch.stack([
+        weights[0] * normalized_demands,
+        weights[1] * distance_inverse,
+        weights[2] * demand_diversity,
+        weights[3] * distance_squared
+    ], dim=0), dim=0)
+
+    return heuristic_matrix
+```

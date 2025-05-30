@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Find the indices of the nearest customer with a positive demand that can be served
+    nearest_customer = torch.argmin(torch.abs(cumulative_demand - cumulative_capacity[:, None]), dim=1)
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # For each edge from the depot to a customer, assign a heuristic value based on the distance
+    # to the nearest customer that can be served without exceeding vehicle capacity
+    heuristics_matrix[torch.arange(distance_matrix.shape[0]), nearest_customer] = -distance_matrix[torch.arange(distance_matrix.shape[0]), nearest_customer]
+    
+    # Calculate penalty factors for demand, distance, and capacity deficit
+    demand_penalty_factor = 0.1
+    distance_penalty_factor = 0.1
+    capacity_deficit_penalty_factor = 0.1
+    
+    # Calculate penalties for high demand nodes, high distance edges, and capacity deficits
+    high_demand_penalty = (demands > demands.mean()).float() * demand_penalty_factor
+    high_distance_penalty = (distance_matrix > distance_matrix.mean()).float() * distance_penalty_factor
+    capacity_deficit_penalty = (vehicle_capacity - cumulative_capacity[nearest_customer] < 0).float() * capacity_deficit_penalty_factor
+    
+    # Calculate the heuristic values with penalties
+    heuristics_matrix = heuristics_matrix + high_demand_penalty[nearest_customer] + high_distance_penalty[nearest_customer] - capacity_deficit_penalty[nearest_customer]
+    
+    return heuristics_matrix
+```

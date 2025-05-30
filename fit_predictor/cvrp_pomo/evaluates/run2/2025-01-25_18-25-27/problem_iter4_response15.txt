@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True))
+    # Ensure all values are non-negative by adding the absolute minimum value to all elements
+    min_value = torch.min(heuristics_matrix)
+    heuristics_matrix = heuristics_matrix + min_value
+    # Apply a local search heuristic to refine the heuristics
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                heuristics_matrix[i, j] = max(heuristics_matrix[i, j], heuristics_matrix[i, j] - (0.1 * (demands[j] / demands.sum())))
+    # Apply a global heuristic to maintain diversity
+    diversity_factor = 0.01 * (1 - torch.abs(torch.rand(n, n)))
+    heuristics_matrix = heuristics_matrix + diversity_factor
+    return heuristics_matrix
+```

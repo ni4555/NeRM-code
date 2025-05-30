@@ -1,0 +1,60 @@
+import numpy as np
+
+def heuristics_v2(prize, weight):
+    n, m = prize.shape[0], weight.shape[1]
+    population_size = 20
+    max_iterations = 50
+    mutation_rate = 0.02
+    
+    # Initialize a population of random item choices
+    population = np.random.choice([0, 1], size=(population_size, n), p=[0.5, 0.5])
+    
+    def fitness(individual):
+        sum_prize = np.sum(prize[individual])
+        sum_weight = np.sum(weight[individual, np.where(weight[individual, :] == 1)[1]])
+        return sum_prize - sum_weight
+    
+    def mutate(individual):
+        i, j = np.random.choice(n, 2, replace=False)
+        individual[i], individual[j] = individual[j], individual[i]
+        return individual
+    
+    for iteration in range(max_iterations):
+        fitness_values = np.array([fitness(individual) for individual in population])
+        elite_indices = np.argsort(fitness_values)[-int(population_size / 2):]
+        elite_population = population[elite_indices]
+        
+        # Generate the next generation using elite population
+        population = np.copy(elite_population)
+        
+        while population.shape[0] < population_size:
+            parents = np.random.choice(elite_population, 2, replace=False)
+            child = np.array([0]*n)
+            child[parents[0]] = 1
+            child[parents[1]] = 1
+            
+            if np.random.rand() < mutation_rate:
+                child = mutate(child)
+            
+            if child.sum() == 0:
+                child = np.random.choice([0, 1], size=n, p=[0.5, 0.5])
+            
+            population = np.concatenate((population, child))
+        
+        # Sort and keep the top 50% population for the next generation
+        fitness_values = np.array([fitness(individual) for individual in population])
+        population = population[np.argsort(fitness_values)[-int(population_size / 2):]]
+    
+    # Evaluate fitness of each individual and select the top half
+    final_fitness_values = np.array([fitness(individual) for individual in population])
+    best_indices = np.argsort(final_fitness_values)[-int(population_size / 2):]
+    final_population = population[best_indices]
+    
+    # Generate the heuristics matrix based on selected items
+    heuristics_matrix = np.zeros(n)
+    for individual in final_population:
+        selected_items = np.where(individual == 1)[0]
+        for item in selected_items:
+            heuristics_matrix[item] = np.sum(prize[item]) / np.sum(weight[item, :].max(axis=1))
+    
+    return heuristics_matrix

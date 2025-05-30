@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Create a matrix of ones for later subtraction
+    ones_matrix = torch.ones_like(normalized_distance_matrix)
+    # Use the Heuristic for the Traveling Salesman Problem (TSP), which is a good starting point for CVRP
+    # The following is a simple heuristic: sort customers by distance to the depot and add them in that order
+    indices_sorted_by_distance = torch.argsort(normalized_distance_matrix[0, 1:], descending=True)
+    cumulative_demand = torch.zeros_like(demands)
+    for i, idx in enumerate(indices_sorted_by_distance):
+        cumulative_demand[idx] = demands[idx]
+        if cumulative_demand[idx] > 1.0:  # If the cumulative demand exceeds the capacity
+            cumulative_demand[idx] = 1.0
+            break
+    # Calculate the deviation from the ideal TSP solution
+    deviation = ones_matrix - cumulative_demand.unsqueeze(0)
+    # The heuristic is to have negative values for edges that are less promising
+    heuristics = -torch.sum(deviation.unsqueeze(1) * normalized_distance_matrix, dim=0)
+    return heuristics
+```

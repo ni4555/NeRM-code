@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison and normalization
+    demand_matrix = (demands[:, None] * demands) / demands.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Integrate capacity constraint by using the inverse of demand
+    capacity_factor = 1 / (demands + 1e-8)
+    
+    # Calculate heuristic by combining normalized weighted distance and demand
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Enhance promising edges and balance with capacity
+    heuristics = heuristics * (1 + demands)
+    
+    # Scale heuristics by their max value
+    max_value = heuristics.max()
+    heuristics /= max_value
+    
+    # Ensure that the heuristic for the depot is always the highest
+    heuristics[:, 0] = 1.0
+    heuristics[0, :] = 1.0
+    
+    return heuristics
+```

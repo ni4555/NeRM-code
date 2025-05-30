@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize demands to sum up to the vehicle capacity
+    total_demand = demands.sum()
+    normalized_demands = demands / (total_demand + 1e-8)  # Add a small epsilon to avoid division by zero
+
+    # Calculate the potential for each edge
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    demand_potential = torch.log1p(-torch.exp(-normalized_demands))
+    
+    # Calculate dynamic weights for demand and distance
+    demand_weight = torch.where(demands > 0.5, 2, 1)
+    distance_weight = 1 - demand_weight
+    
+    # Calculate lower bound using dynamic programming
+    dp = torch.full((n, n), float('inf'))
+    dp[:, 0] = 0
+    for d in range(1, n):
+        for s in range(d):
+            dp[d, s] = torch.min(dp[d, s], dp[s, d-1] + distance_matrix[s, d])
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    
+    # Calculate edge potential
+    edge_potential = lower_bound / (distance_matrix + epsilon) * (demand_potential ** demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * (demand_potential ** 0.5) * distance_weight
+    
+    # Introduce a non-linear penalty for high demand and long distances
+    high_demand_penalty = torch.where(demands > 2, 10, 0)
+    long_distance_penalty = torch.where(distance_matrix > 50, 2, 0)
+    
+    edge_potential = edge_potential - (high_demand_penalty + long_distance_penalty)
+    
+    return edge_potential
+```

@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    distances_from_depot = distance_matrix[0, 1:]  # Distance from depot to customers
+    distances_to_customers = distance_matrix[1:, 0]  # Distance from customers to depot
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Calculate the potential of each edge based on the product of distances and the absolute difference in demand
+    heuristic_values = -torch.abs(demand_diff) * distances_from_depot * distances_to_customers
+    
+    # Incorporate a dampening factor to balance local demand and global distance
+    dampening_factor = 0.5
+    dampened_distance = dampening_factor * (distances_from_depot + distances_to_customers) * (1 + torch.abs(demand_diff))
+    
+    # Add penalties for infeasibilities
+    penalties = torch.zeros_like(heuristic_values)
+    penalties[distances_from_depot + distances_to_customers > 1] = -1000  # Exceeding vehicle capacity
+    penalties[demand_diff.abs() > average_demand * 2] = -1000  # High demand difference
+    penalties[dampened_distance > average_demand * 2] = -1000  # Too far from the depot
+    
+    # Combine heuristic values and penalties
+    combined_heuristic_values = heuristic_values + penalties
+    
+    # Normalize the combined heuristic values to maintain balance and stability
+    max_heuristic = combined_heuristic_values.max()
+    min_heuristic = combined_heuristic_values.min()
+    combined_heuristic_values = (combined_heuristic_values - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # Update the heuristic matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    heuristic_matrix[0, 1:] = combined_heuristic_values
+    heuristic_matrix[1:, 0] = combined_heuristic_values
+    heuristic_matrix[0, 0] = combined_heuristic_values.sum()  # Set the depot heuristic value to the sum of customer heuristics
+    
+    return heuristic_matrix
+```

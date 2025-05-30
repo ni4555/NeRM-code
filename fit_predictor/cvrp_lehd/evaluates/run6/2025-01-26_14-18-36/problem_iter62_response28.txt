@@ -1,0 +1,60 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize the heuristic matrix
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Add a capacity penalty for edges that lead to a node with demand greater than vehicle capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics += capacity_penalty
+
+    # Add a penalty for edges leading back to the depot (index 0)
+    dampening_factor = 0.3
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * dampening_factor
+
+    # Introduce a diversity penalty to encourage a spread of nodes to visit
+    diversity_penalty = torch.sum(remaining_capacity < 0.1)
+    diversity_penalty = torch.clamp(diversity_penalty * 100.0, min=0.0)
+    heuristics -= diversity_penalty * dampening_factor
+
+    # Introduce a variance penalty to encourage balanced load distribution
+    variance_penalty = torch.var(remaining_capacity, dim=0)
+    variance_penalty = torch.clamp(variance_penalty, min=0.0)
+    heuristics -= variance_penalty * dampening_factor
+
+    # Introduce a cumulative demand penalty to encourage visiting nodes with lower demand first
+    cumulative_demand_penalty = torch.clamp(cumulative_demand / total_capacity, min=0.0)
+    heuristics -= cumulative_demand_penalty * dampening_factor
+
+    # Introduce a distance penalty to favor closer nodes (local preference)
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 50
+    heuristics += torch.clamp(distance_penalty, min=0.0) * dampening_factor
+
+    # Introduce randomness to avoid local optima
+    random_factor = torch.rand_like(heuristics)
+    heuristics *= (1 - 0.1) + 0.1 * random_factor
+
+    # Normalize heuristics to be in the range [0, 1]
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Apply a non-linear transformation to the heuristic values to avoid local optima
+    heuristics = torch.log(1 + heuristics)
+
+    # Balancing the heuristic values to ensure a uniform distribution across all edges
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Incorporate the demand into the heuristic
+    demand_weight = -demands / total_demand  # Negative because higher demand is less promising
+    
+    # Use the reciprocal of the distance to prioritize closer nodes
+    distance_weight = 1.0 / (distance_matrix + 1e-6)  # Add a small constant to avoid division by zero
+    
+    # Combine demand and distance weights
+    combined_weights = demand_weight + distance_weight
+    
+    # Normalize the combined weights by their maximum value to ensure positive values
+    max_combined_weight = combined_weights.max()
+    normalized_combined_weights = combined_weights / max_combined_weight
+    
+    # Invert the distances to prioritize shorter routes
+    inverted_distance = 1.0 / (distance_matrix + 1e-6)
+    
+    # Combine the inverted distance with the normalized weights
+    final_heuristic = normalized_combined_weights * inverted_distance
+    
+    return final_heuristic
+```

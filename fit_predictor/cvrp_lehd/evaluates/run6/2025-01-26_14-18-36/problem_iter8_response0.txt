@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demands_sorted_indices = torch.argsort(demands)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Demand-driven sorting: sort nodes by demand and then by distance
+    sorted_indices = demands_sorted_indices[1:]  # Exclude the depot node
+    sorted_indices = torch.argsort(distance_matrix[0, sorted_indices], descending=True)
+    sorted_indices = torch.cat([torch.tensor([0]), sorted_indices])  # Add depot node at the beginning
+    
+    total_remaining_demand = demands.sum()
+    current_load = 0.0
+    
+    for i in range(1, n):
+        distance_to_next = distance_matrix[sorted_indices[i-1], sorted_indices[i]]
+        next_demand = demands[sorted_indices[i]]
+        
+        if total_remaining_demand + next_demand <= 1.0:
+            current_load += next_demand
+            total_remaining_demand -= next_demand
+            heuristic_matrix[sorted_indices[i-1], sorted_indices[i]] = -distance_to_next
+        else:
+            # Calculate the cost of traveling back to the depot
+            distance_to_depot = distance_matrix[sorted_indices[i-1], 0]
+            heuristic_matrix[sorted_indices[i-1], sorted_indices[i]] = -distance_to_depot
+            total_remaining_demand = max(0, total_remaining_demand - 1.0)
+            current_load = 0.0
+        
+        if current_load == 0.0:
+            # Reset current load for the next route
+            current_load = demands[sorted_indices[i]]
+            total_remaining_demand -= current_load
+        
+    # Add penalties for high demand and edges that are not part of the sorted path
+    high_demand_penalty = (demands > 0.1).float() * -1000.0
+    out_of_path_penalty = (torch.arange(n) != sorted_indices).float() * -1000.0
+    heuristic_matrix += high_demand_penalty + out_of_path_penalty
+    
+    return heuristic_matrix
+```

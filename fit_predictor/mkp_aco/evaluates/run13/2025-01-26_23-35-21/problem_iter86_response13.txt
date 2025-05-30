@@ -1,0 +1,50 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+
+    # Normalize the density of the prizes to the average prize density
+    average_prize_density = np.mean(prize / np.sum(weight, axis=1))
+    density = prize / average_prize_density
+
+    # Normalize the sparsity of the weights to the average sparsity
+    average_sparsity = np.mean(np.sum(weight, axis=1) / np.max(weight, axis=1))
+    sparsity = np.sum(weight, axis=1) / average_sparsity
+
+    # Calculate the value-to-weight ratio for each item
+    value_to_weight_ratio = prize / np.sum(weight**2, axis=1)
+
+    # Introduce randomness for diversity
+    random_factor = np.random.rand(n) / np.max(np.random.rand(n))
+
+    # Define balance factors for density and sparsity
+    balance_factor_density = 0.7 * (density / np.max(density))
+    balance_factor_sparsity = 0.3 * (1 - sparsity)
+
+    # Define a balance factor for the value-to-weight ratio
+    balance_factor_value_to_weight = 0.5 * value_to_weight_ratio
+
+    # Define a diversity factor that penalizes items with high density
+    diversity_factor = 0.2 * (1 - np.mean(density)) / (np.max(1 - np.mean(density)) + 1e-8)
+
+    # Combine the balance factors and the diversity factor
+    heuristic = balance_factor_density + balance_factor_sparsity + balance_factor_value_to_weight + diversity_factor + random_factor
+
+    # Normalize the heuristic values to a common scale
+    max_heuristic = np.max(heuristic)
+    normalized_heuristic = heuristic / max_heuristic
+
+    # Apply a sparsity penalty to encourage diversity
+    sparsity_penalty = (1 - sparsity) * 0.1
+    refined_heuristic = normalized_heuristic * (1 - sparsity_penalty)
+
+    # Ensure that the heuristic values are non-negative
+    refined_heuristic = np.maximum(refined_heuristic, 0)
+
+    # If all items have zero density, set a minimum heuristic value to avoid dominance
+    if np.all(density == 0):
+        refined_heuristic = np.ones(n) * 1e-8
+
+    return refined_heuristic
+```

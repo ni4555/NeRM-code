@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the difference in cumulative demand between consecutive nodes
+    cumulative_demand_diff = (cumulative_demand[1:] - cumulative_demand[:-1]).abs()
+    
+    # Calculate the heuristic based on the cumulative demand difference
+    heuristics_matrix = -torch.sum(cumulative_demand_diff) * (distance_matrix != 0)
+    
+    # Avoid overcapacity by adding a penalty to the edges where demand would exceed capacity
+    overcapacity_penalty = (cumulative_demand + cumulative_demand[:, None]) > 1.0
+    heuristics_matrix = heuristics_matrix + overcapacity_penalty * 1000
+    
+    # Penalize longer distances by adding a distance-based penalty
+    heuristics_matrix += distance_matrix * 0.1
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the sum of demands divided by the total capacity, which represents how full a vehicle would get
+    total_demand = demands.sum()
+    demand_threshold = (demands / total_demand).unsqueeze(-1) * norm_distances
+    
+    # Calculate the heuristics based on the normalized distance and the demand threshold
+    # Use a penalty factor to discourage high loads, while promoting shorter paths
+    penalty_factor = demands.unsqueeze(1) / total_demand
+    heuristics = -penalty_factor * (demand_threshold - norm_distances)
+    
+    # Introduce exploration-exploitation bias by blending with a random noise
+    noise = torch.randn_like(heuristics) * 0.05  # 0.05 is a smaller scaling factor for the noise to encourage exploration
+    heuristics += noise
+    
+    # Normalize the heuristics to ensure the best paths are positive and the worst are negative
+    min_heuristic, _ = heuristics.min(-1, keepdim=True)
+    max_heuristic, _ = heuristics.max(-1, keepdim=True)
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    return heuristics
+```

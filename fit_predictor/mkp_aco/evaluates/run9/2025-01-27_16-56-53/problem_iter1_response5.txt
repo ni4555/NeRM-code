@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of prize and weight factors
+    for i in range(n):
+        weighted_prize = np.sum(prize[i] * weight[i])
+        # Include a sparsity factor to encourage selecting items with a high density of high-value weights
+        sparsity_factor = 1 / (1 + np.sum(weight[i] > 0.5))
+        heuristic[i] = weighted_prize * sparsity_factor
+    
+    # Incorporate a dimension-specific weight balance factor
+    for i in range(n):
+        dimension_balance = np.mean(weight[i])
+        heuristic[i] *= (1 + dimension_balance - 0.5)
+    
+    # Normalize to maintain balance and set low-value elements to zero
+    max_heuristic = np.max(heuristic)
+    heuristic = heuristic / max_heuristic if max_heuristic > 0 else heuristic
+    heuristic[heuristic < 0.1] = 0
+    
+    return heuristic
+```

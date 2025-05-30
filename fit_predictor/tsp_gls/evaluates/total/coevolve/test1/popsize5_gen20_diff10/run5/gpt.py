@@ -1,0 +1,38 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # This heuristic function uses a combination of domain-specific knowledge and global problem insights.
+    # It focuses on the relative distances between nodes, considering both the average distance and the
+    # distance to the farthest node from each node, and also incorporates a local connectivity metric.
+    
+    # Calculate the sum of distances from each node to all others
+    node_distances = np.sum(distance_matrix, axis=1)
+    
+    # Calculate the mean distance of all edges
+    total_edge_distance = np.sum(distance_matrix)
+    mean_distance = total_edge_distance / (distance_matrix.shape[0] * (distance_matrix.shape[0] - 1))
+    
+    # Calculate the maximum distance from each node to all others
+    max_node_distances = np.max(distance_matrix, axis=1)
+    
+    # Calculate the average distance to the nearest neighbor
+    min_distance_to_neighbor = np.min(distance_matrix, axis=1)
+    average_min_distance = np.mean(min_distance_to_neighbor)
+    
+    # Calculate the number of neighbors within a certain distance
+    distance_threshold = np.mean(max_node_distances)
+    local_connectivity = np.sum(distance_matrix <= distance_threshold, axis=1)
+    
+    # Combine heuristics: relative distance to the mean, relative distance to the farthest node,
+    # and local connectivity
+    epsilon = 1e-10
+    heuristic_matrix = ((node_distances / mean_distance) + 
+                        (max_node_distances / (node_distances + epsilon)) +
+                        (local_connectivity / distance_matrix.shape[0])) * (-distance_matrix)
+    
+    # Normalize the heuristic matrix to avoid negative values and to provide a relative scale
+    row_sums = np.sum(heuristic_matrix, axis=1)
+    normalized_heuristic_matrix = (heuristic_matrix / (row_sums[:, np.newaxis] + epsilon))
+    
+    return normalized_heuristic_matrix

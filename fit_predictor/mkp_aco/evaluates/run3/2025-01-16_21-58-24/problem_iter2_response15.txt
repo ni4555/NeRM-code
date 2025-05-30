@@ -1,0 +1,25 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate additional factors
+    penalty = weight.sum(axis=1)
+    diversity = np.log(np.arange(1, len(weight) + 1))
+    
+    # Combine value-to-weight ratio with additional factors
+    heuristics = (value_to_weight_ratio * diversity) / (penalty + value_to_weight_ratio)
+    
+    # Adaptive sparsification based on the sum of heuristics
+    adaptive_threshold = np.sum(heuristics) / len(heuristics)
+    heuristics[heuristics < adaptive_threshold] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,21 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate utility based on prize per unit weight
+    utility = prize / np.sum(weight, axis=1)
+    # Normalize the utility to ensure it's between 0 and 1
+    utility = (utility - np.min(utility)) / (np.max(utility) - np.min(utility))
+    # Calculate the sparsity of the weight matrix
+    sparsity = 1 - np.mean(weight, axis=1)
+    # Normalize the sparsity to ensure it's between 0 and 1
+    sparsity = (sparsity - np.min(sparsity)) / (np.max(sparsity) - np.min(sparsity))
+    # Combine utility and sparsity using a weighted sum, with utility having a higher weight
+    combined_heuristics = utility * 0.7 + sparsity * 0.3
+    # Apply a smoothing function, such as a sigmoid, to the heuristics
+    heuristics = 1 / (1 + np.exp(-combined_heuristics))
+    # Avoid setting too many heuristics to zero at once by using a softer threshold
+    threshold = np.percentile(heuristics, 95)
+    heuristics[heuristics < threshold] = threshold
+    return heuristics
+```

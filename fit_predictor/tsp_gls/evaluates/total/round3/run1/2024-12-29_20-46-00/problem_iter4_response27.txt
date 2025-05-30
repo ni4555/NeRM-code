@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    degrees = np.sum(distance_matrix, axis=1)
+    # Normalize the degrees to prevent high-degree nodes from dominating the heuristic
+    normalized_degrees = degrees / np.sum(degrees)
+    
+    # Calculate the density of the graph to penalize dense regions
+    density = np.sum(distance_matrix) / (num_nodes * (num_nodes - 1))
+    
+    # Initialize a matrix with the same shape as the distance matrix
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Calculate the heuristic for each edge
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Use the product of normalized degrees to reflect local connectivity
+                # and divide by the density to penalize dense regions
+                # Also, normalize the distance by the maximum distance to give relative weights
+                heuristic_matrix[i, j] = (normalized_degrees[i] * normalized_degrees[j]) / density
+                heuristic_matrix[i, j] /= np.max(distance_matrix)
+    
+    # Normalize the heuristic values to ensure they are between 0 and 1
+    min_val = np.min(heuristic_matrix[heuristic_matrix > 0])
+    max_val = np.max(heuristic_matrix)
+    if min_val == max_val:
+        # If all heuristic values are the same, set to 0 to avoid division by zero
+        heuristic_matrix = np.zeros_like(distance_matrix)
+    else:
+        heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    return heuristic_matrix
+```

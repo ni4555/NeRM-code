@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Normalize distances to be within [0, 1]
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate load factor for each customer node
+    load_factors = demands.unsqueeze(1) / total_demand
+    
+    # Calculate load balancing penalty
+    load_balancing_penalty = torch.abs(torch.diff(load_factors)).pow(2)
+    
+    # Calculate distance heuristics
+    distance_heuristics = norm_distances - (load_factors.unsqueeze(0) * norm_distances).sum(-1)
+    
+    # Add demand difference penalty
+    demand_diff_penalty = torch.abs(demands.unsqueeze(1) - demands.unsqueeze(0)) * 0.1
+    
+    # Add diversity penalty to avoid consecutive visits to the same node
+    diversity_penalty = (torch.arange(n) == torch.arange(n)[:, None]).float() * 0.05
+    
+    # Combine heuristics and penalties
+    heuristics = distance_heuristics + demand_diff_penalty + diversity_penalty + load_balancing_penalty
+    
+    # Saturate the heuristics to be in the range of [-1, 1]
+    heuristics = torch.clamp(heuristics, -1, 1)
+    
+    return heuristics
+```

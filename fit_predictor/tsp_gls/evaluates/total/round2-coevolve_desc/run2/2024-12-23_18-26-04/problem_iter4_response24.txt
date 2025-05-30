@@ -1,0 +1,58 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    heuristic_matrix = np.full(distance_matrix.shape, np.inf)
+    
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=1)
+    
+    # Calculate the usage of each edge
+    edge_usage = np.count_nonzero(distance_matrix, axis=0)
+    
+    # Calculate the mean and standard deviation of the distance matrix
+    mean_distance = np.mean(distance_matrix)
+    std_distance = np.std(distance_matrix)
+    
+    # Initialize a graph to perform the cycle detection
+    graph = {i: [] for i in range(n)}
+    
+    # Count the usage of each edge and detect cycles
+    for i in range(n):
+        for j in range(i+1, n):
+            graph[i].append(j)
+            graph[j].append(i)
+    
+    # Function to detect if an edge is part of a cycle
+    def is_in_cycle(i, j, visited):
+        stack = [j]
+        while stack:
+            current = stack.pop()
+            if current not in visited:
+                visited.add(current)
+                for neighbor in graph[current]:
+                    if neighbor not in visited:
+                        stack.append(neighbor)
+                        if i == neighbor:
+                            return True
+        return False
+    
+    # Adjust the heuristic values based on various factors
+    for i in range(n):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Calculate adjustments
+                degree_adjustment = (degrees[i] - degrees[j]) / 10
+                usage_adjustment = (edge_usage[i] * edge_usage[j]) ** 0.5
+                cycle_adjustment = 1 if is_in_cycle(i, j, set()) else -1
+                distance_adjustment = 1 if distance_matrix[i][j] > mean_distance else -1
+                
+                # Apply the heuristic adjustments
+                heuristic_matrix[i][j] = distance_matrix[i][j] * (1 + degree_adjustment + usage_adjustment + cycle_adjustment + distance_adjustment)
+    
+    # Ensure that no self-loops have a non-zero heuristic
+    np.fill_diagonal(heuristic_matrix, np.inf)
+    
+    return heuristic_matrix
+```

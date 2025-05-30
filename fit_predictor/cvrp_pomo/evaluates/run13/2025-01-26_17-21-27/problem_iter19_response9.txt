@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Adjusted capacity penalty for nodes that are closer to exceeding capacity
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8) * (cumulative_demand / total_capacity)
+    # Increased penalty for longer distances, scaled by demand to prioritize loading balance
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * (1 + (demands / total_capacity))
+    # Dynamic penalty based on the distance to the nearest customer whose demand is still under the capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(distance_matrix[:, 1:] - torch.min(distance_matrix[:, 1:], dim=0).values - 1e-8)) * (1 + (demands / total_capacity))
+    # Aggressive scaling factor to emphasize the importance of capacity and demand
+    scaling_factor = 3.0
+    heuristics = scaling_factor * (distance_penalty + capacity_penalty + dynamic_capacity_penalty)
+    return heuristics
+```

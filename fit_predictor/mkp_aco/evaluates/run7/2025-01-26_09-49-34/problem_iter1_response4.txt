@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the ratio of prize to weight for each item and dimension
+    prize_to_weight_ratio = prize / np.sum(weight, axis=1)[:, np.newaxis]
+    
+    # Combine multiple factors to determine the heuristic
+    heuristic_factors = [
+        prize_to_weight_ratio,
+        1 / (prize + 1),  # Add 1 to avoid division by zero
+        np.sum(weight, axis=1)  # The total weight can be a factor as well
+    ]
+    
+    # Normalize the combined factors and sum them up
+    combined_heuristics = np.sum(np.array(heuristic_factors) / np.sum(np.array(heuristic_factors), axis=0), axis=0)
+    
+    # Sparsify the heuristics by setting elements below a threshold to zero
+    threshold = np.mean(combined_heuristics)
+    heuristics = np.where(combined_heuristics >= threshold, combined_heuristics, 0)
+    
+    return heuristics
+```

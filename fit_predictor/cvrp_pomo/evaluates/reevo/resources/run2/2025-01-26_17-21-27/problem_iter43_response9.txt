@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Dynamic penalty based on the deviation from capacity, with early warning system
+    capacity_deviation = demands - (cumulative_demand / (cumulative_demand + 1).sum())
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(capacity_deviation) - 1e-8)
+    dynamic_capacity_penalty *= (1 + torch.exp(-torch.abs(capacity_deviation)))
+    
+    # Distance penalty with a scaling factor to encourage visiting nodes early when close to capacity
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + (cumulative_demand / total_capacity)**2)
+    
+    # Overflow penalty for edges that lead to early overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Encourage diversity by penalizing edges that follow similar paths
+    path_similarity_penalty = torch.abs(torch.mean(torch.abs(distance_matrix)[:, None] + torch.abs(distance_matrix), dim=0))
+    diversity_penalty = -torch.log1p(path_similarity_penalty - 1e-8)
+    
+    # Enhance load balance by penalizing edges that lead to uneven load distribution
+    load_balance = torch.abs(cumulative_demand - (total_capacity / (cumulative_demand + 1).sum())[:, None])
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Apply scaling factors to prioritize core objectives
+    scaling_factor = 3.0
+    heuristics = scaling_factor * (distance_scaling + dynamic_capacity_penalty + overflow_penalty + diversity_penalty + load_balance_penalty)
+    
+    # Adaptively scale heuristics based on current capacity usage
+    early_overflow = (cumulative_demand > total_capacity / (cumulative_demand + 1).sum())
+    heuristics *= (1 + early_overflow) * (1 + load_balance)
+    
+    return heuristics
+```

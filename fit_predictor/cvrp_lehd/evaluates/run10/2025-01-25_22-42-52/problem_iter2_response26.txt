@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Create a mask to identify the last node that can be visited without exceeding the capacity
+    capacity_mask = cumulative_capacity <= vehicle_capacity[:, None]
+    
+    # Use the mask to identify feasible customers for each node
+    feasible_customers = torch.where(capacity_mask, torch.arange(len(capacity_mask[0])), torch.tensor(-1, dtype=capacity_mask.dtype))
+    
+    # Calculate the heuristic values based on the distances to the nearest feasible customer
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    for i in range(len(demands)):
+        # Skip the depot node
+        if i == 0:
+            continue
+        # Find the closest feasible customer to the current node
+        nearest_feasible_customer = feasible_customers[i] + 1
+        if nearest_feasible_customer != -1:  # Ensure there is a feasible customer
+            heuristics_matrix[i, nearest_feasible_customer] = -distance_matrix[i, nearest_feasible_customer]
+    
+    return heuristics_matrix
+```

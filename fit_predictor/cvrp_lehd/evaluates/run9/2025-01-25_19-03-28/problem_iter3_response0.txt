@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Normalize the demand vector
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic based on demand, distance, and data balance
+    # The heuristic promotes lower demand, shorter distance, and a more balanced
+    # distribution of demands to prevent large outliers.
+    max_demand = demands.max()
+    min_demand = demands.min()
+    demand_balance = torch.abs(max_demand - min_demand)
+    
+    # Include a term to encourage more uniform demand distribution
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, distance_matrix),
+        demand_balance
+    )
+
+    # Normalize the heuristic values to be within a certain range
+    heuristic_matrix = (heuristic_matrix - heuristic_matrix.min()) / (heuristic_matrix.max() - heuristic_matrix.min())
+    
+    # Apply a scaling factor to ensure that all heuristics are non-negative
+    scaling_factor = torch.tensor(0.9, dtype=distance_matrix.dtype)
+    heuristic_matrix = scaling_factor * (heuristic_matrix - 0.5) + 0.5
+
+    return heuristic_matrix
+```

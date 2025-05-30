@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that focuses on the problem essence, avoids unnecessary computations, balances conflicting criteria, and utilizes problem constraints effectively."""
+    total_demand = demands.sum()
+    # Normalize demand to focus on the relative size of demands
+    normalized_demands = demands / total_demand
+    
+    # Emphasize the shortest paths to high-demand nodes
+    demand_weighted_distance_matrix = (distance_matrix * normalized_demands).sum(dim=1, keepdim=True)
+    
+    # Apply a penalty for long distances
+    distance_penalty = -distance_matrix
+    
+    # Balance the heuristic with a depot proximity factor
+    depot_proximity = 1 / (torch.abs(demands) + 1e-10)
+    
+    # Combine the terms to get the final heuristic values
+    heuristic_values = demand_weighted_distance_matrix + distance_penalty + depot_proximity
+    # Ensure that the heuristic values are not too large or too small
+    heuristic_values = torch.clamp(heuristic_values, min=-2.0, max=2.0)
+    return heuristic_values
+```

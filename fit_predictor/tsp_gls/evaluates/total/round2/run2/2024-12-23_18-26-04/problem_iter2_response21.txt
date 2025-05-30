@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize a matrix to track the usage of each edge
+    usage_matrix = np.zeros_like(distance_matrix)
+    
+    # Initialize the heuristic matrix with the same values as the distance matrix
+    heuristic_matrix = np.copy(distance_matrix)
+    
+    # Normalize the distance matrix by its maximum value to ensure all distances are within [0, 1]
+    max_distance = distance_matrix.max()
+    normalized_distance_matrix = distance_matrix / max_distance
+    
+    # Iterate over the matrix to calculate the initial heuristic values
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            # Calculate the initial heuristic value based on the normalized distance
+            heuristic_value = normalized_distance_matrix[i, j]
+            heuristic_matrix[i, j] = heuristic_value
+    
+    # Iterate to refine the heuristic values
+    for _ in range(10):  # Repeat the process to refine the heuristics
+        for i in range(distance_matrix.shape[0]):
+            for j in range(distance_matrix.shape[1]):
+                if i != j:
+                    # Calculate the edge usage
+                    usage_matrix[i, j] += 1
+                    
+                    # Find the minimum heuristic value in the neighborhood
+                    min_neighborhood_value = np.min(heuristic_matrix[i, max(0, j-1):min(distance_matrix.shape[1], j+2)])
+                    
+                    # Gradually adjust the heuristic value to avoid local minima
+                    # and ensure it is not lower than the minimum neighborhood value
+                    heuristic_matrix[i, j] = max(min_neighborhood_value * 1.1, heuristic_value)
+    
+    # Update the heuristic matrix with the final values
+    return heuristic_matrix
+```

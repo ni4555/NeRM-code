@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Normalize demands
+    normalized_demand = demands / total_demand
+    
+    # Initialize the heuristics matrix
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate local and global information
+    local_info = -distance_matrix
+    global_info = (normalized_demand * demands).unsqueeze(1).transpose(0, 1)
+    
+    # Incorporate both local and global info
+    heuristics += local_info + global_info
+    
+    # Scale demand by total demand and normalize by the number of nodes
+    scaled_demand = (demands / (n - 1)).unsqueeze(1).transpose(0, 1)
+    
+    # Use exponential decay to balance between demand and distance
+    heuristics *= torch.exp(-scaled_demand)
+    
+    # Ensure non-negative heuristics values
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

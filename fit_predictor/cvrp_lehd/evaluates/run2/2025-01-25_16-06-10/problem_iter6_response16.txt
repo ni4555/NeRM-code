@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = torch.full_like(distance_matrix, fill_value=-1e8)
+    
+    # Sort demands to prioritize nodes with higher demand
+    sorted_indices = torch.argsort(demands[1:], descending=True)
+    
+    # Initialize the current vehicle's capacity
+    current_capacity = demands[0]
+    visited = torch.zeros_like(demands, dtype=torch.bool)
+    visited[0] = True
+    
+    for i in sorted_indices:
+        if i == 0 or demands[i] + current_capacity > 1:
+            # If the node is the depot or adding it would exceed capacity, reset the vehicle
+            visited.fill_(False)
+            visited[0] = True
+            current_capacity = demands[0]
+        
+        if not visited[i]:
+            # Calculate the heuristic value for the edge to node i
+            edge_heuristic = -distance_matrix[0, i]  # Use negative distance heuristic
+            # If the edge has not been set yet or a better heuristic is found, update it
+            if edge_heuristic > heuristics[0, i]:
+                heuristics[0, i] = edge_heuristic
+                visited[i] = True
+                current_capacity -= demands[i]
+    
+    return heuristics
+```

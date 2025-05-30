@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Add a load balancing factor by considering the difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Introduce diversity through small random perturbations
+    diversity_factor = torch.rand(distance_matrix.shape) * 0.01
+    
+    # Use non-linear transformations to amplify the effect of the demand and load balance
+    demand_transformation = torch.log1p(normalized_demands) - torch.log1p(normalized_demands.sum())
+    load_balance_transformation = torch.sqrt(load_balance)
+    
+    # Combine the different heuristics using a weighted sum
+    # The weights are optimized for a balanced effect
+    weights = torch.tensor([0.4, 0.3, 0.2, 0.1], dtype=torch.float32)
+    combined_heuristic = weights[0] * distance_heuristic \
+                          + weights[1] * load_balance_transformation \
+                          + weights[2] * demand_transformation \
+                          + weights[3] * diversity_factor
+    
+    # Normalize the heuristic values to ensure they can be properly used in algorithms
+    normalized_combined_heuristic = combined_heuristic / combined_heuristic.norm(p=1)
+    
+    return normalized_combined_heuristic
+```

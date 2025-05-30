@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = len(demands)
+    total_demand = demands.sum()
+    capacity = 1.0  # Assume that the capacity is 1 for normalization purposes
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate cumulative demands up to each customer
+    cumulative_demands = demands.cumsum(0)
+    
+    # Loop through each customer, starting from the second one (first is the depot)
+    for i in range(1, n):
+        # Loop through all previous customers to calculate heuristics
+        for j in range(i):
+            if cumulative_demands[i] + cumulative_demands[j] <= capacity:
+                # Calculate the positive heuristic value if adding current customer to route
+                heuristics[j][i] = distance_matrix[j][i]
+            else:
+                # Calculate the negative heuristic value if the total demand exceeds capacity
+                heuristics[j][i] = -1000
+    
+    # Update the heuristic for the last customer to return to the depot
+    for i in range(n-1):
+        heuristics[i][0] = distance_matrix[i][0] if cumulative_demands[i] < capacity else -1000
+    
+    return heuristics
+```

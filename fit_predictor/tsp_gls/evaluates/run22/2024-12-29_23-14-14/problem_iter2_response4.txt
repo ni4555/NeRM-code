@@ -1,0 +1,30 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray, local_optimal_route: np.ndarray) -> np.ndarray:
+    num_vertices = distance_matrix.shape[0]
+    penalty_factor = np.ones(distance_matrix.shape)
+    local_optimal_neighbors = set()
+
+    # Define the neighborhood size and the adaptive bonus factor
+    neighborhood_size = 2
+    adaptive_bonus_factor = 5
+
+    # Find local optimal neighbors by checking edges in the local optimal route
+    for i in range(len(local_optimal_route) - 1):
+        local_optimal_neighbors.update([local_optimal_route[i], local_optimal_route[i + 1]])
+
+    # For each edge, apply a penalty if it's a long edge or connected to a local optimal neighbor
+    for i in range(num_vertices):
+        for j in range(num_vertices):
+            if i in local_optimal_neighbors or j in local_optimal_neighbors:
+                penalty_factor[i][j] += adaptive_bonus_factor
+            elif distance_matrix[i][j] > distance_matrix.mean():
+                penalty_factor[i][j] += distance_matrix[i][j] * (1 + distance_matrix.mean() / distance_matrix[i][j])
+
+    # Apply the penalty factor to the distance matrix to get the heuristics matrix
+    heuristics_matrix = distance_matrix + penalty_factor
+    heuristics_matrix[distance_matrix > distance_matrix.mean()] = np.inf  # Make long edges impossible to select
+
+    return heuristics_matrix
+```

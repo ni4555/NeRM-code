@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    scale_factor = 1.0
+    short_range_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+    long_range_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].max()) * 100
+    heuristics -= scale_factor * (short_range_penalty.unsqueeze(0) + long_range_penalty.unsqueeze(1))
+
+    damping_factor = 0.2
+    heuristics *= (1 - damping_factor)
+
+    heuristics = torch.relu(heuristics)
+
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    if max_heuristic != min_heuristic:
+        heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        heuristics = torch.ones_like(heuristics)
+
+    return heuristics
+```

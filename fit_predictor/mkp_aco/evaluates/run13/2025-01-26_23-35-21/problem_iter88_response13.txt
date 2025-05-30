@@ -1,0 +1,44 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+
+    # Initialize heuristics with zeros
+    heuristic = np.zeros(n)
+
+    # Define a random number generator seed for reproducibility
+    rng = np.random.default_rng(seed=42)
+
+    # Iterate over items and calculate heuristic
+    for i in range(n):
+        # Calculate the average density across all items for diversity
+        average_density = np.mean(prize / np.sum(weight, axis=1))
+
+        # Calculate density for the current item
+        density = prize[i] / np.sum(weight[i])
+
+        # Calculate sparsity for the current item
+        sparsity = np.sum(weight[i]) / np.max(weight[i])
+
+        # Calculate the diversity factor based on how the item's density compares to the average
+        diversity_factor = (density - average_density) / (np.max(prize) - np.min(prize))
+
+        # Calculate a value-to-weight ratio for the current item
+        value_to_weight_ratio = prize[i] / np.sum(weight[i])
+
+        # Combine the factors to calculate the heuristic
+        heuristic[i] = density * (1 - sparsity) + value_to_weight_ratio * diversity_factor
+
+    # Normalize the heuristics to ensure they sum to a meaningful number
+    heuristic /= np.sum(heuristic)
+
+    # Add randomness to encourage exploration
+    random_factor = rng.uniform(0, 1, n)
+    heuristic += random_factor
+
+    # Ensure non-negative heuristics after adding randomness
+    heuristic = np.clip(heuristic, 0, 1)
+
+    return heuristic
+```

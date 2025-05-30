@@ -1,0 +1,12 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_penalty = torch.min(torch.abs(demands), dim=0)[0] * (demands > 0)
+    distance_scaling = torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    heuristics = distance_scaling * torch.tanh(cumulative_demand / (2 * torch.sqrt(torch.abs(demands) + 1e-8))) + cumulative_demand * demand_penalty
+    return heuristics
+```

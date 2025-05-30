@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize by the maximum prize value to make it a better comparison metric
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate the sparsity score as the percentage of dimensions in which an item has non-zero weight
+    sparsity_scores = np.mean((weight != 0).sum(axis=1) / weight.shape[1])
+    
+    # Use a balanced approach for the diversity score: both mean absolute difference and
+    # mean squared error to penalize outliers more
+    mean_normalized_prize = np.mean(normalized_prize)
+    diversity_scores = 0.5 * np.mean(np.abs(normalized_prize - mean_normalized_prize)) \
+                       + 0.5 * np.mean((normalized_prize - mean_normalized_prize) ** 2)
+    
+    # Calculate the heuristic score based on the balance between normalized prize, diversity, and sparsity
+    heuristic_score = normalized_prize * diversity_scores * sparsity_scores
+    
+    # Rank the items based on the heuristic score
+    ranked_indices = np.argsort(heuristic_score)[::-1]
+    
+    # Select the top 30% of items based on the heuristic score to balance exploration and exploitation
+    top_indices = ranked_indices[:len(ranked_indices)//3]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    heuristics[top_indices] = 1
+    
+    return heuristics
+```

@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_distance_matrix = distance_matrix / total_demand
+    scaled_demands = demands / demands.max()
+    
+    # Using non-linear transformations: exponential decay for distance, hyperbolic tangent for demand
+    exp_decay_distance = torch.exp(-5.0 * normalized_distance_matrix)  # Adjust the decay rate as needed
+    tanh_demand = torch.tanh(2.0 * scaled_demands)  # Adjust the slope as needed
+    
+    # Combine the non-linear transformations with a weight to emphasize distance
+    distance_weight = 0.6  # Adjust the weight as needed
+    # Combine the transformations with demand weight
+    demand_weight = 0.4  # Adjust the weight as needed
+    
+    # Combine the transformations
+    combined_heuristic = distance_weight * exp_decay_distance - demand_weight * tanh_demand
+    
+    # Invert the sign to get negative values for undesirable edges
+    return -combined_heuristic
+```

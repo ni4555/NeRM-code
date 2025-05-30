@@ -1,0 +1,54 @@
+{
+  "generation": 6,
+  "description": "The primary goal is to devise a sophisticated heuristic algorithm tailored for the Capacitated Vehicle Routing Problem (CVRP), emphasizing the minimization of total travel distance while rigorously enforcing vehicle capacity constraints. This algorithm will integrate a combination of dynamic programming, genetic algorithms, and tabu search to iteratively refine solution paths. Special attention will be given to optimizing the order of customer deliveries, ensuring load balancing across vehicles to prevent overcapacity, and incorporating advanced heuristics like normalization and inverse distance to enhance efficiency. The algorithm is designed to handle intricate real-world scenarios, resulting in a balanced and optimal solution that not only minimizes travel time but also maximizes resource utilization. This is achieved by meticulously adhering to both vehicle capacity and demand constraints, offering an efficient and effective solution to the CVRP that ensures high resource efficiency and compliance with operational limitations.",
+  "solutions": [
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize the demands by the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n\n    # Calculate the inverse distance for each edge\n    inverse_distance = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero\n\n    # Combine the inverse distance with the normalized demands\n    heuristics = inverse_distance * normalized_demands\n\n    # Return the heuristics matrix\n    return heuristics",
+      "fitness": 23.26198387145996,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_0.txt",
+      "code_file": "coevolve\\generation_6\\code_0.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the normalized inverse distance heuristics\n    # Inverse distance is a heuristic where we assume that closer customers are more likely to be visited first.\n    # We normalize it to ensure that it doesn't exceed 1 and to account for the capacity constraint.\n    inv_distance = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero\n    demand_ratio = demands / demands.sum()  # Normalize demands\n    normalized_inv_distance = inv_distance * demand_ratio\n    \n    # Calculate the normalization heuristic\n    # This heuristic scales the inverse distance by the ratio of the demand of the customer to the total demand.\n    # This helps in prioritizing customers with higher demands.\n    normalization = demands / demands.sum()\n    \n    # Combine the heuristics\n    # We sum the heuristics to get a more balanced heuristic that incorporates both distance and demand.\n    combined_heuristics = normalized_inv_distance + normalization\n    \n    # Convert any negative values to zero (undesirable edges)\n    desirable_edges = torch.clamp(combined_heuristics, min=0)\n    \n    return desirable_edges",
+      "fitness": 23.26198387145996,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_3.txt",
+      "code_file": "coevolve\\generation_6\\code_3.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the inverse distance heuristic\n    inverse_distance = 1.0 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero\n    \n    # Normalize demands by the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n    \n    # Combine the inverse distance heuristic with the normalized demands\n    # The idea is to give higher priority to edges with lower distance and higher demand\n    combined_heuristics = inverse_distance * normalized_demands\n    \n    # Apply normalization to ensure the values are within a reasonable range\n    max_value = combined_heuristics.max()\n    min_value = combined_heuristics.min()\n    normalized_combined_heuristics = (combined_heuristics - min_value) / (max_value - min_value)\n    \n    return normalized_combined_heuristics",
+      "fitness": 23.337182998657227,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_4.txt",
+      "code_file": "coevolve\\generation_6\\code_4.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the normalized inverse distance heuristics\n    # This is a simple heuristic that assumes that closer customers are more likely to be visited first\n    # and are therefore more promising. Negative values are used to indicate undesirable edges.\n    inverse_distance_heuristic = 1.0 / (distance_matrix + 1e-8)  # Add a small value to avoid division by zero\n    \n    # Normalize the inverse distance heuristics by the demand to account for load balancing\n    # This heuristic assumes that customers with smaller demands are more promising due to easier load management\n    normalized_inverse_distance_heuristic = inverse_distance_heuristic * (1.0 / (demands + 1e-8))\n    \n    # Normalize the entire matrix so that the sum of heuristics for each row (customer) is equal to 1\n    # This step normalizes the matrix by the sum of each row, ensuring that the heuristics are relative\n    # to each other and not the absolute values.\n    row_sums = normalized_inverse_distance_heuristic.sum(dim=1, keepdim=True)\n    normalized_heuristics = normalized_inverse_distance_heuristic / row_sums\n    \n    return normalized_heuristics",
+      "fitness": 23.337182998657227,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_7.txt",
+      "code_file": "coevolve\\generation_6\\code_7.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize demands to the range of [0, 1]\n    max_demand = torch.max(demands)\n    normalized_demands = demands / max_demand\n    \n    # Calculate the inverse of the distance matrix, which is used in the heuristic\n    # Note: To avoid division by zero, we use max_distance as a fallback\n    max_distance = torch.max(distance_matrix)\n    inverse_distance = torch.clamp(1.0 / (distance_matrix + 1e-10), min=0)\n    \n    # Combine the normalized demands and inverse distance to form the heuristic\n    # Negative values indicate undesirable edges\n    heuristics = -normalized_demands * inverse_distance\n    \n    return heuristics",
+      "fitness": 25.924312591552734,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_11.txt",
+      "code_file": "coevolve\\generation_6\\code_11.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize the distance matrix by the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_distance_matrix = distance_matrix / total_capacity\n\n    # Use inverse distance as a heuristic\n    inverse_distance_matrix = 1 / (normalized_distance_matrix + 1e-10)  # Add a small constant to avoid division by zero\n\n    # Incorporate customer demands as a heuristic (load balancing)\n    demand_heuristic = demands / total_capacity\n\n    # Combine heuristics\n    combined_heuristic = inverse_distance_matrix - demand_heuristic\n\n    return combined_heuristic",
+      "fitness": 32.6365966796875,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_8.txt",
+      "code_file": "coevolve\\generation_6\\code_8.py"
+    }
+  ]
+}

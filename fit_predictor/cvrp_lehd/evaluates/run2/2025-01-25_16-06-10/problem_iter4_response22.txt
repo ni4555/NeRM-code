@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand of all nodes
+    total_demand = demands.sum()
+    
+    # Calculate the negative distance heuristic
+    negative_distance_heuristic = -distance_matrix
+    
+    # Calculate the cumulative sum of demands from the start to each customer
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    
+    # Calculate the capacity heuristic: encourage selecting paths that stay under the vehicle's capacity
+    capacity_heuristic = torch.clamp(demands, max=1) * demands
+    
+    # Calculate the exploration factor to encourage diversity in the solutions
+    exploration_factor = 0.5 * (torch.rand_like(distance_matrix) - 0.5)
+    
+    # Calculate the exploitation factor to favor paths with known lower cost
+    exploitation_factor = 0.5 * (torch.ones_like(distance_matrix) - exploration_factor)
+    
+    # Combine heuristics and add exploration and exploitation factors
+    combined_heuristic = (negative_distance_heuristic + demand_cumsum[:, None] + capacity_heuristic + exploration_factor + exploitation_factor).unsqueeze(1)
+    
+    # Calculate the minimum demand to prevent loading a vehicle beyond capacity when moving to the next customer
+    min_demand_to_next_customer = torch.clamp(demands[:, None], min=1 - demands)
+    
+    # Adjust the heuristics for the cases where a customer's demand exceeds the vehicle's capacity when combined with previous customers
+    adjusted_heuristics = torch.clamp(combined_heuristic - (demands[:, None] * demand_cumsum[:, None]), min=0)
+    
+    # Combine adjusted heuristics and the minimum demand heuristics
+    combined_adjusted_heuristic = adjusted_heuristics + min_demand_to_next_customer
+    
+    # Normalize the heuristics to ensure consistency and prevent overflow
+    normalized_combined_adjusted_heuristic = combined_adjusted_heuristic / (combined_adjusted_heuristic.sum() + 1e-8)
+    
+    return normalized_combined_adjusted_heuristic
+```

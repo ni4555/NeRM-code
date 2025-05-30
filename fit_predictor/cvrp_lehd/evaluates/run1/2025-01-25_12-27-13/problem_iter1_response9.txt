@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic for the CVRP using a combination of demand-aware and distance-based criteria."""
+    n = distance_matrix.shape[0]
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize demands based on the total vehicle capacity
+    normalized_demands = demands / total_demand
+    # Initialize the heuristic matrix with large negative values
+    heuristic_matrix = -1e9 * torch.ones_like(distance_matrix)
+    # Apply demand-aware heuristic: edges with high demand ratio and low distance are more promising
+    demand_heuristic = normalized_demands[:, None] * normalized_demands[None, :]
+    # Apply distance-based heuristic: shorter distances are more promising
+    distance_heuristic = -distance_matrix
+    # Combine both heuristics with a weighted sum
+    heuristic_matrix = demand_heuristic + distance_heuristic
+    # Normalize the heuristic matrix to ensure it has both positive and negative values
+    min_val, max_val = heuristic_matrix.min(), heuristic_matrix.max()
+    heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    return heuristic_matrix
+```

@@ -1,0 +1,37 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+
+    # Normalize the prize to a 0-1 range
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+
+    # Calculate the density as the normalized prize divided by the sum of weights
+    density = normalized_prize / (np.sum(weight, axis=1) + 1e-8)
+
+    # Calculate the sparsity as the sum of weights divided by the maximum weight
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1)
+
+    # Calculate the balance score as the ratio of density to sparsity
+    balance_score = density / (1 + sparsity)
+
+    # Calculate the diversity score as the standard deviation of the sum of weights
+    diversity_score = np.std(np.sum(weight, axis=1))
+
+    # Introduce randomness to encourage exploration of diverse solutions
+    random_factor = np.random.rand(n)
+
+    # Combine the balance score, diversity score, and randomness
+    heuristic = balance_score * 0.5 + diversity_score * 0.3 + random_factor * 0.2
+
+    # Normalize the heuristic values to ensure they are between 0 and 1
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+
+    # Ensure that items with weight sum less than a threshold are not selected
+    threshold = 1e-8
+    weight_sum = np.sum(weight, axis=1)
+    normalized_heuristic[weight_sum < threshold] = 0
+
+    return normalized_heuristic
+```

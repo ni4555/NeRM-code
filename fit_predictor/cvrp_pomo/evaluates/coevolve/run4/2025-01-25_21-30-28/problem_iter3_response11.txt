@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Dynamically adapt heuristics based on historical performance
+    # Here we assume that we have a tensor 'history' of previous solutions' cost
+    history = torch.rand(n) * 2 - 1  # Dummy history for demonstration
+    adaptive_heuristic = (1.0 - history) / (1.0 - history.abs()).where(history != 0)
+
+    # Balance heuristics with a more dynamic weighting approach
+    # We use a learning rate and a momentum term to simulate the effect of a moving average
+    learning_rate = 0.1
+    momentum = 0.9
+    weights = torch.zeros(n)
+    weights = (momentum * weights + learning_rate * combined_heuristic).where(distance_matrix > 0)
+    weights = torch.clamp(weights, min=0.0, max=1.0)
+
+    # Apply the weights to the heuristics to balance their influence
+    weighted_combined_heuristic = (inverse_distance * 0.5 +
+                                  demand_weight * 0.3 +
+                                  heuristic_range * 0.2 +
+                                  load_balance * 0.4) * weights
+
+    # Clamp values to avoid extreme values and normalize the result
+    combined_heuristic = torch.clamp(weighted_combined_heuristic, min=-10.0, max=10.0) / (torch.abs(weighted_combined_heuristic).max() + 1e-8)
+
+    return combined_heuristic
+```

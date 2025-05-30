@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized prize to weight ratio for each item
+    ratio = prize / np.sum(weight, axis=1)
+    # Calculate the average ratio to use as a base for sparsity and diversity
+    average_ratio = np.mean(ratio)
+    # Determine the number of top items to consider for diversity
+    num_top_items = int(0.1 * len(ratio))  # For example, 10% of the total items
+    # Find the indices of the top items based on the average ratio
+    top_indices = np.argsort(ratio)[-num_top_items:]
+    # Calculate the standard deviation of the ratios of the top items
+    top_ratio_std = np.std(ratio[top_indices])
+    # Sparsify the heuristics using an adaptive threshold
+    # The threshold is adjusted based on the standard deviation of the top ratios
+    threshold = average_ratio + top_ratio_std * 0.5
+    # Create heuristics array where elements below the threshold are set to zero
+    heuristics = np.where(ratio >= threshold, ratio, 0)
+    return heuristics
+```

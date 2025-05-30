@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Calculate a density score based on prize to weight ratio
+    density = prize / np.mean(weight, axis=1)
+    
+    # Calculate a sparsity score for items that are underrepresented in any dimension
+    sparsity_score = np.where(weight.sum(axis=1) == 1, np.sum(prize) / prize.sum(), 0)
+    
+    # Calculate a constraint balance score based on the variance of weights
+    constraint_balance = np.sum(weight**2, axis=1) / np.var(weight, axis=1)
+    
+    # Use the logarithm to reduce the impact of large prizes and balance the scale
+    log_prize = np.log(prize)
+    max_log_prize = np.max(log_prize)
+    
+    # Calculate a log prize score that promotes diverse selection
+    log_prize_score = (log_prize - max_log_prize) / (np.log(prize).sum() - max_log_prize)
+    
+    # Combine the scores into a single heuristic score
+    heuristic_score = density * sparsity_score * constraint_balance * log_prize_score
+    
+    # Normalize the heuristic scores
+    normalized_utility = heuristic_score / np.sum(heuristic_score)
+    
+    # Return the heuristics scores
+    return normalized_utility
+```

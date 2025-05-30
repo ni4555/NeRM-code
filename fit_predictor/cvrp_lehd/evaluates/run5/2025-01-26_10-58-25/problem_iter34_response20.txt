@@ -1,0 +1,30 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Invert non-linear scale to convert penalties into heuristic values
+    penalty_matrix = (torch.abs(demands - vehicle_capacity) ** 2)
+    
+    # Apply a non-linear transformation to emphasize the penalties
+    emphasized_penalty_matrix = torch.log(penalty_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Use distance-based weights with non-linear scaling
+    distance_weight_matrix = (torch.log(distance_matrix + 1e-6) ** 2)  # Non-linear scaling of distances
+    
+    # Combine demand penalties and distance weights using non-linear emphasis
+    combined_potential_matrix = emphasized_penalty_matrix + distance_weight_matrix
+    
+    # Normalize the combined potential matrix to balance scales and ensure positivity
+    normalized_combined_potential_matrix = F.normalize(combined_potential_matrix, p=1)
+    
+    # Scale down the normalized combined potential matrix to introduce non-negativity
+    scaled_normalized_combined_potential_matrix = normalized_combined_potential_matrix * 10.0
+    
+    # Convert the scaled matrix into a heuristics matrix with negative and positive values
+    heuristics_matrix = scaled_normalized_combined_potential_matrix - torch.min(scaled_normalized_combined_potential_matrix)
+    
+    return heuristics_matrix
+```

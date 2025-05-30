@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Integrate demand-driven sorting: Prioritize edges with high local demand
+    heuristics = scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)
+
+    # Calculate remaining capacity at each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Add penalties for capacity overflows and balance with local demand
+    capacity_overflow_penalty = (scaled_demands > 1.0).float() * 1000.0
+    remaining_capacity_penalty = heuristics * remaining_capacity
+    heuristics -= (capacity_overflow_penalty + remaining_capacity_penalty)
+
+    # Dampen global preference with local distance to the depot
+    distance_to_depot = distance_matrix[:, 0]
+    local_demand_penalty = distance_to_depot.unsqueeze(1) - distance_to_depot.unsqueeze(0)
+    distance_penalty = (local_demand_penalty * 10.0).exp()  # Exponential dampening
+    heuristics -= distance_penalty
+
+    # Normalize and dampen the heuristic values to maintain balance and stability
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    heuristics = heuristics * (1.0 - 0.1 * (1.0 - heuristics))  # Dampening factor
+
+    # Combine penalties for infeasibility and avoid local optima
+    infeasibility_penalty = torch.where(capacity_overflow_penalty > 0, capacity_overflow_penalty, 0)
+    heuristics = torch.clamp(heuristics, min=0) - infeasibility_penalty
+
+    return heuristics
+```

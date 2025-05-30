@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_sum = torch.sum(demands)
+    demand_mean = demand_sum / n
+    demand_balance = (demands - demand_mean).abs()
+    
+    # Normalize the demand balance by the total demand and apply a weight
+    demand_balance = demand_balance / (demand_sum + 1e-8)
+    demand_balance_weighted = demand_balance * 0.5
+    
+    # Invert the balance to favor balanced demands
+    demand_balance_weighted = 1 - demand_balance_weighted
+    
+    # Incorporate distance into the heuristic with a weighted factor
+    distance_heuristic = distance_matrix / (torch.max(distance_matrix) + 1e-8)
+    distance_heuristic_weighted = distance_heuristic * 0.3
+    
+    # Combine heuristics with a specific weighting scheme
+    combined_heuristic = demand_balance_weighted * distance_heuristic_weighted
+    
+    # Calculate penalty for edges that would lead to capacity violation
+    penalty_mask = demands > 1
+    max_combined = torch.max(combined_heuristic[penalty_mask])
+    penalty = max_combined * penalty_mask
+    
+    # Subtract penalty from the combined heuristic
+    combined_heuristic -= penalty
+    
+    # Cap the heuristics to ensure that they are positive and not too high
+    cap = torch.max(combined_heuristic)
+    combined_heuristic = torch.clamp(combined_heuristic, min=0, max=cap)
+    
+    # Introduce an outlier penalty for highly unbalanced demands
+    outlier_penalty = (demands - demand_mean).abs() > 0.2 * demand_mean
+    combined_heuristic *= (1 - outlier_penalty)
+    
+    return combined_heuristic
+```

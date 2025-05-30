@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Non-linear scaling by logarithm and squaring the ratio
+    non_linear_scaled_ratio = np.log(value_to_weight_ratio + 1) ** 2
+    # Balance global and local optimization by combining the average and maximum ratio
+    balanced_ratio = (np.mean(non_linear_scaled_ratio, axis=1) + np.max(non_linear_scaled_ratio, axis=1)) / 2
+    # Filter for diversity by selecting items with higher ratio in each dimension
+    dimension_diversity = np.argmax(non_linear_scaled_ratio, axis=1)
+    diversity_filter = balanced_ratio[dimension_diversity]
+    # Apply sparsity by thresholding and setting lower ratios to zero
+    heuristics = np.where(diversity_filter > 0.05, diversity_filter, 0)
+    return heuristics
+```

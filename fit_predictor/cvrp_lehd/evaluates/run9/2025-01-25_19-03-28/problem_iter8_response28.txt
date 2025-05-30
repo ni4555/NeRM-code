@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    max_demand = demands.max()
+    min_demand = demands.min()
+    demand_diff = max_demand - min_demand
+
+    demand_weight = 0.5
+    distance_weight = 0.3
+    high_demand_penalty_weight = 0.1
+    outlier_penalty_weight = 0.1
+
+    # Calculate the heuristic based on demand and distance differences
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, distance_matrix),
+        demand_diff
+    )
+
+    # Normalize the heuristic to balance the weights
+    heuristic_matrix = torch.mul(
+        torch.clamp(heuristic_matrix, min=-1.0, max=1.0),
+        (demand_weight + distance_weight + high_demand_penalty_weight + outlier_penalty_weight)
+    )
+
+    # Apply penalties for high demand and outliers
+    high_demand_penalty = torch.where(demands > max_demand * 1.1, torch.tensor(1.0, dtype=distance_matrix.dtype), torch.tensor(0.0, dtype=distance_matrix.dtype))
+    outlier_penalty = torch.where(demand_diff > min_demand * 0.5, torch.tensor(1.0, dtype=distance_matrix.dtype), torch.tensor(0.0, dtype=distance_matrix.dtype))
+
+    # Combine the weights and penalties
+    heuristic_matrix = torch.mul(
+        heuristic_matrix,
+        torch.add(
+            demand_weight * (1 - high_demand_penalty),
+            outlier_penalty_weight * outlier_penalty
+        )
+    )
+
+    # Apply a threshold to ensure all heuristics are within a specific range
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-threshold, max=threshold)
+
+    return heuristic_matrix
+```

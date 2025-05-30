@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate cumulative demand and find the points of exceeding capacity
+    cumulative_demand = demands.cumsum(dim=0)
+    capacity_exceeding_points = cumulative_demand < torch.ones_like(cumulative_demand)
+
+    # Create an auxiliary matrix with zeros for non-capacity exceeding points and large values otherwise
+    aux_matrix = torch.zeros_like(distance_matrix)
+    aux_matrix[capacity_exceeding_points] = float('inf')
+
+    # Calculate the cumulative distance for each path
+    path_distances = distance_matrix.cumsum(dim=1)
+    
+    # Subtract cumulative demand at each step to ensure no more than capacity is used
+    path_distances = path_distances.sub(cumulative_demand[:, None])
+    
+    # Create the heuristic matrix by dividing path distances by the capacity of the vehicle
+    heuristic_matrix = path_distances / demands[1:]
+    
+    # Use the auxiliary matrix to mask out paths that exceed the vehicle capacity
+    heuristic_matrix = torch.where(aux_matrix > 0, torch.zeros_like(heuristic_matrix), heuristic_matrix)
+    
+    return heuristic_matrix
+```

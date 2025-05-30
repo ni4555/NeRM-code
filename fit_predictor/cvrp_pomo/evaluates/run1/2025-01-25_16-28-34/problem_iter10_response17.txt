@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce penalties for overloading and underloading
+    overload_penalty = torch.log1p(torch.abs(average_demand_per_edge - total_capacity))
+    underload_penalty = torch.log1p(torch.abs(total_capacity - average_demand_per_edge))
+    
+    # Dynamic penalty calculation based on the ratio of average demand to total capacity
+    penalty_ratio = torch.clamp((average_demand_per_edge / total_capacity), min=0, max=1)
+    dynamic_penalty = (penalty_ratio ** 2) * (overload_penalty + underload_penalty)
+    
+    # Apply the dynamic penalty to the heuristics
+    heuristics -= dynamic_penalty
+    
+    # Encourage diversity by adding a small perturbation
+    perturbation = torch.rand_like(heuristics) * 0.01
+    heuristics += perturbation
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

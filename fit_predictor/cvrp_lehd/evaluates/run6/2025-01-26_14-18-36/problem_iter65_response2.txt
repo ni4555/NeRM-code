@@ -1,0 +1,51 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Initialize the heuristic matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Use a greedy approach to select edges based on a random order
+    for _ in range(n):
+        # Randomly select an edge
+        edge_indices = torch.randperm(n)[:2]
+        u, v = edge_indices
+
+        # Calculate the scaled demand difference and remaining capacity
+        demand_diff = scaled_demands[u] - scaled_demands[v]
+        remaining_capacity = total_capacity - torch.cumsum(scaled_demands, dim=0)[v]
+
+        # Normalize demand difference and remaining capacity
+        normalized_demand_diff = demand_diff / torch.abs(demand_diff).max()
+        normalized_capacity = remaining_capacity / remaining_capacity.max()
+
+        # Blend normalized demand difference and remaining capacity
+        edge_score = normalized_demand_diff * normalized_capacity
+
+        # Introduce randomness for exploration
+        edge_score += torch.rand_like(edge_score)
+
+        # Apply non-linear transformation to edge_score
+        edge_score = torch.sigmoid(edge_score)
+
+        # Update the heuristic matrix
+        heuristics[u, v] = edge_score
+
+    # Normalize the heuristic values to the range [0, 1] using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Introduce a penalty for edges too far from the depot (local preference)
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 30
+    heuristics += torch.clamp(distance_penalty, min=0.0) * 0.5
+
+    # Further balancing of penalties to promote a better heuristic distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

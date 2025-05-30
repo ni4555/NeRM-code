@@ -1,0 +1,49 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Core objective penalties
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic scaling based on cumulative demand
+    dynamic_scale = (1 + cumulative_demand / total_capacity)
+    scaled_capacity_penalty = capacity_penalty * dynamic_scale
+    scaled_distance_penalty = distance_penalty * dynamic_scale
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balancing heuristic to encourage uniform distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Scaling factor for core objectives
+    scaling_factor = 3.0
+    core_objectives = scaled_capacity_penalty + scaled_distance_penalty + overflow_penalty
+    
+    # Aggressive load balancing approach
+    aggressive_load_balance = torch.clamp(load_balance / (total_capacity / n), 0, 1)
+    load_balance_penalty = -torch.log1p(aggressive_load_balance - 1e-8)
+    
+    # Apply penalties and scale by core objectives
+    heuristics = scaling_factor * core_objectives + load_balance_penalty
+    
+    # Apply an adaptive penalty for the most imbalanced routes
+    imbalance = torch.abs(cumulative_demand - total_capacity / n)
+    most_imbalanced_indices = torch.argsort(imbalance, descending=True)
+    adaptive_penalty = -2.0  # Strong penalty for the most imbalanced routes
+    for i in range(min(3, len(most_imbalanced_indices))):
+        heuristics[most_imbalanced_indices[i]] += adaptive_penalty
+    
+    # Introduce a penalty for the depot to return to itself
+    heuristics[0] = -1000
+    
+    return heuristics
+```

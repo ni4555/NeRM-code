@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate score based on the ratio of prize to total weight per item
+    score = prize / np.sum(weight, axis=1)
+    
+    # Calculate sparsity-based score by considering the number of dimensions with weight 1
+    sparsity_score = np.prod(1 - weight, axis=1)
+    
+    # Combine both scores and apply a sparsity penalty to items with higher sparsity
+    combined_score = score * (1 - sparsity_score)
+    
+    # Incorporate a penalty for items that are not promising based on their average score
+    average_score = np.mean(combined_score)
+    penalty = (combined_score < average_score) * (1 / combined_score)
+    
+    # Adjust the combined score by applying the penalty
+    adjusted_score = combined_score * (1 + penalty)
+    
+    # Apply a threshold to penalize less promising items further
+    threshold = np.percentile(adjusted_score, 75)  # Use the 75th percentile as a threshold
+    heuristics = adjusted_score * (adjusted_score > threshold)
+    
+    return heuristics
+```

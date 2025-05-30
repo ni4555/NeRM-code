@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_vertices = distance_matrix.shape[0]
+    
+    # Calculate the mean distance for each vertex as a local connectivity metric
+    mean_distance = np.mean(distance_matrix, axis=1)
+    
+    # Calculate a penalty for each edge based on the difference from the mean distance
+    edge_penalty = distance_matrix - mean_distance
+    
+    # Calculate a connectivity penalty based on the vertex degree
+    degree_penalty = np.bincount(np.argmax(distance_matrix, axis=0), minlength=num_vertices) / num_vertices
+    
+    # Combine the penalties, weighting connectivity slightly more than the local distance
+    combined_penalty = (edge_penalty * 0.7) + (degree_penalty * 0.3)
+    
+    # Normalize the combined penalty to ensure all values are non-negative
+    combined_penalty = np.clip(combined_penalty, 0, None)
+    
+    # Return the heuristics matrix where a higher value indicates a worse edge to include
+    return combined_penalty
+```

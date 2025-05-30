@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Calculate heuristic for edges leaving the depot
+    heuristic_matrix[depot, 1:] = (1 - demands[1:]) * distance_matrix[depot, 1:]
+
+    # Calculate heuristic for edges entering the depot
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = torch.clamp(total_demand - demand_cumsum, min=0)
+    heuristic_matrix[1:, depot] = remaining_capacity * distance_matrix[1:, depot]
+
+    return heuristic_matrix
+```

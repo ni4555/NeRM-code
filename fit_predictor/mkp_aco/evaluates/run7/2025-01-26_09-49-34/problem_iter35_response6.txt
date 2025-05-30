@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Introduce a balance factor that considers both the prize and the sparsity
+    balance_factor = normalized_prize * (1 - (weight.sum(axis=1) > 0).astype(float))
+    
+    # Calculate the inverse variance factor
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    
+    # Introduce a diversity factor based on the standard deviation of the weights
+    diversity_factor = 1 / (np.std(weight, axis=1) + 1e-6)
+    
+    # Combine all factors to create an initial heuristics vector
+    heuristics = balance_factor * inv_variance_factor * diversity_factor
+    
+    # Add a random perturbation to introduce diversity
+    np.random.seed(0)  # Ensure reproducibility
+    perturbation = np.random.normal(0, 0.02, size=heuristics.shape)
+    heuristics += perturbation
+    
+    # Adjust heuristics based on a dynamic threshold to balance exploration and exploitation
+    threshold = np.percentile(heuristics, 75)  # 75% threshold
+    heuristics[heuristics > threshold] *= 1.2
+    
+    # Introduce sparsity by setting a percentile threshold for low heuristics
+    lower_threshold = np.percentile(heuristics, 25)  # 25% threshold for sparsity
+    heuristics[heuristics < lower_threshold] = 0
+    
+    # Refine heuristics iteratively by reinforcing items that are beneficial and sparse
+    for i in range(len(heuristics)):
+        if heuristics[i] > threshold and (weight.sum(axis=1)[i] > 0.5):
+            heuristics[i] *= 1.2
+    
+    # Normalize heuristics to ensure they sum to 1, maintaining the probability interpretation
+    heuristic_sum = np.sum(heuristics)
+    if heuristic_sum > 0:
+        heuristics /= heuristic_sum
+    
+    return heuristics
+```

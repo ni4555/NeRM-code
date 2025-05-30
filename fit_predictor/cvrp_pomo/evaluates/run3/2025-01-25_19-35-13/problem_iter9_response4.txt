@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+    
+    # Incorporate a local search heuristic to balance the weights
+    def local_search_weights(demand_weight, distance_weight):
+        best_demand_weight = demand_weight
+        best_distance_weight = distance_weight
+        best_potential = float('inf')
+        
+        for dw in torch.linspace(0.1, 0.9, 9):
+            for dw2 in torch.linspace(0.1, 0.9, 9):
+                if dw + dw2 != 1:
+                    continue
+                edge_potential = (dp[:, 0] / (distance_matrix + epsilon)) * torch.pow(normalized_demands, dw)
+                edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * dw2
+                potential = torch.sum(edge_potential)
+                if potential < best_potential:
+                    best_potential = potential
+                    best_demand_weight = dw
+                    best_distance_weight = dw2
+        return best_demand_weight, best_distance_weight
+    
+    demand_weight, distance_weight = local_search_weights(demand_weight, distance_weight)
+    
+    # Apply dynamic programming to find a lower bound on the cost
+    dp = torch.zeros((len(demands), len(demands)))
+    for d in range(1, len(demands)):
+        for s in range(d):
+            dp[d, s] = dp[s, d-1] + distance_matrix[s, d]
+    
+    # Calculate the potential based on the lower bound and demand
+    epsilon = 1e-8
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+    
+    # Add penalties for nodes with high demand and for long distances
+    edge_potential = edge_potential - (edge_potential * 0.1 * (demands > 1.5).float())
+    edge_potential = edge_potential + (edge_potential * 0.05 * (distance_matrix < 10).float())
+    
+    return edge_potential
+```

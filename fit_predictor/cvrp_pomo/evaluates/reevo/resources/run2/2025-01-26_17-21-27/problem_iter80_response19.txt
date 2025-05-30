@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Early overflow detection
+    early_overflow = cumulative_demand > total_capacity_vector
+    
+    # Dynamic capacity penalty with explicit overflow detection
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    overflow_threshold = (total_capacity / 2) - 1e-8
+    dynamic_capacity_penalty *= torch.where(cumulative_demand > overflow_threshold, 1, 0) * (1 + early_overflow.float())
+    
+    # Distance penalty with time-adaptive scaling and overflow adjustments
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_scaling *= (1 + torch.clamp(cumulative_demand / total_capacity, 0, 1) * time_factor)
+    distance_scaling *= (1 + early_overflow.float())
+    
+    # Load balance penalty scaled with cumulative demand
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Diversity factor to encourage exploration and avoid local optima
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor), dim=0) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Core objectives combination
+    core_objectives = (dynamic_capacity_penalty * 0.7 + distance_scaling * 0.7 + load_balance_penalty * 0.5) * (1 - early_overflow.float())
+    
+    # Final heuristics combination
+    heuristics = core_objectives + diversity_factor
+    
+    # Adjust heuristics based on early overflow
+    heuristics *= (1 + early_overflow.float())
+    
+    # Apply a large penalty for the depot to return to itself
+    heuristics[0, 0] = -1e7
+    
+    return heuristics
+```

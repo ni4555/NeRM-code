@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that considers the demand and distance to prioritize edges."""
+    # Calculate the sum of demands
+    total_demand = demands.sum()
+    
+    # Calculate the maximum number of customers a vehicle can visit
+    max_customers = (total_demand / demands).to(torch.int)
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Loop over all possible pairs of nodes
+    for i in range(len(demands)):
+        for j in range(len(demands)):
+            if i != j:
+                # Calculate the potential number of customers that can be visited on this edge
+                potential_customers = torch.clamp(max_customers[i] - demands[i], min=0)
+                
+                # If the edge can potentially be part of a route
+                if potential_customers > 0:
+                    # Calculate the heuristic value based on the distance and potential customers
+                    heuristic_value = -distance_matrix[i, j] * potential_customers
+                    heuristic_matrix[i, j] = heuristic_value
+    
+    return heuristic_matrix
+```

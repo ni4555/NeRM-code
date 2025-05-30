@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = demands.cumsum(0)
+    # Calculate the demand gradients (change in demand from one node to the next)
+    demand_gradients = torch.diff(cumulative_demand, dim=0)
+    # Normalize the gradients to a [0, 1] scale
+    normalized_demand_gradients = (demand_gradients / demands.max()).clamp(min=0, max=1)
+    # Use the normalized demand gradients to penalize increases in demand
+    # and reward decreases, which may indicate a potential return to the depot
+    gradient_penalties = -torch.where(normalized_demand_gradients > 0, normalized_demand_gradients, torch.zeros_like(normalized_demand_gradients))
+    # Create a soft-clamp on the distance matrix to penalize long distances
+    soft_clamped_distances = torch.where(distance_matrix > demands[:, None].max(), demands[:, None].max(), distance_matrix)
+    # Combine the gradient penalties and the clamped distances to form the heuristic
+    heuristics = gradient_penalties - soft_clamped_distances
+    return heuristics
+```

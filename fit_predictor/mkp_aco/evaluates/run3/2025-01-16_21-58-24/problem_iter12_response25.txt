@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio using the interquartile range (IQR)
+    Q1 = np.percentile(value_to_weight_ratio, 25)
+    Q3 = np.percentile(value_to_weight_ratio, 75)
+    IQR = Q3 - Q1
+    value_to_weight_ratio = np.where(value_to_weight_ratio < (Q1 - 1.5 * IQR),
+                                    (Q1 - 1.5 * IQR),
+                                    np.where(value_to_weight_ratio > (Q3 + 1.5 * IQR),
+                                             (Q3 + 1.5 * IQR),
+                                             value_to_weight_ratio))
+    
+    # Calculate penalties for outliers in the value-to-weight ratio
+    penalty_factor = np.abs(value_to_weight_ratio - np.percentile(value_to_weight_ratio, 75)) / np.percentile(value_to_weight_ratio, 75)
+    
+    # Calculate density factor based on the value-to-weight ratio
+    density_factor = value_to_weight_ratio / np.mean(value_to_weight_ratio)
+    
+    # Calculate the heuristic by combining the normalized ratio with penalties and density factors
+    combined_heuristics = value_to_weight_ratio * (1 - penalty_factor + density_factor)
+    
+    # Introduce randomness to maintain heuristic diversity
+    random_noise = np.random.normal(0, 0.1, size=combined_heuristics.shape)
+    final_heuristics = combined_heuristics + random_noise
+    
+    # Apply constraints by considering only items that satisfy the weight and volume constraints
+    # Assuming constraints are fixed to 1 for each dimension, check if the sum of weights is within the limit
+    constraint_violation = weight.sum(axis=1) > 1
+    final_heuristics[constraint_violation] = 0
+    
+    # Sparsify the heuristics by setting a threshold
+    threshold = 0.5
+    sparsified_heuristics = np.where(final_heuristics > threshold, final_heuristics, 0)
+    
+    return sparsified_heuristics
+```

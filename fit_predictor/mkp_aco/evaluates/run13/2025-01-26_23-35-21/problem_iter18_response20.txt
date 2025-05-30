@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate the density of each item
+    density = prize / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity of each item
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1)
+    
+    # Calculate the sum of weights for each item
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Introduce a sparsity diversity factor
+    sparsity_diversity = 1 / (sparsity + 1e-8)
+    
+    # Introduce a diversity factor based on the standard deviation of density
+    density_std = np.std(density)
+    diversity_factor_density = (density + 1e-8) / (density_std + 1e-8)
+    
+    # Introduce a diversity factor based on the standard deviation of the sum of weights
+    weight_std = np.std(weight_sum)
+    diversity_factor_weight = (weight_sum + 1e-8) / (weight_std + 1e-8)
+    
+    # Combine diversity factors with the density and sparsity
+    heuristic_value = density * (1 - sparsity) - weight_sum
+    heuristic_density = heuristic_value * diversity_factor_density
+    heuristic_weight = heuristic_value * diversity_factor_weight
+    
+    # Combine the heuristics from density and weight
+    heuristic = heuristic_density * sparsity_diversity + heuristic_weight
+    
+    # Normalize by the maximum heuristic value to scale the heuristic values
+    max_heuristic = np.max(heuristic)
+    normalized_heuristic = heuristic / (max_heuristic + 1e-8)
+    
+    # Set zero weights to a small value to maintain diversity
+    zero_weight_penalty = 1e-8
+    normalized_heuristic[weight_sum < zero_weight_penalty] = zero_weight_penalty
+    
+    return normalized_heuristic
+```

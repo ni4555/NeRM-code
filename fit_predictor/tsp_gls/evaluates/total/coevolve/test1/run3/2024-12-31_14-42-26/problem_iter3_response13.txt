@@ -1,0 +1,32 @@
+```python
+import numpy as np
+from scipy.spatial import distance
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Compute the pairwise distances and use them to create a distance vector
+    pairwise_distances = distance.cdist(distance_matrix.reshape(1, -1), distance_matrix.reshape(1, -1)).flatten()
+    
+    # Apply adaptive neighborhood strategy: use k-means clustering to find local minima
+    k = 3  # Number of clusters
+    centroids = pairwise_distances[np.argsort(pairwise_distances)[:k]]
+    for centroid in centroids:
+        neighborhood = pairwise_distances[pairwise_distances < centroid]
+        neighborhood_mean = np.mean(neighborhood)
+        heuristics += (neighborhood_mean - pairwise_distances) ** 2
+    
+    # Guided local search enhancements: adjust heuristics based on nearest neighbors
+    for i in range(distance_matrix.shape[0]):
+        nearest_neighbors = np.argsort(distance_matrix[i])[1:5]  # Get the 5 nearest neighbors
+        nearest_neighbors_distance = distance_matrix[i, nearest_neighbors].mean()
+        heuristics[i, nearest_neighbors] = (nearest_neighbors_distance - distance_matrix[i, nearest_neighbors]) ** 2
+    
+    # Real-time fitness landscape adaptation: adjust heuristics based on current solution
+    # Placeholder for the real-time adaptation logic
+    # For example, we could adjust heuristics based on the current tour's fitness
+    # heuristics += (current_solution_fitness - distance_matrix) ** 2
+    
+    return heuristics
+```

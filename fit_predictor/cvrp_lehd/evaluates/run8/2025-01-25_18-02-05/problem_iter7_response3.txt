@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Normalize demands by total capacity
+    total_capacity = demands[0]  # Assuming the first node is the depot
+    normalized_demands = demands / total_capacity
+    
+    # Invert the distance matrix (shorter distances get higher values)
+    inverted_distances = 1 / (distance_matrix + 1e-8)
+    
+    # Calculate the cumulative sum of inverted distances from the depot to each node
+    cumulative_inverted_distances = torch.cumsum(inverted_distances, dim=0)
+    
+    # Calculate the heuristic values based on the ratio of cumulative inverted distance to normalized demand
+    heuristic_matrix = cumulative_inverted_distances / normalized_demands
+    
+    # Apply a non-linear transformation to emphasize differences
+    # For example, raising to the power of 2 to give higher weight to edges with lower cumulative distances
+    heuristic_matrix = heuristic_matrix ** 2
+    
+    # Filter and emphasize relative differences using a threshold
+    threshold = torch.max(heuristic_matrix)
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, heuristic_matrix, threshold)
+    
+    # Clip the values to be within the desired range to ensure they are within [0, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=0, max=1)
+    
+    return heuristic_matrix
+```

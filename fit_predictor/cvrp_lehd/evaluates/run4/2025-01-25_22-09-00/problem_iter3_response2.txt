@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Demand factor: increase the value of edges leading to high demand nodes
+    demand_factor = 1 - demands / total_capacity
+    
+    # Local balance factor: reduce the value of short edges with low demand
+    local_balance_factor = torch.where(
+        torch.abs(distance_matrix) < torch.mean(torch.abs(distance_matrix)),
+        demands / total_capacity * torch.abs(distance_matrix),
+        0
+    )
+    
+    # Global balance factor: balance the effect of distant edges
+    global_balance_factor = demands / (total_capacity + torch.mean(torch.abs(distance_matrix)))
+    
+    # Refine distance scaling: decrease the weight of distant edges
+    distance_scaling = 1 / (1 + torch.exp(-distance_matrix / torch.mean(torch.abs(distance_matrix))))
+    
+    # Combine all factors to form the heuristic matrix
+    heuristic_matrix = (demand_factor + local_balance_factor + global_balance_factor + distance_scaling) - 1
+    return heuristic_matrix
+```

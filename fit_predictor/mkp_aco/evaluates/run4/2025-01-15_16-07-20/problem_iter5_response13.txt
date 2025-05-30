@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize for normalization
+    max_prize = np.max(prize)
+    
+    # Normalize prize to scale between 0 and 1
+    normalized_prize = prize / max_prize
+    
+    # Calculate density based on normalized prize and average weight
+    average_weight = np.mean(weight, axis=1)
+    density = normalized_prize / average_weight
+    
+    # Normalize density by its maximum value
+    max_density = np.max(density)
+    density = density / max_density
+    
+    # Calculate constraint balance for each item
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Normalize constraint balance to range between 0 and 1
+    max_balance = np.max(constraint_balance)
+    normalized_balance = constraint_balance / max_balance
+    
+    # Calculate utility considering both normalized density and normalized balance
+    utility = density * (1 - normalized_balance)
+    
+    # Include a dimension-specific factor based on the ratio of the maximum weight in each dimension
+    dimension_factor = np.sum(weight, axis=0) / np.sum(weight)
+    utility *= dimension_factor
+    
+    # Sparsify by setting a threshold for utility
+    threshold = np.percentile(utility, 90)  # 90th percentile threshold
+    sparsity = (utility > threshold) * 1.0
+    
+    # Return the heuristics scores
+    return utility * sparsity
+```

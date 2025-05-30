@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Demand-aware heuristic: higher demand contributes positively
+    demand_heuristic = normalized_demands[:, None] * normalized_demands[None, :]
+    
+    # Distance-based heuristic: shorter distances contribute positively
+    distance_heuristic = -distance_matrix
+
+    # Combine both heuristics with a weighted sum, where demand-aware heuristic has a higher weight
+    combined_heuristic = demand_heuristic + distance_heuristic
+
+    # Normalize the heuristic matrix to ensure it has both positive and negative values
+    min_val, max_val = combined_heuristic.min(), combined_heuristic.max()
+    heuristic_matrix = (combined_heuristic - min_val) / (max_val - min_val)
+
+    return heuristic_matrix
+```

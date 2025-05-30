@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Introduce a dynamic weight for each edge based on distance and demand
+    # Edges with lower demand and closer distance should have higher weights
+    # Use a sigmoid function to transform demand and distance values to heuristic weights
+    def sigmoid(x, lower_bound=-10, upper_bound=10):
+        return torch.sigmoid((x - (lower_bound + upper_bound) / 2) / ((upper_bound - lower_bound) / 2))
+
+    demand_weights = sigmoid(normalized_demands)
+    distance_weights = sigmoid(-distance_matrix)
+
+    # Calculate the heuristic based on the product of demand and distance weights
+    heuristic_matrix = torch.mul(demand_weights, distance_weights)
+
+    # Apply a variance penalty factor that increases with the variance of the demands
+    demand_variance = (demands - normalized_demands.mean()).pow(2).mean()
+    penalty_factor = demand_variance
+
+    # Introduce an outlier penalty based on Z-scores
+    z_scores = (demands - normalized_demands.mean()) / normalized_demands.std()
+    outlier_penalty = torch.where(z_scores.abs() > 2, torch.tensor(10.0, dtype=distance_matrix.dtype), torch.tensor(1.0, dtype=distance_matrix.dtype))
+
+    # Combine the heuristics with the penalty factor and outlier penalty
+    heuristic_matrix = torch.mul(heuristic_matrix, penalty_factor * outlier_penalty)
+
+    # Normalize the heuristics to ensure stability and prevent overflow
+    max_heuristic = torch.max(heuristic_matrix)
+    min_heuristic = torch.min(heuristic_matrix)
+    normalized_heuristic_matrix = (heuristic_matrix - min_heuristic) / (max_heuristic - min_heuristic)
+
+    return normalized_heuristic_matrix
+```

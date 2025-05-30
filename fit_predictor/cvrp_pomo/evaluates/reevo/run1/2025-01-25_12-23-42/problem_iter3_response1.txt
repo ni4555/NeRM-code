@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    demand_threshold = total_demand / len(demands)
+    
+    # Incorporate demand and distance in the heuristic
+    heuristics = (1 / (1 + distance_matrix)) * (1 - (demands / demand_threshold))
+    
+    # Avoid revisits by reducing the heuristic value if the same node appears twice
+    visited_mask = torch.arange(len(demands)) < len(demands)
+    heuristics[visited_mask] -= 0.1  # Adjust the penalty value as needed
+    
+    # Balance load by adding a penalty for exceeding the demand_threshold
+    heuristics = heuristics * (demands <= demand_threshold).to(torch.float)
+    
+    # Normalize the heuristics to ensure positive values
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

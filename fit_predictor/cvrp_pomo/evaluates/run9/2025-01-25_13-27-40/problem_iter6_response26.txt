@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    cum_demands = torch.cumsum(demands, dim=0)
+    capacity_mask = cum_demands < demands[0]
+    potential = torch.exp(-distance_matrix * 0.1)
+    # Apply capacity mask to the potential to emphasize edges that keep the vehicle under capacity
+    weighted_potential = potential * capacity_mask.float()
+    # Calculate a demand penalty that is only applied when the vehicle is still under capacity
+    demand_penalty = (demands - cum_demands) * capacity_mask.float()
+    # Adjust the potential to account for the penalty
+    adjusted_potential = weighted_potential - demand_penalty
+    # Normalize the adjusted potential to the range [-1, 1]
+    max_val = torch.max(torch.abs(adjusted_potential))
+    normalized_potential = adjusted_potential / max_val
+    # Clamp the normalized potential to ensure all values are within the range [-1, 1]
+    normalized_potential = torch.clamp(normalized_potential, min=-1, max=1)
+    return normalized_potential
+```

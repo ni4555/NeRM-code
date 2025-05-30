@@ -1,0 +1,62 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep Reinforcement Learning (DRL) for adaptive decision-making
+    model_scores = np.random.rand(n)
+    reward_function = lambda x: -np.sum(x * np.log(1 + x))  # Minimize penalty for over-weighted items
+    model_rewards = [reward_function(model_scores)]
+
+    # Particle Swarm Optimization (PSO) for swarm intelligence
+    pso_position = np.random.rand(n)
+    pso_velocity = np.zeros(n)
+    pso_personal_best = np.copy(pso_position)
+    pso_global_best = np.copy(pso_position)
+    pso_personal_best_scores = np.copy(model_scores)
+    pso_global_best_scores = np.copy(model_scores)
+
+    # Ensure PSO global best is feasible and update with RL scores
+    feasible_items = np.sum(weight, axis=1) <= 1
+    pso_global_best_scores[~feasible_items] = float('-inf')
+    pso_global_best = pso_position[feasible_items]
+    model_scores[~feasible_items] = float('-inf')
+
+    # Adaptive constraint-driven filtering to maintain feasibility
+    while not np.all(np.sum(weight[feasible_items], axis=1) <= 1):
+        non_feasible = ~feasible_items
+        for item in non_feasible:
+            pso_global_best[item] = np.random.rand()
+            feasible_items[item] = np.sum(weight[item, :]) <= 1
+        pso_global_best_scores[~feasible_items] = float('-inf')
+
+    # Dynamic balancing of DRL and PSO scores
+    drl_weight = 0.6
+    pso_weight = 0.4
+
+    # Update heuristics based on the balance of DRL and PSO
+    heuristic = drl_weight * model_scores + pso_weight * pso_global_best_scores[feasible_items]
+
+    # Sparsify heuristics by setting unpromising elements to zero
+    sparsity_threshold = np.percentile(heuristic, 50)
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    # Integrate diversity by considering the variance of PSO scores
+    diversity_factor = np.var(pso_global_best_scores[feasible_items]) / np.mean(pso_global_best_scores[feasible_items])
+    heuristic *= diversity_factor
+
+    # Refine rewards with recent performance
+    recent_performance = np.mean(model_rewards[-5:])
+    heuristic *= recent_performance / (prize[global_best_index] + 1e-6)
+
+    # Balance exploration-exploitation for efficiency
+    exploration_rate = np.random.rand() / 2  # Example exploration rate
+    heuristic *= (1 - exploration_rate)
+
+    # Ignore non-feasible items in the final heuristic
+    heuristic[~feasible_items] = 0
+
+    return heuristic
+```

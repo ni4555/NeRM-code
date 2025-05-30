@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the ratio of prize to total weight per item
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Consider the balance of weight across dimensions
+    dimension_balance = np.sum(weight ** 2, axis=1) / np.sum(weight, axis=1)
+    
+    # Calculate the combined heuristics score by combining ratio and dimension balance
+    combined_heuristics = ratio * dimension_balance
+    
+    # Normalize the heuristics to ensure they are balanced across items
+    max_combined_heuristics = np.max(combined_heuristics)
+    min_combined_heuristics = np.min(combined_heuristics)
+    normalized_heuristics = 2 * (combined_heuristics - min_combined_heuristics) / (max_combined_heuristics - min_combined_heuristics) - 1
+    
+    # Apply a dynamic threshold for sparsification
+    dynamic_threshold = np.max(normalized_heuristics) * 0.7
+    sparsified_heuristics = np.where(normalized_heuristics >= dynamic_threshold, normalized_heuristics, 0)
+    
+    return sparsified_heuristics
+```

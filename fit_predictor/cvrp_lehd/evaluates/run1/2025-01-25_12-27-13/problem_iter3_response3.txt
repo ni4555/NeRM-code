@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Use vectorized operations for efficiency
+    # Calculate the difference in demand between each pair of nodes
+    demand_diff = demands.unsqueeze(1) - demands.unsqueeze(0)
+    # Apply a non-linear transformation to the difference in demand
+    demand_diff = torch.tanh(demand_diff)
+    # Multiply by the distance to incorporate distance into the heuristic
+    demand_diff *= distance_matrix
+    # Scale by the inverse of the demand for normalization
+    demand_diff /= (demands.unsqueeze(1) * demands.unsqueeze(0))
+    # Mask out negative heuristics and clip values to ensure they're non-negative
+    heuristics = torch.clamp(demand_diff, min=0)
+
+    return heuristics
+```

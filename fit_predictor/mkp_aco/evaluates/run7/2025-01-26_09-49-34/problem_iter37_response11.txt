@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to ensure items are not dominated by high prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate value-to-weight ratio
+    value_to_weight_ratio = normalized_prize / np.sum(weight, axis=1)
+    
+    # Introduce noise to promote diversity
+    np.random.seed(0)
+    noise = np.random.normal(0, 0.02, size=normalized_prize.shape)
+    value_to_weight_with_noise = value_to_weight_ratio + noise
+    
+    # Use a dynamic threshold based on the median of the value-to-weight ratio
+    median_value_to_weight = np.median(value_to_weight_with_noise)
+    threshold = median_value_to_weight * 0.5
+    
+    # Create heuristics based on the threshold
+    heuristics = np.where(value_to_weight_with_noise > threshold, 1, 0)
+    
+    # Adjust sparsity by setting low heuristics to zero
+    sparsity_threshold = np.percentile(heuristics, 10)  # 10% threshold for sparsity
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    # Normalize heuristics
+    heuristic_sum = np.sum(heuristics)
+    if heuristic_sum > 0:
+        heuristics /= heuristic_sum
+    
+    return heuristics
+```

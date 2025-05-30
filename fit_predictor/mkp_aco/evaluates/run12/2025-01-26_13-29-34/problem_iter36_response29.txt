@@ -1,0 +1,65 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    import numpy as np
+    from scipy.optimize import differential_evolution
+
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Constraints for the knapsack problem
+    def knapsack_constraints(x):
+        return x - np.sum(weight * x, axis=1) <= 1
+
+    # Objective function that combines the prize with a penalty for infeasibility
+    def objective_function(x):
+        infeasible_mask = x - np.sum(weight * x, axis=1) > 1
+        return -np.sum(prize * x) + np.sum(infeasible_mask)
+
+    # Deep Reinforcement Learning (DRL) setup with adaptive reward function
+    model_scores = np.random.rand(n)
+    reward_function = lambda x: -np.sum(x * np.log(1 + x))  # Minimize penalty for over-weighted items
+
+    # Initialize PSO parameters
+    pso_population_size = 10
+    pso_max_iterations = 50
+    pso_c1 = 1.5
+    pso_c2 = 1.5
+    pso_inertia_weight = 0.5
+
+    # Initialize particle positions and velocities
+    pso_positions = np.random.dirichlet(np.ones(m), size=pso_population_size)
+    pso_velocities = np.random.rand(pso_population_size, m)
+    pso_best_scores = np.zeros(pso_population_size)
+
+    # PSO loop
+    for _ in range(pso_max_iterations):
+        for i in range(pso_population_size):
+            # Update velocity and position
+            r1, r2 = np.random.rand(2)
+            pso_velocities[i] = (pso_inertia_weight * pso_velocities[i] +
+                                 pso_c1 * r1 * (pso_best_scores[i] - pso_positions[i]) +
+                                 pso_c2 * r2 * (model_scores - pso_positions[i]))
+            pso_positions[i] = np.clip(pso_positions[i] + pso_velocities[i], 0, 1)
+
+            # Evaluate fitness
+            fitness = reward_function(pso_positions[i])
+            if fitness > pso_best_scores[i]:
+                pso_best_scores[i] = fitness
+                pso_global_best = pso_positions[i]
+
+    # Use differential evolution to refine the solution
+    bounds = [(0, 1)] * n
+    result = differential_evolution(objective_function, bounds, constraints={'type': 'ineq', 'fun': knapsack_constraints},
+                                   strategy='best1bin', maxiter=100, tol=0.01, seed=42)
+    best_individual = result.x
+    best_score = result.fun
+
+    # Update heuristics based on the best individual from DE
+    heuristic = -best_score * prize / (prize * (1 + best_individual))
+
+    # Sparsify heuristics with dynamic thresholds
+    dynamic_threshold = np.percentile(heuristic, 50)
+    heuristic[heuristic < dynamic_threshold] = 0
+
+    return heuristic
+```

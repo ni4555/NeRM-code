@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Enhanced distance scaling with cumulative load
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity)
+    
+    # Dynamic capacity scaling to encourage early return
+    dynamic_capacity_scaling = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_scaling *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Overflow penalty to avoid exceeding vehicle capacity
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balancing to encourage even distribution of demand
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Randomness for diversity
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Scaling factors for different heuristics
+    scaling_factors = torch.tensor([0.5, 1.0, 1.5, 0.5], dtype=torch.float32)
+    
+    # Combine heuristics with scaling factors
+    combined_heuristics = (distance_scaling * scaling_factors[0] +
+                          dynamic_capacity_scaling * scaling_factors[1] +
+                          overflow_penalty * scaling_factors[2] +
+                          load_balance_penalty * scaling_factors[3] +
+                          diversity_factor)
+    
+    # Subtract depot penalty to avoid choosing it as a next node
+    depot_penalty = torch.arange(n) == 0
+    combined_heuristics = combined_heuristics - depot_penalty.float().unsqueeze(0)
+    
+    # Cap the heuristics to maintain stability
+    heuristics = torch.clamp(combined_heuristics, min=-10.0, max=10.0)
+    
+    return heuristics
+```

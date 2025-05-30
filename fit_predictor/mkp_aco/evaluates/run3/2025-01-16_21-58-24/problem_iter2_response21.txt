@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate a factor to balance the value-to-weight ratio with the number of dimensions
+    balance_factor = np.log(1 + len(weight))
+    
+    # Normalize by adding a small constant to avoid division by zero
+    normalized_ratio = value_to_weight_ratio + 1e-6
+    
+    # Combine the normalized ratio with the balance factor
+    combined_heuristic = normalized_ratio / normalized_ratio.sum() * balance_factor
+    
+    # Sparsify the heuristic by setting values below a threshold to zero
+    heuristic_threshold = np.percentile(combined_heuristic, 95)
+    sparsified_heuristics = np.where(combined_heuristic > heuristic_threshold, combined_heuristic, 0)
+    
+    return sparsified_heuristics
+```

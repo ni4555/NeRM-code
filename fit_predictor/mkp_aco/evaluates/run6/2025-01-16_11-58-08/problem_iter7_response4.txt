@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Normalize the ratio for sparsity and variance
+    normalized_ratio = (value_to_weight_ratio - np.min(value_to_weight_ratio)) / (np.max(value_to_weight_ratio) - np.min(value_to_weight_ratio))
+    # Non-linear scaling by squaring the normalized ratio
+    non_linear_scaled_ratio = normalized_ratio ** 2
+    # Use domain knowledge to enhance heuristics, for example, penalize items with high variance in value-to-weight ratio
+    variance = np.var(value_to_weight_ratio, axis=0)
+    domain_knowledge = 1 - (variance / np.sum(variance))
+    # Combine various factors for a more comprehensive heuristic
+    combined_heuristic = non_linear_scaled_ratio * domain_knowledge
+    # Sparsify the heuristics by setting unpromising elements to zero
+    sparsified_heuristic = np.where(combined_heuristic > 0.5, combined_heuristic, 0)
+    return sparsified_heuristic
+```

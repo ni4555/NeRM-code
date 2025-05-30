@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix and demands as before
+    max_distance = distance_matrix.max().item()
+    max_demand = demands.max().item()
+    normalized_distances = distance_matrix / max_distance
+    normalized_demands = demands / max_demand
+    
+    # Create a weight based on a demand variance measure to identify important edges
+    variance_demand = (normalized_demands - normalized_demands.mean())**2
+    variance_weight = variance_demand.mean() / (variance_demand.max() + 1e-5)
+    
+    # Incorporate an entropy measure for avoiding redundant paths
+    entropy_weight = -(torch.log(torch.mean(torch.clamp(normalized_demands, 1e-10, None)) / n) *
+                        normalized_distances).sum(0)
+    
+    # Create a demand relaxation penalty
+    relaxation_factor = 1.2
+    demand_threshold = normalized_demands.mean()
+    penalty = (relaxation_factor - (torch.exp(normalized_demands - demand_threshold) * n / 2.0)).sum(1)
+    
+    # Define potential value incorporating demand variance weight and penalty
+    potential_values = normalized_distances * variance_weight - penalty - entropy_weight
+    
+    # Use an exponential dampening for distance weight based on current demand to reduce longer path potential
+    vehicle_capacity = demands.sum().item() / n
+    distance_weight = 1 / (1 + distance_matrix ** vehicle_capacity)
+    potential_values += torch.sum(torch.clamp(normalized_distances - 1, min_val=0), 0)
+    
+    # Zero out potential values for edges between depot and other nodes
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Ensure potential values are not too large or negative due to entropy term
+    potential_values = torch.clamp(potential_values, min=0.0)
+    
+    return potential_values
+```

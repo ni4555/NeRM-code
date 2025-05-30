@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize and weight for each dimension
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    normalized_weight = (weight - np.min(weight, axis=1, keepdims=True)) / (np.max(weight, axis=1, keepdims=True) - np.min(weight, axis=1, keepdims=True))
+    
+    # Emphasize high values by using a logarithmic transformation
+    log_transformed_prize = np.log1p(normalized_prize)
+    
+    # Incorporate diversity by considering the standard deviation of weights
+    std_weight = np.std(weight, axis=1)
+    
+    # Combine factors and non-linear transformation
+    combined_factor = log_transformed_prize * (std_weight / np.sum(std_weight, axis=1))
+    
+    # Apply a threshold to sparsify the heuristics
+    sparsified_heuristics = np.where(combined_factor > 0.1, combined_factor, 0)
+    
+    return sparsified_heuristics
+```

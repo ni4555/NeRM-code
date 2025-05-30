@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the median distance from any vertex
+    median_distance = np.median(distance_matrix)
+    
+    # Calculate penalties for edge lengths and their distance from the median
+    edge_length_penalties = distance_matrix / np.max(distance_matrix)
+    distance_from_median = np.abs(distance_matrix - median_distance)
+    distance_from_median_penalties = distance_from_median / np.max(distance_from_median)
+    
+    # Combine penalties with a balance that avoids too high values for shorter edges
+    combined_penalties = edge_length_penalties + distance_from_median_penalties * 0.5
+    
+    # Normalize the penalties to ensure that values are within a similar range
+    min_value = np.min(combined_penalties)
+    max_value = np.max(combined_penalties)
+    normalized_penalties = (combined_penalties - min_value) / (max_value - min_value)
+    
+    # Limit the maximum penalty magnitude to prevent a single edge from having an excessively high weight
+    max_penalty_factor = 1.5
+    normalized_penalties = np.clip(normalized_penalties, a_min=1, a_max=max_penalty_factor)
+    
+    return normalized_penalties
+```

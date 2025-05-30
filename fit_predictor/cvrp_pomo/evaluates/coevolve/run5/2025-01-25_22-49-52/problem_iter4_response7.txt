@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Relax demands to reduce the impact of high demands
+    relaxed_demands = normalized_demands * (1 - demands)
+    
+    # Decompose the graph into smaller subgraphs (partitions) for improved processing
+    # Example partitioning strategy: threshold-based
+    partition_threshold = 0.5
+    partitions = torch.where(normalized_demands > partition_threshold, 
+                             torch.arange(n), 
+                             torch.zeros_like(normalized_demands))
+    
+    # Initialize potential values matrix
+    potential_values = torch.zeros_like(normalized_distances)
+    
+    # Calculate potential values for edges within the same partition
+    for i in torch.unique(partitions):
+        partition_mask = partitions == i
+        dist_within_partition = torch.masked_select(normalized_distances, partition_mask[:, None] & partition_mask).view(-1)
+        demand_within_partition = torch.masked_select(normalized_demands, partition_mask[:, None] & partition_mask).view(-1)
+        
+        # Calculate potential values using vectorized operations
+        potential_values[partition_mask[:, None] & partition_mask] = (dist_within_partition - relaxed_demands[partition_mask][:, None]) * (1 - 2 * demand_within_partition)
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

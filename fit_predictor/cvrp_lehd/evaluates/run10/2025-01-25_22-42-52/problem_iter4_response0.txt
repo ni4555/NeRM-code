@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate cumulative demand for each customer from the depot
+    cumulative_demand = (demands.cumsum(dim=0) + demands).unsqueeze(1)
+    
+    # Create a matrix to store the heuristics with negative values
+    heuristics_matrix = -torch.min(distance_matrix, dim=1)[0].unsqueeze(1)
+    
+    # Calculate the cumulative demand from each customer back to the depot
+    # and subtract it from the total demand to create a "capacity left" vector
+    capacity_left = 1.0 - (demands.unsqueeze(0).cumsum(dim=1) + demands)
+    
+    # Loop over each customer to calculate the potential overcapacity penalty
+    for i in range(1, n):
+        # Calculate the penalty for each edge from the depot to the current customer
+        penalty = cumulative_demand[:, i] - (capacity_left[:i, 0].unsqueeze(1) + 1.0)
+        # Apply the penalty only for edges that would lead to overcapacity
+        penalty[penalty < 0] = 0
+        # Update the heuristics matrix with the overcapacity penalty
+        heuristics_matrix[i, :] += penalty
+    
+    # Apply the same penalty to the reverse edges (customers to depot)
+    for i in range(1, n):
+        penalty = cumulative_demand[i, :] - (capacity_left[:, i].unsqueeze(0) + 1.0)
+        penalty[penalty < 0] = 0
+        heuristics_matrix[:, i] += penalty
+    
+    return heuristics_matrix
+```

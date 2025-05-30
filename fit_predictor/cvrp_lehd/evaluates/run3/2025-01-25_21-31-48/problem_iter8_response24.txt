@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)
+    demand_weighted_distance_matrix = distance_matrix_inv * demands
+    
+    # Add a penalty for edges with high cumulative demand
+    total_demand_penalty = (demands ** 2).sum() * (1 / demands.sum())
+    demand_weighted_distance_matrix *= (1 - total_demand_penalty)
+    
+    # Use a balance factor between demand and distance
+    balance_factor = torch.min(1.0, demands / demands.sum())
+    demand_weighted_distance_matrix *= balance_factor
+    
+    # Normalize the matrix to ensure all values are within a certain range
+    max_demand_weighted_distance = demand_weighted_distance_matrix.max()
+    min_demand_weighted_distance = demand_weighted_distance_matrix.min()
+    normalized_demand_weighted_distance_matrix = (demand_weighted_distance_matrix - min_demand_weighted_distance) / (max_demand_weighted_distance - min_demand_weighted_distance)
+    
+    # Add a small random noise to break symmetry, with less randomness close to the depot
+    random_noise = torch.rand_like(normalized_demand_weighted_distance_matrix) * 0.01 * (1 / (distance_matrix[:, 0] + 1e-10))
+    
+    # Final heuristic value
+    final_heuristic_values = normalized_demand_weighted_distance_matrix + random_noise
+    
+    # Ensure non-negative values
+    final_heuristic_values = torch.clamp(final_heuristic_values, min=0)
+    
+    return final_heuristic_values
+```

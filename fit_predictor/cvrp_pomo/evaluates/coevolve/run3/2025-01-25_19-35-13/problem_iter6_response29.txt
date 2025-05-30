@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    
+    # Initialize potential matrix with high values for long distances and zero for zero distance
+    edge_potential = 1 / (distance_matrix + epsilon)
+    
+    # Apply penalties for high demand and long distances
+    high_demand_penalty = (demands > 1.5) * 0.1
+    long_distance_penalty = (distance_matrix > 10) * 0.05
+    
+    # Apply bonuses for low demand and short distances
+    low_demand_bonus = (demands < 0.5) * 0.1
+    short_distance_bonus = (distance_matrix < 5) * 0.05
+    
+    # Update the potential matrix with penalties and bonuses
+    edge_potential -= high_demand_penalty * normalized_demands
+    edge_potential -= long_distance_penalty
+    edge_potential += low_demand_bonus * normalized_demands
+    edge_potential += short_distance_bonus
+    
+    # Ensure the potential values are non-negative
+    edge_potential = torch.clamp(edge_potential, min=0)
+    
+    return edge_potential
+```

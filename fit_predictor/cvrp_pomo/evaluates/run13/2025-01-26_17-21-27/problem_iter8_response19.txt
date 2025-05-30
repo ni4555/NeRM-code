@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    penalty = -torch.abs(demands).min().to(distance_matrix.device)
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    adjusted_distances = distance_matrix + cumulative_demand * penalty
+
+    # Calculate the difference between the adjusted distances and the total capacity
+    demand_excess = adjusted_distances - total_capacity * demands
+
+    # Apply the penalty for edges that would exceed capacity
+    heuristics_matrix = demand_excess + torch.where(demand_excess <= 0, adjusted_distances, penalty)
+
+    return heuristics_matrix
+```

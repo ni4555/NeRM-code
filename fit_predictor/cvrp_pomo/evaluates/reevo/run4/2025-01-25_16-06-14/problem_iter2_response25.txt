@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Create a matrix of negative values
+    negative_matrix = -normalized_distance_matrix
+    # Add a small positive value to non-zero edges to prevent division by zero
+    positive_matrix = negative_matrix.clone()
+    positive_matrix[positive_matrix != 0] += 1e-10
+    # Compute the difference between original and positive matrix to get promising edges
+    promising_matrix = torch.abs(normalized_distance_matrix - positive_matrix)
+    # Subtract the demand to penalize high demands
+    promising_matrix -= demands
+    # Invert the sign to get negative values for undesirable edges
+    promising_matrix = -promising_matrix
+    return promising_matrix
+```

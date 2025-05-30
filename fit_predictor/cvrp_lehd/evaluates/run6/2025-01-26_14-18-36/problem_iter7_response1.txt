@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Prioritize high-demand edges by scaling the heuristic value with demand difference
+    demand_weighted_heuristic = -torch.abs(demand_diff) * distance_matrix
+    
+    # Add a term that discourages feasible solutions with high return distances
+    return_distance_penalty = distance_matrix[1:, 0] * -1000
+    
+    # Combine the heuristic values with the penalty and normalize by capacity
+    combined_heuristic_values = (demand_weighted_heuristic + return_distance_penalty) / total_demand
+    
+    # Adjust the heuristic values based on precomputed sparse matrix properties
+    # (Assuming sparse properties are available, here we are using dummy sparse properties)
+    sparse_adjustment = torch.sparse_coo_tensor(indices, values, size=distance_matrix.shape)
+    adjusted_heuristic_values = combined_heuristic_values + sparse_adjustment.to_dense()
+    
+    # Initialize the heuristic matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Set the heuristic values for the depot to itself
+    heuristic_matrix[0, 0] = adjusted_heuristic_values[0, 0]
+    
+    # Set the heuristic values for the depot to its customers
+    heuristic_matrix[0, 1:] = adjusted_heuristic_values[0, 1:]
+    
+    # Set the heuristic values for customers to the depot
+    heuristic_matrix[1:, 0] = adjusted_heuristic_values[1:, 0]
+    
+    # Set the heuristic values for customers to each other
+    # Exclude self-loops by only setting values where the row index is greater than the column index
+    for i in range(1, n):
+        for j in range(i + 1, n):
+            heuristic_matrix[i, j] = adjusted_heuristic_values[i, j]
+            heuristic_matrix[j, i] = adjusted_heuristic_values[j, i]
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Incorporate a more aggressive dynamic scaling based on current load
+    dynamic_capacity_penalty = capacity_penalty * (1 + (cumulative_demand / total_capacity)**2)
+    
+    # Increase penalty for larger distances with respect to current load
+    distance_scaling = distance_penalty * (1 + cumulative_demand)
+    aggressive_distance_scaling = distance_scaling * (1 + (cumulative_demand / total_capacity)**0.5)
+    
+    # Implement a balancing load heuristic with a softer approach
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    soft_load_balance = load_balance_penalty * (1 - load_balance)
+    
+    # Apply a combination of heuristics
+    heuristics = dynamic_capacity_penalty + aggressive_distance_scaling + soft_load_balance
+    return heuristics
+```

@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand for each vehicle
+    total_demand = demands.sum()
+
+    # Calculate the distance from the depot to each customer
+    distances_from_depot = distance_matrix[:, 1:]
+
+    # Calculate the total distance if the vehicle visits all customers before returning to the depot
+    total_distance_all_customers = (distances_from_depot.sum(axis=1) * 2) - distances_from_depot.diag()
+
+    # Calculate the potential negative profit for each edge
+    negative_profit = total_distance_all_customers - total_demand
+
+    # Calculate the potential positive profit for each edge
+    positive_profit = demands[:-1] * distances_from_depot[1:, :-1]
+
+    # Create a matrix that will hold the heuristics values
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+
+    # Set the negative profit values
+    heuristics_matrix[:, 1:] = negative_profit
+
+    # Set the positive profit values, excluding the diagonal ( depot to itself )
+    heuristics_matrix[1:, :-1] = positive_profit
+
+    return heuristics_matrix
+```

@@ -1,0 +1,45 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # 1. Initial heuristic based on the minimum pairwise distances
+    min_distances = np.min(distance_matrix, axis=0)
+    
+    # 2. Adaptive neighborhood strategies
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                nearest_non_visited = np.argmin(distance_matrix[i, distance_matrix[:, i] > 0])
+                # Add a penalty for edges that go against the current best path to the nearest non-visited node
+                heuristics[i, j] = distance_matrix[i, j] + np.abs(distance_matrix[i, nearest_non_visited] - min_distances[nearest_non_visited])
+    
+    # 3. Guided local search enhancements
+    # Calculate the sum of distances from each node to all unvisited nodes from the starting node
+    all_unvisited = np.where(distance_matrix[:, 0] > 0)[0]
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                heuristics[i, j] += np.sum(distance_matrix[i, all_unvisited]) - np.sum(distance_matrix[j, all_unvisited])
+    
+    # 4. Real-time fitness landscape adaptation
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                nearest_neighbors = np.argsort(distance_matrix[i, distance_matrix[i] > 0])[1:5]  # Get the 4 nearest neighbors
+                diversity = np.std(distance_matrix[nearest_neighbors, j])
+                # Adjust the heuristic based on the diversity of the nearest neighbors
+                heuristics[i, j] += diversity
+    
+    # 5. Weighted combination of the above heuristics
+    # Balance between exploration (global search) and exploitation (local search)
+    weight_local = 0.6
+    weight_adaptation = 0.4
+    
+    # Update the heuristics matrix with the weighted combination
+    heuristics = weight_local * heuristics + weight_adaptation * (np.max(distance_matrix, axis=0) - np.min(distance_matrix, axis=0))
+    
+    return heuristics
+```

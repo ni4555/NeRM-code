@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    depot = 0
+    
+    # Negative distance heuristic
+    negative_distance_heuristic = -distance_matrix
+    
+    # Demand heuristic, scaled to vehicle capacity
+    demand_heuristic = (demands[:, None] + demands) * distance_matrix[depot, :].unsqueeze(1)
+    
+    # Local knowledge heuristic: nodes with high cumulative demand are more promising
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    local_knowledge_heuristic = cumulative_demand * distance_matrix[depot, :].unsqueeze(1)
+    
+    # Global knowledge heuristic: balance the number of visits to each node
+    global_knowledge_heuristic = (1 / (cumulative_demand + 1e-8)) * distance_matrix[depot, :].unsqueeze(1)
+    
+    # Random noise factor for diversity
+    noise_factor = 0.1 * torch.rand_like(distance_matrix) - 0.05
+    
+    # Factor for balancing exploitation and exploration
+    exploration_exploitation_factor = 0.8 * torch.rand_like(distance_matrix) + 0.2
+    
+    # Combine heuristics with local and global knowledge, noise factor, and balance factor
+    combined_heuristic = (
+        negative_distance_heuristic +
+        demand_heuristic +
+        local_knowledge_heuristic +
+        global_knowledge_heuristic +
+        noise_factor * exploration_exploitation_factor
+    )
+    
+    # Normalize the heuristics to ensure they are in the same scale
+    # Adding a small epsilon to avoid division by zero
+    normalized_combined_heuristic = combined_heuristic / (combined_heuristic.sum() + 1e-8)
+    
+    return normalized_combined_heuristic
+```

@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Introduce a demand penalty early in the heuristic formation
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Normalize the demand penalty matrix to emphasize constraints without overwhelming other terms
+    normalized_demand_penalty_matrix = (demand_penalty_matrix + 1e-6) / (demand_penalty_matrix + 1e-6).max()
+    
+    # Use the distance matrix directly as the initial heuristic to balance randomness and diversity
+    initial_heuristic_matrix = distance_matrix / distance_matrix.max()
+    
+    # Introduce a second noise term to increase diversity, using a uniform noise
+    uniform_noise_matrix = torch.rand_like(distance_matrix) * 2 - 1
+    
+    # Normalize the noise to ensure it has the same scale as the initial heuristic
+    normalized_uniform_noise_matrix = (uniform_noise_matrix + 1e-6) / (uniform_noise_matrix + 1e-6).max()
+    
+    # Combine the normalized demand penalty and the normalized noise for the final heuristic
+    combined_potential_matrix = normalized_demand_penalty_matrix + normalized_uniform_noise_matrix
+    
+    # Non-linearly transform the combined potential matrix to emphasize constraints
+    emphasized_matrix = torch.relu(combined_potential_matrix)
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Introduce a final mutation to the matrix for further diversity
+    mutation_factor = torch.rand_like(normalized_emphasized_matrix)
+    mutated_combined_matrix = normalized_emphasized_matrix + torch.randn_like(normalized_emphasized_matrix) * 1e-3 * mutation_factor
+    
+    # Final transformation into a heuristics matrix, with negative values representing undesirable edges
+    heuristics_matrix = -mutated_combined_matrix
+    
+    return heuristics_matrix
+```

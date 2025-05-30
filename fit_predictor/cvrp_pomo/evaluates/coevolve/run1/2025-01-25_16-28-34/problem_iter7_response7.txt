@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Define the local search neighborhood exploration function
+    def local_search_neighborhood(i, j):
+        # Calculate the load after adding edge (i, j)
+        load = demands[i] + demands[j]
+        if load > total_capacity:
+            return float('-inf')  # Overload
+        elif load < total_capacity:
+            return float('inf')  # Underload is not penalized
+        else:
+            return 0  # Optimal load
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a heuristic that considers the balance between overloading and underloading
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Apply local search neighborhood exploration to refine heuristics
+    for i in range(n):
+        for j in range(n):
+            if i != j and distance_matrix[i][j] > 0:  # Skip the depot and zero distance edges
+                heuristics[i][j] = max(heuristics[i][j], local_search_neighborhood(i, j))
+    
+    # Calculate penalties for overloading and underloading
+    overload_penalty = torch.abs(heuristics)
+    underload_penalty = torch.abs(1 - heuristics)
+    
+    # Weighted combination of overloading and underloading penalties
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

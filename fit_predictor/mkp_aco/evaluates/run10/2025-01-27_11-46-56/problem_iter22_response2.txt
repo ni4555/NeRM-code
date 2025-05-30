@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    diversity_factor = np.exp(-utility)
+    exploration_factor = np.random.normal(0, 0.1, size=utility.shape)
+    sharpness_factor = 1 / (1 + np.exp(-5 * utility))  # Enhanced sharpness factor for peak selection
+
+    # Adaptive exploitation factor based on normalized utility
+    exploitation_factor = (1 - utility) * np.exp(utility)
+
+    # Combine factors for heuristics
+    heuristics = utility * diversity_factor * exploration_factor * sharpness_factor
+
+    # Ensure non-negative heuristics and balance exploration and exploitation
+    heuristics = np.clip(heuristics, a_min=0, a_max=1)
+
+    # Peak selection refinement by enhancing the selection of higher utility items
+    peak_heuristics = heuristics * (1 / (np.exp(-heuristics) + 1))
+
+    # Enhanced normalization that balances exploration and exploitation
+    enhanced_normalization = (1 - utility / (1 + np.exp(-utility))) * (1 + utility / (1 + np.exp(-utility)))
+
+    # Normalize heuristics to balance the factors
+    normalized_peak_heuristics = peak_heuristics * enhanced_normalization
+    normalized_peak_heuristics = normalized_peak_heuristics / normalized_peak_heuristics.sum(axis=1, keepdims=True)
+
+    # Apply a dynamic adaptive weight allocation mechanism
+    time_factor = np.arange(1, len(normalized_peak_heuristics) + 1)
+    dynamic_factor = 1 / np.arange(1, len(normalized_peak_heuristics) + 1)
+    normalized_peak_heuristics *= dynamic_factor * time_factor
+
+    # Final heuristics with dynamic adaptive weight allocation
+    final_heuristics = normalized_peak_heuristics / normalized_peak_heuristics.sum(axis=1, keepdims=True)
+    return final_heuristics.sum(axis=1)
+```

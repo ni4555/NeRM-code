@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Adaptive penalties: introduce penalties for edges that have been visited frequently
+    # Assuming `visited_edges` is a tensor that keeps track of the number of times each edge has been visited
+    visited_edges = torch.ones_like(distance_matrix)
+    # Example of a simple adaptive penalty, could be replaced with more sophisticated methods
+    adaptive_penalty = 1.0 / (visited_edges + 1e-8)
+
+    # Dynamic weight adjustment: increase weight on load balance as the solution converges
+    dynamic_weight = torch.exp(-torch.linspace(0, n, steps=n))
+
+    # Combine heuristics with dynamic weighting and penalties
+    combined_heuristic = (
+        inverse_distance * 0.2 +
+        demand_weight * 0.2 +
+        heuristic_range * 0.2 +
+        load_balance * 0.3 +
+        adaptive_penalty * 0.1 +
+        dynamic_weight * 0.1
+    )
+
+    # Clamp values to a reasonable range to avoid extreme values
+    combined_heuristic = torch.clamp(combined_heuristic, min=-10.0, max=10.0)
+
+    return combined_heuristic
+```

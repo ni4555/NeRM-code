@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    remaining_capacity = torch.zeros_like(demands)
+    heuristic_matrix = -torch.inf * torch.ones_like(distance_matrix)
+
+    # Calculate edge heuristics using vectorized operations
+    edge_heuristic = normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0) * distance_matrix
+    heuristic_matrix = edge_heuristic
+
+    # Vectorized capacity constraint application
+    for i in range(1, n):
+        for j in range(1, n):
+            if demands[j] > remaining_capacity[i]:
+                heuristic_matrix[i][j] -= (demands[j] - remaining_capacity[i])
+
+    # Normalize the heuristic matrix to ensure it has both positive and negative values
+    min_val, max_val = heuristic_matrix.min(), heuristic_matrix.max()
+    heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+
+    # Add bonus for returning to the depot
+    heuristic_matrix[:, 0] = -heuristic_matrix[:, 0]
+    heuristic_matrix[0, :] = -heuristic_matrix[0, :]
+
+    return heuristic_matrix
+```

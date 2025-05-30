@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Introduce a direct penalty for long direct distances
+    direct_penalty_factor = 0.1
+    heuristics += direct_penalty_factor * distance_matrix
+
+    # Introduce a loop penalty for large loops
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Calculate the sum of distances for the current edge and the previous and next edges in a loop
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, np.roll(i, 1)] + distance_matrix[np.roll(i, 1), j]
+                # Apply a penalty if the loop distance is larger than a threshold
+                loop_threshold = 0.5 * distance_matrix[i, np.roll(i, 1)]
+                heuristics[i, j] += max(0, loop_distance - loop_threshold)
+
+    # Introduce a diversity factor to encourage visiting less frequently visited nodes
+    diversity_factor = 1e-3
+    visited_count = np.sum(distance_matrix > 0, axis=0)
+    heuristics += diversity_factor / (visited_count + 1)
+
+    return heuristics
+```

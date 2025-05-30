@@ -1,0 +1,51 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: adaptively modify the search space based on performance
+    mean_distance = distance_matrix.mean()
+    # Introduce a variable for performance feedback and adapt search space dynamically
+    performance_feedback = 1.0
+    heuristic_range = 1.0 / (distance_matrix + performance_feedback * mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Dynamic adjustment of heuristic balance weights
+    weight_inverse_distance = 0.5
+    weight_demand_weight = 0.3
+    weight_heuristic_range = performance_feedback * 0.2  # Reflects adaptive adjustment
+    weight_load_balance = 0.4
+
+    # Combine heuristics using dynamic weights
+    combined_heuristic = (inverse_distance * weight_inverse_distance +
+                          demand_weight * weight_demand_weight +
+                          heuristic_range * weight_heuristic_range +
+                          load_balance * weight_load_balance)
+
+    # Mutation: Introduce a random factor to explore new solutions
+    random_factor = torch.rand_like(combined_heuristic)
+    mutated_heuristic = combined_heuristic + random_factor * 0.1 - 0.05  # Reduced mutation impact
+
+    # Mutation: Introduce a bonus for large deviations if they improve the heuristic
+    bonus_threshold = 0.5  # Threshold for significant deviation
+    deviation_bonus = torch.clamp((mutated_heuristic - combined_heuristic) > bonus_threshold, max=1.0)
+    mutated_heuristic += deviation_bonus * 0.5
+
+    # Mutation: Introduce a penalty for extreme deviations
+    penalty_factor = torch.clamp(torch.abs(mutated_heuristic - combined_heuristic) > 1.0, max=1.0)
+    mutated_heuristic -= penalty_factor * 0.5
+
+    return mutated_heuristic
+```

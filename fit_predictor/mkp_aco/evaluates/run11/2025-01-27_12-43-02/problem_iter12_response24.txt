@@ -1,0 +1,19 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    # Normalize weights
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    # Calculate the score for each item based on normalized weights
+    score = np.sum(prize * normalized_weights, axis=1)
+    # Calculate the ratio of prize to weight sum
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    # Combine score and ratio to create a combined importance metric
+    combined_score = score * ratio
+    # Use binary features for decision-making
+    importance_binary = combined_score > np.percentile(combined_score, 90)  # Use the 90th percentile as a threshold
+    # Convert to a 0-1 vector by dividing by the maximum value in the combined_score
+    importance_normalized = importance_binary.astype(float) / np.sum(importance_binary.astype(float))
+    return importance_normalized
+```

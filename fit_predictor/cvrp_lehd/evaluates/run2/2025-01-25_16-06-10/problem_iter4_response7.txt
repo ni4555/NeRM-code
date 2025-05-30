@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Iterate through all possible edges, leveraging symmetry
+    for i in range(distance_matrix.shape[0]):
+        for j in range(i + 1, distance_matrix.shape[1]):
+            current_demand = demands[i] + demands[j]
+            
+            # If the current demand is less than the vehicle capacity, consider it
+            if current_demand <= total_demand:
+                # Calculate the heuristic value
+                heuristic_value = -distance_matrix[i, j] + distance_matrix[i, 0] + distance_matrix[0, j]
+                heuristic_matrix[i, j] = heuristic_value
+                heuristic_matrix[j, i] = heuristic_value  # Reflect the value for the symmetric edge
+    
+    return heuristic_matrix
+```

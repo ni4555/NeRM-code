@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Node partitioning based on demand
+    partition_indices = torch.abs(normalized_demands - 0.5).argsort()
+    partition_size = n // 3
+    partitions = partition_indices[:partition_size], partition_indices[partition_size:2*partition_size], partition_indices[2*partition_size:]
+    
+    # Calculate adaptive weights based on partition
+    weights = torch.tensor([0.9, 0.8, 0.7], dtype=torch.float32)
+    weight_sum = weights.sum()
+    partition_weights = weights / weight_sum
+    
+    # Calculate the potential value for each edge
+    potential_values = torch.zeros_like(distance_matrix)
+    for i, partition in enumerate(partitions):
+        for j in partition:
+            if j == 0:
+                continue
+            for k in partition:
+                if k == j or k == 0:
+                    continue
+                # Demand balancing factor
+                demand_factor = torch.abs(normalized_demands[j] - normalized_demands[k])
+                # Weighted distance and demand
+                weighted_distance = normalized_distances[j, k] * partition_weights[i]
+                weighted_demand = demand_factor * partition_weights[i]
+                # Non-linear transformation using exponential decay
+                potential_values[j, k] = torch.exp(-weighted_distance) + weighted_demand
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

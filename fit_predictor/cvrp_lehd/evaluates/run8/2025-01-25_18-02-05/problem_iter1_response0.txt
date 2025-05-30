@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the Manhattan distance heuristic for each edge
+    x_diff = torch.abs(torch.arange(distance_matrix.shape[0])[None, :] - torch.arange(distance_matrix.shape[0])[None, :, None])
+    y_diff = torch.abs(torch.arange(distance_matrix.shape[0])[None, :] - torch.arange(distance_matrix.shape[0])[None, :, None].T)
+    manhattan_distance = x_diff + y_diff
+    manhattan_heuristic = demands / manhattan_distance
+    
+    # Calculate the nearest neighbor heuristic for each edge by finding the minimum demand
+    # for each source node considering all possible destinations (including itself)
+    min_demand = torch.min(demands[None, :], dim=1)[0]
+    nearest_neighbor_heuristic = demands / (min_demand + distance_matrix)
+    
+    # Combine the heuristics by averaging them
+    combined_heuristic = 0.5 * (manhattan_heuristic + nearest_neighbor_heuristic)
+    
+    # Normalize the combined heuristic to ensure all values are positive
+    max_combined_heuristic = torch.max(combined_heuristic)
+    heuristic_matrix = combined_heuristic / max_combined_heuristic
+    
+    return heuristic_matrix
+```

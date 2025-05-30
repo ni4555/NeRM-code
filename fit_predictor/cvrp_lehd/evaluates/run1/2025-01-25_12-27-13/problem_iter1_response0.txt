@@ -1,0 +1,15 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """A heuristic that assigns higher weights to edges that are short and have a demand that fits within the vehicle's capacity."""
+    total_capacity = demands.sum()
+    demands_normalized = demands / total_capacity
+    demand_excess = demands - demands_normalized
+    weight_matrix = -torch.exp(-0.5 * torch.logspace(-4, 1, num=distance_matrix.size(0), dtype=torch.float32))
+
+    # Scale weights by the excess demand and the normalized demand
+    scaled_weights = weight_matrix * demand_excess.unsqueeze(1) * demands_normalized.unsqueeze(0)
+
+    return scaled_weights
+```

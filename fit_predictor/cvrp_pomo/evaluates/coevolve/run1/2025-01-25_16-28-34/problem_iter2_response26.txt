@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+    load_factor = demands[:, None] + demands[None, :] * distance_matrix
+
+    # Problem-specific Local Search: Calculate heuristics based on load factor and capacity
+    heuristics = (load_factor / total_capacity) - 1
+    heuristics[distance_matrix == 0] = 0  # Avoid division by zero
+
+    # Apply adaptive PSO with population management
+    swarm_size = 10  # Example swarm size
+    iterations = 100  # Example number of iterations
+    for _ in range(iterations):
+        for i in range(swarm_size):
+            # Update velocity and position based on local and global best
+            # This is a simplified example and should be replaced with actual PSO logic
+            heuristics += (torch.rand_like(heuristics) - 0.5) * 0.1
+
+    # Apply dynamic tabu search with adaptive cost function
+    tabu_list = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            if (i, j) not in tabu_list and load_factor[i, j] <= 1:
+                # Update heuristics based on tabu search
+                heuristics[i, j] *= 0.95
+                heuristics[j, i] *= 0.95
+                tabu_list.add((i, j))
+
+    # Adjust heuristics to ensure they are negative for undesirable edges
+    heuristics[heuristics >= 0] = 0
+
+    return heuristics
+```

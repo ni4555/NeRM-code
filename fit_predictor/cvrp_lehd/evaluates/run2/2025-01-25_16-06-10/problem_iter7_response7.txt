@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:]
+    
+    # Create a matrix with the negative of the distance for symmetry consideration
+    neg_distance_matrix = -distance_matrix
+    
+    # For each pair of nodes, calculate the total demand and the remaining capacity at the start node
+    for start_node in range(1, n_nodes):
+        # Find the closest destination node that satisfies the capacity constraint
+        total_demand, destination_node = torch.min(
+            (demand_cumsum - demand_cumsum[start_node], neg_distance_matrix[start_node])
+        )
+        
+        if total_demand <= remaining_capacity[start_node]:
+            heuristics[start_node, destination_node] = total_demand
+            remaining_capacity[start_node] -= total_demand
+            
+            # Update the remaining capacity and demand at the next iteration
+            demands[start_node] -= total_demand
+            demand_cumsum = torch.cumsum(demands, dim=0)
+            
+            # If the start node reaches its capacity, consider the return to the depot
+            if remaining_capacity[start_node] <= 0:
+                distance_to_depot = distance_matrix[start_node, 0]
+                heuristics[start_node, 0] = distance_to_depot
+                break  # No need to continue to other destination nodes
+```

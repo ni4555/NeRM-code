@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    # Create a matrix of all ones
+    ones = torch.ones_like(distance_matrix)
+    # Calculate the total demand matrix
+    demand_matrix = torch.cumsum(demands, dim=0) - torch.cumsum(demands[:-1], dim=0)
+    demand_matrix[1:] = demand_matrix[1:] - demand_matrix[:-1]
+    demand_matrix[0] = demands[1:]
+    # Calculate the heuristic for the depot to its customers
+    heuristics_depot_customers = distance_matrix[0, 1:] * (total_demand - demand_matrix[1:])
+    # Calculate the heuristic for customer to customer
+    heuristics_customer_customer = (distance_matrix[:, 1:] - distance_matrix[0, 1:]).unsqueeze(1) * demand_matrix[1:]
+    # Combine the heuristics
+    heuristics = heuristics_depot_customers.unsqueeze(0) + heuristics_customer_customer
+    # Normalize by the total demand and clip negative values to zero
+    heuristics = (heuristics / total_demand).clamp(min=0)
+    return heuristics
+```

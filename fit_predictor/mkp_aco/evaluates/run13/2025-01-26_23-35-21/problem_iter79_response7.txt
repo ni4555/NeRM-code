@@ -1,0 +1,45 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Integrate additional metrics such as the sum of weights
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Prune dominated items (those with lower density than others in the same weight sum group)
+    sorted_indices = np.argsort(-density)
+    non_dominated_indices = []
+    dominated_set = set()
+    for i in sorted_indices:
+        if i not in dominated_set:
+            non_dominated_indices.append(i)
+            dominated_set.update([j for j in sorted_indices if j != i and density[j] < density[i]])
+    
+    # Recalculate density only for non-dominated items
+    density = density[non_dominated_indices]
+    weight_sum = weight_sum[non_dominated_indices]
+    
+    # Introduce exploration and exploitation by blending density and sparsity
+    exploration_exploitation_factor = np.random.rand(len(non_dominated_indices))
+    heuristic = density * exploration_exploitation_factor + sparsity * (1 - exploration_exploitation_factor)
+    
+    # Balance the heuristic by incorporating the weight sum
+    balance_heuristic = heuristic - (weight_sum / (np.max(weight_sum) + 1e-8))
+    
+    # Randomly introduce variability to avoid local optima
+    random_factor = np.random.rand(len(non_dominated_indices))
+    random_heuristic = random_factor * (balance_heuristic - np.min(balance_heuristic))
+    
+    # Combine the heuristics using a weighted sum
+    combined_heuristic = 0.5 * balance_heuristic + 0.5 * random_heuristic
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = combined_heuristic / (np.max(combined_heuristic) + 1e-8)
+    
+    return normalized_heuristic
+```

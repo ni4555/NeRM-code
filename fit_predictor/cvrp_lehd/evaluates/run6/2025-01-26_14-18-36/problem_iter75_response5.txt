@@ -1,0 +1,51 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce a random factor for exploration and normalization
+    random_factor = torch.rand_like(scaled_demands) * 0.5 - 0.25
+
+    # Use normalized demand differences as a base for the heuristic
+    base_heuristic = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Combine the base heuristic with the remaining capacity and random factor
+    combined_heuristic = base_heuristic * remaining_capacity + random_factor
+
+    # Dampen the effect of high penalties by non-linear transformation
+    dampened_heuristic = torch.clamp(torch.sigmoid(combined_heuristic), min=0.0, max=1.0)
+
+    # Introduce a capacity penalty for exceeding demand limits
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    dampened_heuristic -= capacity_penalty * 0.5
+
+    # Add a penalty for edges leading back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    dampened_heuristic += depot_penalty * 0.5
+
+    # Encourage diversity by penalizing highly similar edges
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                demand_similarity = (scaled_demands[i] - scaled_demands[j]).abs()
+                similarity_penalty = demand_similarity * 0.1
+                dampened_heuristic[i, j] += similarity_penalty
+
+    # Normalize the heuristic values to encourage exploration
+    max_heuristic = dampened_heuristic.max()
+    min_heuristic = dampened_heuristic.min()
+    normalized_heuristics = (dampened_heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+
+    return normalized_heuristics
+```

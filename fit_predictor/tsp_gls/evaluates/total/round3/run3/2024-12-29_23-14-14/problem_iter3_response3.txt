@@ -1,0 +1,24 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Encourage diversification by considering the variance of distances to neighboring nodes
+    local_optimal_route = np.where(distance_matrix == 0)[0]  # Assuming local optimal route is zeroed out
+    route_neighbors = local_optimal_route[:, 1] - local_optimal_route[:, 0]  # Get neighbors of the route nodes
+    
+    # Calculate the mean and standard deviation for the local optimal route distances
+    route_mean = np.mean(distance_matrix[route_neighbors])
+    route_std = np.std(distance_matrix[route_neighbors])
+    
+    # Normalize the distances to the local optimal route
+    deviations = distance_matrix - route_mean
+    
+    # Scale by standard deviation and add a penalty for large deviations from the mean
+    # This encourages diversification while still considering relative distances
+    badness_scores = np.abs(deviations / route_std) + (deviations > route_std * 2)
+    
+    # Normalize badness_scores to the range [0, 1]
+    badness_scores = (badness_scores - badness_scores.min()) / (badness_scores.max() - badness_scores.min())
+    
+    return badness_scores
+```

@@ -1,0 +1,25 @@
+```python
+import torch
+from torch import nn
+from torch.nn.functional import softmax
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Calculate the absolute difference in demand between each pair of nodes
+    demand_difference = torch.abs(demands[:, None] - demands[None, :])
+    
+    # Apply a penalty to pairs where the difference exceeds vehicle capacity
+    penalty_matrix = torch.where(demand_difference > vehicle_capacity, demand_difference - vehicle_capacity, torch.zeros_like(demand_difference))
+    
+    # Create a potential matrix by adding the distance matrix and the penalty matrix
+    potential_matrix = distance_matrix + penalty_matrix
+    
+    # Apply softmax to normalize the potential matrix into a probability distribution
+    softmax_matrix = softmax(potential_matrix, dim=1)
+    
+    # Invert the softmax_matrix to transform it from a probability distribution to a heuristic
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

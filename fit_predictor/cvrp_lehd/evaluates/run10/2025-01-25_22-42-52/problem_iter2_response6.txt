@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize the demand matrix for both directions ( depot to customer and customer to depot )
+    demand_matrix = torch.zeros((len(demands), len(demands)))
+    
+    # Populate the demand matrix
+    demand_matrix[:-1, 1:] = demands.unsqueeze(1)
+    demand_matrix[1:, :-1] = demands.unsqueeze(0)
+    
+    # Calculate the negative sum of the demand matrix as a heuristic penalty
+    penalty = -torch.sum(torch.triu(demand_matrix, diagonal=1))
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # For each non-zero edge, assign a heuristic value based on the penalty
+    non_zero_edges = distance_matrix != 0
+    heuristics_matrix[non_zero_edges] = penalty[non_zero_edges]
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Incorporate demand-based penalties early to emphasize constraints
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Use a logarithmic distance function to normalize for scale and balance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine the demand and distance penalties
+    combined_potential_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Introduce randomness with Gaussian noise
+    noise_matrix = torch.randn_like(combined_potential_matrix) * 1e-2
+    
+    # Combine the original potential with noise and a second noise term for diversity
+    combined_potential_matrix += noise_matrix
+    second_noise_matrix = torch.randn_like(combined_potential_matrix) * 1e-2
+    combined_potential_matrix += second_noise_matrix
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(combined_potential_matrix))
+    
+    # Normalize to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Emphasize constraints by increasing the weight of the combined matrix
+    emphasized_combined_matrix = normalized_emphasized_matrix * 0.8 + distance_penalty_matrix * 0.2
+    
+    # Mutation by adding a small random perturbation
+    mutation_factor = torch.rand_like(emphasized_combined_matrix)
+    mutated_combined_matrix = emphasized_combined_matrix + torch.randn_like(emphasized_combined_matrix) * 1e-3 * mutation_factor
+    
+    # Final transformation into a heuristics matrix
+    heuristics_matrix = -mutated_combined_matrix
+    
+    return heuristics_matrix
+```

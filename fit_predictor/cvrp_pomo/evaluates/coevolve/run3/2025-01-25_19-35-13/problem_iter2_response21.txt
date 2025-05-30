@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize the heuristics matrix with zeros
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Compute the potential for each edge based on distance and demand
+    # Using a combination of inverse distance and demand with adaptive weights
+    # The adaptive weights are based on the distance to the nearest customer to prevent
+    # favoring nodes that are too far from the depot
+    adaptive_weights = 1 / (distance_matrix + 1e-8)
+    nearest_customer_distances = torch.min(distance_matrix, dim=1)[0]
+    weight_max = adaptive_weights.max()
+    weight_min = adaptive_weights.min()
+    adaptive_weights = ((adaptive_weights - weight_min) / (weight_max - weight_min)) * 2 - 1
+    
+    # Combine the distance and demand heuristics using a weighted sum
+    alpha = 0.5
+    beta = 0.5
+    edge_potential = (alpha * adaptive_weights) + (beta * normalized_demands)
+    
+    # Apply a soft thresholding to ensure that the heuristics values are within a certain range
+    max_potential = edge_potential.max()
+    edge_potential = torch.clamp(edge_potential, min=-max_potential * 0.1, max=max_potential * 0.1)
+    
+    return edge_potential
+```

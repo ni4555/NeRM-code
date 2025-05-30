@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Initialize a matrix to store cumulative vehicle capacity
+    capacity_cumsum = torch.zeros_like(demands)
+    
+    # Loop through each node to compute heuristics from it
+    for start_node in range(distance_matrix.shape[0]):
+        # Initialize the cumulative capacity from the start node
+        cumulative_capacity = capacity_cumsum[start_node]
+        # Calculate the feasible edges for the start node
+        feasible_edges = distance_matrix[start_node, :] < demand_cumsum[start_node]
+        # Update heuristics for feasible edges
+        heuristics[start_node, feasible_edges] = 1 - distance_matrix[start_node, feasible_edges]
+        
+        # Iterate through the feasible edges
+        for i in feasible_edges:
+            # Update cumulative capacity
+            cumulative_capacity += demands[i]
+            # Find next feasible edges considering the updated cumulative capacity
+            next_edges = distance_matrix[i, :] < cumulative_capacity
+            # Update heuristics for next feasible edges
+            heuristics[start_node, next_edges] = heuristics[start_node, next_edges].where(
+                heuristics[start_node, next_edges] == 1 - distance_matrix[i, next_edges],
+                -torch.inf
+            )
+            # Update capacity_cumsum for further reference
+            capacity_cumsum[i] = cumulative_capacity
+    
+    return heuristics
+```

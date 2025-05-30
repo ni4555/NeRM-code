@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate density based on maximum prize and average weight
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    density = prize / average_weight
+
+    # Calculate sparsity based on whether density exceeds the maximum density ratio
+    sparsity = (density > max_prize / np.sum(weight)) * 1.0
+
+    # Calculate the score per dimension by considering relative importance
+    score_per_dimension = prize / np.prod(1 - weight, axis=1)
+
+    # Combine the density, sparsity, and score using a weighted sum
+    combined_score = 0.5 * (density + sparsity) + 0.5 * score_per_dimension
+
+    # Incorporate global information by adjusting scores based on their total prize value
+    global_score = prize / np.sum(prize) * combined_score
+
+    # Aggregate the global score with the dimension-specific score
+    heuristics = global_score + score_per_dimension
+
+    # Normalize the scores to ensure they sum up to the number of items
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

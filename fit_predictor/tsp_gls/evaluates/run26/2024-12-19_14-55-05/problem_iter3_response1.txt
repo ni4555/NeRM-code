@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Introduce a dynamic penalty based on the position of the edge in the loop
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Calculate the position of the edge in the loop (0 for first, 1 for middle, 2 for last)
+                loop_position = (i - j) % num_nodes
+                # Higher penalties for edges at the ends of the loop and edges that lead to large loops
+                position_penalty = 0.5 if loop_position == 0 or loop_position == num_nodes - 1 else 1
+                # Calculate the potential loop distance and the direct distance
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, np.roll(i, 1)] + distance_matrix[np.roll(i, 1), j]
+                direct_distance = distance_matrix[i, np.roll(i, 1)]
+                # Apply the dynamic penalty
+                heuristics[i, j] = loop_distance - direct_distance + position_penalty
+
+    # Incorporate a diversity penalty to encourage different solutions
+    diversity_penalty = np.mean(distance_matrix) * np.random.rand()
+    heuristics += diversity_penalty
+
+    # Use context-aware metrics by penalizing edges that appear in common configurations
+    common_edge_threshold = 0.5 * num_nodes
+    for edge in np.ndindex(distance_matrix.shape):
+        count = np.sum(distance_matrix == distance_matrix[edge])
+        if count > common_edge_threshold:
+            heuristics[edge] += np.log(count)
+
+    return heuristics
+```

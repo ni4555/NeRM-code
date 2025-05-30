@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+    
+    # Apply a modified dynamic programming approach with a cutoff
+    n = len(demands)
+    dp = torch.zeros((n, n))
+    for d in range(1, n):
+        for s in range(d):
+            dp[d, s] = dp[s, max(0, d-2)] + distance_matrix[s, d]
+    
+    # Calculate the potential based on the lower bound and demand
+    epsilon = 1e-8
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+    
+    # Introduce a more adaptive penalty based on the vehicle's capacity threshold
+    capacity_threshold = 1.5  # Example threshold for capacity
+    long_distance_threshold = 10  # Example threshold for long distance
+    edge_potential = edge_potential - (edge_potential * 0.1 * (demands > capacity_threshold).float())
+    edge_potential = edge_potential + (edge_potential * 0.05 * (distance_matrix < long_distance_threshold).float())
+    
+    # Integrate a more sophisticated local search heuristic
+    for i in range(1, n):
+        for j in range(1, n):
+            if i != j:
+                # Check if adding both nodes would exceed capacity
+                if demands[i] + demands[j] <= 1:
+                    edge_potential[i, j] += 0.1
+                # Check if adding one node would cause a capacity violation
+                elif demands[i] <= 1 and demands[j] <= 1:
+                    edge_potential[i, j] += 0.05
+                # Check if adding either node would improve the solution
+                edge_potential[i, j] += 0.01 * (distance_matrix[i, j] < distance_matrix[i, 0] + distance_matrix[j, 0]).float()
+    
+    return edge_potential
+```

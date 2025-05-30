@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    capacity = 1.0
+    epsilon = 1e-8
+    
+    # Calculate cumulative demands up to each customer
+    cumulative_demands = demands.cumsum(0)
+    
+    # Calculate the distance from the last customer to the depot
+    last_to_depot = distance_matrix[:, 0].unsqueeze(1)
+    
+    # Calculate the maximum demand up to each customer
+    max_demand_up_to_customer = cumulative_demands.max(dim=0, keepdim=True)[0]
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Create a mask where demand exceeds capacity
+    demand_exceeds_capacity = (demands > capacity).unsqueeze(1)
+    
+    # Update heuristics matrix with negative values where demand exceeds capacity
+    heuristics[demand_exceeds_capacity] = -1000
+    
+    # Calculate the weighted distance considering demand
+    weighted_distance = distance_matrix * demands
+    
+    # Normalize the weighted distance considering demand
+    normalized_weighted_distance = weighted_distance / (demands + epsilon)
+    
+    # Calculate the capacity utilization as a heuristic
+    capacity_utilization = (capacity - max_demand_up_to_customer) / capacity
+    
+    # Combine the normalized weighted distance and capacity utilization to get the heuristic
+    heuristics += normalized_weighted_distance
+    heuristics += capacity_utilization
+    
+    # Add a term that promotes returning to the depot if not already done
+    feasible_last_to_depot = (capacity - cumulative_demands[-1]) > 0
+    heuristics[feasible_last_to_depot] = heuristics[feasible_last_to_depot] - last_to_depot[feasible_last_to_depot]
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

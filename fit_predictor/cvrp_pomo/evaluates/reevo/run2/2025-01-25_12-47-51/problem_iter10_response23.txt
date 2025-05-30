@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+    weighted_inv_distance = inv_distance_matrix * demands
+    normalized_weighted_inv_distance = weighted_inv_distance / total_demand
+
+    # Calculate the heuristic matrix by combining the demand-based weight and distance-based weight
+    heuristic_matrix = normalized_weighted_inv_distance - (2 * demands / total_demand)**2
+
+    # Apply a penalty to edges that would exceed vehicle capacity
+    capacity_penalty = (demands[:, None] + demands[None, :]) > 1
+    heuristic_matrix[capacity_penalty] = -float('inf')
+
+    return heuristic_matrix
+```

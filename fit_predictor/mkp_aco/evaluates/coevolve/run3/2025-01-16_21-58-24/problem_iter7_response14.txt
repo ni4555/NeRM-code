@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate a density factor based on the ratio
+    density_factor = value_to_weight_ratio / np.mean(value_to_weight_ratio)
+    
+    # Calculate a diversity factor to encourage a variety of items in the solution
+    diversity_factor = np.exp(-np.square(value_to_weight_ratio - np.mean(value_to_weight_ratio)))
+    
+    # Combine the normalized ratio with the density and diversity factors
+    combined_heuristics = value_to_weight_ratio * (1 + density_factor + diversity_factor)
+    
+    # Introduce randomness to maintain heuristic diversity
+    np.random.seed(0)  # Ensure reproducibility
+    random_noise = np.random.normal(0, 0.1, size=combined_heuristics.shape)
+    final_heuristics = combined_heuristics + random_noise
+    
+    # Apply a threshold to the heuristics and sparsify
+    threshold = 0.5
+    sparsified_heuristics = np.where(final_heuristics > threshold, final_heuristics, 0)
+    
+    return sparsified_heuristics
+```

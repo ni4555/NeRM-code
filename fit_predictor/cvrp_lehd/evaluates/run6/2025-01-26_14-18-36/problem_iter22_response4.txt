@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+
+    # Define penalties for high demand, capacity excess, and longer than average distance
+    demand_penalty = (demands > 0.7 * total_demand / n).float() * -1000.0
+    capacity_excess_penalty = (demands > 1.0).float() * -1000.0
+    distance_penalty = (distance_matrix > distance_matrix.mean()).float() * -10.0
+
+    # Encourage grouping of customers with similar demands
+    demand_pattern = (demands < 0.5 * total_demand).float() * 10.0
+
+    # Combine penalties and pattern
+    combined = demand_penalty + capacity_excess_penalty + distance_penalty + demand_pattern
+
+    # Apply decay function to reduce relevance of distant or low-demand edges
+    distance_decay = torch.exp(-distance_matrix / distance_matrix.mean())
+    demand_decay = torch.exp(-demands / total_demand)
+
+    # Combine decays with combined pattern
+    combined_decay = distance_decay * demand_decay * combined
+
+    # Normalize to ensure all values sum to 1
+    combined_decay /= combined_decay.sum()
+
+    return combined_decay
+```

@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Calculate the negative of this ratio to use as a heuristic
+    # Negative values indicate undesirable edges (heuristic score is lower)
+    heuristic_matrix = -demand_to_distance_ratio
+    
+    # Determine a threshold for the heuristic matrix based on the minimum value
+    # This threshold helps differentiate between good and bad edges
+    threshold = torch.min(heuristic_matrix)
+    
+    # Apply the threshold to ensure all undesirable edges have negative values
+    # while keeping positive values for promising edges
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, heuristic_matrix, 0)
+    
+    # Normalize the heuristic matrix to have a range of [-1, 1]
+    # Negative values will be used to indicate undesirable edges
+    normalized_heuristic_matrix = 2 * (heuristic_matrix / torch.max(torch.abs(heuristic_matrix))) - 1
+    
+    return normalized_heuristic_matrix
+```

@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    cum_demands = torch.cumsum(demands, dim=0)
+    capacity_mask = cum_demands < demands[0]
+    potential = torch.exp(-distance_matrix * 0.1) * capacity_mask
+    high_demand_penalty = demands * torch.where(capacity_mask, torch.zeros_like(demands), torch.ones_like(demands))
+    penalty = high_demand_penalty
+    # Non-linearly penalize based on distance and demand
+    penalty = torch.relu(penalty) * torch.relu(distance_matrix ** 2 * 0.001)
+    # Scale heuristics to favor short distances
+    heuristics = potential - penalty
+    heuristics = heuristics * (1 / (1 + distance_matrix))
+    heuristics[0, 1] = 0
+    heuristics[1, 0] = 0
+    return heuristics
+```

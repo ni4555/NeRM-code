@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a random number generator for added randomness
+    rng = np.random.default_rng()
+    
+    # Calculate the normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items based on density and sparsity
+    dominated_mask = (density > sparsity)
+    
+    # Explore variance in prize distribution
+    variance = np.var(prize)
+    
+    # Introduce additional randomness
+    randomness = rng.uniform(0, 1, size=density.shape)
+    
+    # Create a heuristic by considering all factors
+    heuristic = (density * (1 - sparsity)) + variance * randomness
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Ensure non-dominated items have a higher heuristic value
+    non_dominated_heuristic = np.where(dominated_mask, 0, normalized_heuristic)
+    
+    # Prune dominated items by setting their heuristic to zero
+    non_dominated_heuristic[~dominated_mask] = 0
+    
+    return non_dominated_heuristic
+```

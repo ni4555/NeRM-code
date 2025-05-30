@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Demand-driven distance scaling
+    demand_scaled_distance = torch.abs(distance_matrix) / (1 + cumulative_demand)
+    
+    # Demand-driven capacity balance
+    capacity_balance = (total_capacity - cumulative_demand) / total_capacity
+    
+    # Exponential decay for demand
+    demand_decay = torch.exp(-cumulative_demand)
+    
+    # Combine scaled distance, capacity balance, and demand decay
+    heuristics = demand_decay * demand_scaled_distance * (capacity_balance ** 2)
+    
+    return heuristics
+```

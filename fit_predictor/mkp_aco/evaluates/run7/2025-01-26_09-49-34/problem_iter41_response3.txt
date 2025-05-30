@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristics array with random values
+    heuristics = np.random.rand(prize.shape[0])
+
+    # Normalize prize to ensure items are not dominated by high prizes
+    normalized_prize = prize / np.max(prize)
+
+    # Adjust heuristics based on normalized prize and sparsity
+    heuristics *= normalized_prize
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    heuristics *= sparsity_factor
+
+    # Encourage diversity by adding a random perturbation with Gaussian distribution
+    diversity = np.random.normal(0, 0.02, size=prize.shape)
+    heuristics += diversity
+
+    # Amplify promising heuristics and dampen unpromising ones
+    amplification_threshold = np.percentile(heuristics, 70)
+    heuristics[heuristics > amplification_threshold] *= 1.5
+    heuristics[heuristics < amplification_threshold] *= 0.5
+
+    # Adapt thresholds dynamically based on the distribution of the heuristics
+    amplification_threshold_dynamic = np.mean(heuristics[heuristics > 0])
+    heuristics[heuristics > amplification_threshold_dynamic] *= 1.2
+
+    # Refine the heuristics by iterating a fixed number of times
+    for _ in range(3):
+        for i in range(heuristics.shape[0]):
+            dominated_by = np.any(heuristics > heuristics[i])
+            if not dominated_by:
+                heuristics[i] *= 1.1
+
+    # Normalize the final heuristics to sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

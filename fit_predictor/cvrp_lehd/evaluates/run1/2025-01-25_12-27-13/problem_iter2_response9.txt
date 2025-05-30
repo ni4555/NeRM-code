@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    max_capacity = 1.0 / (1.0 / total_demand)
+    demand_mask = demands > 0
+
+    # Initialize the heuristics matrix
+    heuristics = -torch.ones_like(distance_matrix)
+
+    # Iterate over each edge
+    for i in torch.arange(1, n):
+        for j in torch.arange(i, n):
+            if demand_mask[j]:
+                # Calculate the remaining capacity for each vehicle
+                remaining_capacity = (i == 0) * max_capacity + (i > 0) * (total_demand - demands[:i].sum())
+                # Calculate the potential heuristics for this edge
+                edge_heuristic = demands[j] - remaining_capacity
+                # Set the heuristics value for this edge
+                heuristics[i, j] = edge_heuristic
+                if i != j:  # If it's not the same node
+                    heuristics[j, i] = edge_heuristic
+
+    return heuristics
+```

@@ -1,0 +1,49 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a weighted balance heuristic
+    # Incorporate demand relaxation and path decomposition
+    distance_weight = 0.5
+    demand_weight = 1.5
+    relaxation_factor = 0.3  # Factor to relax demand for heuristic evaluation
+    penalty_threshold = 0.7  # Nodes with demand greater than 0.7 times the average demand are penalized
+    average_demand = normalized_demands.mean()
+    
+    # Relax demands for heuristic purposes
+    relaxed_demands = torch.clamp(normalized_demands * (1 - relaxation_factor), min=0)
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(relaxed_demands > penalty_threshold, 
+                                relaxed_demands - average_demand, 
+                                torch.zeros_like(relaxed_demands))
+    
+    # Combine potential values with a dampening factor for high demands
+    potential_values = (normalized_distances * (1 - relaxed_demands) +
+                        distance_weight * normalized_distances +
+                        demand_weight * relaxed_demands - 
+                        penalty_term).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Introduce a dynamic weight adjustment to prioritize high-capacity nodes
+    # and to ensure that the vehicle capacities are not violated
+    for i in range(1, n):
+        for j in range(1, n):
+            if relaxed_demands[i] + demands[j] <= 1:
+                potential_values[i, j] *= (1 + relaxed_demands[i] * demands[j])
+    
+    return potential_values
+```

@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Introduce a penalty for loops using the median distance of the matrix
+    median_distance = np.median(distance_matrix)
+    loop_penalty_factor = 0.1
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, np.roll(i, 1)] + distance_matrix[np.roll(i, 1), j]
+                heuristics[i, j] += loop_penalty_factor * (loop_distance - median_distance)
+
+    # Incentivize structural diversity by penalizing edges that are part of a triangle with high edge weights
+    triangle_penalty_factor = 1e-2
+    triangle_penalty_matrix = np.zeros_like(distance_matrix)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            for k in range(num_nodes):
+                if k != i and k != j and j != np.roll(i, 1) and j != np.roll(k, 1):
+                    triangle_weight = np.maximum(distance_matrix[i, j], distance_matrix[i, k]) + distance_matrix[j, k]
+                    triangle_penalty_matrix[i, j] += triangle_penalty_factor * triangle_weight
+                    triangle_penalty_matrix[i, k] += triangle_penalty_factor * triangle_weight
+                    triangle_penalty_matrix[j, k] += triangle_penalty_factor * triangle_weight
+    heuristics += triangle_penalty_matrix
+
+    # Introduce a frequency diversity heuristic to encourage visiting nodes with less frequency
+    diversity_factor = 1e-3
+    visited_count = np.sum(distance_matrix > 0, axis=0)
+    frequency_diversity_matrix = diversity_factor * (1 / (visited_count + 1))
+    heuristics += frequency_diversity_matrix
+
+    # Normalize the heuristics to ensure non-negativity
+    heuristics = np.clip(heuristics, 0, None)
+
+    return heuristics
+```

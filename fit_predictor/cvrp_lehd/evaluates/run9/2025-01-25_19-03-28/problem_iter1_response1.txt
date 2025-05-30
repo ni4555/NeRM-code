@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the Euclidean distance between the depot and each customer
+    depot_distance = distance_matrix[0, 1:].mean(dim=1)
+    
+    # Calculate the sum of demands for each segment from the depot to customer nodes
+    sum_of_demands = demands[1:].cumsum(dim=0)
+    
+    # Compute a heuristic that considers both distance and cumulative demand
+    # Higher distances and higher cumulative demands are penalized, making these edges
+    # less likely to be chosen early in the solution process.
+    heuristic_matrix = (1 - (depot_distance * sum_of_demands)) * (distance_matrix ** 2)
+    
+    # Apply a soft ceiling to ensure that high penalties are avoided
+    soft_ceiling = torch.min(heuristic_matrix, torch.zeros_like(heuristic_matrix))
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=0, max=soft_ceiling)
+    
+    return heuristic_matrix
+```

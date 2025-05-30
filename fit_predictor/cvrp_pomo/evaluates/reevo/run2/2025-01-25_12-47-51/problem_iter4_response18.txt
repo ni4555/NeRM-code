@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+
+    # Normalize demands and distances
+    demand_normalized = demands / total_demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Heuristic based on normalized inverse distance
+    distance_based_heuristic = -normalized_inv_distance_matrix
+
+    # Heuristic based on demand
+    demand_heuristic = demand_normalized * 0.1
+
+    # Heuristic based on remaining capacity
+    remaining_capacity = 1 - demand_normalized
+    capacity_based_heuristic = (remaining_capacity * inv_distance_matrix).T
+
+    # Combine heuristics with a preference for lower demand and capacity
+    combined_heuristic = distance_based_heuristic + demand_heuristic + capacity_based_heuristic
+
+    # Heuristic based on nearest neighbor to favor short paths
+    nearest_neighbor_heuristic = torch.zeros_like(distance_matrix)
+    for i in range(n):
+        nearest_neighbor = torch.argmin(distance_matrix[i, 1:])
+        nearest_neighbor_heuristic[i, nearest_neighbor] = -distance_matrix[i, nearest_neighbor]
+    combined_heuristic += nearest_neighbor_heuristic
+
+    # Penalize edges with insufficient capacity
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    # Adjust heuristics to be non-negative
+    combined_heuristic = torch.relu(combined_heuristic)
+
+    return combined_heuristic
+```

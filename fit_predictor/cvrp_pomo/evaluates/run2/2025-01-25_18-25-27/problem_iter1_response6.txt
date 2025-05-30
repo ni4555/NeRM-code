@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix using a modified Dijkstra's algorithm
+    heuristics_matrix = distance_matrix.clone()
+    for i in range(n):
+        # Initialize the distances from the depot to all nodes
+        distances = heuristics_matrix[i]
+        # Perform a modified Dijkstra's algorithm to find shortest paths from the depot
+        unvisited = set(range(1, n))
+        while unvisited:
+            # Find the node with the smallest distance
+            min_distance_node = unvisited[distances[unvisited].argmin()]
+            unvisited.remove(min_distance_node)
+            # Update the distances to the neighboring nodes
+            for j in range(n):
+                if j in unvisited:
+                    distances[j] = min(distances[j], distances[min_distance_node] + distance_matrix[min_distance_node, j])
+            # Update the heuristics for the current node
+            heuristics_matrix[i, min_distance_node] = -distances[min_distance_node]
+    return heuristics_matrix
+```

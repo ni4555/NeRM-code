@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Define a partitioning based on demand size to handle high-demand customers separately
+    partition_threshold = 0.8  # Threshold for partitioning high-demand customers
+    relaxed_demands = torch.where(normalized_demands > partition_threshold, 
+                                  normalized_demands, 
+                                  0.0)
+    
+    # Use a weighted combination of distance and demand relaxation
+    weights = torch.rand(1, n) * 2 - 1  # Random weights between -1 and 1
+    
+    # Introduce a demand relaxation factor that decreases with distance
+    distance_decay = 1 - (torch.arange(n) / (n - 1))
+    demand_relaxation = relaxed_demands * distance_decay
+    
+    # Calculate the potential value for each edge
+    potential_values = normalized_distances - weights * demand_relaxation
+    
+    # Incorporate a dynamic window approach by reducing the potential for frequently used edges
+    # Assuming a random frequently used edge is selected with a certain probability
+    frequent_edges = torch.rand(n) < 0.2  # 20% chance of an edge being frequently used
+    potential_values[frequent_edges] *= 0.8  # Reduce potential for frequently used edges
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

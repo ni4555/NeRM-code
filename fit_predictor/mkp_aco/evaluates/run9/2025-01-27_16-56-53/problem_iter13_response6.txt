@@ -1,0 +1,61 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = 0
+        total_weight = 0
+        for j in range(m):
+            total_prize += prize[i] * weight[i, j]
+            total_weight += weight[i, j]
+        # Normalize by weight to get a per-item heuristic and penalize high weight
+        heuristic[i] = (total_prize / total_weight) / (1 + weight[i].sum())
+    
+    # Normalize heuristics to minimize redundancy
+    heuristic = (heuristic - np.min(heuristic)) / (np.max(heuristic) - np.min(heuristic))
+    
+    # Introduce randomness and penalize outliers
+    random_factor = np.random.normal(0, 0.1, n)
+    outliers_penalty = np.zeros(n)
+    for i in range(n):
+        if heuristic[i] > 0.9:
+            outliers_penalty[i] = 1 - heuristic[i] / 0.9
+        else:
+            outliers_penalty[i] = heuristic[i]
+    heuristic = (heuristic + random_factor + outliers_penalty) / 3
+    
+    # Use adaptive penalties to prevent local optima
+    penalty_factor = np.zeros(n)
+    for i in range(n):
+        if weight[i].sum() > 0.9:
+            penalty_factor[i] = 1 - weight[i].sum() / 0.9
+        else:
+            penalty_factor[i] = 1
+    heuristic *= penalty_factor
+    
+    # Refine balance by simplifying criteria
+    heuristic = (heuristic + heuristic.mean()) / 2
+    
+    # Apply consistent mutation and normalize factors
+    mutation_factor = np.random.normal(0, 0.01, n)
+    heuristic += mutation_factor
+    heuristic = np.clip(heuristic, 0, 1)
+    
+    # Optimize diversity and balance exploration-exploitation
+    diversity_factor = np.zeros(n)
+    for i in range(n):
+        unique_weights = np.count_nonzero(weight[i] == np.max(weight[i]))
+        diversity_factor[i] = unique_weights / m
+    heuristic *= diversity_factor
+    
+    # Simplify heuristics and focus on core factors
+    heuristic = (heuristic + heuristic.mean()) / 2
+    
+    # Set low-value items and those with high total weight to zero
+    heuristic[heuristic < heuristic.mean() * 0.1] = 0
+    heuristic[weight.sum(axis=1) > m * 0.8] = 0
+    
+    return heuristic
+```

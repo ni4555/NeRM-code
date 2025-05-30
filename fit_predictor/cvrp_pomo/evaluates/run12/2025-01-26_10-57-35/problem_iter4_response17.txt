@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Normalize demands to the total capacity
+    normalized_demands = demands / demands.sum()
+    # Calculate cumulative sum of normalized demands
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    # Calculate cumulative sum of distances from the depot
+    cumulative_distance = torch.cumsum(distance_matrix[:, 0], dim=0)
+    
+    for i in range(n):
+        for j in range(i + 1, n):
+            # Subtract cumulative demand at the previous node from current demand
+            current_demand = demands[j]
+            # Subtract cumulative distance at the previous node from current distance
+            current_distance = distance_matrix[i, j]
+            # If the current node demand exceeds the vehicle capacity, reset the cumulative demand
+            if cumulative_demand[j] > 1:
+                cumulative_demand[j] = current_demand
+            # Update heuristics matrix with a positive value
+            heuristics[i, j] = (current_distance - cumulative_distance[i]) * cumulative_demand[j]
+            # Update cumulative demand at the next node
+            cumulative_demand[j] += current_demand
+    
+    # Ensure that the values are non-negative by clamping at zero
+    heuristics = torch.clamp(heuristics, min=0)
+    return heuristics
+```

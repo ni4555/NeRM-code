@@ -1,0 +1,37 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic matrix with infinity
+    heuristics = np.full(distance_matrix.shape, np.inf)
+
+    # Use the Euclidean distance as a base for the heuristic
+    distances = distance_matrix.copy()
+
+    # Calculate the relative importance of each node based on degree
+    n = distance_matrix.shape[0]
+    degrees = np.sum(distance_matrix, axis=0)
+    # Normalize the degree to get a relative measure
+    relative_degrees = degrees / np.sum(degrees)
+
+    # Calculate the distance weighted by the relative degree
+    weighted_distances = distances * relative_degrees
+
+    # Apply triangle inequality by penalizing the heuristic value of each edge
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Get the current node and its neighbors
+                neighbors = np.setdiff1d(np.arange(n), [i, j])
+                # Check all possible triangles that include edge (i, j)
+                for k in neighbors:
+                    for l in neighbors:
+                        if k != l and k != i and l != i:
+                            # Apply the triangle inequality penalty
+                            heuristics[i, j] = min(heuristics[i, j], distances[i, j] - distances[i, k] - distances[j, l] + distances[k, l])
+
+    # Set self-loops to infinity
+    np.fill_diagonal(heuristics, np.inf)
+    
+    return heuristics
+```

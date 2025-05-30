@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize the heuristic matrix
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Create a mask to identify edges that exceed the vehicle's capacity
+    capacity_exceeded = (cumulative_demand + demands.unsqueeze(0)) > total_demand.unsqueeze(1)
+    
+    # Set edges that exceed capacity to -infinity
+    heuristics[capacity_exceeded] = -float('inf')
+    
+    # For edges that do not exceed capacity, set the heuristic value
+    # We use a simple heuristic where the cost is the distance to the depot
+    # This can be adjusted to other heuristics if needed
+    heuristics[~capacity_exceeded] = distance_matrix[~capacity_exceeded, 0]
+    
+    return heuristics
+```

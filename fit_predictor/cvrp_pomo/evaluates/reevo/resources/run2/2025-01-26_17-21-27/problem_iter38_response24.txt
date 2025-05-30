@@ -1,0 +1,58 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Distance penalty with cumulative load consideration
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Dynamic capacity penalty to adapt to current state
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8) * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Overflow penalty with early return heuristic
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Diversity heuristic to avoid similar paths
+    diversity_penalty = torch.mean(torch.abs(torch.diff(cumulative_demand)), dim=0)
+    
+    # High load balance penalty to avoid overloading any single vehicle
+    high_load_balance_penalty = torch.where(
+        load_balance > total_capacity / (3 * n),
+        -torch.log1p(load_balance - 1e-8),
+        torch.zeros_like(load_balance)
+    )
+    
+    # Scaling factors to prioritize objectives
+    distance_scale = 1.5
+    capacity_scale = 2.0
+    load_balance_scale = 1.0
+    diversity_scale = 2.0
+    high_load_balance_scale = 1.5
+    
+    # Combined heuristics
+    heuristics = (distance_scale * distance_scaling +
+                  capacity_scale * dynamic_capacity_penalty +
+                  load_balance_scale * load_balance_penalty +
+                  diversity_scale * diversity_penalty +
+                  high_load_balance_scale * high_load_balance_penalty +
+                  overflow_penalty)
+    
+    # Scale heuristics
+    scaling_factor = 4.0
+    heuristics = heuristics * scaling_factor
+    
+    # Cap the heuristics
+    heuristics = torch.clamp(heuristics, min=-100, max=100)
+    
+    return heuristics
+```

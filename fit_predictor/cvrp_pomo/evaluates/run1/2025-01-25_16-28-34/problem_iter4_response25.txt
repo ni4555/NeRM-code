@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total vehicle capacity
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adjust the average demand per edge to be relative to the total capacity
+    adjusted_average_demand = average_demand_per_edge / total_capacity
+    
+    # Calculate the weighted load factor for each edge
+    weighted_load_factor = (adjusted_average_demand - 1) / (1 - adjusted_average_demand)
+    
+    # Apply a local search to refine neighborhood exploration
+    # This is a simplified version of the local search mechanism that balances load
+    for i in range(n):
+        for j in range(i + 1, n):
+            if distance_matrix[i, j] > 0:  # Ignore zero distance edges
+                # Calculate the load impact of including this edge
+                load_impact = demands[j] - demands[i]
+                # Update the heuristics if the edge does not violate capacity constraints
+                if load_impact >= 0 and load_impact <= total_capacity:
+                    heuristics[i, j] = heuristics[j, i] = weighted_load_factor[i, j] * load_impact
+    
+    # Return the heuristics matrix with edges with zero distance set to zero
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

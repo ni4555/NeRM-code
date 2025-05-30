@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = (prize[i] / (1 + prize[i])) * weight[i].sum()
+        total_weight = weight[i].sum()
+        # Normalize by weight and use a non-linear transformation to reduce weight's impact
+        heuristic[i] = total_prize / (1 + np.sqrt(total_weight))
+    
+    # Incorporate a normalization step to balance diverse factors
+    min_prize_weight_ratio = heuristic.min()
+    heuristic = (heuristic - min_prize_weight_ratio) / (heuristic.max() - min_prize_weight_ratio)
+    
+    # Introduce an exploration factor based on a Gaussian distribution to promote diversity
+    exploration_factor = np.random.normal(0, 0.1, n)
+    heuristic = (1 + exploration_factor) * heuristic
+    
+    # Introduce an exploitation factor based on the inverse of the total weight to focus on light items
+    exploitation_factor = 1 / (1 + weight.sum(axis=1))
+    heuristic = heuristic * exploitation_factor
+    
+    # Sparsify by penalizing low-value and high-weight items
+    low_value_penalty = heuristic < heuristic.mean()
+    high_weight_penalty = weight.sum(axis=1) > 0.8 * m
+    heuristic[low_value_penalty] = 0
+    heuristic[high_weight_penalty] = 0
+    
+    # Introduce diversity enhancement by considering item distribution across dimensions
+    for i in range(n):
+        dimension_distribute = np.abs(np.sum(weight[i], axis=1) / m - 0.5)
+        diversity_factor = np.mean(dimension_distribute)
+        heuristic[i] *= diversity_factor
+    
+    # Set low-value and outliers to zero for further sparsity
+    heuristic[heuristic < heuristic.mean()] = 0
+    
+    return heuristic
+```

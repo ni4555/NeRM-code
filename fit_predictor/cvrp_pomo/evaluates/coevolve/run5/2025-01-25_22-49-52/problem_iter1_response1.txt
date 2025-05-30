@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the cumulative demand along each row (sum of demands from left to right)
+    cumulative_demands = torch.cumsum(demands, dim=1)
+    
+    # Calculate the cumulative demand along each column (sum of demands from top to bottom)
+    cumulative_demands_t = torch.cumsum(demands, dim=0)
+    
+    # Calculate the potential value for each edge using a combination of distance, cumulative demand, and a relaxation factor
+    potential_values = distance_matrix - cumulative_demands - cumulative_demands_t
+    
+    # Apply a demand relaxation factor that increases the potential of edges with higher demand
+    relaxation_factor = demands / demands.mean()
+    potential_values += relaxation_factor * demands
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Ensure the potential values are non-negative
+    potential_values = torch.clamp(potential_values, min=0)
+    
+    return potential_values
+```

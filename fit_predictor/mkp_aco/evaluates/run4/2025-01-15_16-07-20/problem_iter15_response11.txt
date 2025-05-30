@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Calculate density and normalize
+    density = prize / np.mean(weight, axis=1)
+    
+    # Calculate utility using a weighted sum of density and sparsity
+    sparsity_bonus = np.mean(prize) / max_prize  # Sparsity is inversely proportional to the number of non-zero weights
+    utility = density * (1 - sparsity_bonus)
+    
+    # Introduce a non-linear factor: the number of dimensions an item is non-zero in
+    dimensionality_factor = np.sum(weight, axis=1) / n
+    
+    # Balance variance by incorporating the variance of weights per item
+    variance_factor = 1 - np.sum(weight**2, axis=1) / (np.sum(weight, axis=1)**2)
+    
+    # Calculate the total utility incorporating the non-linear factors
+    total_utility = utility * (1 - dimensionality_factor) + variance_factor
+    
+    # Introduce a fairness constraint: no item should dominate based on a single dimension
+    fairness_constraint = 1 / (np.sum(weight, axis=1) > 0).sum()
+    
+    # Adjust total utility by incorporating fairness constraint
+    adjusted_utility = total_utility - fairness_constraint
+    
+    # Normalize the adjusted utility scores
+    normalized_utility = adjusted_utility / np.sum(adjusted_utility)
+    
+    # Return the heuristics scores
+    return normalized_utility
+```

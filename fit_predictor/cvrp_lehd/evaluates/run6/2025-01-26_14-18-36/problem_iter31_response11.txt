@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce a dampening factor to prevent rapid increases in heuristics
+    dampening_factor = 0.5
+
+    # Calculate the heuristic value for each edge based on scaled demand and remaining capacity
+    heuristics = dampening_factor * (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Introduce a balance between global (total demand) and local (remaining capacity)
+    heuristics += (1 - dampening_factor) * cumulative_demand
+
+    # Integrate distance and dampen its effect on the heuristic value
+    distance_factor = 0.2
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * distance_factor
+    heuristics += torch.clamp(distance_penalty, min=0.0)
+
+    # Penalize early nodes more than late nodes in the tour
+    early_penalty = (cumulative_demand > total_capacity * 0.8).float() * 500.0
+    late_penalty = (cumulative_demand < total_capacity * 0.2).float() * 500.0
+    heuristics += torch.clamp(early_penalty + late_penalty, min=0.0)
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    return heuristics
+```

@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Normalize demand differences to encourage diversity
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Calculate heuristic value using normalized demand differences and remaining capacity
+    heuristics = demand_diff * remaining_capacity
+
+    # Introduce randomness to explore diverse solutions, but use dampening to reduce oscillations
+    exploration_noise = torch.randn_like(heuristics) * 0.01
+    exploration_noise = torch.clamp(exploration_noise, min=-0.1, max=0.1)
+    heuristics += exploration_noise
+
+    # Use non-linear transformation to dampen high penalties and encourage balance, while maintaining diversity
+    heuristics = torch.sigmoid(heuristics)
+
+    # Introduce a penalty for nodes with demands exceeding capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty
+
+    # Introduce a penalty for edges leading back to the depot, but allow partial paths
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1000
+    partial_path_penalty = (torch.clamp(distance_matrix[:, 0] / distance_matrix[:, 0].mean(), min=1.0) - 1.0) * 50
+    depot_penalty += partial_path_penalty
+    heuristics += depot_penalty
+
+    # Introduce a preference for edges closer to the depot, but avoid bias towards the nearest edge
+    distance_penalty = torch.max(distance_matrix[:, 0] / distance_matrix[:, 0].mean(), dim=0)[0] * 50
+    heuristics += torch.clamp(distance_penalty, min=0.0) * (1 - torch.max(distance_matrix[:, 0] / distance_matrix[:, 0].mean()))
+
+    # Ensure that the heuristic is positive and well-distributed
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

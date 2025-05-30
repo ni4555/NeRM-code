@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristic vector
+    heuristic = np.zeros_like(prize)
+
+    # Calculate normalized density and sparsity
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+
+    # Iterate over each item to compute heuristic value
+    for i in range(prize.shape[0]):
+        if sparsity[i] > 0.5:  # Prune dominated items based on sparsity
+            continue
+        # Balance exploration (randomness) and exploitation (density)
+        heuristic[i] = (0.7 * density[i]) + (0.3 * np.random.rand())
+        # Ensure diversity by avoiding identical heuristic values for items with similar density
+        similar_items = np.where(density >= density[i] - 0.05)
+        for j in similar_items[0]:
+            if j != i:
+                heuristic[j] = min(heuristic[j], heuristic[i])
+
+    # Normalize the heuristic to a scale of 0-1
+    heuristic /= np.max(heuristic)
+    
+    # Set zero weight items to a small value to maintain diversity
+    heuristic[weight.sum(axis=1) < 1e-8] = 1e-8
+
+    return heuristic
+```

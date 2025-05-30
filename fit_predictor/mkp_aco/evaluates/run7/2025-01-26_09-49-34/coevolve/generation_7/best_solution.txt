@@ -1,0 +1,46 @@
+Fitness: inf
+
+Description:
+Innovatively solve the MKP using a heuristic approach, strategically combining a probabilistic selection of items based on their estimated total contribution and a sophisticated perturbation scheme for exhaustive solution space exploration. Leverage state-of-the-art metaheuristic methods, such as stochastic local search or genetic algorithms, to efficiently navigate through potential item combinations while strictly respecting each knapsack's complex, multi-dimensional weight restrictions. Continuously evolve the candidate solutions by adaptively perturbing selected item subsets to break through local maxima, ultimately aiming to converge upon a globally optimal or near-optimal prize collection, while optimizing computational resources through an early-stopping criterion.
+
+Code:
+import numpy as np
+import numpy as np
+import random
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape
+    heuristic = np.zeros(n)
+    
+    # Calculate the total contribution of each item
+    total_contribution = prize * np.sum(weight, axis=1)
+    
+    # Initialize the probability of selection based on total contribution
+    probability = total_contribution / np.sum(total_contribution)
+    
+    # Initialize the heuristic values
+    for i in range(n):
+        heuristic[i] = probability[i]
+    
+    # Perform stochastic local search
+    for _ in range(100):  # Number of iterations for the search
+        # Randomly select an item to perturb
+        perturbed_item = random.choices(range(n), weights=heuristic, k=1)[0]
+        
+        # Generate a neighbor by swapping the perturbed item with another item
+        neighbor_item = random.choice([i for i in range(n) if i != perturbed_item])
+        neighbor = np.copy(heuristic)
+        neighbor[perturbed_item], neighbor[neighbor_item] = neighbor[neighbor_item], neighbor[perturbed_item]
+        
+        # Evaluate the neighbor
+        neighbor_probability = total_contribution / np.sum(total_contribution)
+        neighbor_heuristic = neighbor_probability * np.sum(weight)
+        
+        # Accept the neighbor if it's better
+        if neighbor_heuristic > heuristic.sum():
+            heuristic = neighbor
+    
+    # Adjust the heuristic values to ensure they sum to 1
+    heuristic /= heuristic.sum()
+    
+    return heuristic

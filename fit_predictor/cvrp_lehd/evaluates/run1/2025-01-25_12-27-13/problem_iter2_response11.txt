@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that uses demand differences, distance penalties, and avoids unnecessary computations."""
+    n = distance_matrix.shape[0]
+    demand_diff = demands - demands.mean()
+    distance_penalty = distance_matrix * (1 - torch.exp(-demands))
+    
+    # Use element-wise subtraction to create a matrix where positive values indicate a potential route
+    heuristic_matrix = -torch.abs(demand_diff) - distance_penalty
+    
+    # Adding a bonus to return to the depot for all nodes
+    depot_bonus = torch.ones_like(heuristic_matrix[:, 0])
+    heuristic_matrix[:, 0] += depot_bonus
+    
+    return heuristic_matrix
+```

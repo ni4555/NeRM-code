@@ -1,0 +1,54 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    scaled_demand = demands / total_capacity
+    
+    # Use a simplified dynamic capacity penalty with early overflow detection
+    capacity_penalty = -torch.log1p(torch.abs(scaled_demand - 1.0) - 1e-8)
+    early_overflow = cumulative_demand > 1.0
+    capacity_penalty *= early_overflow
+    
+    # Enhanced distance penalty with time-adaptive scaling, balancing between exploration and exploitation
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_penalty *= (1 + 0.5 * (scaled_demand - 0.5))
+    distance_penalty *= time_factor
+    
+    # Modularized overflow penalty, focusing on nodes that are likely to overflow
+    overflow_penalty = torch.zeros_like(distance_matrix)
+    overflow_penalty[torch.abs(cumulative_demand - 1.0) > 0.1] = -torch.log1p(torch.abs(cumulative_demand - 1.0) - 1e-8)
+    
+    # Load balance heuristic with a refined balance factor, focusing on nodes causing imbalance
+    load_balance = torch.abs(cumulative_demand - 1.0)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    load_balance_penalty[load_balance > 0.1] *= 10
+    
+    # Randomness factor with controlled impact, introducing variability
+    randomness_factor = torch.randn_like(demands) * 0.05
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine all components with a balance factor to control the influence of each heuristic
+    balance_factor = 2.0
+    heuristics = (
+        balance_factor * (
+            distance_penalty +
+            capacity_penalty +
+            overflow_penalty +
+            load_balance_penalty
+        ) +
+        randomness_factor
+    )
+    
+    # Introduce a diversity factor to promote exploration
+    diversity_factor = torch.randn_like(demands) * 0.1
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Adjust heuristics based on early overflow and imbalance
+    heuristics *= (1 + early_overflow)
+    heuristics += diversity_factor
+    
+    return heuristics
+```

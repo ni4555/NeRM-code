@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_vector = total_capacity / n
+    
+    # Scale penalties based on the criticality of constraints and adaptive scaling
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - capacity_vector) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Detect overflow early and apply early return penalty
+    overflow_penalty = torch.where(
+        cumulative_demand[:, None] + demands[None, :] > capacity_vector,
+        -torch.log1p(cumulative_demand[:, None] + demands[None, :] - capacity_vector - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Modularize the heuristics, focusing on early overflow detection and distance
+    heuristics = (
+        distance_penalty +
+        0.5 * dynamic_capacity_penalty +
+        0.3 * overflow_penalty
+    )
+    
+    # Integrate demand-aware features to optimize diversity control
+    load_balance = torch.abs(cumulative_demand - capacity_vector)
+    load_balance_heuristic = -torch.log1p(load_balance - 1e-8)
+    heuristics += load_balance_heuristic
+    
+    # Use a time-adaptive factor to adjust the penalty over time
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 3))
+    heuristics *= time_factor
+    
+    # Introduce controlled randomness to avoid overfitting
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    heuristics += randomness_factor
+    
+    # Adjust the heuristics to prioritize exploration in early stages
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    heuristics += diversity_factor
+    
+    return heuristics
+```

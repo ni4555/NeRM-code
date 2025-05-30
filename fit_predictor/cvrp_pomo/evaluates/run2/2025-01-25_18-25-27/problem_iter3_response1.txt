@@ -1,0 +1,14 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix with additional consideration for balance between global and local criteria
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True))
+    # Introduce a penalty for heavily utilized edges to avoid local optima
+    heavily_used_penalty = torch.abs(torch.cumsum(heuristics_matrix, axis=0)).sum(axis=0)
+    heuristics_matrix = heuristics_matrix - heavily_used_penalty * torch.eye(n)
+    return heuristics_matrix
+```

@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    distances_from_depot = distance_matrix[0, 1:]  # Distance from depot to customers
+    distances_to_customers = distance_matrix[1:, 0]  # Distance from customers to depot
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Prioritize high-demand customers with shorter travel times
+    high_demand_priority = torch.clamp(-demand_diff * distances_from_depot, min=-100)
+    
+    # Penalize for infeasibility by adding a large penalty for high demand with long travel times
+    infeasibility_penalty = torch.where(demand_diff > 0, (demand_diff * distances_to_customers) * -1000, torch.zeros_like(demand_diff))
+    
+    # Use a diversity heuristic by balancing the influence of demand and distance
+    diversity_heuristic = (distances_from_depot * distances_to_customers) * torch.abs(demand_diff)
+    
+    # Combine the heuristics into a single value
+    combined_heuristic = high_demand_priority + infeasibility_penalty + diversity_heuristic
+    
+    # Since the depot node can also be visited to form a feasible solution, add its heuristic values
+    # for both the outward and return edges to the depot
+    depot_heuristic_values = torch.abs(average_demand) * torch.cat([distances_from_depot, distances_to_customers], dim=0)
+    
+    # Update the heuristic matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    heuristic_matrix[0, 1:] = combined_heuristic
+    heuristic_matrix[1:, 0] = combined_heuristic
+    heuristic_matrix[0, 0] = -depot_heuristic_values.sum()
+    
+    return heuristic_matrix
+```

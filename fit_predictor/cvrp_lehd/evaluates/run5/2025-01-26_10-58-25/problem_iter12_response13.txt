@@ -1,0 +1,33 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the absolute difference in demands
+    demand_diff = torch.abs(demands[:, None] - demands[None, :])
+    
+    # Create a penalty matrix where the penalty is the difference if it exceeds the vehicle capacity
+    penalty_matrix = torch.clamp(demand_diff, max=vehicle_capacity)
+    
+    # Combine the distance and demand penalties into a single potential matrix
+    potential_matrix = distance_matrix + penalty_matrix
+    
+    # Normalize the potential matrix into a probability distribution
+    normalized_potential_matrix = potential_matrix / (potential_matrix.sum(dim=1, keepdim=True) + 1e-8)
+    
+    # Use log-softmax for non-linear edge evaluation
+    log_softmax_matrix = F.log_softmax(normalized_potential_matrix, dim=1)
+    
+    # Convert the probabilities into heuristics with negative values for undesirable edges
+    heuristics_matrix = -torch.exp(log_softmax_matrix)
+    
+    # Adjust heuristics for the depot node (index 0) by considering only outward edges
+    outward_edges = torch.diag(normalized_potential_matrix)
+    heuristics_matrix[:, 0] = outward_edges - 1
+    heuristics_matrix[0, :] = outward_edges - 1
+    
+    return heuristics_matrix
+```

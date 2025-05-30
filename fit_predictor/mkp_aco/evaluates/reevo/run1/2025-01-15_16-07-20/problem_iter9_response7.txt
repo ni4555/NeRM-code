@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize and average weight for each item
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    
+    # Calculate density based on prize and average weight
+    density = prize / average_weight
+    
+    # Calculate constraint balance for each item
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate utility considering both density and constraint balance
+    utility = density * (1 - constraint_balance)
+    
+    # Calculate additional scores based on the value-to-weight ratio and constraint balance
+    additional_score = prize / (np.sum(weight, axis=1) + 1e-8) * constraint_balance
+    
+    # Combine utility and additional score, with emphasis on high-value and constraint balance
+    combined_score = 0.5 * utility + 0.5 * additional_score
+    
+    # Normalize scores to ensure they are on the same scale
+    normalized_score = (combined_score - np.min(combined_score)) / (np.max(combined_score) - np.min(combined_score))
+    
+    # Calculate sparsity based on the ratio of normalized score to the sum of normalized scores
+    sparsity = (normalized_score > np.sum(normalized_score) / len(normalized_score)) * 1.0
+    
+    # Return the heuristics scores
+    return combined_score * sparsity
+```

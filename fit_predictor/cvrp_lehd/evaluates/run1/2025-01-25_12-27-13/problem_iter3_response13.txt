@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    import numpy as np
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Create a mask for nodes with positive demand
+    demand_mask = (demands > 0).float()
+
+    # Use vectorized operations to calculate the heuristics
+    edge_heuristic = (demands[1:] - demands[:-1]) * (1 / demands[:-1]) * distance_matrix[1:, :-1]
+    edge_heuristic = torch.clamp(edge_heuristic, min=0)
+
+    # Apply the mask to keep only positive heuristics
+    heuristics[1:, :-1] = edge_heuristic * demand_mask[1:]
+    heuristics[:-1, 1:] = edge_heuristic * demand_mask[:-1]
+
+    # Add the diagonal for the depot node
+    heuristics[0, :] = 0
+    heuristics[:, 0] = 0
+
+    return heuristics
+```

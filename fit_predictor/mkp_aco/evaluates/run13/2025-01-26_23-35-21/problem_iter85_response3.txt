@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize array to prevent domination by high-value items
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Normalize the weights for all dimensions to ensure the same scale
+    normalized_weight = weight / np.sum(weight, axis=1, keepdims=True)
+    
+    # Prune dominated items by keeping only the top items per weight dimension
+    sorted_indices = np.argsort(normalized_weight, axis=1)[:, ::-1]
+    dominated_indices = np.argsort(normalized_prize, axis=1)[:, ::-1]
+    dominated_indices = dominated_indices[dominated_indices < sorted_indices[:, :1]]
+    dominant_mask = np.any(np.isin(dominated_indices, sorted_indices[:, 1:], axis=1), axis=1)
+    
+    # Introduce randomness to promote exploration and diversity
+    random_factor = np.random.rand(weight.shape[0])
+    
+    # Create an initial heuristic based on normalized prize and random factor
+    heuristic = normalized_prize * random_factor
+    
+    # Apply exploitation by favoring higher prize items and exploration by using randomness
+    heuristic[dominant_mask] = 0.8 * heuristic[dominant_mask]
+    
+    # Introduce sparsity by setting low-density items to zero
+    sparsity_threshold = 0.2
+    heuristic[np.sum(normalized_weight, axis=1) < sparsity_threshold] = 0
+    
+    return heuristic
+```

@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize the potential values matrix with zeros
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Calculate the distance-based potential
+    max_distance = distance_matrix.max().item()
+    potential_values += distance_matrix / max_distance
+    
+    # Calculate the demand-based potential, relaxing demands for higher potential
+    max_demand = demands.max().item()
+    demand_relaxation = 1 - (demands / max_demand)
+    potential_values += demand_relaxation
+    
+    # Incorporate a dynamic window approach to favor recently visited nodes
+    # Here we simulate this by increasing the potential of edges based on a decreasing function
+    # that assumes nodes are visited over time
+    time_factor = torch.arange(n).float() / n
+    potential_values += torch.exp(-time_factor)
+    
+    # Adjust potential values to favor routes with lower total demand
+    for i in range(n):
+        # Sum the demands of all neighbors
+        neighbor_demand = demands[distance_matrix[i, :] < max_distance]
+        if len(neighbor_demand) > 0:
+            total_neighbor_demand = neighbor_demand.sum()
+            # Increase potential if the total demand of the neighbors is low
+            potential_values[i, distance_matrix[i, :] < max_distance] += 1 - (total_neighbor_demand / max_demand)
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

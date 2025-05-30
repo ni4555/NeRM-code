@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Adjusting the heuristic function to balance variance by using a cap on the demand variance.
+    demand_variance = (demands - normalized_demands.mean()).pow(2).mean()
+    demand_variance_cap = torch.clamp(demand_variance, min=0, max=1)
+    
+    # Scaling the penalty based on the demand variance, but avoiding a penalty of 0 by capping at a small positive value.
+    penalty_factor = demand_variance_cap + 0.1
+
+    # Introduce a scaling factor that adjusts the weight of distance to maintain scale invariance.
+    scaling_factor = torch.sqrt(total_capacity)
+
+    # Adjust the Z-score to account for the normalization of demands.
+    z_scores = (demands - normalized_demands.mean()) / normalized_demands.std()
+    outlier_penalty = torch.where(z_scores.abs() > 2, torch.tensor(10.0, dtype=distance_matrix.dtype), torch.tensor(1.0, dtype=distance_matrix.dtype))
+
+    # Calculate heuristics by considering both demand and distance, and adjust by penalties and scaling factors.
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, distance_matrix),
+        penalty_factor * outlier_penalty
+    )
+    heuristic_matrix = heuristic_matrix * scaling_factor
+
+    # Apply a threshold to ensure heuristics are within a specific range, which helps in maintaining stability.
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-threshold, max=threshold)
+
+    return heuristic_matrix
+```

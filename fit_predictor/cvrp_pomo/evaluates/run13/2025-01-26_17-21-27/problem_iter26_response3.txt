@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Balance penalty: encouraging a balance between demands on the left and right of the midpoint
+    balance_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity / 2) - 1e-8)
+    
+    # Capacity penalty: penalizing overcapacity at each node
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Distance penalty: penalizing larger distances between nodes
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic scaling factors for each penalty
+    scaling_balance = 2.0
+    scaling_capacity = 1.5
+    scaling_distance = 1.0
+    
+    # Apply scaling factors
+    scaled_balance_penalty = balance_penalty * scaling_balance
+    scaled_capacity_penalty = capacity_penalty * scaling_capacity
+    scaled_distance_penalty = distance_penalty * scaling_distance
+    
+    # Overflow penalty: accumulating penalties for each node based on how much its demand exceeds the vehicle capacity
+    overflow_penalty = capacity_penalty
+    overflow_penalty[overflow_penalty > 0] = torch.log1p(overflow_penalty[overflow_penalty > 0])
+    
+    # Propagate overflow penalties across nodes
+    overflow_penalty = overflow_penalty.scatter_add(0, torch.arange(n), overflow_penalty)
+    
+    # Combine scaled penalties
+    heuristics = scaled_balance_penalty + scaled_capacity_penalty + scaled_distance_penalty + overflow_penalty
+    heuristics[distance_matrix == 0] = 0  # Setting penalty for the depot node to zero
+    return heuristics
+```

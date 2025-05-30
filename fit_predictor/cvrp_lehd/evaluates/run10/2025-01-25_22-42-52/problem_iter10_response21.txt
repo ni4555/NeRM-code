@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate cumulative demand and capacity
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Create a mask for valid edges based on demand constraints
+    valid_edges = (cumulative_demand[:, None] <= cumulative_capacity).float()
+    
+    # Calculate edge demand excess
+    edge_demand_excess = ((cumulative_demand[:, None] - cumulative_capacity) > 0).float() * -1000
+    
+    # Use vectorized operations to compute the heuristic values
+    # For edges to the depot
+    heuristics_to_depot = -distance_matrix * valid_edges * edge_demand_excess
+    # For edges from the depot
+    heuristics_from_depot = distance_matrix * valid_edges * (1 - edge_demand_excess)
+    # For edges between customers
+    heuristics_customer = distance_matrix * valid_edges * (1 - edge_demand_excess)
+    
+    # Combine the heuristics values
+    heuristics_matrix = torch.cat([heuristics_to_depot, heuristics_from_depot, heuristics_customer], dim=1)
+    
+    return heuristics_matrix
+```

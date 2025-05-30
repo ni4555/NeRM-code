@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_vertices = distance_matrix.shape[0]
+    
+    # Calculate the minimum distance for each vertex to any other vertex
+    min_distance = np.min(distance_matrix, axis=1)
+    
+    # Calculate the bonus for edges that are close to the minimum distance
+    bonus = np.where(distance_matrix == min_distance,
+                     1,
+                     np.where(distance_matrix < min_distance,
+                              (distance_matrix / min_distance) * 0.5,
+                              0))
+    
+    # Calculate the penalty for longer edges based on their ratio to the shortest edge
+    penalty = (distance_matrix / np.min(distance_matrix)) * 2
+    
+    # Normalize the penalty to ensure it is balanced with the bonus
+    normalized_penalty = penalty / np.max(penalty)
+    
+    # Combine the normalized penalty and bonus to create the heuristics matrix
+    heuristics_matrix = normalized_penalty + bonus
+    
+    # Introduce a diversity metric by considering the average distance from each vertex
+    diversity_metric = np.mean(distance_matrix, axis=1)
+    
+    # Apply an additional bonus for edges that contribute to diversification
+    heuristics_matrix += diversity_metric * 0.1
+    
+    # Normalize the heuristics matrix to ensure all values are non-negative
+    heuristics_matrix = np.maximum(0, heuristics_matrix)
+    
+    return heuristics_matrix
+```

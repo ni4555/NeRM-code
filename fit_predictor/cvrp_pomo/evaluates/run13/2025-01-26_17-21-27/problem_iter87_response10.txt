@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Scaled capacity penalty with early overflow detection
+    scaled_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / n) - 1e-8)
+    scaled_capacity_penalty *= (1 + 0.3 * torch.relu(1 - (cumulative_demand / total_capacity_vector)))
+    
+    # Distance scaling with adaptive scaling factor
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity) * torch.exp(-cumulative_demand / (total_capacity * 5))
+    
+    # Overflow detection and penalty
+    overflow_penalty = torch.zeros_like(distance_matrix)
+    overflow_penalty[torch.triu_indices(n, n, k=1)] = -torch.log1p(
+        (cumulative_demand + demands[:, None]) - total_capacity[:, None] - 1e-8
+    )
+    
+    # Load balance heuristic with adaptive penalty
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector) - 1e-8)
+    
+    # Randomness factor for diversity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Hyperparameter tuning and combining factors
+    alpha, beta, gamma, delta = 1.0, 0.5, 1.5, 2.0
+    heuristics = alpha * distance_scaling + beta * scaled_capacity_penalty + gamma * overflow_penalty + delta * load_balance_penalty
+    
+    # Time-adaptive diversity factor
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Integrate diversity into heuristics
+    heuristics += randomness_factor + diversity_factor
+    
+    return heuristics
+```

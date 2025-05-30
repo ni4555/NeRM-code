@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate utility based on prize per unit weight
+    utility = prize / np.sum(weight, axis=1)
+    # Use a weighted average of the utility and the variance of the weights
+    variance_weights = 1 / np.std(weight, axis=1)
+    variance_weights = variance_weights / np.sum(variance_weights)
+    heuristics = utility * variance_weights
+    # Incorporate sparsity by reducing the heuristics of items that are too close to the average utility
+    mean_utility = np.mean(utility)
+    sparsity_factor = (utility - mean_utility) / np.ptp(utility)
+    sparsity_factor = np.clip(sparsity_factor, 0, 1)
+    heuristics *= (1 - sparsity_factor)
+    # Normalize the heuristics to ensure all values are non-negative and not too large
+    heuristics = np.clip(heuristics, 0, 1)
+    # Adjust the heuristics based on the distribution of weights within each dimension
+    for dim in range(weight.shape[1]):
+        dim_weight = weight[:, dim]
+        dim_weight_mean = np.mean(dim_weight)
+        dim_weight_std = np.std(dim_weight)
+        # Reward items with weight closer to the mean, within a certain standard deviation range
+        weight_factor = (np.abs(dim_weight - dim_weight_mean) < dim_weight_std) * 1.0
+        heuristics *= weight_factor
+    # Normalize heuristics for better comparison across different problems
+    max_heuristics = np.max(heuristics)
+    min_heuristics = np.min(heuristics)
+    heuristics = (heuristics - min_heuristics) / (max_heuristics - min_heuristics)
+    return heuristics
+```

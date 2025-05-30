@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Localize penalties based on edge position and edge properties
+                edge_position_penalty = 1.5 * (i - j) % num_nodes
+                if edge_position_penalty == 0 or edge_position_penalty == num_nodes - 1:
+                    edge_position_penalty *= 2
+                
+                # Context-aware metrics for local structure
+                edge_context_penalty = 1 if distance_matrix[i, j] > distance_matrix[i].max() else 0
+                
+                # Diversity penalty to avoid local optima
+                diversity_penalty = (num_nodes - j) / num_nodes
+                
+                # Penalize edges that appear in common configurations
+                common_edge_penalty = np.log(np.count_nonzero(distance_matrix == distance_matrix[i, j])) if distance_matrix[i, j] != 0 else 0
+                
+                # Calculate heuristic value
+                heuristics[i, j] = (distance_matrix[i, j] ** 1.5) + edge_position_penalty + edge_context_penalty + diversity_penalty + common_edge_penalty
+
+    return heuristics
+```

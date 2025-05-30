@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    relative_cumulative_demand = torch.cumsum(demands, dim=0) / total_capacity
+
+    # Create a mask for the depot node
+    depot_mask = torch.zeros(n)
+    depot_mask[0] = 1  # Include the depot with a positive value
+
+    # Apply penalties based on distance and cumulative demand
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    demand_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+
+    # Load balancing penalty
+    load_balance = torch.abs(relative_cumulative_demand - 1.0)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+
+    # Combine all penalties to form the heuristic values
+    heuristics = distance_penalty + demand_penalty + load_balance_penalty + depot_mask.unsqueeze(1) * relative_cumulative_demand.unsqueeze(0)
+    return heuristics
+```

@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Use a more dynamic approach to calculate penalties based on the current state
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Incorporate a more sophisticated distance scaling that considers the relative distance
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (cumulative_demand / (cumulative_demand + 1e-8))
+    
+    # Implement an overflow penalty that encourages early returns to the depot
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Introduce a load balancing heuristic that encourages more uniform distribution of load
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Apply a scaling factor to prioritize the main objective of minimizing distance
+    scaling_factor = 3.0
+    heuristics = scaling_factor * (distance_scaling + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty)
+    
+    # Encourage diversity by adding random noise to the heuristics
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Introduce a dynamic scaling for penalties based on the current state to adapt to changes
+    early_overflow = torch.where(cumulative_demand > total_capacity_vector, torch.ones_like(cumulative_demand), torch.zeros_like(cumulative_demand))
+    heuristics *= early_overflow
+    
+    # Further encourage diversity by adding penalties that promote balance
+    diversity_penalty = -torch.log1p(torch.abs(torch.randn_like(demands)) - 1e-8)
+    heuristics += diversity_penalty
+    
+    return heuristics
+```

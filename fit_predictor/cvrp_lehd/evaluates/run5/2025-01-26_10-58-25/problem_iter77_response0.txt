@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+
+    # Apply a non-linear transformation to the distance matrix to emphasize shorter distances
+    distance_emphasis = torch.log(1 + distance_matrix / (distance_matrix.max() + 1e-6))
+
+    # Create a penalty matrix for demand constraint violations
+    demand_penalty = -torch.abs(demands - vehicle_capacity)
+
+    # Normalize the demand penalty matrix to prevent dominance by large demands
+    normalized_demand_penalty = demand_penalty / demand_penalty.sum(dim=1, keepdim=True)
+
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = normalized_demand_penalty + distance_emphasis
+
+    # Introduce randomness by adding Gaussian noise with a small standard deviation
+    noise_matrix = torch.randn_like(potential_matrix) * 1e-2
+
+    # Combine the original potential matrix with noise
+    combined_potential_matrix = potential_matrix + noise_matrix
+
+    # Apply a second non-linear transformation to emphasize the constraints further
+    emphasized_matrix = torch.relu(combined_potential_matrix)
+
+    # Introduce diversity by perturbing the matrix slightly
+    perturbation = torch.randn_like(emphasized_matrix) * 1e-3
+    diverse_matrix = emphasized_matrix + perturbation
+
+    # Normalize the diverse matrix to ensure non-negativity and scale balance
+    normalized_diverse_matrix = diverse_matrix / diverse_matrix.sum(dim=1, keepdim=True)
+
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -normalized_diverse_matrix
+
+    return heuristics_matrix
+```

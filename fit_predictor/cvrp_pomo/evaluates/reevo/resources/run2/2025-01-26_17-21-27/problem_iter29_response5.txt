@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Core penalties
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic penalties for remaining capacity and load distribution
+    dynamic_capacity_penalty = capacity_penalty * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    load_distribution_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity / n) - 1e-8)
+    
+    # Enhanced distance penalty considering cumulative load
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Overflow penalty with early return
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Heuristics that blend these penalties with an emphasis on load balancing
+    heuristics = distance_scaling + dynamic_capacity_penalty + overflow_penalty + load_distribution_penalty
+    
+    # Integrate dynamic scaling and adapt to problem state
+    dynamic_scaling = (torch.arange(n) + 1) * 0.1  # Adaptive scaling based on edge position
+    heuristics *= dynamic_scaling
+    
+    # Encourage diversity by adding a slight noise term
+    noise = torch.rand_like(heuristics) * 0.1 - 0.05
+    heuristics += noise
+    
+    # Additional penalties for load balancing
+    high_load_balance_penalty = torch.where(
+        cumulative_demand > 1.5 * total_capacity / n,
+        -torch.log1p(cumulative_demand - 1.5 * total_capacity / n - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    heuristics += high_load_balance_penalty
+    return heuristics
+```

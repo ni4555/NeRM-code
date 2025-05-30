@@ -1,0 +1,21 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # It's bad to include long edges in the solution, but slightly less bad if it connects two close nodes
+    # We will use a weight that decreases with the distance but increases with the number of nodes between them
+    # The weight will be higher for edges that are longer and have more nodes in between
+    num_nodes = distance_matrix.shape[0]
+    weight_matrix = distance_matrix.copy()
+    
+    # Add a penalty for edges that are longer
+    weight_matrix[weight_matrix > 0] = 1 / (1 + weight_matrix[weight_matrix > 0])
+    
+    # Add a penalty for edges that have more nodes in between
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if distance_matrix[i, j] > 0:
+                weight_matrix[i, j] *= (num_nodes - 1 - np.argmin(np.abs(distance_matrix[i, :] - distance_matrix[j, :])))
+                
+    return weight_matrix
+```

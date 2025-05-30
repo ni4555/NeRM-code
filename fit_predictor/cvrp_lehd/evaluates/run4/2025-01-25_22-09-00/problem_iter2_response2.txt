@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic function that assigns weights based on demand-driven attractiveness and
+    leverages distance and demand interplay to optimize for early route cost savings."""
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Iterate over all nodes
+    for i in range(num_nodes):
+        # Iterate over all other nodes to calculate edge weights
+        for j in range(num_nodes):
+            # Skip the same node or the depot
+            if i == j or i == 0 or j == 0:
+                continue
+            
+            # Calculate the edge weight based on demand-driven attractiveness and distance
+            edge_weight = distance_matrix[i][j] * (demands[j] / total_demand)
+            
+            # If the edge leads to a node with high demand, increase its weight
+            if i != 0:  # Skip the depot for this part
+                edge_weight *= (demands[i] / total_demand)
+            
+            # If the edge is from a node with high demand to a node with high demand, increase its weight further
+            if demands[i] > 0 and demands[j] > 0:
+                edge_weight *= 2
+            
+            # Apply a dampening factor to penalize longer distances
+            dampen = torch.exp(-distance_matrix[i][j] / 10)
+            edge_weight *= dampen
+            
+            # Assign the calculated weight to the edge
+            heuristic_matrix[i][j] = edge_weight
+            
+    return heuristic_matrix
+```

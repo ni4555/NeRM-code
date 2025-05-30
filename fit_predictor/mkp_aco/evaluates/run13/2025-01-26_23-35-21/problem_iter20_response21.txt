@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized profit to weight ratio
+    normalized_profit_weight = prize / np.sum(weight, axis=1)
+    
+    # Calculate a sparsity measure based on the weight dimension
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Introduce an overfitting avoidance term based on standard deviation of normalized profit to weight
+    overfitting_avoidance = 1 / (np.std(normalized_profit_weight) + 1e-8)
+    
+    # Introduce a diversity factor based on the weight distribution
+    weight_diversity = np.mean(weight, axis=1) / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the heuristic using a weighted combination of the metrics
+    heuristic_value = normalized_profit_weight * (1 - sparsity) * overfitting_avoidance * weight_diversity
+    
+    # Normalize the heuristic by the maximum value to ensure diversity
+    max_heuristic = np.max(heuristic_value)
+    normalized_heuristic = heuristic_value / (max_heuristic + 1e-8)
+    
+    # Sparsify the heuristics by setting low-profit items to zero
+    normalized_heuristic[sparsity < 0.5] = 0
+    
+    # Ensure all non-zero weights have non-zero heuristics
+    non_zero_weights = weight_sum > 0
+    normalized_heuristic[~non_zero_weights] = 0
+    
+    return normalized_heuristic
+```

@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic capacity penalty based on the remaining capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity_vector) - 1e-8)
+    
+    # Distance scaling factor without cumulative demand
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Load balance penalty for unbalanced loads
+    load_balance = (cumulative_demand - total_capacity_vector) / 2
+    load_balance_penalty = -torch.log1p(-torch.abs(load_balance))
+    
+    # Combine the core factors with a balanced randomness
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity) * (cumulative_demand / total_capacity < 0.8)
+    
+    # Calculate the heuristics based on the combined factors
+    heuristics = (
+        dynamic_capacity_penalty +
+        distance_scaling +
+        load_balance_penalty +
+        randomness_factor
+    )
+    
+    # Avoid selecting the depot as the next node
+    depot_penalty = torch.arange(n) == 0
+    heuristics[depot_penalty] -= 1e8
+    
+    return heuristics
+```

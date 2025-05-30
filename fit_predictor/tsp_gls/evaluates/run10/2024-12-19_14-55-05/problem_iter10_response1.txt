@@ -1,0 +1,53 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Loop penalty to discourage repeated cycles
+    loop_penalty_factor = 0.2
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, i]
+                heuristics[i, j] += loop_penalty_factor * loop_distance
+
+    # Direct distance penalty to discourage distances larger than two hops
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                direct_distance = distance_matrix[i, j]
+                two_hop_distance = distance_matrix[i, :2] + distance_matrix[:2, j]
+                if direct_distance > two_hop_distance.max():
+                    heuristics[i, j] += loop_penalty_factor * (direct_distance - two_hop_distance.max())
+
+    # Diversity to encourage using less frequent edges
+    diversity_factor = 1e-3
+    visited_count = np.sum(distance_matrix > 0, axis=0)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                heuristics[i, j] += diversity_factor / (visited_count[i] * visited_count[j])
+
+    # Common structure penalty to discourage edges that force longer detours
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                common_structure_penalty = 0
+                for k in range(num_nodes):
+                    if k != i and k != j and distance_matrix[i, k] + distance_matrix[k, j] < distance_matrix[i, j]:
+                        common_structure_penalty += 1
+                heuristics[i, j] += common_structure_penalty * loop_penalty_factor
+
+    # Normalize to a [0, 1] scale, ensuring at least 0.1 for non-zero distances
+    min_distance = np.min(distance_matrix[distance_matrix > 0])
+    max_distance = np.max(distance_matrix)
+    heuristics[distance_matrix > 0] = np.clip((heuristics[distance_matrix > 0] - min_distance) / (max_distance - min_distance), 0.1, 1)
+
+    # Add self-loop penalty
+    self_loop_penalty = 1e5
+    heuristics = np.where(np.eye(num_nodes), self_loop_penalty, heuristics)
+
+    return heuristics
+```

@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for CVRP that balances demand differences, distance, and capacity constraints, with normalization and demand accumulation."""
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    vehicle_capacity = total_demand / demands.shape[0]  # Normalize vehicle capacity per node
+
+    # Calculate the savings for each edge
+    savings = (distance_matrix**2 - torch.clamp(distance_matrix, min=1e-8)) * (demands[:, None] - demands[None, :])
+
+    # Calculate the cumulative demand at each node if visited
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Create a mask to check if adding a node exceeds the vehicle capacity
+    demand_mask = cumulative_demand <= vehicle_capacity
+
+    # Adjust the savings heuristic to consider demand and capacity
+    adjusted_savings = savings * demand_mask
+
+    # Normalize the savings by the number of edges to prevent bias
+    normalized_savings = adjusted_savings / adjusted_savings.sum()
+
+    # Additional heuristic: Promote edges closer to the diagonal (further from the depot)
+    distance_to_diagonal = torch.abs(torch.arange(n)[:, None] - torch.arange(n)[None, :])
+    diagonal_promotion = torch.clamp(1 - distance_to_diagonal / n, min=0)
+
+    # Combine the normalized savings with the diagonal promotion
+    heuristic_matrix = normalized_savings + diagonal_promotion
+
+    return heuristic_matrix
+```

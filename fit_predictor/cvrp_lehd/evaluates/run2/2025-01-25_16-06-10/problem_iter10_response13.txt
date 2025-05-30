@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    vehicle_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    node_indices = torch.arange(n_nodes)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+
+    for start_node in node_indices[1:]:
+        remaining_capacity = vehicle_capacity
+        visited_mask = torch.zeros(n_nodes, dtype=torch.bool)
+        visited_mask[start_node] = True
+        edge_mask = torch.zeros_like(distance_matrix)
+        edge_mask[start_node] = True
+
+        for current_node in node_indices[1:]:
+            if not visited_mask[current_node] and demands[current_node] <= remaining_capacity:
+                total_demand = demand_cumsum[current_node] - demand_cumsum[start_node]
+                if total_demand <= remaining_capacity:
+                    distance = distance_matrix[start_node, current_node]
+                    edge_mask[start_node, current_node] = True
+                    remaining_capacity -= demands[current_node]
+                    visited_mask[current_node] = True
+                    if remaining_capacity <= 0:
+                        edge_mask[start_node, 0] = True
+                        remaining_capacity = vehicle_capacity
+                        visited_mask.fill_(False)
+                        visited_mask[0] = True
+                        break
+                    start_node = current_node
+
+        heuristics[edge_mask] = 1 - distance_matrix[edge_mask]
+    return heuristics
+```

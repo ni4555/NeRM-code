@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate the normalized prize per item
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the average normalized weight per item
+    average_normalized_weight = np.mean(weight, axis=1)
+    
+    # Calculate the inverse of the average normalized weight for each item
+    inverse_average_weight = 1 / (average_normalized_weight + 1e-8)
+    
+    # Calculate the sparsity factor based on the number of zero weights
+    sparsity_factor = (weight == 0).mean(axis=1)
+    
+    # Non-linearly penalize items with lower sparsity
+    sparsity_factor = sparsity_factor ** 2
+    
+    # Calculate the heuristics based on the product of normalized prize and inverse average weight
+    heuristics = normalized_prize * inverse_average_weight
+    
+    # Non-linearly adjust heuristics based on sparsity
+    heuristics *= (1 - sparsity_factor)
+    
+    # Incorporate variance, rewarding items with low variance
+    variance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)
+    inverse_variance = 1 / (1 + variance)
+    heuristics *= inverse_variance
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Dynamically set a sparsification threshold based on average normalized weight and adjusted sparsity
+    sparsity_threshold = np.mean(average_normalized_weight * (1 - sparsity_factor))
+    
+    # Set heuristics below the threshold to zero to encourage sparsity
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    # Optionally, we could further adjust the heuristics to emphasize sparsity
+    # by multiplying the entire array by the average sparsity factor
+    heuristics *= np.mean(sparsity_factor)
+    
+    return heuristics
+```

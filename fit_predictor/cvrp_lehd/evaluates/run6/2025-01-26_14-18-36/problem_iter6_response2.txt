@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = demands.to(torch.float32)
+    distance_matrix = distance_matrix.to(torch.float32)
+
+    # Normalize the demand vector by the total vehicle capacity
+    normalized_demands = demands / demands.sum()
+
+    # Calculate the distance to the nearest neighbor for each node
+    nearest_neighbor_distance = torch.min(distance_matrix, dim=1, keepdim=True)[0]
+
+    # Calculate the demand relevance score for each node
+    relevance_score = demands / demands.sum()
+
+    # Calculate the local incentive based on the distance to the depot
+    local_incentive = 100 * (1 / (nearest_neighbor_distance + 1))
+
+    # Calculate the global incentive based on the overall demand
+    global_incentive = -1000 * (demands / demands.sum())
+
+    # Calculate the penalty for edges leading to a node with demand exceeding vehicle capacity
+    penalty = torch.clamp((demands - 1).abs() * 1000, min=0)
+
+    # Combine the heuristics factors: global and local incentives minus the penalty
+    heuristics = local_incentive + global_incentive - penalty
+
+    # Normalize the heuristics to the range [0, 1]
+    heuristics = torch.clamp(heuristics / (heuristics.max() + 1), min=0)
+
+    return heuristics
+```

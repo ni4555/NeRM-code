@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_normalized = demands / total_demand
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Sort the demands in descending order to prioritize high-demand nodes
+    sorted_indices = torch.argsort(-demand_normalized)
+    
+    # Initialize the demand for the first vehicle
+    remaining_capacity = 1.0
+    
+    # Iterate over the sorted demands
+    for i in range(1, n):
+        # Calculate the heuristic value for the edge
+        heuristic_value = -distance_matrix[sorted_indices[i-1], sorted_indices[i]]
+        
+        # Check if adding the current node exceeds the capacity
+        if remaining_capacity + demand_normalized[sorted_indices[i]] <= 1.0:
+            # If the node's demand is greater than vehicle capacity, apply a penalty
+            if demand_normalized[sorted_indices[i]] > 1.0:
+                heuristic_value -= 1000.0
+            
+            # Update the remaining capacity
+            remaining_capacity = 1.0
+            
+            # Update the heuristic matrix for the edge
+            heuristic_matrix[sorted_indices[i-1], sorted_indices[i]] = heuristic_value
+        else:
+            # Update the heuristic matrix for the edge
+            heuristic_matrix[sorted_indices[i-1], sorted_indices[i]] = heuristic_value
+            # Decrease the remaining capacity
+            remaining_capacity -= demand_normalized[sorted_indices[i]]
+    
+    # Apply a penalty for returning to the depot (index 0)
+    penalty_depot = torch.zeros_like(distance_matrix)
+    penalty_depot[torch.arange(n), 0] = -1
+    heuristic_matrix += penalty_depot
+    
+    return heuristic_matrix
+```

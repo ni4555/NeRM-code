@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    
+    # Normalize distances by demand
+    normalized_distances = distance_matrix * (demands[:, None] / total_demand)
+    
+    # Calculate the balance of demands
+    demand_balance = demands / total_demand
+    
+    # Invert the balance to penalize imbalanced distributions
+    inverted_balance = 1 - demand_balance
+    
+    # Incorporate a penalty for edges that lead to imbalanced demand
+    balance_penalty = inverted_balance * (demands[:, None] / total_demand)
+    
+    # Combine the heuristics with the balance penalty
+    combined_heuristic = (normalized_distances - balance_penalty)
+    
+    # Ensure that we have negative values for undesirable edges
+    combined_heuristic[combined_heuristic < 0] = 0
+    
+    return combined_heuristic
+```

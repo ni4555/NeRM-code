@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize and weight to emphasize high-value items
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    normalized_weight = (weight - np.min(weight, axis=1, keepdims=True)) / (np.max(weight, axis=1, keepdims=True) - np.min(weight, axis=1, keepdims=True))
+    # Calculate the value-to-weight ratio
+    value_to_weight_ratio = normalized_prize / np.sum(normalized_weight, axis=1)
+    # Apply log scaling to balance between high and low ratios
+    log_scaled_ratio = np.log1p(value_to_weight_ratio)
+    # Amplify the importance of high-value features by using a sigmoid function
+    sigmoid = 1 / (1 + np.exp(-log_scaled_ratio))
+    # Introduce randomness for diversity by adding a small random noise
+    random_noise = np.random.rand(len(prize))
+    random_noise = np.exp(-random_noise)  # Exponential decay to maintain non-negative values
+    # Combine the sigmoid function with the random noise
+    combined_heuristics = sigmoid * random_noise
+    # Normalize the combined heuristics to sum to 1
+    heuristics = combined_heuristics / np.sum(combined_heuristics)
+    return heuristics
+```

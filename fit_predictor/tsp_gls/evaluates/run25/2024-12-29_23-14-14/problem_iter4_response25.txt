@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Incorporate multiple neighborhood perspectives by considering both local and global averages
+    local_avg = np.mean(distance_matrix, axis=1)
+    global_avg = np.mean(distance_matrix, axis=0)
+    
+    # Calculate the minimum distance to the nearest neighbor for each edge
+    min_distance_to_neighbor = np.min(distance_matrix, axis=1)
+    
+    # Calculate the diversity of the neighborhood (lower is better)
+    number_of_neighbors = np.sum(distance_matrix != np.inf, axis=1) - 1
+    neighborhood_diversity = number_of_neighbors / (np.sum(distance_matrix != np.inf) - len(distance_matrix))
+    
+    # Combine the factors to create a heuristic score
+    # Local perspective: Penalize edges that are longer than the local average
+    # Global perspective: Also consider the global average to avoid convergence to a suboptimal local optimum
+    # Diversity: Encourage edges that have diverse neighborhoods to avoid convergence to similar suboptimal solutions
+    heuristic_score = (distance_matrix / np.minimum(local_avg, global_avg)) + \
+                      (1 / neighborhood_diversity)
+    
+    # Normalize the heuristic score to maintain the same scale as the original matrix
+    max_score = np.max(heuristic_score)
+    normalized_score = heuristic_score / max_score
+    
+    # The heuristic returns a matrix with values indicating how bad it is to include each edge
+    return normalized_score
+```

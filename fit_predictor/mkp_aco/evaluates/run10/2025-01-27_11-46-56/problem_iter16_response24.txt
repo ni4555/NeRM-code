@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    max_utility = utility.max(axis=1)
+    
+    # Introduce exploration by adding Gaussian noise to the utility
+    exploration_noise = np.random.normal(0, 0.1, utility.shape)
+    
+    # Adjust utility with noise to promote exploration
+    adjusted_utility = utility + exploration_noise
+    
+    # Ensure diversity by penalizing high concentration of utility values
+    diversity_penalty = np.exp(-np.abs(adjusted_utility - max_utility) / max_utility)
+    
+    # Scale the diversity penalty by the original utility to maintain importance of utility
+    diversity_penalty = diversity_penalty * utility
+    
+    # Normalize the diversity penalty to ensure it's between 0 and 1
+    diversity_penalty = (diversity_penalty - diversity_penalty.min()) / (diversity_penalty.max() - diversity_penalty.min())
+    
+    # Combine utility and diversity penalty to get heuristics
+    heuristics = adjusted_utility * diversity_penalty
+    
+    # Normalize the heuristics to ensure the sum of heuristics for each item is 1
+    normalized_heuristics = heuristics / heuristics.sum(axis=1, keepdims=True)
+    
+    return normalized_heuristics.sum(axis=1)
+```

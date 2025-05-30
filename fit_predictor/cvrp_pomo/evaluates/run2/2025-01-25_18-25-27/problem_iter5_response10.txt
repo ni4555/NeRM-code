@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Initialize heuristics matrix
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+
+    # Calculate the sum of distances from each node to all other nodes
+    row_sums = distance_matrix.sum(axis=1, keepdim=True)
+    col_sums = distance_matrix.sum(axis=0, keepdim=True)
+
+    # Compute heuristics with penalties for infeasible edges and scale by average demand
+    infeasible_penalty = -float('inf')
+    heuristics_matrix = (distance_matrix - normalized_demands * row_sums - avg_demand * col_sums) * (normalized_demands > 0)
+    heuristics_matrix[~(normalized_demands > 0)] = infeasible_penalty
+
+    return heuristics_matrix
+```

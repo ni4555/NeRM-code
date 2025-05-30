@@ -1,0 +1,65 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison and normalization
+    demand_matrix = demands[:, None] * demands
+    demand_matrix = (demand_matrix - torch.diag(demand_matrix)) / demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Inverse demand as capacity factor
+    capacity_factor = 1 / (demands + 1e-8)
+    
+    # Calculate heuristic with weighted distance and demand
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Logarithmic scale for balancing demand and distance
+    heuristics = torch.log1p(heuristics)
+    
+    # Normalize to avoid dominance and ensure stability
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    # Balance distance and demand
+    demand_balance_factor = demands / demands.sum()
+    heuristics *= demand_balance_factor
+    
+    # Penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += heuristics * overcapacity_penalty - undercapacity_penalty
+    
+    # Depot cost
+    depot_cost = demands[0]
+    heuristics[0, :] += depot_cost
+    heuristics[:, 0] += depot_cost
+    
+    # Loop minimization and dominance prevention
+    loop_minimization_factor = 0.3
+    dominated_edges = heuristics.unsqueeze(1) + heuristics.unsqueeze(0) - heuristics.unsqueeze(2)
+    dominated_edges[dominated_edges > 0] = 0
+    dominated_edges = dominated_edges.view(n, n, n).min(dim=2)[0]
+    heuristics = torch.max(heuristics, dominated_edges)
+    
+    # Dampening factor to ensure stability
+    dampening_factor = 0.9
+    heuristics *= dampening_factor
+    
+    # Capacity emphasis factor
+    heuristics += (capacity_factor - 1) * demands
+    
+    # Loop minimization factor to further minimize loops
+    loop_minimization_factor *= loop_heuristics[loop_heuristics > 0]
+    heuristics += loop_minimization_factor
+    
+    # Capacity emphasis and final dampening
+    capacity_emphasis_factor = 1.2
+    final_dampening_factor = 0.9
+    heuristics *= capacity_emphasis_factor * final_dampening_factor
+    
+    return heuristics
+```

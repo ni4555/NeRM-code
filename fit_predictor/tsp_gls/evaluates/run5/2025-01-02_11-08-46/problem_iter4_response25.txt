@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Normalize the distance matrix
+    min_distance = np.min(distance_matrix)
+    max_distance = np.max(distance_matrix)
+    normalized_matrix = (distance_matrix - min_distance) / (max_distance - min_distance)
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Calculate local knowledge using the mean of each node's edges
+    local_knowledge = normalized_matrix.mean(axis=1)
+    
+    # Calculate global knowledge using the sum of distances to all other nodes minus the node itself
+    global_knowledge = (normalized_matrix.sum(axis=1) - local_knowledge)
+    
+    # Apply the heuristic that combines both local and global knowledge
+    for i in range(len(distance_matrix)):
+        for j in range(len(distance_matrix)):
+            if i != j:
+                # Use both local and global knowledge to calculate the heuristic value
+                combined_heuristic = local_knowledge[i] + (global_knowledge[j] - local_knowledge[j])
+                heuristic_matrix[i, j] = combined_heuristic
+                heuristic_matrix[j, i] = combined_heuristic  # Symmetry of the matrix
+            else:
+                heuristic_matrix[i, j] = 0  # Distance to itself is zero
+    
+    return heuristic_matrix
+```

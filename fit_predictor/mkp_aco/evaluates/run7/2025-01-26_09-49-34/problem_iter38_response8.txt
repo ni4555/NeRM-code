@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Initialize heuristics for each item
+    heuristics = np.zeros_like(prize)
+    
+    # Initialize a pool of candidates for each dimension
+    candidate_pools = [np.arange(prize.shape[0]) for _ in range(weight.shape[1])]
+    
+    # Iteratively refine heuristics
+    for iteration in range(5):
+        # Select items with the highest normalized prize-to-weight ratio for each dimension
+        selected_indices = []
+        for i in range(weight.shape[1]):
+            selected_item_index = np.argmax(normalized_prize[candidate_pools[i]])
+            selected_indices.append(candidate_pools[i][selected_item_index])
+            # Update the heuristic for the selected item
+            heuristics[candidate_pools[i][selected_item_index]] += normalized_prize[candidate_pools[i][selected_item_index]]
+            # Remove the selected item from the candidate pool for the next iteration
+            candidate_pools[i] = np.setdiff1d(candidate_pools[i], candidate_pools[i][selected_item_index])
+        
+        # Normalize heuristics
+        heuristics /= np.sum(heuristics)
+    
+    # Adjust heuristics based on selected items to balance exploration and exploitation
+    selected_items = heuristics > 0
+    average_prize_of_selected = np.mean(prize[selected_items])
+    heuristics *= average_prize_of_selected / np.mean(prize)
+    
+    # Normalize heuristics again to ensure they sum to one
+    heuristics /= np.sum(heuristics)
+    
+    # Introduce sparsity by setting a fraction of the lowest heuristics to zero
+    num_to_zero = int(len(heuristics) * 0.1)
+    heuristics[np.argsort(heuristics)[:num_to_zero]] = 0
+    
+    # Further promote items that are not too heavily weighted in any dimension
+    weight_balance_factor = 1 / (np.max(weight, axis=1) + 1e-5)
+    heuristics *= weight_balance_factor
+    
+    return heuristics
+```

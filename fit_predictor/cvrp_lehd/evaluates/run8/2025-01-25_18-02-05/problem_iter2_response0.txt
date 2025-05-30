@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the potential profit for each edge by taking the difference
+    # between the cumulative demand and the distance
+    potential_profit = cumulative_demands - distance_matrix
+    
+    # Normalize the potential profit by the maximum profit
+    max_profit = torch.max(potential_profit)
+    normalized_profit = potential_profit / max_profit
+    
+    # Calculate the inverse of the distance matrix to prioritize short edges
+    distance_matrix_inv = 1 / (distance_matrix + 1e-6)  # Adding a small constant to avoid division by zero
+    
+    # Calculate the product of normalized demand and inverse distance for each edge
+    demand_distance_product = demands / demands.sum() * distance_matrix_inv
+    
+    # Combine the normalized profit and the demand-based heuristic
+    combined_heuristic = normalized_profit * demand_distance_product
+    
+    # Apply a non-linear transformation to emphasize longer distances and negative profits
+    heuristic_matrix = torch.exp(-2 * combined_heuristic)
+    
+    # Set the edges with zero demand or zero distance to zero in the heuristic matrix
+    heuristic_matrix = torch.where(torch.isnan(heuristic_matrix), 0, heuristic_matrix)
+    
+    return heuristic_matrix
+```

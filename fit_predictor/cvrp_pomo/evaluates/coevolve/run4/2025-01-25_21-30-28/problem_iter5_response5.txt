@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: adaptively modify the search space
+    distance_matrix_sorted, _ = torch.sort(distance_matrix, dim=1)
+    max_distance = distance_matrix_sorted[:, -1]
+    heuristic_range = 1.0 / (distance_matrix + max_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Adapt heuristics dynamically based on performance: use a simple decay to simulate learning
+    decay_factor = 0.99
+    inverse_distance *= decay_factor
+    demand_weight *= decay_factor
+    heuristic_range *= decay_factor
+    load_balance *= decay_factor
+
+    # Integrate domain-specific insights: adjust weights based on problem specifics
+    weight_inverse_distance = 0.4
+    weight_demand_weight = 0.3
+    weight_heuristic_range = 0.2
+    weight_load_balance = 0.1
+
+    # Combine heuristics using domain knowledge and weights
+    combined_heuristic = (inverse_distance * weight_inverse_distance +
+                          demand_weight * weight_demand_weight +
+                          heuristic_range * weight_heuristic_range +
+                          load_balance * weight_load_balance)
+
+    # Normalize heuristics to balance global/local and prioritize capacity constraints effectively
+    combined_heuristic = combined_heuristic / combined_heuristic.sum()
+
+    return combined_heuristic
+```

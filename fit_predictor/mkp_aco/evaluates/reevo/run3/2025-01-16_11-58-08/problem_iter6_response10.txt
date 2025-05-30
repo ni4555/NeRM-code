@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized prize to weight ratio
+    normalized_ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate the normalized prize value
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the inverse of the average weight across dimensions
+    avg_weight = np.mean(weight, axis=1)
+    inverse_avg_weight = 1 / (avg_weight + 1e-8)  # Adding a small value to avoid division by zero
+    
+    # Combine normalized prize and inverse average weight
+    combined = normalized_prize * inverse_avg_weight
+    
+    # Calculate the standard deviation of the combined values
+    std_dev = np.std(combined)
+    
+    # Apply smoothing to the standard deviation
+    smoothed_std_dev = std_dev * 0.8
+    
+    # Sparsify the heuristics by setting elements below a certain smoothed standard deviation threshold to zero
+    threshold = smoothed_std_dev * 0.5
+    heuristics = np.where(combined > threshold, combined, 0)
+    
+    # Incorporate diversity by considering the overall sparsity of the weight matrix
+    sparsity_score = np.sum(weight == 0) / (weight.shape[0] * weight.shape[1])
+    diversity_heuristic = (1 - sparsity_score) * 0.2
+    
+    # Add diversity heuristic to the main heuristics
+    heuristics += diversity_heuristic
+    
+    # Normalize the heuristics to sum to 1
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

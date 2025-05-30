@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    
+    # Initialize a matrix with the same shape as the distance matrix
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Calculate the heuristic for each edge
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the total distance of the shortest Hamiltonian path
+                # by adding the distance from i to j, minus the edge distance
+                # to account for the shortest path that would pass through i and j
+                min_shortest_path = 2 * (n - 1) * np.amax(distance_matrix)
+                min_shortest_path -= distance_matrix[i, j]
+                # If the edge distance is part of the shortest Hamiltonian path,
+                # we want to discourage using it, so we increase its "badness"
+                heuristic_matrix[i, j] = min_shortest_path - distance_matrix[i, j]
+    
+    # Normalize the heuristic matrix to ensure all values are within a similar range
+    max_value = np.max(heuristic_matrix)
+    min_value = np.min(heuristic_matrix)
+    normalized_matrix = (heuristic_matrix - min_value) / (max_value - min_value)
+    
+    return normalized_matrix
+```

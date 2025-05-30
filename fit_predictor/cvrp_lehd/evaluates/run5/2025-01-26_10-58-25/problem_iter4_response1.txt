@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Define the vehicle capacity as a scalar value
+    vehicle_capacity = 1.0
+    
+    # Create a matrix with negative infinity for edges where demand is greater than vehicle capacity
+    excess_demand_mask = demands[1:] > vehicle_capacity
+    demand_matrix = torch.full_like(demands, float('-inf'))
+    demand_matrix[~excess_demand_mask] = torch.cumsum(demands[~excess_demand_mask], dim=0) / vehicle_capacity
+    
+    # Add the demand matrix to the distance matrix to create a potential matrix
+    potential_matrix = distance_matrix + demand_matrix
+    
+    # Create a soft penalty matrix based on capacity constraint
+    soft_penalty = vehicle_capacity * demands / torch.maximum(potential_matrix, 1e-5)
+    soft_penalty = soft_penalty.unsqueeze(1) - soft_penalty.unsqueeze(0)
+    
+    # Softmax over each row to ensure the sum of each row is 1 (probability distribution)
+    # Apply soft penalty matrix which penalizes overflows in vehicle capacity
+    softmax_matrix = F.softmax(potential_matrix - soft_penalty, dim=1)
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    # This will result in negative values for undesirable edges and positive values for promising ones
+    heuristics_matrix = 1 - softmax_matrix
+    
+    # Normalize the heuristics matrix to ensure that all values are non-negative
+    heuristics_matrix = torch.clamp(heuristics_matrix, min=0)
+    
+    return heuristics_matrix
+```

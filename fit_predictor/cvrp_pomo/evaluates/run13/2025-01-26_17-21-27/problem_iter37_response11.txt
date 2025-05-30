@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Define a penalty for edges that exceed the capacity when added
+    overflow_penalty = -torch.log1p(torch.abs(cumulative_demand[:, None] + demands[None, :] - total_capacity[None, :]))
+    
+    # Define a distance penalty that scales with the cumulative demand
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_penalty *= cumulative_demand[:, None] / total_capacity
+    
+    # Define a penalty for edges that cause the load to deviate from the average
+    load_deviation = torch.abs(cumulative_demand - total_capacity_vector)
+    load_penalty = -torch.log1p(load_deviation - 1e-8)
+    
+    # Combine the penalties into a heuristic value
+    heuristics = overflow_penalty + distance_penalty + load_penalty
+    
+    # Introduce randomness to encourage exploration
+    random_factor = torch.rand_like(demands) * 0.1
+    
+    # Scale heuristics to maintain a balance between the objectives
+    scaling_factor = 2.0
+    heuristics *= scaling_factor
+    
+    # Apply the random factor to encourage diversity and escape local optima
+    heuristics += random_factor
+    
+    # Ensure that no heuristic value is negative (which might indicate an overflow)
+    heuristics = torch.clamp(heuristics, min=0.0)
+    
+    return heuristics
+```

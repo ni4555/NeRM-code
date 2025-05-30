@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Calculate the global mean and standard deviation
+    mean_distance = np.mean(distance_matrix)
+    std_dev = np.std(distance_matrix)
+    
+    # Initialize adaptive parameters
+    alpha = 1.0  # Exploration-exploitation parameter
+    gamma = 0.01  # Learning rate for adaptation
+    
+    # Calculate initial heuristics based on a Gaussian distribution
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                heuristics[i, j] = np.exp(-((distance_matrix[i, j] - mean_distance) ** 2) / (2 * std_dev ** 2))
+    
+    # Initialize the fitness landscape adaptation
+    fitness_landscape = heuristics.copy()
+    
+    # Define a function to update the heuristics based on the fitness landscape
+    def update_heuristics():
+        nonlocal fitness_landscape
+        # Adapt the standard deviation based on the fitness landscape
+        adaptive_std_dev = np.maximum(0.1, np.mean(distance_matrix) - np.min(fitness_landscape))
+        # Update heuristics with an adaptive Gaussian distribution
+        for i in range(distance_matrix.shape[0]):
+            for j in range(distance_matrix.shape[1]):
+                if i != j:
+                    fitness_landscape[i, j] = np.exp(-((distance_matrix[i, j] - mean_distance) ** 2) / (2 * adaptive_std_dev ** 2))
+                    heuristics[i, j] = alpha * fitness_landscape[i, j] + (1 - alpha) * heuristics[i, j]
+    
+    # Perform real-time landscape adaptation
+    for _ in range(10):  # Number of adaptation steps, can be adjusted
+        update_heuristics()
+    
+    return heuristics
+```

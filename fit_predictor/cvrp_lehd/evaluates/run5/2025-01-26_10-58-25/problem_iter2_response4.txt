@@ -1,0 +1,30 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand normalized by the vehicle capacity
+    total_demand = demands.sum()
+    # Calculate the negative of the distance matrix
+    negative_distance_matrix = -distance_matrix
+    # Adjust the matrix for edges with zero demand
+    adjusted_distance_matrix = negative_distance_matrix.clone()
+    adjusted_distance_matrix[torch.where(demands == 0)] = float('-inf')
+    # Calculate the cumulative sum of the adjusted distance matrix along the rows
+    cumulative_adjusted_matrix = torch.cumsum(adjusted_distance_matrix, dim=1)
+    # Calculate the cumulative sum of the adjusted distance matrix along the columns
+    cumulative_adjusted_transposed_matrix = torch.cumsum(adjusted_distance_matrix.t(), dim=1).t()
+    # Calculate the cumulative demand matrix
+    cumulative_demand_matrix = torch.cumsum(demands, dim=0)
+    # Create a matrix with zero for edges where demand is within vehicle capacity
+    feasible_matrix = (cumulative_demand_matrix <= total_demand.unsqueeze(0)).float()
+    # Create a matrix with negative infinity for edges where demand exceeds vehicle capacity
+    infeasible_matrix = (cumulative_demand_matrix > total_demand.unsqueeze(0)).float() * float('-inf')
+    # Combine the feasible and infeasible matrices
+    demand_adjusted_matrix = feasible_matrix * cumulative_adjusted_matrix + infeasible_matrix
+    # Normalize the matrix to create a probability distribution
+    softmax_matrix = F.softmax(demand_adjusted_matrix, dim=1)
+    # Invert the probability distribution to get the heuristics matrix
+    heuristics_matrix = 1 - softmax_matrix
+    return heuristics_matrix
+```

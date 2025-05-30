@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations using linear penalties
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Apply a non-linear transformation to emphasize constraints using sigmoid
+    emphasized_matrix = torch.sigmoid(penalty_matrix + distance_penalty_matrix)
+    
+    # Normalize the emphasized matrix to ensure non-negativity
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize the distance penalty matrix to ensure it has similar scale to emphasized_matrix
+    normalized_distance_matrix = distance_penalty_matrix / distance_penalty_matrix.mean(dim=1, keepdim=True)
+    
+    # Combine the normalized emphasized matrix with the normalized distance penalty matrix
+    combined_matrix = (1 - 0.5) * normalized_emphasized_matrix + 0.5 * normalized_distance_matrix
+    
+    # Apply a soft threshold to enforce that promising edges are emphasized while not overly dominating
+    soft_threshold_matrix = torch.clamp(combined_matrix, min=0.5)
+    
+    # Transform the soft thresholded matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -torch.sigmoid(soft_threshold_matrix - 1)
+    
+    # Normalize the heuristics matrix to ensure it sums to 1 over each row
+    heuristics_matrix /= heuristics_matrix.sum(dim=1, keepdim=True)
+    
+    return heuristics_matrix
+```

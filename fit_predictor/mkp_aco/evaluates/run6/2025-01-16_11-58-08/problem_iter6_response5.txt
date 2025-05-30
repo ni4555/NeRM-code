@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize values to avoid dominance by high-value items
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate the average weight for each dimension
+    average_weight = np.mean(weight, axis=1)
+    # Normalize the average weights to account for differences in item dimensions
+    normalized_weight = average_weight / np.max(average_weight)
+    
+    # Normalize the weight for each item across all dimensions
+    normalized_item_weight = weight / np.max(weight, axis=1)[:, np.newaxis]
+    
+    # Incorporate global information by using the ratio of normalized prize to normalized weight
+    normalized_ratio = normalized_prize / (1 - normalized_weight)
+    
+    # Incorporate local information by adding the sparsity factor
+    sparsity_factor = 1 - (np.min(normalized_item_weight, axis=1) < 0.1)
+    
+    # Balance between exploration and exploitation by using a weighted combination
+    heuristics = (normalized_ratio * sparsity_factor) * 0.7 + (normalized_weight * 0.3)
+    
+    # Apply thresholding to remove items that are not promising
+    heuristics[heuristics < 0.05] = 0
+    
+    return heuristics
+```

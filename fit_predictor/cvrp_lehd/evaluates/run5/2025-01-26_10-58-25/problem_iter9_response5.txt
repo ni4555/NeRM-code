@@ -1,0 +1,33 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the normalized demand difference to balance the potential matrix
+    demand_diff = (demands - vehicle_capacity) / (vehicle_capacity + 1e-6)
+    
+    # Calculate the normalized distance to the depot and other customers
+    distance_to_depot = distance_matrix[:, 0]
+    distance_to_customers = distance_matrix[:, 1:]
+    
+    # Create a potential matrix combining demand and distance differences
+    potential_matrix = (1 + torch.abs(demand_diff)) * (1 + distance_to_depot)
+    
+    # Normalize the potential matrix to ensure values are within a feasible range
+    max_potential = torch.max(potential_matrix)
+    min_potential = torch.min(potential_matrix)
+    normalized_potential_matrix = (potential_matrix - min_potential) / (max_potential - min_potential)
+    
+    # Apply a non-linear transformation to enhance the distinction between promising and undesirable edges
+    transformed_potential_matrix = torch.sigmoid(normalized_potential_matrix)
+    
+    # Invert the transformed potential matrix to obtain the heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = 1 - transformed_potential_matrix
+    
+    return heuristics_matrix
+```

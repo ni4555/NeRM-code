@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized prize per item
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the average normalized weight for each item across all dimensions
+    average_weight = np.mean(weight, axis=1)
+    
+    # Calculate the sparsity factor, which is the proportion of non-zero weights
+    sparsity_factor = 1 - (weight == 0).mean(axis=1)
+    
+    # Calculate the inverse of the average weight to prioritize lighter items
+    inverse_average_weight = 1 / (average_weight + 1e-8)
+    
+    # Calculate the variance of weights to prefer items with more uniform weight distribution
+    weight_variance = np.var(weight, axis=1)
+    
+    # Calculate the heuristics by combining normalized prize, sparsity, and weight properties
+    heuristics = normalized_prize * inverse_average_weight * sparsity_factor * (1 / (1 + weight_variance))
+    
+    # Normalize the heuristics to ensure they are on a comparable scale
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    return heuristics
+```

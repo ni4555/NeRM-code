@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands[-1].item()
+    
+    # Calculate cumulative demand
+    cumulative_demand = demands.cumsum(0)
+    
+    # Initialize a vector with positive values for promising edges
+    edge_promise = torch.zeros_like(distance_matrix)
+    
+    # For each vehicle capacity (from 0 to the total capacity)
+    for capacity_index in range(total_capacity):
+        # Select nodes based on the demand for the current capacity level
+        current_demand = cumulative_demand[:capacity_index + 1]
+        
+        # Create a mask where the edge is promising if the node's demand is reached within capacity
+        edge_promise += torch.max(0. - (current_demand.unsqueeze(1) - demands.unsqueeze(0)), dim=1)[0]
+        
+        # Update edge promise based on the distance, ensuring no edge has a non-negative score
+        edge_promise = torch.max(edge_promise - distance_matrix, edge_promise)
+        
+    # Incorporate demand-based edge evaluation
+    edge_promise = edge_promise.clamp(min=0)
+    
+    return edge_promise
+```

@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Calculate normalized weights for each dimension
+    normalized_weight = weight / np.sum(weight, axis=0)
+
+    # Calculate utility score by combining prize and normalized weights
+    utility = prize * normalized_weight
+
+    # Introduce diversity by incorporating randomness with a low probability
+    np.random.seed(0)  # Ensures reproducibility of random results
+    random_diversity = np.random.rand(n) * (utility.sum() / n)
+
+    # Adjust utility with diversity and apply a sigmoid function for sparsification
+    adjusted_utility = (utility + random_diversity) / (1 + np.exp(utility + random_diversity))
+
+    # Soften the heuristics to zero-out less promising items
+    sparsified_utility = np.exp(adjusted_utility - adjusted_utility.max(axis=0))
+
+    # Normalize the sparsified heuristics
+    heuristics = sparsified_utility / sparsified_utility.sum(axis=0)
+    
+    return heuristics
+```

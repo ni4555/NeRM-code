@@ -1,0 +1,26 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Improved heuristic: Incorporate edge importance, neighborhood info, non-linear penalties, and normalization
+    for i in range(len(distance_matrix)):
+        for j in range(i+1, len(distance_matrix)):  # Only need to calculate for upper triangle
+            # Calculate the sum of distances to all nodes, excluding the two nodes in the edge
+            sum_distances = np.sum(distance_matrix[i]) + np.sum(distance_matrix[j]) - distance_matrix[i][j]
+            # Calculate the average distance from each node to all other nodes
+            average_distance_i = np.mean(distance_matrix[i])
+            average_distance_j = np.mean(distance_matrix[j])
+            # Non-linear penalty based on the average distance
+            penalty = np.exp(-sum_distances / (average_distance_i + average_distance_j))
+            # Normalize the penalty by the total number of nodes minus two (excluding the current nodes)
+            normalized_penalty = penalty / (len(distance_matrix) - 2)
+            # Calculate the heuristic value based on the normalized penalty
+            heuristic_value = 1 - normalized_penalty
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value  # Symmetry of the matrix
+    
+    return heuristic_matrix
+```

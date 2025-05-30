@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Scale demands to the range [0, 1]
+    scaled_demands = demands / demands.max()
+    # Balance the importance of demand and distance using a weighted sum with a tunable parameter alpha
+    alpha = 0.5  # This can be adjusted to balance demand and distance
+    balanced_heuristic = alpha * non_linear_distance + (1 - alpha) * non_linear_demand
+    # Normalize the heuristic matrix to ensure it is within a certain range
+    max_value = balanced_heuristic.max()
+    min_value = balanced_heuristic.min()
+    normalized_heuristic = (balanced_heuristic - min_value) / (max_value - min_value)
+    # Use symmetry by only considering one direction of the edge (for example, from customer to depot)
+    # This is done by setting the diagonal to 0 and the lower triangle
+    heuristic_matrix = torch.triu(normalized_heuristic, k=1)
+    # Invert the sign to get negative values for undesirable edges
+    return -heuristic_matrix
+```

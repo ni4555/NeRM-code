@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the demand normalization matrix and subtract the diagonal
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= demand_matrix.diag()
+    
+    # Normalize the demand matrix
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraints by considering the inverse of demand
+    demand_matrix *= (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Calculate the sum of distances from the depot to all nodes
+    sum_distances = distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize the distance matrix by the sum of distances from the depot to all nodes
+    distance_matrix /= sum_distances
+    
+    # Calculate the sum of demands from the depot to all nodes
+    sum_demands = demands.sum(dim=1, keepdim=True)
+    
+    # Normalize the demand matrix by the sum of demands from the depot to all nodes
+    demand_matrix /= sum_demands
+    
+    # Combine the influence of demand and distance matrices
+    combined_matrix = (demand_matrix + distance_matrix) / 2
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(combined_matrix, min=0)
+    
+    return heuristics
+```

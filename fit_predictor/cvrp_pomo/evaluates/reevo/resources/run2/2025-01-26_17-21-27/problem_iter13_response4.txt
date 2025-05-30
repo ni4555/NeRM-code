@@ -1,0 +1,16 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    # Non-linear transformation using a sigmoid function to balance penalties dynamically
+    sigmoid_transform = torch.sigmoid(-capacity_penalty - distance_penalty)
+    heuristics = distance_penalty * sigmoid_transform
+    # Scale penalties by cumulative demand to normalize
+    heuristics /= (cumulative_demand + 1e-8)
+    return heuristics
+```

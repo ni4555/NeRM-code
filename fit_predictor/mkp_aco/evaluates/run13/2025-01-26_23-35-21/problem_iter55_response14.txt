@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized prize values
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate normalized weights, considering the maximum weight
+    normalized_weight = weight / np.max(weight)
+    
+    # Determine the dominance of items, where items with a smaller normalized prize are dominated
+    dominance_mask = np.all(normalized_weight < 1, axis=1)
+    dominated_items = np.where(dominance_mask)[0]
+    
+    # Prune dominated items from the heuristic calculation
+    non_dominated_prize = np.delete(prize, dominated_items)
+    non_dominated_weight = np.delete(weight, dominated_items, axis=0)
+    
+    # Normalize non-dominated prize values
+    normalized_non_dominated_prize = non_dominated_prize / np.max(non_dominated_prize)
+    
+    # Add randomness for exploration
+    exploration_factor = np.random.rand(len(non_dominated_prize))
+    
+    # Create a heuristic value considering normalized prize, random exploration, and a sparsity penalty
+    heuristic = normalized_non_dominated_prize * exploration_factor - np.sum(non_dominated_weight, axis=1)
+    
+    # Normalize the heuristic values
+    normalized_heuristic = heuristic / np.max(heuristic)
+    
+    # Set dominated items to zero heuristic
+    dominated_heuristic = np.zeros_like(prize)
+    dominated_heuristic[dominated_items] = 0
+    
+    # Combine the heuristics for dominated and non-dominated items
+    combined_heuristic = np.where(dominance_mask, dominated_heuristic, normalized_heuristic)
+    
+    return combined_heuristic
+```

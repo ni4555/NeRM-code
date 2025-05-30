@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Sort the customers by their demand to prioritize smaller demands first
+    sorted_indices = torch.argsort(demands[1:])  # Ignore the depot's demand
+
+    # Initialize a mask to keep track of visited nodes
+    visited = torch.zeros(n, dtype=torch.bool)
+    visited[0] = True  # The depot is always visited
+
+    for i in sorted_indices:
+        if not visited[i]:
+            current_position = 0  # Start from the depot
+
+            while True:
+                unvisited_customers = (demands[1:] < 1) & (~visited[1:])
+                if not torch.any(unvisited_customers):
+                    break  # All customers have been visited
+
+                closest_customer = torch.argmin(distance_matrix[current_position, unvisited_customers])
+                next_position = unvisited_customers[closest_customer]
+
+                if demands[next_position] + demands[current_position] <= 1:
+                    # If the next customer can be added without exceeding capacity
+                    heuristics[current_position, next_position] = distance_matrix[current_position, next_position]
+                    visited[next_position] = True
+                    break
+                else:
+                    # Otherwise, move to the closest customer that can be visited within the capacity limit
+                    remaining_capacity = 1 - demands[current_position]
+                    possible_customers = (demands[1:] <= remaining_capacity) & (~visited[1:])
+                    if torch.any(possible_customers):
+                        next_position = torch.argmin(distance_matrix[current_position, possible_customers])
+                        heuristics[current_position, next_position] = distance_matrix[current_position, next_position]
+                        visited[next_position] = True
+                        break
+                    current_position = next_position
+
+    return heuristics
+```

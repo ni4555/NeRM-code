@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize an empty array to hold the heuristic values
+    heuristic = np.zeros_like(prize)
+
+    # Calculate the normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Identify dominated items (those with lower density but same or higher sparsity)
+    dominated_items = np.argmax(density, axis=0)
+    for i in range(1, len(density)):
+        if density[i] < density[dominated_items[i]] and sparsity[i] <= sparsity[dominated_items[i]]:
+            heuristic[i] = 0
+
+    # Select the best items based on heuristic values (exploration)
+    indices = np.argsort(density)[::-1][:n]  # 'n' should be defined based on the problem scale
+    for idx in indices:
+        if heuristic[idx] == 0:  # If the item is not dominated
+            heuristic[idx] = density[idx] / (sparsity[idx] + 1e-8)
+
+    # Add randomness to introduce diversity and avoid getting stuck in local optima (exploitation)
+    random_factor = np.random.rand(len(heuristic))
+    heuristic = (heuristic + random_factor) / np.sum(heuristic + random_factor)
+
+    # Set zero weights to a small value to maintain diversity
+    heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return heuristic
+```

@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    demand_std = torch.std(demands)
+    
+    # Normalize demands by the standard deviation to account for the spread of demand
+    normalized_demands = (demands - total_demand / n) / demand_std
+    
+    # Normalize the distance matrix
+    distance_normalized = distance_matrix / torch.max(distance_matrix + 1e-8)
+    
+    # Use a weighted sum to combine normalized demand and distance into a heuristic
+    combined_heuristic = (1 - 0.5) * normalized_demands + 0.5 * distance_normalized
+    
+    # Apply a dynamic penalty for potential capacity violations
+    capacity_penalty = torch.clamp(demands - 1, min=0) * -1000  # Using a high penalty to discourage overcapacity
+    
+    # Subtract the penalty from the combined heuristic
+    combined_heuristic -= capacity_penalty
+    
+    # Cap the heuristics to ensure they are positive and avoid too large values
+    cap = torch.max(combined_heuristic)
+    combined_heuristic = torch.clamp(combined_heuristic, min=0, max=cap)
+    
+    return combined_heuristic
+```

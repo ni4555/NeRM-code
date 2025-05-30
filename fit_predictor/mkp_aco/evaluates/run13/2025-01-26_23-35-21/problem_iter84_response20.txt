@@ -1,0 +1,51 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Normalize the prize and weight
+    max_prize = np.max(prize)
+    max_weight_sum = np.max(np.sum(weight, axis=1))
+    normalized_prize = prize / max_prize
+    normalized_weight_sum = np.sum(weight, axis=1) / max_weight_sum
+
+    # Calculate the value-to-weight ratio
+    value_to_weight_ratio = normalized_prize / (np.sum(weight**2, axis=1) / max_weight_sum)
+
+    # Identify dominated items by comparing prizes
+    dominated_mask = normalized_prize < np.percentile(normalized_prize, 90)
+    normalized_prize[dominated_mask] = 0
+
+    # Introduce randomness to avoid local optima
+    random_factor = np.random.rand(n)
+
+    # Combine normalized prize, value-to-weight ratio, and randomness
+    heuristic = 0.6 * normalized_prize + 0.3 * value_to_weight_ratio + 0.1 * random_factor
+
+    # Normalize the heuristic values
+    heuristic /= np.max(heuristic)
+
+    # Introduce a sparsity factor to encourage items with lower total weight
+    sparsity_factor = 0.5 * (1 - np.mean(normalized_weight_sum))
+
+    # Adjust the heuristic based on sparsity
+    heuristic *= (1 - sparsity_factor)
+
+    # Introduce diversity by adding a factor based on the variance of the heuristic
+    diversity_factor = np.var(heuristic)
+    heuristic *= (1 - diversity_factor)
+
+    # Normalize the heuristic values after diversity adjustment
+    heuristic /= np.sum(heuristic)
+
+    # Introduce exploration-exploitation with randomness
+    exploration_factor = np.random.rand(n)
+    exploitation_factor = heuristic * (1 - sparsity_factor)
+
+    # Combine exploration and exploitation with randomness
+    heuristic = exploration_factor * exploitation_factor
+
+    return heuristic
+```

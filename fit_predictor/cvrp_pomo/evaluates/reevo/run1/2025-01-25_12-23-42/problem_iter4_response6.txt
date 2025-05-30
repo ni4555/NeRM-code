@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    # Normalize the distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the cumulative sum of demands, which represents the cumulative load on the vehicle
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize the heuristics matrix with the negative of the normalized distances
+    heuristics = -norm_distances
+    
+    # Calculate the remaining capacity for each node, which is the total capacity minus the cumulative demand
+    remaining_capacity = total_demand - cumulative_demand
+    
+    # For nodes that have reached the capacity, encourage returning to the depot
+    capacity_exceeded = cumulative_demand > remaining_capacity
+    heuristics[capacity_exceeded] = norm_distances[capacity_exceeded]
+    
+    # Normalize the heuristics to ensure all values are within the range [0, 1]
+    max_heuristic = torch.max(heuristics)
+    heuristics /= (max_heuristic + 1e-6)  # Add a small epsilon to avoid division by zero
+    return heuristics
+```

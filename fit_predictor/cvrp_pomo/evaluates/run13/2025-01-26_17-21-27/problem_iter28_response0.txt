@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Enhanced capacity penalty that accounts for the exact capacity usage
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Improved distance penalty that is sensitive to the current load
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Enhanced overflow penalty that is zero when the capacity is not exceeded
+    overflow_penalty = -torch.log1p(distance_matrix - 1e-8)
+    overflow_penalty[overflow_penalty < 0] = 0
+    
+    # More refined load balancing factor that emphasizes nodes with higher deviation
+    load_balance_factor = torch.abs(cumulative_demand - demands.mean())
+    load_balance_factor = torch.clamp(load_balance_factor, 0, 2)
+    
+    # Use local vs global information: penalty for leaving a node if it is the next to visit
+    near_depot = (cumulative_demand + distance_matrix).argmin()
+    near_depot_penalty = (1 if near_depot != n - 1 else 0)
+    
+    # Adjusted scaling factors for each heuristic component
+    scaling_factor_capacity = 1.0
+    scaling_factor_distance = 1.5
+    scaling_factor_overflow = 0.5
+    scaling_factor_load_balance = 0.75
+    scaling_factor_near_depot = 1.0
+    
+    # Combine the heuristics with appropriate scaling
+    heuristics = scaling_factor_capacity * capacity_penalty + \
+                 scaling_factor_distance * distance_scaling + \
+                 scaling_factor_overflow * overflow_penalty + \
+                 scaling_factor_load_balance * load_balance_factor + \
+                 scaling_factor_near_depot * near_depot_penalty
+    
+    # Apply a penalty for the depot to return to itself
+    heuristics[0] = -1000
+    
+    return heuristics
+```

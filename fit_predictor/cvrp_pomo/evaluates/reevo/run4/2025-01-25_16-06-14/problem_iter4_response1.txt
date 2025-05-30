@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Iterate through each edge (i, j) where i is not equal to j
+    for i in torch.arange(1, len(demands)):
+        for j in torch.arange(i + 1, len(demands) + 1):
+            # Calculate the cumulative demand from node i to node j
+            cumulative_demand = torch.cat([demands[i:], demands[:i]])
+            # Normalize the cumulative demand by the total demand
+            cumulative_demand = cumulative_demand.sum() / total_demand
+            # Use the normalized cumulative demand to create a heuristic value
+            heuristic_matrix[i, j] = cumulative_demand
+            # If i is the depot node, we need to check if the demand can be met without visiting node j
+            if i == 0:
+                if cumulative_demand + demands[j] <= 1.0:
+                    heuristic_matrix[i, j] = -1e10  # Very bad heuristic value
+    # Invert the sign to get negative values for undesirable edges
+    return -heuristic_matrix
+```

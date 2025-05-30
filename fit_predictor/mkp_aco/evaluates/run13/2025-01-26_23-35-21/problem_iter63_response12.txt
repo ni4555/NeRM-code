@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a random number generator for controlled randomness
+    rng = np.random.default_rng()
+    
+    # Calculate the normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items
+    dominance_matrix = np.all(weight <= weight, axis=1)
+    dominated_indices = np.where(~dominance_matrix)[0]
+    for i in dominated_indices:
+        for j in np.where(density > density[i])[0]:
+            density[j] = 0
+    
+    # Calculate sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Integrate additional metrics
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Introduce randomness for exploration and diversity
+    random_factor = rng.uniform(size=prize.shape) * (1 - density)
+    
+    # Combine metrics and randomness
+    heuristic_value = density * (1 - sparsity) - weight_sum + random_factor
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic_value / (np.max(heuristic_value) + 1e-8)
+    
+    # Prune dominated items based on normalized heuristic
+    dominated_indices = np.where(normalized_heuristic <= np.min(normalized_heuristic))[0]
+    for i in dominated_indices:
+        normalized_heuristic[i] = 0
+    
+    # Normalize by the maximum heuristic value after pruning
+    normalized_heuristic = normalized_heuristic / (np.max(normalized_heuristic) + 1e-8)
+    
+    return normalized_heuristic
+```

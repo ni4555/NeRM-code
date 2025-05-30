@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    def calculate_penalty(factor, cumulative_demand, total_capacity):
+        return -torch.log1p(torch.abs(factor - cumulative_demand) - 1e-8)
+    
+    def calculate_weighted_factor(factor, cumulative_demand, total_capacity, scale_factor=1.0):
+        return scale_factor * factor * (1 + cumulative_demand / total_capacity)
+    
+    def calculate_randomness(total_capacity, cumulative_demand, randomness_factor=0.1):
+        return randomness_factor * torch.abs(torch.randn_like(demands)) * (1 - cumulative_demand / total_capacity)
+    
+    # Core objectives
+    core_demand_weight = calculate_weighted_factor(torch.abs(demands), cumulative_demand, total_capacity)
+    core_distance_weight = calculate_weighted_factor(torch.abs(distance_matrix), cumulative_demand, total_capacity, distance_balance_factor=torch.log(torch.max(torch.abs(distance_matrix))) / torch.log(torch.max(torch.abs(distance_matrix)) + 1e-8))
+    
+    # Penalties
+    dynamic_capacity_penalty = calculate_penalty(demands, cumulative_demand, total_capacity)
+    overflow_penalty = calculate_penalty(calculate_weighted_factor(demands, cumulative_demand, total_capacity), total_capacity, total_capacity)
+    
+    # Diversity and randomness
+    diversity_factor = calculate_randomness(total_capacity, cumulative_demand)
+    randomness_factor = calculate_randomness(total_capacity, cumulative_demand)
+    
+    # Combine heuristics with controlled scaling
+    scaling_factor = 2.5
+    heuristics = (
+        scaling_factor * (
+            core_demand_weight +
+            core_distance_weight +
+            dynamic_capacity_penalty +
+            overflow_penalty
+        ) +
+        diversity_factor +
+        randomness_factor
+    )
+    
+    # Normalize heuristics for exploration
+    max_heuristic = torch.max(torch.abs(heuristics))
+    heuristics /= (max_heuristic + 1e-8)
+    
+    return heuristics
+```

@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the difference in demand between consecutive nodes
+    demand_diff = demands[:, None] - demands[None, :]
+    
+    # Create a mask for edges where the demand difference is positive
+    positive_demand_diff_mask = demand_diff > 0
+    
+    # Use the distance matrix to create a penalty based on the distance to the nearest node
+    penalty = distance_matrix - torch.min(distance_matrix[positive_demand_diff_mask], dim=1).values
+    
+    # Create a mask for the edges that can potentially be part of the solution
+    potential_solution_mask = positive_demand_diff_mask * (penalty > 0)
+    
+    # Normalize the penalty by the demand difference to get the heuristics
+    heuristics = penalty / demand_diff[positive_demand_diff_mask]
+    
+    # Return the same shape as the original distance matrix
+    return heuristics * potential_solution_mask + torch.zeros_like(distance_matrix) * (~potential_solution_mask)
+```

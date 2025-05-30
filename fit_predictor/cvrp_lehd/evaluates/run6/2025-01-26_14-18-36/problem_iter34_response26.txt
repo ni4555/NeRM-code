@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize heuristics based on a balanced weight between scaled demand and distance
+    base_heuristic = torch.abs(scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)) * remaining_capacity
+    demand_weight = total_capacity / (n - 1)
+    distance_weight = 1 / demand_weight
+    heuristics = base_heuristic * (distance_weight + demand_weight)
+
+    # Early penalties: penalize if the node demand is greater than the capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty
+
+    # Dampen local preference: reduce penalty for being too close to the depot
+    distance_damping = 1.0 / (1.0 + torch.exp(-distance_matrix[:, 0] * 10.0))
+    local_preference = torch.ones_like(distance_matrix) - distance_damping
+    heuristics += local_preference * distance_weight
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    return heuristics
+```

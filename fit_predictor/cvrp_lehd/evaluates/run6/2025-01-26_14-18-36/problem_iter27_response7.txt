@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate the heuristic value for each edge based on scaled demand and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Add a penalty for edges that lead to a node with demand greater than vehicle capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty
+
+    # Add a dampening factor to balance between local and global insights
+    dampening_factor = 0.5
+    local_insight = heuristics
+    global_insight = torch.mean(heuristics)
+    balanced_insight = dampening_factor * local_insight + (1 - dampening_factor) * global_insight
+
+    # Introduce a dampening effect for edges too far from the depot
+    dampened_distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+    dampened_distance_penalty = torch.clamp(dampened_distance_penalty, min=0.0)
+    balanced_insight += dampened_distance_penalty
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = balanced_insight.max()
+    min_heuristic = balanced_insight.min()
+    heuristics = (balanced_insight - min_heuristic) / (max_heuristic - min_heuristic)
+
+    return heuristics
+```

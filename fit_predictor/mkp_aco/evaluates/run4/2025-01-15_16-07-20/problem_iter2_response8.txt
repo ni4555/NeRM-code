@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    density = prize / average_weight
+    sparsity = (density > max_prize / np.sum(weight)) * 1.0
+    
+    # Incorporate peak detection
+    peaks = np.diff(np.sign(np.diff(density))) < 0
+    peak_indices = np.where(peaks)[0] + 1  # Adjust index for peak locations
+    
+    # Enhance sparsity detection for peaks
+    enhanced_sparsity = np.zeros_like(density)
+    for index in peak_indices:
+        enhanced_sparsity[index] = sparsity[index] * 2
+    
+    # Final heuristic value calculation
+    heuristics = density * (1 - enhanced_sparsity)
+    
+    return heuristics
+```

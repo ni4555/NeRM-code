@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)
+    combined_importance = score * ratio
+    importance_normalized = combined_importance / np.sum(combined_importance)
+    diversity_score = np.std(normalized_weights, axis=1)
+    
+    # Use a weighted sum to balance importance and diversity, with weights determined by experimentation or problem characteristics
+    importance_weight = 0.6
+    diversity_weight = 0.4
+    combined_score = importance_weight * importance_normalized + diversity_weight * diversity_score
+    
+    # Normalize the combined scores to get a better distribution for thresholding
+    combined_score_normalized = combined_score / np.sum(combined_score)
+    
+    # Determine the dynamic threshold based on the standard deviation of the normalized scores
+    threshold = np.std(combined_score_normalized)
+    
+    # Apply thresholding to determine the heuristics
+    heuristics = (combined_score_normalized >= threshold).astype(float)
+    
+    # Apply sparsity to encourage diversity, using a percentile to find the cutoff
+    sparsity_param = np.percentile(combined_score_normalized, 95)  # Higher percentile to encourage sparsity
+    heuristics[combined_score_normalized < sparsity_param] = 0
+    
+    # Refine the heuristics to emphasize diversity by setting items with low diversity score to zero
+    diversity_threshold = np.percentile(diversity_score, 80)  # Adjust this threshold based on the problem specifics
+    heuristics[diversity_score < diversity_threshold] = 0
+    
+    # Optionally, add a small random noise to promote diversity
+    random_noise = np.random.rand(n) * 0.05
+    heuristics += random_noise
+    
+    # Clip the heuristics to be within the range [0, 1]
+    heuristics = np.clip(heuristics, 0, 1)
+    
+    return heuristics
+```

@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix = demand_matrix / (demand_matrix.sum(dim=1, keepdim=True) + 1e-8)  # Adding epsilon to avoid division by zero
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Integrate capacity constraint by subtracting the product of demand and distance
+    capacity_constraint = (demands + 1e-8) * distance_matrix  # Adding epsilon to avoid division by zero
+    
+    # Calculate heuristic by balancing distance and demand while considering capacity
+    heuristics = weighted_distance_matrix - capacity_constraint
+    
+    # Adjust heuristics to ensure that all depot-to-depot and node-to-node edges are positive
+    heuristics[:, 0] = heuristics[0, :] = 0  # Depot to depot edge
+    heuristics = torch.clamp(heuristics, min=1e-10)
+    
+    return heuristics
+```

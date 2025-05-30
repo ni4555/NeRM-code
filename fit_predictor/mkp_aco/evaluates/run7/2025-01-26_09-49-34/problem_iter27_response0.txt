@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate a domain-specific relevance factor based on the ratio of prize to average weight
+    relevance_factor = normalized_prize / np.mean(weight, axis=1)
+    
+    # Calculate a variance factor based on the standard deviation of weight
+    variance_factor = 1 / np.std(weight, axis=1)
+    
+    # Combine metrics: a weighted sum of relevance and variance factors
+    heuristics = normalized_prize * relevance_factor * variance_factor
+    
+    # Refine thresholds by using a percentile-based adjustment
+    threshold = np.percentile(heuristics, 80)  # 80% threshold
+    heuristics[heuristics > threshold] *= 1.2
+    
+    # Dynamically adjust weights based on the heuristics
+    heuristics *= (1 + heuristics / np.max(heuristics))
+    
+    # Integrate diversity by adding a diversity factor that promotes selection of less similar items
+    diversity_factor = 1 / np.corrcoef(weight.T).diagonal()
+    heuristics *= diversity_factor
+    
+    # Normalize heuristics by dividing by the sum of heuristics to maintain a probability distribution
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= np.sum(heuristics)
+    
+    # Simplify by reducing the dimensionality of the heuristic space
+    # Project heuristics onto a lower-dimensional space using PCA or other dimensionality reduction techniques
+    # For demonstration, we will use a simple linear combination of heuristics to simulate dimensionality reduction
+    reduced_heuristics = heuristics * (1 + heuristics / np.max(heuristics))
+    
+    # Sparsify the heuristics by setting a fraction of the lowest heuristics to zero
+    num_to_zero = int(len(reduced_heuristics) * 0.05)  # Zero out 5% of the lowest heuristics
+    reduced_heuristics[np.argsort(reduced_heuristics)[:num_to_zero]] = 0
+    
+    return reduced_heuristics
+```

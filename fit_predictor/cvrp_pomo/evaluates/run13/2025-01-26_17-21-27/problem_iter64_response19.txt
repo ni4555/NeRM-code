@@ -1,0 +1,52 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Distance scaling factor
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_scaling *= (1 + cumulative_demand / total_capacity) * time_factor
+    
+    # Capacity penalty scaling factor
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    capacity_penalty *= (1 + 0.3 * (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Load balance penalty
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Overflow penalty
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Randomness factor for exploration
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Diversity factor to encourage exploration
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Demand-aware distance penalty
+    demand_weighted_distance = distance_matrix * demands[:, None]
+    demand_weighted_distance_penalty = -torch.log1p(torch.abs(demand_weighted_distance) - 1e-8)
+    
+    # Combine factors into a single heuristic score
+    heuristics = (
+        distance_scaling +
+        capacity_penalty +
+        load_balance_penalty +
+        overflow_penalty +
+        randomness_factor +
+        diversity_factor +
+        demand_weighted_distance_penalty
+    )
+    
+    return heuristics
+```

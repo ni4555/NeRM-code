@@ -1,0 +1,21 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the potential profit for each edge by taking the difference
+    # between the cumulative demand and the distance
+    potential_profit = cumulative_demands - distance_matrix
+    
+    # Normalize the potential profit to get a value between 0 and 1
+    normalized_profit = F.relu(potential_profit) / torch.max(F.relu(potential_profit))
+    
+    # Apply a sigmoid function to transform the normalized profit into a range of [0, 1]
+    # Then, scale the range to [-1, 1] to indicate desirable edges
+    heuristic_matrix = 2 * F.sigmoid(normalized_profit) - 1
+    
+    return heuristic_matrix
+```

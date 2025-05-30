@@ -1,0 +1,27 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the utility based on the normalized prize per unit weight
+    utility = prize / np.sum(weight, axis=1)
+    # Normalize the weight by the sum of all weights to maintain fairness
+    normalized_weight = weight / np.sum(weight)
+    # Calculate the standard deviation of the normalized weights
+    std_dev = np.std(normalized_weight)
+    # Adjust utility based on the standard deviation, promoting diversity
+    adjusted_utility = utility * (1 + std_dev / np.max(std_dev))
+    # Normalize the adjusted utility to ensure it is between 0 and 1
+    normalized_utility = adjusted_utility / np.sum(adjusted_utility)
+    # Calculate sparsity factor based on the weighted sum of normalized weights
+    sparsity_factor = np.sum(normalized_weight * normalized_utility)
+    # Calculate the density factor as the inverse of the sparsity factor
+    density_factor = 1.0 / (sparsity_factor + 1e-6)
+    # Combine utility, sparsity factor, and density factor
+    heuristics = normalized_utility * 0.4 + sparsity_factor * 0.3 + density_factor * 0.3
+    # Normalize the heuristics to ensure they sum to 1
+    heuristics /= np.sum(heuristics)
+    # Apply a threshold to eliminate the least promising items
+    threshold = np.percentile(heuristics, 10)
+    heuristics = np.where(heuristics > threshold, heuristics, 0)
+    return heuristics
+```

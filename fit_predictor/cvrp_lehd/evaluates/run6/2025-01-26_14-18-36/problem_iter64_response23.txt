@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Non-linearly penalize capacity overflow and proximity to depot
+    heuristics = -(scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics += capacity_penalty
+
+    # Add dampening for edges back to the depot and edges that are too far from the depot
+    dampening_factor = 0.5
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 30
+    heuristics += depot_penalty * dampening_factor + torch.clamp(distance_penalty, min=0.0) * dampening_factor
+
+    # Incorporate diversity and variance into the heuristic to promote a spread of nodes and balanced load distribution
+    diversity_factor = torch.sum(remaining_capacity < 0.1) * 100.0
+    variance_penalty = torch.var(remaining_capacity, dim=0)
+    heuristics -= diversity_factor + variance_penalty
+
+    # Apply a non-linear transformation to promote better heuristic distribution and avoid local optima
+    heuristics = torch.exp(-heuristics) / (1.0 + torch.exp(-heuristics))
+
+    # Normalize heuristics to maintain a bounded range for comparison
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic for each edge as a weighted sum of factors
+    # where normalized demand, distance, and the inverse of the demand are used
+    distance_squared = distance_matrix ** 2
+    demand_inverse = 1 / (normalized_demands + 1e-8)  # Adding a small constant to avoid division by zero
+    demand_weight = 1 - demands / demands.max()  # Weight for demand, higher demand gets less weight
+
+    # Heuristic combining distance and demand, weighted and penalized for higher demand
+    heuristic_matrix = -torch.mul(torch.add(
+        torch.mul(normalized_demands, distance_squared),
+        demand_inverse),
+        torch.clamp(demand_weight, min=0))  # Ignore negative weights
+
+    # Introduce randomness to promote diversity, but avoid using the heuristic on the edges to the depot
+    random_matrix = torch.rand_like(distance_matrix)
+    random_matrix[torch.eye(distance_matrix.size(0)).bool()] = 0  # Remove randomness on diagonal ( depot edges )
+    diversity_factor = random_matrix * (1 / distance_matrix)  # Introduce randomness in a way that shorter distances have less effect
+
+    # Final heuristic matrix is a combination of the previous heuristic and the diversity factor
+    final_heuristic_matrix = heuristic_matrix - diversity_factor
+
+    return final_heuristic_matrix
+```

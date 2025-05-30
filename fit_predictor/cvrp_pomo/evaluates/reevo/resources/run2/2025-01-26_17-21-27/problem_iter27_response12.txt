@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Introduce a dynamic penalty that increases with the distance and load
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    load_penalty = -torch.log1p(torch.abs(cumulative_demand / total_capacity - 0.5) - 1e-8)
+    
+    # Combine penalties and scale by a factor to emphasize distance and load
+    combined_penalty = distance_penalty + load_penalty
+    scaling_factor = 1.5
+    heuristics = scaling_factor * combined_penalty
+    
+    # Additional heuristic: favor paths that balance the load across the vehicles
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    heuristics += load_balance_penalty
+    
+    return heuristics
+```

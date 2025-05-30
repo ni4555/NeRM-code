@@ -1,0 +1,47 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    weighted_distance_matrix /= weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by using the inverse of demand (addition to heuristic)
+    capacity_factor = (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Calculate heuristic by combining normalized weighted distance and demand
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Enhance promising edges by considering both distance and demand, and balance with capacity
+    heuristics = heuristics * (1 + demands)
+    
+    # Prioritize the depot edges to ensure it's the first node to be visited
+    depot_mask = torch.eye(n).bool()
+    heuristics[depot_mask] = float('inf')
+    heuristics = torch.triu(heuristics) + torch.tril(heuristics, -1)
+    heuristics /= 2
+    
+    # Introduce a decay factor for distant nodes to de-emphasize their contribution
+    decay_factor = torch.exp(-weighted_distance_matrix)
+    heuristics *= decay_factor
+    
+    # Introduce a penalty for overcapacity edges to ensure vehicle capacity constraint
+    overcapacity_penalty = (demands > 1).float() * -10  # Large negative value for overcapacity
+    max_heuristic = heuristics.max()
+    normalized_penalty = overcapacity_penalty / max_heuristic
+    heuristics += normalized_penalty
+    
+    # Normalize the heuristics to avoid dominance issues and ensure consistent scales
+    heuristics /= heuristics.max()
+    
+    return heuristics
+```

@@ -1,0 +1,52 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Introduce a demand penalty that scales with the cumulative demand
+    demand_penalty = -torch.log1p(torch.abs(demands - total_capacity_vector) - 1e-8)
+    
+    # Scale the distance penalty by cumulative demand to normalize its impact
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_penalty *= cumulative_demand / total_capacity
+    
+    # Apply an overflow penalty to edges where overflow would occur
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Apply a load balance penalty to promote even distribution of demand
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(torch.abs(load_balance - (total_capacity / n)) ** 2 - 1e-8)
+    
+    # Introduce randomness for exploration, with less randomness in balanced loads
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - load_balance / (total_capacity / n))
+    
+    # Combine the penalties and randomness to create the heuristic values
+    heuristics = (
+        demand_penalty +
+        distance_penalty +
+        overflow_penalty +
+        load_balance_penalty +
+        randomness_factor
+    )
+    
+    # Introduce diversity by adding a random component
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    heuristics += diversity_factor
+    
+    # Apply a scaling factor to prioritize core objectives
+    scaling_factor = 2.0
+    heuristics *= scaling_factor
+    
+    return heuristics
+```

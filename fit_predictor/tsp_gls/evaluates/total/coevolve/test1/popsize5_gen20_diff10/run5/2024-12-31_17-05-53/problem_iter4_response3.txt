@@ -1,0 +1,54 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize a matrix to hold the heuristic values, initialized to a large number
+    heuristic_matrix = np.full(distance_matrix.shape, np.inf)
+    
+    # For each node, find the nearest non-visited node
+    for i in range(distance_matrix.shape[0]):
+        distances = distance_matrix[i, :]
+        # Find indices of non-visited nodes
+        unvisited = np.where(distances != 0)[0]
+        # If there are unvisited nodes, find the minimum distance to one of them
+        if len(unvisited) > 0:
+            min_distance = np.min(distances[unvisited])
+            # Set the heuristic value for the edge (i, nearest unvisited)
+            heuristic_matrix[i, unvisited] = min_distance
+    
+    # Normalize the heuristic matrix by the sum of all rows
+    row_sums = np.sum(heuristic_matrix, axis=1)
+    epsilon = 1e-10
+    heuristic_matrix[heuristic_matrix == 0] = epsilon
+    normalized_heuristic_matrix = heuristic_matrix / (row_sums[:, np.newaxis] + epsilon)
+    
+    # Adjust the heuristic matrix to introduce penalties for longer edges
+    adjusted_heuristic_matrix = normalized_heuristic_matrix * (1 + 0.1 * (1 - normalized_heuristic_matrix))
+    
+    # Further refine by incorporating a local property that considers the distance to the MST
+    # First, perform a minimum spanning tree using Kruskal's algorithm (approximation for TSP)
+    edges = [(i, j, distance_matrix[i, j]) for i in range(len(distance_matrix)) for j in range(i+1, len(distance_matrix))]
+    edges.sort(key=lambda x: x[2])
+    mst = []
+    for edge in edges:
+        u, v, dist = edge
+        if not any((u in s or v in s) for s in mst):
+            mst.append(edge)
+            if len(mst) == len(distance_matrix) - 1:
+                break
+    
+    # Create a matrix of the shortest distances to the nearest MST node for each edge
+    nearest_mst_node_dist = np.zeros_like(distance_matrix)
+    for u, v, _ in mst:
+        nearest_mst_node_dist[u, v] = distance_matrix[u, v]
+        nearest_mst_node_dist[v, u] = distance_matrix[u, v]
+    
+    # Incorporate the distance to the nearest MST node as a refinement
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                heuristic_value = adjusted_heuristic_matrix[i, j]
+                if nearest_mst_node_dist[i, j] < heuristic_value:
+                    heuristic_value = nearest_mst_node_dist[i, j]
+                adjusted_heuristic_matrix[i, j] = heuristic_value
+    
+    return adjusted_heuristic_matrix
+```

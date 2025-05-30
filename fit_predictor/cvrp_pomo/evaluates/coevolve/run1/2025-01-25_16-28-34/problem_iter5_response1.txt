@@ -1,0 +1,49 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Problem-specific local search
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adaptive PSO with Adaptive Population Management
+    # Introduce a dynamic adjustment for the average demand per edge
+    # This can be a function of the best found heuristic so far and the number of iterations
+    best_heuristic_so_far = torch.zeros_like(average_demand_per_edge)
+    for iteration in range(100):  # Example of 100 iterations
+        best_heuristic_so_far = torch.max(best_heuristic_so_far, average_demand_per_edge)
+    dynamic_adjustment = (average_demand_per_edge - best_heuristic_so_far) / best_heuristic_so_far
+    
+    # Update the heuristics with the dynamic adjustment
+    heuristics = (average_demand_per_edge - total_capacity) / total_capacity + dynamic_adjustment
+    
+    # Dynamic Tabu Search with Adaptive Cost Function
+    # Introduce a cost function that is sensitive to the change in load distribution
+    # Here, we use a simple cost function based on the deviation from the average demand
+    cost_function = torch.mean(torch.abs(average_demand_per_edge - torch.mean(average_demand_per_edge)))
+    tabu_threshold = cost_function * 0.1  # Example threshold for tabu list
+    
+    # Apply tabu list penalty to heuristics
+    tabu_list = torch.zeros_like(average_demand_per_edge)
+    for iteration in range(100):  # Example of 100 iterations
+        if torch.abs(cost_function - torch.mean(tabu_list)) < tabu_threshold:
+            tabu_list = average_demand_per_edge
+    heuristics[tabu_list > tabu_threshold] += 10  # Example penalty for tabu edges
+    
+    # Normalize heuristics and apply penalties
+    heuristics = torch.clamp(heuristics, min=-1, max=1)
+    penalty = 0.5 * (torch.abs(heuristics) + torch.abs(1 - heuristics))
+    heuristics -= penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

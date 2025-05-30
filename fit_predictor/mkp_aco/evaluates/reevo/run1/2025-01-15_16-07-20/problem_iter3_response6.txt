@@ -1,0 +1,27 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Individual item value
+    normalized_prize = prize / np.sum(prize)
+    
+    # Density of prize per unit of weight in each dimension
+    density = prize / np.sum(weight, axis=1)
+    
+    # Complexity factor, which might be inversely proportional to sparsity
+    sparsity_factor = np.prod(1 / (1 + weight), axis=1)
+    
+    # Dimension-specific balance scores
+    balance_scores = np.prod(1 / (1 + np.abs(weight - 1)), axis=1)
+    
+    # Normalize balance score to prevent dominant influence
+    balance_scores /= np.sum(balance_scores)
+    
+    # Combining the various factors
+    heuristics = normalized_prize * density * sparsity_factor * balance_scores
+    
+    # Sparsifying the heuristics by setting lower values to zero
+    heuristics[heuristics < np.quantile(heuristics, 0.1)] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,10 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / (total_demand + 1e-8)  # Use an epsilon to prevent division by zero
+    edge_potential = (1 / (distance_matrix + 1e-8)) ** 0.7  # Exponent for distance bonus
+    edge_potential = torch.clamp(edge_potential - 0.3 * normalized_demands, min=-10)  # Demand penalty
+    edge_potential = torch.clamp(edge_potential + 0.1 * torch.exp(-distance_matrix / 5), min=0)  # Distance bonus
+    edge_potential[distance_matrix == 0] = -10  # Avoiding considering the depot in itself
+    return edge_potential
+```

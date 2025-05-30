@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+    
+    # Normalize demands by the total vehicle capacity
+    normalized_demands = demands / total_capacity
+    
+    # Problem-specific Local Search
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the load at the end node if this edge is used
+                load_at_j = normalized_demands[j] * total_capacity
+                # Calculate the load at the start node if this edge is used
+                load_at_i = normalized_demands[i] * total_capacity
+                # Calculate the potential load imbalance
+                load_imbalance = (load_at_j + load_at_i) - total_capacity
+                # Calculate a heuristic based on load imbalance and distance
+                edge_heuristic = load_imbalance / distance_matrix[i, j]
+                # Ensure that the heuristic is negative for undesirable edges
+                heuristics[i, j] = max(edge_heuristic, -1)
+    
+    return heuristics
+```

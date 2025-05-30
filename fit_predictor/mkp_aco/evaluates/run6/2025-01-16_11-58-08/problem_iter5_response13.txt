@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    
+    # Non-linear scaling by squaring the ratio and then taking the logarithm
+    non_linear_scaled_ratio = np.log1p(value_to_weight_ratio ** 2)
+    
+    # Aggregate performance by taking the maximum ratio for each item
+    aggregate_performance = np.max(non_linear_scaled_ratio, axis=1)
+    
+    # Normalize for sparsity by dividing by the sum of all normalized ratios
+    sparsity_normalized = aggregate_performance / np.sum(aggregate_performance)
+    
+    # Apply a domain-specific insight: boost the heuristics for items with unique dimensions
+    unique_dimension_boost = (np.sum(weight == 1, axis=1) == 1) * 2
+    
+    # Combine all factors to determine the final heuristics
+    final_heuristics = sparsity_normalized * unique_dimension_boost
+    
+    # Set unpromising elements to zero
+    final_heuristics[final_heuristics < 0.1] = 0
+    return final_heuristics
+```

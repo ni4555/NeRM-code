@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_penalty = -torch.min(torch.abs(demands), dim=0)[0]
+    distance_scaling = torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    heuristics = distance_scaling * (1 - demand_penalty) + cumulative_demand * demand_penalty
+    # Apply a penalty based on the remaining capacity
+    remaining_capacity = (total_capacity - cumulative_demand) / total_capacity
+    capacity_penalty = 1 - remaining_capacity
+    heuristics *= capacity_penalty.unsqueeze(1)
+    heuristics[torch.isnan(heuristics)] = 0  # Handle any NaN values that may result from log1p
+    return heuristics
+```

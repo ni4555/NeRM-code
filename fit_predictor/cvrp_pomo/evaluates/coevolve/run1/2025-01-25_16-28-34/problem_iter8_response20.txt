@@ -1,0 +1,62 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adjust heuristics based on average demand and capacity
+    heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    # Problem-specific local search with capacity-aware swaps
+    for i in range(1, n):
+        for j in range(1, n):
+            if distance_matrix[i, j] > 0:
+                load_diff_i = demands[i] - (demands.sum() - demands[j])
+                load_diff_j = demands[j] - (demands.sum() - demands[i])
+                if (load_diff_i + load_diff_j) < 0:  # Swap is possible
+                    # Update heuristics to encourage swaps that balance capacity
+                    heuristics[i, j] -= load_diff_i
+                    heuristics[j, i] -= load_diff_j
+                    heuristics[j, j] -= load_diff_j
+                    heuristics[i, i] -= load_diff_i
+    
+    # Adaptive PSO-inspired diversity by adding a random factor
+    random_factor = torch.rand_like(heuristics) * 0.01
+    heuristics += random_factor
+    
+    # Dynamic Tabu Search with Adaptive Cost Function
+    tabu_list = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            if (i, j) not in tabu_list and (j, i) not in tabu_list:
+                # Temporarily disable the edge to simulate tabu search
+                tabu_list.add((i, j))
+                # Update heuristics as if this edge does not exist
+                heuristics[i, j] *= 0.95
+                heuristics[j, i] *= 0.95
+                tabu_list.remove((i, j))
+    
+    # Apply penalties for overloading and underloading
+    overload_penalty = torch.abs(heuristics)
+    underload_penalty = torch.abs(1 - heuristics)
+    
+    # Weighted combination of overloading and underloading penalties
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

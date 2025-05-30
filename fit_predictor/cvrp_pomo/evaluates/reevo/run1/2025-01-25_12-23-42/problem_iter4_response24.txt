@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Vectorized computation to determine the edge heuristics
+    edge_heuristics = (1 / (1 + distance_matrix)) * (demands[:, None] / (total_demand[None] / demands.shape[0]))
+    
+    # Apply a negative heuristic if the demand of the customer is higher than the threshold
+    edge_heuristics[demands > total_demand / demands.shape[0]] *= -1
+    
+    # Sum up the edge heuristics along the rows to get the heuristic matrix
+    heuristics_matrix = torch.sum(edge_heuristics, dim=1)
+    
+    return heuristics_matrix
+```

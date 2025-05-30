@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum demand a single edge can support before the vehicle needs to return
+    capacity = torch.sum(demands)
+    max_edge_demand = torch.div(capacity, torch.sum(distance_matrix, dim=1))
+
+    # Subtract the distance from max_edge_demand for the effect of distance
+    edge_value = max_edge_demand - distance_matrix
+
+    # Add demand to balance exploitation (edges with higher demand should be more promising)
+    edge_value += demands
+
+    # Normalize the heuristics to ensure that values are on a similar scale
+    edge_value = torch.clamp(edge_value, min=0)  # Remove negative values
+    min_edge_value = torch.min(edge_value)
+    max_edge_value = torch.max(edge_value)
+    heuristics = torch.div(edge_value - min_edge_value, max_edge_value - min_edge_value)
+
+    return heuristics
+```

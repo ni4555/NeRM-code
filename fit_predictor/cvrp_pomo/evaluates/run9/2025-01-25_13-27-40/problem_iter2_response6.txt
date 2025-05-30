@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, capacity: float) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the start node
+    cum_demands = torch.cumsum(demands, dim=0)
+    # Calculate the remaining capacity of the vehicle at each node
+    remaining_capacity = capacity - cum_demands
+    # Introduce a penalty for exceeding capacity
+    capacity_penalty = torch.where(remaining_capacity > 0, torch.zeros_like(demands), torch.ones_like(demands))
+    # Use exponential decay to prioritize short edges
+    edge_potential = torch.exp(-distance_matrix * 0.1)
+    # Apply penalties to edges leading to nodes with high demand or if the capacity is exceeded
+    heuristics = edge_potential - (demands * capacity_penalty)
+    return heuristics
+```

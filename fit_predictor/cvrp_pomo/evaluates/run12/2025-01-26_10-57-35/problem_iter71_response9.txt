@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize demands by total capacity to emphasize the effect of capacity constraints
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate a penalty factor for edges with overcapacity
+    overcapacity_penalty = torch.clamp(demands - 1, min=0) * -10
+    
+    # Calculate a benefit factor for edges with undercapacity
+    undercapacity_penalty = torch.clamp(1 - demands, min=0) * 5
+    
+    # Create a weighted distance matrix based on normalized demands
+    weighted_distance_matrix = distance_matrix * normalized_demands[:, None]
+    
+    # Normalize the weighted distance matrix to consider total demand per route
+    heuristics = weighted_distance_matrix / (weighted_distance_matrix.sum(dim=1, keepdim=True) + 1e-8)
+    
+    # Integrate undercapacity and overcapacity factors
+    heuristics += overcapacity_penalty[:, None] + undercapacity_penalty[None, :]
+    
+    # Minimize loops by setting the heuristic of a loop to zero
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics = torch.max(heuristics, loop_heuristics)
+    
+    # Normalize the heuristics to avoid dominance
+    max_heuristic = heuristics.max()
+    heuristics = heuristics / max_heuristic
+    
+    # Apply a dampening factor to reduce the impact of non-essential features
+    dampening_factor = 0.8
+    heuristics *= dampening_factor
+    
+    # Emphasize capacity constraints by adjusting the heuristics
+    heuristics += (1 / (demands + 1e-8)) - 1
+    
+    return heuristics
+```

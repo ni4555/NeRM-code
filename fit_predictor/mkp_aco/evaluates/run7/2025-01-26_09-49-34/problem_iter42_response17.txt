@@ -1,0 +1,52 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    
+    # Normalize prize to ensure items are not dominated by high prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate balance factor considering both sparsity and variance
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    balance_factor = sparsity_factor * inv_variance_factor
+    
+    # Add a random diversity component with a floor
+    diversity = np.random.normal(0, 0.02, size=normalized_prize.shape)
+    diversity = np.maximum(diversity, 0)
+    balanced_prize = normalized_prize * balance_factor + diversity
+    
+    # Sparsify by zeroing out low-value heuristic values
+    sparsity_threshold = np.percentile(balanced_prize, 30)
+    balanced_prize[balanced_prize < sparsity_threshold] = 0
+    
+    # Amplify heuristics of items with higher potential
+    amplification_threshold = np.percentile(balanced_prize, 70)
+    balanced_prize[balanced_prize > amplification_threshold] *= 1.2
+    
+    # Dynamically adjust amplification threshold based on the distribution of the heuristics
+    amplification_threshold_dynamic = np.mean(balanced_prize[balanced_prize > 0])
+    balanced_prize[balanced_prize > amplification_threshold_dynamic] *= 1.5
+    
+    # Refine heuristics by emphasizing non-dominated items
+    for i in range(n):
+        dominated_by = np.any(balanced_prize > balanced_prize[i])
+        if not dominated_by:
+            balanced_prize[i] *= 1.1
+    
+    # Iterate a fixed number of times to refine heuristics further
+    for _ in range(3):
+        for i in range(n):
+            dominated_by = np.any(balanced_prize > balanced_prize[i])
+            if not dominated_by:
+                balanced_prize[i] *= 1.05
+    
+    # Normalize the final heuristics
+    heuristic_sum = np.sum(balanced_prize)
+    if heuristic_sum > 0:
+        balanced_prize /= heuristic_sum
+    
+    return balanced_prize
+```

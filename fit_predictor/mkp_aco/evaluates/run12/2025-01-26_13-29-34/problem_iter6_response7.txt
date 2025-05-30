@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning component (improved scoring)
+    # Using a pre-trained model that returns a score for each item
+    # Here we simulate this with a random number generator for demonstration
+    model_scores = np.random.rand(n)
+
+    # Initialize adaptive constraint-driven filtering
+    feasible_items = np.ones(n, dtype=bool)
+
+    # Particle swarm optimization for evolutionary swarm intelligence
+    # We will use a simplified version of PSO for demonstration
+    # Here we assume that the global best is the item with the highest score
+    global_best_index = np.argmax(model_scores)
+    global_best_prize = prize[global_best_index]
+
+    # Initialize heuristic based on model scores and feasibility
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            heuristic[i] = model_scores[i] * (prize[i] / (global_best_prize + 1e-6))
+
+    # Refine heuristic using constraint-driven filtering
+    for i in range(n):
+        if feasible_items[i]:
+            combined_weight = np.sum(weight[:i]) + np.sum(weight[i])
+            if combined_weight > 1:
+                feasible_items[i] = False
+                heuristic[i] = 0
+
+    # Update the heuristic values based on the feasibility check
+    heuristic[feasible_items] = model_scores[feasible_items] * (prize[feasible_items] / (global_best_prize + 1e-6))
+
+    return heuristic
+```

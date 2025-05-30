@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    weight_normalized = np.sum(weight, axis=1)
+    weight_sq = np.sum(weight**2, axis=1)
+    item_importance = prize / weight_normalized
+    importance_sparsity = 1 - (weight_sq / weight_normalized**2)
+    quality_index = np.max(item_importance, axis=0) * (item_importance * importance_sparsity)
+    # Threshold based heuristic value calculation
+    heuristics = (quality_index / np.sum(quality_index)) * (np.sum(weight_normalized) * 2) ** (0.5 * 0.7)
+    heuristics = heuristics - heuristics // max(1, int(heuristics.shape[0] / (weight_normalized ** 2)))
+    # Apply a minimum heuristic threshold
+    min_threshold = 1 / len(quality_index)
+    heuristics[heuristics < min_threshold] = min_threshold
+    # Convert heuristics to sparse array to improve solution quality by excluding less promising items
+    return heuristics.astype('float32')
+```

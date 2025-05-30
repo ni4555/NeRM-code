@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce diversity by incorporating the sum of demands to each node as part of the heuristic
+    diversity_factor = (scaled_demands.sum(dim=1)).unsqueeze(1)
+
+    # Calculate the heuristic value for each edge based on scaled demand, remaining capacity, and diversity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity + diversity_factor
+
+    # Dampen penalties for high capacity utilization and edges leading back to the depot
+    dampening_factor = 0.5
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics -= (capacity_penalty + depot_penalty) * dampening_factor
+
+    # Use non-linear transformation for better exploration of the solution space
+    heuristics = torch.tanh(heuristics)
+
+    # Normalize the heuristic values to the range [0, 1] using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Balance capacity, distance, and diversity in a non-linear manner
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

@@ -1,0 +1,53 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize the heuristic matrix
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Add a penalty for high scaled demand
+    high_demand_penalty = torch.abs(scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)) * 0.1
+    heuristics += high_demand_penalty
+
+    # Add a dampened penalty for edges leading back to the depot (index 0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -0.1
+    heuristics += depot_penalty * 0.5
+
+    # Add a penalty for capacity violations
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics += capacity_penalty * 0.1
+
+    # Add a preference for edges close to the depot
+    distance_preference = distance_matrix[:, 0] - distance_matrix[:, 0].mean()
+    heuristics -= torch.clamp(distance_preference, min=-0.2, max=0.0) * 0.2
+
+    # Add exploration incentives based on remaining capacity
+    exploration_incentive = (remaining_capacity / remaining_capacity.max()) * 0.1
+    heuristics += exploration_incentive.unsqueeze(1) * exploration_incentive.unsqueeze(0)
+
+    # Balance the impact of penalties and incentives
+    balance_factor = 0.3
+    heuristics *= balance_factor
+
+    # Normalize the heuristic values to the range [0, 1] using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Apply a non-linear transformation to the heuristic values
+    heuristics = torch.tanh(heuristics * 10)  # Scaled by 10 to bring into the tanh range
+
+    # Clamp the heuristic values to ensure they are within the range [0, 1]
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

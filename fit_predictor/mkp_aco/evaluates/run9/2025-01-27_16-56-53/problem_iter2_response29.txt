@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on multiple factors
+    for i in range(n):
+        total_prize = 0
+        total_weight = 0
+        value_to_weight_ratio = 0
+        weight_sparsity = 0
+        diversity_factor = 0
+        
+        for j in range(m):
+            total_prize += prize[i] * weight[i, j]
+            total_weight += weight[i, j]
+            if weight[i, j] < weight[i].max():
+                diversity_factor += 1
+        
+        value_to_weight_ratio = total_prize / total_weight
+        weight_sparsity = 1 - (total_weight / m)
+        
+        # Normalize the value-to-weight ratio and incorporate sparsity
+        normalized_ratio = value_to_weight_ratio / (1 + total_weight)
+        heuristic[i] = normalized_ratio * weight_sparsity
+        
+        # Incorporate diversity
+        heuristic[i] *= diversity_factor / m
+    
+    # Refine heuristics dynamically
+    for i in range(n):
+        # Further refine by penalizing items with high total weight
+        if total_weight > m * 0.8:
+            heuristic[i] = 0
+        # Also penalize items that are too low in value
+        elif heuristic[i] < heuristic.max() / 10:
+            heuristic[i] = 0
+    
+    return heuristic
+```

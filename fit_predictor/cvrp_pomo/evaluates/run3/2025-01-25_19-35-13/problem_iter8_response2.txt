@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / (total_demand + 1e-8)  # Adding epsilon to avoid division by zero
+    
+    # Soft thresholds to limit the range of the normalized demands and inverse distance
+    min_threshold, max_threshold = -0.1, 0.1
+    edge_potential = torch.clamp(1 / (distance_matrix + 1e-8), min=1e-8)  # Avoid division by zero
+    edge_potential *= torch.clamp(normalized_demands, min=min_threshold, max=max_threshold)
+    
+    # Apply a penalty for high demands
+    penalty_high_demand = (demands > 1).float() * -0.1
+    
+    # Apply a bonus for short distances
+    bonus_short_distance = (distance_matrix < 10).float() * 0.1
+    
+    # Combine the effects with a weighted sum
+    edge_potential = edge_potential * (1 + penalty_high_demand + bonus_short_distance)
+    
+    return edge_potential
+```

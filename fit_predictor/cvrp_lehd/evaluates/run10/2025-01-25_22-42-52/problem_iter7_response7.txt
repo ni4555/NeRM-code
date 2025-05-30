@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Calculate the distance to the nearest customer with a positive demand that can be served
+    nearest_customer = torch.argmin(torch.abs(cumulative_demand - cumulative_capacity[:, None]), dim=1)
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Incorporate capacity constraints
+    for i in range(len(demands)):
+        if demands[i] > 0:
+            for j in range(len(demands)):
+                # Minimize redundancy by not including the edge from the depot to the node if the
+                # demand is zero or the cumulative capacity would exceed the vehicle capacity
+                if demands[j] == 0 or cumulative_capacity[j] > vehicle_capacity:
+                    continue
+                # Prioritize feasible nodes and balance distance/capacity penalties
+                heuristics_matrix[i, j] = -distance_matrix[i, j] + (cumulative_capacity[j] - cumulative_capacity[i]) * demands[i]
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,61 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adjust the average demand per edge to be relative to the total capacity
+    adjusted_average_demand = average_demand_per_edge / total_capacity
+    
+    # Problem-specific Local Search: Calculate heuristics based on load factor
+    for i in range(n):
+        for j in range(i + 1, n):
+            if distance_matrix[i, j] != 0:
+                edge_demand = adjusted_average_demand[i, j]
+                if edge_demand > 1:
+                    heuristics[i, j] = -float('inf')
+                    heuristics[j, i] = -float('inf')
+                else:
+                    heuristics[i, j] = adjusted_average_demand[i, j] - 1
+                    heuristics[j, i] = heuristics[i, j]
+
+    # Apply adaptive PSO with population management
+    swarm_size = 10  # Example swarm size
+    iterations = 100  # Example number of iterations
+    velocities = torch.zeros_like(heuristics)
+    global_best = heuristics.clone()
+    for _ in range(iterations):
+        for i in range(swarm_size):
+            # Update velocity and position based on local and global best
+            velocities *= 0.8  # Example momentum factor
+            velocities += torch.randn_like(heuristics) * 0.2  # Example inertia factor
+            heuristics += velocities
+            local_best = torch.max(heuristics, dim=1).values - torch.min(heuristics, dim=1).values
+            global_best = torch.max(heuristics, dim=1).values.unsqueeze(1).repeat(1, n)
+
+    # Apply dynamic tabu search with adaptive cost function
+    tabu_list = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            if (i, j) not in tabu_list and adjusted_average_demand[i, j] <= 1:
+                # Update heuristics based on tabu search
+                heuristics[i, j] *= 0.95
+                heuristics[j, i] *= 0.95
+                tabu_list.add((i, j))
+
+    # Ensure heuristics are negative for undesirable edges
+    heuristics[heuristics >= 0] = 0
+
+    # Return the heuristics matrix with edges with zero distance set to zero
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

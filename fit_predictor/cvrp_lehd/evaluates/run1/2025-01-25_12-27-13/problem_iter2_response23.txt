@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand excluding the depot
+    total_demand = demands[1:].sum()
+    vehicle_capacity = 1.0 / (1.0 / total_demand + 1.0 / demands[depot])
+
+    # Calculate demand ratios
+    demand_ratios = demands[1:] / demands[1:].sum()
+
+    # Calculate cost penalties
+    cost_penalties = distance_matrix / distance_matrix.mean()
+
+    # Calculate the heuristic values
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Check if the edge (i, j) is between two customers
+                if i > 0 and j > 0:
+                    # Calculate the cost ratio for this edge
+                    cost_ratio = (distance_matrix[i][j] * demand_ratios[j]) / (demands[i] + demands[j])
+                    # Apply demand ratio and cost penalty
+                    heuristics[i][j] = demand_ratios[j] * cost_ratio
+                # Check if the edge (i, j) is from a customer to the depot
+                elif j == depot:
+                    # Calculate the load if this edge is included
+                    potential_load = vehicle_capacity + demands[i]
+                    # Apply capacity and cost penalty
+                    if potential_load <= vehicle_capacity:
+                        heuristics[i][j] = demand_ratios[j] * cost_penalties[i][j] * (vehicle_capacity / potential_load)
+                # Check if the edge (i, j) is from the depot to a customer
+                elif i == depot:
+                    # Calculate the load if this edge is included
+                    potential_load = vehicle_capacity - demands[j]
+                    # Apply capacity and cost penalty
+                    if potential_load >= demands[j]:
+                        heuristics[i][j] = demand_ratios[j] * cost_penalties[i][j] * (potential_load / demands[j])
+
+    return heuristics
+```

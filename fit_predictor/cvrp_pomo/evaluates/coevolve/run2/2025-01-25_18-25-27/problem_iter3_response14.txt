@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True))
+    
+    # Incorporate additional criteria to balance global and local criteria
+    # For example, add a local criterion that discourages long detours by penalizing highly varying demands
+    variances = (normalized_demands ** 2).sum(axis=1)
+    local_criterion = variances - torch.mean(variances)
+    heuristics_matrix += local_criterion.unsqueeze(1)
+    
+    # Cap the values to ensure positive hueristics for promising edges and negative for undesirable ones
+    heuristics_matrix = torch.clamp(heuristics_matrix, min=-10.0, max=10.0)
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Normalize density to account for dimensionality
+    density = prize / (np.sum(weight, axis=1) + 1e-8) * np.sqrt(m)
+
+    # Normalize sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+
+    # Normalize value-to-weight ratio to encourage high value-to-weight items
+    value_to_weight_ratio = (prize / np.sum(weight, axis=1)) * np.sqrt(m)
+
+    # Identify dominated items using a percentile-based threshold for density
+    dominated_mask = density < np.percentile(density, 10)
+    density[dominated_mask] = 0
+
+    # Calculate diversity by measuring the variation in density
+    diversity = np.sum((density - np.mean(density))**2, axis=1)
+
+    # Introduce randomness for exploration
+    randomness = np.random.rand(n) + 1e-8
+
+    # Weigh and combine metrics to create a balanced heuristic
+    heuristic = (0.5 * density +
+                 0.2 * (1 - sparsity) +
+                 0.2 * value_to_weight_ratio +
+                 0.1 * diversity +
+                 0.1 * randomness)
+
+    # Normalize heuristic values to a range [0, 1]
+    normalized_heuristic = heuristic / np.max(heuristic + 1e-8)
+
+    # Ensure that all items have a non-zero heuristic
+    normalized_heuristic = np.clip(normalized_heuristic, 1e-8, 1.0)
+
+    return normalized_heuristic
+```

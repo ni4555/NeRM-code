@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    scaled_capacity = total_capacity / n
+    
+    # Dynamic scaling of penalties based on load
+    dynamic_scale = (1 + cumulative_demand / total_capacity)
+    
+    # Distance penalty weighted by current load
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * dynamic_scale
+    
+    # Capacity penalty to encourage vehicles to return early if over capacity
+    capacity_penalty = -torch.log1p(torch.abs(cumulative_demand - scaled_capacity) - 1e-8)
+    
+    # Load balance heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - scaled_capacity)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Randomness introduced to avoid local optima
+    randomness = torch.randn_like(demands) * 0.05
+    
+    # Heuristics combining all factors
+    heuristics = distance_penalty + capacity_penalty + load_balance_penalty + randomness
+    
+    # Scaled heuristics to maintain stability
+    scaled_heuristics = heuristics * 1.5
+    
+    # Ensure that the heuristics do not encourage visiting nodes that cause overflow
+    overflow_mask = (cumulative_demand[:, None] + demands[None, :]) > scaled_capacity
+    scaled_heuristics[overflow_mask] = -float('inf')
+    
+    return scaled_heuristics
+```

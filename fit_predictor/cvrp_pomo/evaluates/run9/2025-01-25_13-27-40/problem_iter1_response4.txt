@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    n = distance_matrix.shape[0]
+    # Calculate the total demand for each node
+    total_demand = demands.sum()
+    # Initialize the heuristic matrix with negative infinity
+    heuristic_matrix = torch.full_like(distance_matrix, float('-inf'))
+    # For each node as a potential starting point
+    for start in range(n):
+        # Compute cumulative demand along each path from the start node
+        path_demand = torch.cumsum(torch.cat([torch.zeros(1), demands]), 0)
+        # For each edge
+        for i in range(n):
+            for j in range(i + 1, n):
+                # If the next node does not exceed the vehicle capacity
+                if path_demand[j] <= total_demand:
+                    # Calculate the heuristic value based on the distance and cumulative demand
+                    heuristic_matrix[start, i] = heuristic_matrix[start, j] = distance_matrix[i, j]
+                    heuristic_matrix[i, start] = heuristic_matrix[j, start] = distance_matrix[i, j]
+    return heuristic_matrix
+```

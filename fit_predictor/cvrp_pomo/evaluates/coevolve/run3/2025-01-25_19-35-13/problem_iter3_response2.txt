@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    epsilon = 1e-8
+    edge_potential = (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5)
+
+    # Add demand-based penalties and distance-based bonuses with dynamic weight adjustments
+    weight_demand_penalty = torch.where(demands > 1.5, 0.1, 0)
+    weight_distance_bonus = torch.where(distance_matrix < 10, 0.05, 0)
+    
+    edge_potential -= weight_demand_penalty * normalized_demands
+    edge_potential += weight_distance_bonus * (1 / (distance_matrix + epsilon))
+    
+    # Further enhance diversity by adding a stochastic component
+    random_component = torch.rand_like(edge_potential) - 0.5
+    edge_potential += random_component * (torch.rand_like(edge_potential) < 0.1)
+    
+    return edge_potential
+```

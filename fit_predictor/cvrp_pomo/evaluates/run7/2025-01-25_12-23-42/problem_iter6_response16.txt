@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    norm_distances = distance_matrix / distance_matrix.max()
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    load_factor = (node_loads * norm_distances).sum(-1)
+    
+    # Heuristic based on normalized distance and demand-based load factor
+    heuristic = -norm_distances + (1 - demands.unsqueeze(1) / demands.sum()) * load_factor
+    
+    # Add random noise for exploration
+    noise = torch.randn_like(heuristic) * 0.1
+    heuristic += noise
+    
+    # Ensure heuristics are within a reasonable range to maintain feasibility
+    heuristic = torch.clamp(heuristic, min=-5.0, max=5.0)
+    
+    return heuristic
+```

@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:]
+    
+    # Initialize the first vehicle's route
+    heuristics[0, 1:] = distance_matrix[0, 1:].where(demands[1:] <= remaining_capacity[0]).min(dim=1).values
+    remaining_capacity[0] -= demands[1:].where(demands[1:] <= remaining_capacity[0]).sum()
+    
+    # For each subsequent vehicle
+    for vehicle_id in range(1, remaining_capacity[0].nonzero().shape[0]):
+        # Find the next best customer to visit
+        best_customer_indices = torch.argsort(demand_cumsum - demands[:vehicle_id+1])[1:].where(demands[1:] <= remaining_capacity[:vehicle_id+1]).nonzero().flatten()
+        if not best_customer_indices.shape[0]:
+            break  # No more customers to visit
+        
+        # Update heuristics
+        heuristics[best_customer_indices[:, None], best_customer_indices] = distance_matrix[best_customer_indices[:, None], best_customer_indices]
+        demands[best_customer_indices] -= remaining_capacity[:vehicle_id+1]
+        remaining_capacity[:vehicle_id+1] -= demands[best_customer_indices]
+        
+        # Update the last customer to be the depot to return
+        if remaining_capacity[:vehicle_id+1].min() <= 0:
+            heuristics[best_customer_indices[-1], 0] = distance_matrix[best_customer_indices[-1], 0]
+            remaining_capacity[0] -= demands[best_customer_indices[-1]]
+            
+    return heuristics
+```

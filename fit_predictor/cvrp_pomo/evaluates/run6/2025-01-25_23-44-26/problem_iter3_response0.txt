@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Integrate demand directly into the heuristic by using the inverse of the demand magnitude
+    demand_heuristic = 1 / (normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0))
+    
+    # Vectorize the calculation of the shortest path heuristic
+    distance_heuristic = 1 / (distance_matrix + 1e-6)
+    
+    # Introduce a diversity factor to avoid selecting similar edges
+    diversity_factor = torch.rand(distance_matrix.shape[0])
+    diversity_heuristic = (1 / (1 + diversity_factor.unsqueeze(1) * diversity_factor.unsqueeze(0)))
+    
+    # Integrate a load balancing algorithm
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Adapt to real-time data by considering a dynamic time factor
+    time_constant = torch.rand(distance_matrix.shape[0])
+    time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0)))
+    
+    # Combine the heuristics with appropriate weights
+    combined_heuristic = demand_heuristic * 0.3 + distance_heuristic * 0.5 + load_balance * 0.1 + diversity_heuristic * 0.1 + time_heuristic * 0.1
+    
+    # Apply penalties for undesirable edges by setting a threshold
+    combined_heuristic[combined_heuristic < 0] *= -1
+    
+    return combined_heuristic
+```

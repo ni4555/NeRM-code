@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_scale = total_demand / (n - 1)  # Normalize by total demand excluding the depot
+    
+    # Calculate the demand variance
+    demand_variance = ((demands - demand_scale) ** 2).mean()
+    
+    # Non-linear distance weighting using an exponential decay
+    distance_weight = 1 / (1 + torch.exp(-distance_matrix))
+    
+    # Adjusted demand difference considering the variance
+    adjusted_demand_diff = demands - demand_scale * (1 + 0.5 * demand_variance)
+    
+    # Heuristic value considering demand variance and non-linear distance weighting
+    heuristics = -distance_weight * adjusted_demand_diff.abs()
+    
+    # Normalize the heuristics to ensure they sum to 1
+    heuristics = heuristics / (heuristics.sum() + 1e-8)
+    
+    return heuristics
+```

@@ -1,0 +1,13 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    norm_distances = distance_matrix / distance_matrix.max()
+    node_loads = demands.unsqueeze(1) / total_demand
+    load_heuristics = -node_loads * norm_distances.sum(-1)
+    exploration_noise = torch.randn_like(norm_distances) * 0.1
+    adaptive_noise = exploration_noise * (1 + torch.clamp(torch.sum(node_loads, dim=0), min=0, max=1))
+    heuristics = load_heuristics + adaptive_noise
+    heuristics = torch.clamp(heuristics, min=-2.0, max=2.0)
+    return heuristics
+```

@@ -1,0 +1,79 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Define the number of local search neighbors to consider
+    local_search_neighbors = 3
+    
+    # Define the PSO parameters
+    w = 0.7  # Inertia weight
+    c1 = 1.5 # Cognitive coefficient
+    c2 = 1.5 # Social coefficient
+    max_velocity = torch.sqrt(torch.sum(distance_matrix ** 2, dim=1)) * 0.1  # Maximum velocity constraint
+    
+    # Initialize PSO particles
+    particles = torch.randint(0, n, (n, n), dtype=torch.long)
+    velocities = torch.zeros_like(particles)
+    
+    # Tabu list to store the best solutions in the past
+    tabu_list = []
+    tabu_tenure = 10  # Tabu tenure in number of iterations
+    
+    # PSO main loop
+    for iteration in range(100):  # Number of iterations for PSO
+        # Update velocities
+        velocities = w * velocities + c1 * torch.randn_like(velocities) + c2 * torch.randn_like(velocities)
+        velocities = torch.clamp(velocities, min=-max_velocity, max=max_velocity)
+        
+        # Update particles' positions
+        particles = particles + velocities
+        
+        # Apply local search to particles
+        for i in range(n):
+            for j in range(n):
+                neighbors = particles[i] + torch.tensor(range(1, local_search_neighbors), dtype=torch.long)
+                neighbors = neighbors[neighbors < n]
+                for k in neighbors:
+                    if (i, k) not in tabu_list and (k, i) not in tabu_list:
+                        temp = particles[i].clone()
+                        temp[particles[i] == k] = particles[i][particles[i] == k] - 1
+                        temp[particles[i] == i] = k
+                        if temp.sum() <= total_capacity:
+                            particles[i] = temp.clone()
+                            tabu_list.append((i, k))
+                            if len(tabu_list) > tabu_tenure:
+                                tabu_list.pop(0)
+        
+        # Evaluate fitness and update the best particle
+        fitness = evaluate_fitness(particles, distance_matrix, demands)
+        best_index = torch.argmin(fitness)
+        particles[best_index] = torch.argmin(fitness)
+    
+    # Calculate the heuristics based on the best particle
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Apply penalties for overloading and underloading
+    overload_penalty = torch.abs(heuristics)
+    underload_penalty = torch.abs(1 - heuristics)
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+
+def evaluate_fitness(particles, distance_matrix, demands):
+    # This is a placeholder for the actual fitness function which should calculate the total cost
+    # of the routes based on the given particles (routes).
+    return torch.ones_like(particles)  # Replace with actual fitness calculation
+```

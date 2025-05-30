@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Calculate the cumulative sum of the demand-to-distance ratio for each row
+    cumulative_demand_to_distance = torch.cumsum(demand_to_distance_ratio, dim=1)
+    
+    # Normalize the cumulative sum by the total vehicle capacity to avoid overfitting
+    total_demand = demands.sum()
+    normalized_cumulative_demand = cumulative_demand_to_distance / total_demand
+    
+    # Invert the normalized cumulative sum to prioritize sparsity
+    inverted_normalized_demand = 1 / (normalized_cumulative_demand + 1e-10)  # Add a small constant to avoid division by zero
+    
+    # Calculate the product of the inverse normalized cumulative sum with the original demands
+    combined_heuristic = demands * inverted_normalized_demand
+    
+    # Apply a non-linear transformation to emphasize longer distances and negative effects
+    heuristic_matrix = torch.exp(-2 * combined_heuristic)
+    
+    # Set the edges with zero demand or zero distance to zero in the heuristic matrix
+    heuristic_matrix = torch.where(torch.isnan(heuristic_matrix) | torch.isinf(heuristic_matrix), 0, heuristic_matrix)
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,21 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    
+    # Randomly sample a subset of items to ensure diversity
+    random_subset = np.random.choice(n, size=np.min([n, 10]), replace=False)
+    subset_score = score[random_subset]
+    
+    # Calculate the importance of each item by normalizing the score
+    importance_normalized = score / np.sum(subset_score)
+    
+    # Introduce a dynamic threshold based on the minimum score in the random subset
+    threshold = np.min(subset_score) / 2
+    heuristics = importance_normalized > threshold
+    
+    return heuristics
+```

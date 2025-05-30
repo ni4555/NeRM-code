@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    
+    # Calculate the sum of distances from the depot to all nodes except the depot
+    sum_depot_distances = distance_matrix.sum(dim=1, keepdim=True) - distance_matrix[depot, :]
+    
+    # Incorporate a penalty for edges that exceed the vehicle's capacity
+    # The penalty is the negative difference between the sum of distances and the demand
+    heuristics = sum_depot_distances - demands.unsqueeze(0)
+    
+    # Normalize the heuristics by the total demand
+    total_demand = demands.sum()
+    
+    # Ensure that the heuristics are non-negative by clamping
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    # Normalize by the total demand to get the heuristic values
+    heuristics /= total_demand
+    
+    # Inverse the heuristics to convert penalty into a heuristic value
+    heuristics = 1 / (heuristics + 1e-10)  # Adding a small value to avoid division by zero
+    
+    return heuristics
+```

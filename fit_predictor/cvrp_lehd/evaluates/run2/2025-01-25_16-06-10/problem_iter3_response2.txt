@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum().item()
+    
+    # Normalize distances by the total demand
+    normalized_distances = distance_matrix / total_demand
+    
+    # Normalize demands by the total demand
+    normalized_demands = demands / total_demand
+    
+    # Calculate a heuristic based on normalized distance and demand
+    # Negative heuristic for edges with high distance and low demand
+    # Positive heuristic for edges with low distance and high demand
+    heuristic = -normalized_distances * normalized_demands
+    
+    # Adjust heuristic for the capacity constraint
+    # For each edge, if the demand is greater than the vehicle capacity, reduce the heuristic
+    # We consider the capacity of the vehicle to be 1, and reduce the heuristic for high-demand edges
+    vehicle_capacity = 1
+    edge_capacities = (demands > vehicle_capacity).float()
+    heuristic *= edge_capacities
+    
+    # Ensure the diagonal elements are not included in the heuristic matrix
+    diagonal = torch.eye(len(distance_matrix)) * float('-inf')
+    heuristic += diagonal
+    
+    return heuristic
+```

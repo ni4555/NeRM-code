@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the value-to-weight ratio
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate a normalization factor based on variance of the ratio
+    norm_factor = 1 / np.sqrt(np.var(value_to_weight_ratio))
+    
+    # Normalize the ratio and apply a non-linear transformation
+    normalized_non_linear_ratio = (value_to_weight_ratio * norm_factor) ** 2
+    
+    # Combine with the absolute value for sparsity
+    combined_feature = np.abs(normalized_non_linear_ratio)
+    
+    # Calculate the sparsity threshold
+    sparsity_threshold = np.percentile(combined_feature, 90)  # Using 90th percentile for threshold
+    
+    # Create the heuristics array
+    heuristics = np.where(combined_feature > sparsity_threshold, combined_feature, 0)
+    
+    # Calculate the diversity metric as the inverse of the average heuristics
+    diversity_score = 1 / np.mean(heuristics[heuristics > 0])
+    
+    # Adjust heuristics based on diversity score
+    heuristics[heuristics > 0] /= diversity_score
+    
+    return heuristics
+```

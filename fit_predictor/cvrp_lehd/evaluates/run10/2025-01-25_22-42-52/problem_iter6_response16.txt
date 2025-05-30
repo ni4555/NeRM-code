@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    vehicle_capacity = demands[0]  # Assuming the total capacity is the demand of the depot node
+    
+    # Initialize the heuristics matrix with a large negative value
+    heuristics_matrix = -torch.inf * torch.ones_like(distance_matrix)
+    
+    # Iterate over all possible tours, starting from the depot
+    for start in range(n):
+        current = start
+        visited = torch.zeros(n, dtype=torch.bool)
+        current_demand = torch.zeros(n)
+        total_demand = 0
+        
+        # Create a priority queue to store the edges based on the potential of visiting
+        # the next customer
+        priority_queue = [(0, 0, 0)]  # (heuristic, current, next_node)
+        
+        while not visited.all():
+            current_demand, _, next_node = heapq.heappop(priority_queue)
+            if next_node != current or visited[next_node]:
+                continue
+            
+            # If we reach the depot, check if the total demand fits the vehicle capacity
+            if next_node == start:
+                if total_demand <= vehicle_capacity:
+                    heuristics_matrix[current, next_node] = current_demand
+                    break
+            
+            # Mark the customer as visited
+            visited[next_node] = True
+            total_demand += demands[next_node]
+            
+            # Update the priority queue with the edges from the current customer
+            for node in range(n):
+                if not visited[node] and demands[node] + total_demand <= vehicle_capacity:
+                    heapq.heappush(priority_queue, (distance_matrix[current, node] - demands[node], current, node))
+    
+    return heuristics_matrix
+```

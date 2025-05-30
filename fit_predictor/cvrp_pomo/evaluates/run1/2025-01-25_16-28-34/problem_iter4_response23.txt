@@ -1,0 +1,72 @@
+```python
+import torch
+
+def refine_neighborhood(heuristics: torch.Tensor, distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Problem-specific local search: Implement a refined neighborhood exploration mechanism
+    # This is a placeholder for the actual implementation
+    # The idea here is to adjust heuristics based on the vehicle capacities and demand distributions
+    n = distance_matrix.shape[0]
+    # Example heuristic adjustment: penalize edges that are not load balanced well
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate load imbalance factor
+                load_imbalance = torch.abs((demands[i] + demands[j]) - demands[i] * distance_matrix[i, j] / distance_matrix.sum())
+                # Adjust heuristic based on load imbalance
+                heuristics[i, j] = heuristics[i, j] - load_imbalance
+    return heuristics
+
+def update_velocity(heuristics: torch.Tensor) -> torch.Tensor:
+    # PSO-inspired velocity update: Dynamic adjustment mechanism for velocity and position update rules
+    # This is a placeholder for the actual implementation
+    # The idea here is to adjust the heuristics based on PSO's velocity and position update rules
+    n = heuristics.shape[0]
+    velocities = torch.zeros_like(heuristics)
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Example: update velocity based on the difference in heuristics
+                velocities[i, j] = (heuristics[i, j] - heuristics[i, i]) * 0.1
+    # Update heuristics with velocities
+    heuristics = heuristics + velocities
+    return heuristics
+
+def tabu_search(heuristics: torch.Tensor, distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Dynamic Tabu Search with Adaptive Cost Function
+    # This is a placeholder for the actual implementation
+    # The idea here is to adjust the heuristics based on the tabu search approach
+    n = heuristics.shape[0]
+    tabu_list = set()
+    while True:
+        best_edge = None
+        best_score = float('inf')
+        for i in range(n):
+            for j in range(n):
+                if i != j and i not in tabu_list and j not in tabu_list:
+                    score = heuristics[i, j] - distance_matrix[i, j]  # Example cost function
+                    if score < best_score:
+                        best_score = score
+                        best_edge = (i, j)
+        if best_edge is None:
+            break
+        heuristics[best_edge] -= 1  # Apply tabu search
+        tabu_list.add(best_edge[1])  # Update tabu list
+    return heuristics
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    heuristics = refine_neighborhood(heuristics, distance_matrix, demands)
+    heuristics = update_velocity(heuristics)
+    heuristics = tabu_search(heuristics, distance_matrix, demands)
+    
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize demand to the scale of 1 for each node
+    demand_matrix = demands[:, None] * demands
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Compute the inverse demand as the capacity factor
+    capacity_factor = 1 / (demands + 1e-8)  # Adding small value to avoid division by zero
+    
+    # Create the heuristic by balancing the distance and demand factors
+    heuristic = distance_matrix * demand_matrix * capacity_factor
+    
+    # Apply dampening factor to smooth the heuristic
+    dampening_factor = 0.8
+    heuristic = dampening_factor * heuristic
+    
+    # Adjust heuristic values based on capacity constraint
+    overcapacity_adjustment = torch.clamp(heuristic, max=1) - 1
+    undercapacity_adjustment = heuristic < 1
+    
+    # Apply loop minimization by reducing the heuristics of loop-forming edges
+    loop_minimization_factor = 0.9
+    loop_indices = torch.arange(n)[None, :] != torch.arange(n)[:, None]
+    loop_heuristic = torch.triu(heuristic) + torch.triu(heuristic, k=1)
+    loop_heuristic[loop_indices] *= loop_minimization_factor
+    loop_heuristic -= torch.diag(loop_heuristic)
+    
+    # Ensure no edge is overly dominated by another
+    non_dominated_mask = heuristic.unsqueeze(1) < (heuristic.unsqueeze(0) + heuristic.unsqueeze(2))
+    non_dominated_mask = non_dominated_mask.any(axis=2).bool().unsqueeze(1)
+    non_dominated_mask = non_dominated_mask.all(axis=2).bool()
+    
+    # Normalize heuristics
+    heuristic_max = heuristic.max()
+    heuristic[non_dominated_mask] /= heuristic_max[non_dominated_mask]
+    
+    # Final adjustment
+    final_heuristic = (heuristic + loop_heuristic + overcapacity_adjustment + undercapacity_adjustment)
+    
+    # Return the final heuristic matrix
+    return final_heuristic
+```

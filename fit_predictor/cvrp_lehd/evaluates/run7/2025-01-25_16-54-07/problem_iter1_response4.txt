@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # 1. Precise Demand Handling
+    # Demand normalization
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Cumulative demand mask
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    
+    # 2. Capacity Constraint Prioritization
+    # Edge feasibility mask
+    edge_capacity_impact = distance_matrix * cumulative_demand
+    
+    # 3. Clear Edge Evaluation
+    # Define a clear and objective evaluation method for edges
+    # Here we use a combination of distance and demand as the evaluation criterion
+    edge_evaluation = (1 / (distance_matrix + 1e-8)) * cumulative_demand
+    
+    # 4. Optimization Strategies
+    # Use a gradient-based approach to enhance the evaluation of edges
+    # This will focus on edges that can contribute more to the route quality
+    grad = torch.autograd.grad(edge_evaluation.sum(), distance_matrix, create_graph=True)
+    edge_gradient = torch.mean(torch.abs(grad[0]), dim=0)
+    
+    # Adjust the edge evaluation with the gradient information
+    edge_evaluation *= edge_gradient
+    
+    # Use a logarithmic transformation to ensure that high-quality edges are emphasized
+    edge_evaluation = torch.log1p(edge_evaluation)
+    
+    # Prioritize simplicity and clarity in demand and capacity management
+    # Negative values for undesirable edges, positive for promising ones
+    threshold = torch.log(1.5)  # This threshold can be adjusted based on the problem specifics
+    edge_promise = torch.where(edge_evaluation < threshold, -1.0, 1.0)
+    
+    return edge_promise
+```

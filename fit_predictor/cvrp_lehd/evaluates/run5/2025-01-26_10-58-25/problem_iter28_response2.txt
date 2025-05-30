@@ -1,0 +1,39 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def softmax(tensor, dim):
+    exp_tensor = torch.exp(tensor - tensor.max(dim=dim, keepdim=True)[0])
+    return exp_tensor / exp_tensor.sum(dim=dim, keepdim=True)
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Introduce nuanced penalties by introducing different weights for demand and distance
+    nuanced_penalty_matrix = (0.7 * penalty_matrix) + (0.3 * distance_penalty_matrix)
+    
+    # Normalize the nuanced penalty matrix to ensure non-negativity
+    normalized_nuanced_penalty_matrix = softmax(nuanced_penalty_matrix, dim=1)
+    
+    # Apply selective scaling to emphasize the potential of the nodes
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    selective_scaled_matrix = torch.exp(-torch.abs(potential_matrix))
+    
+    # Combine the normalized nuanced penalty matrix with the selective scaling matrix
+    combined_matrix = (1 - 0.5) * normalized_nuanced_penalty_matrix + 0.5 * selective_scaled_matrix
+    
+    # Adjust the combined matrix to ensure that the values are not too close to zero
+    adjusted_combined_matrix = combined_matrix - torch.min(combined_matrix)
+    
+    # Transform the adjusted combined matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -adjusted_combined_matrix
+    
+    return heuristics_matrix
+```

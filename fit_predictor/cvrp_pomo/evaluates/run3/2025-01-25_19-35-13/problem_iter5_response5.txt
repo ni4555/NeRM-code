@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+
+    # Apply dynamic programming to find a lower bound on the cost
+    dp = torch.zeros((len(demands), len(demands)))
+    for d in range(1, len(demands)):
+        dp[d, :d] = torch.min(dp[:d, d-1] + distance_matrix[:d, d], dp[:d-1, d-1])
+    dp[d, d] = dp[d-1, d-1] + distance_matrix[d-1, d]
+
+    # Calculate the potential based on the lower bound and demand
+    epsilon = 1e-8
+    lower_bound = dp[:, 0]
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+
+    # Add penalties for nodes with high demand and for long distances, but adjust to avoid overfitting
+    edge_potential = edge_potential - (edge_potential * 0.1 * (demands > 1.5).float())
+    edge_potential = edge_potential + (edge_potential * 0.05 * (distance_matrix < 10).float())
+
+    # Introduce a diversity mechanism to avoid local optima
+    diversity_factor = (torch.rand_like(edge_potential) - 0.5) * (1 / distance_matrix)
+    edge_potential = edge_potential * 0.9 + diversity_factor * 0.1
+
+    # Ensure that high demand nodes are avoided to respect capacity constraints
+    edge_potential = edge_potential - (edge_potential * demands > 1.0).float()
+
+    return edge_potential
+```

@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the difference in demands between each pair of nodes
+    demand_diff = demands.unsqueeze(1) - demands.unsqueeze(0)
+    
+    # Mask out the diagonal since the demand difference from a node to itself is not meaningful
+    diagonal_mask = torch.eye(len(demand_diff)) != 1
+    
+    # Create a tensor of zeros with the same shape as the distance matrix
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the potential cost to visit an edge
+    potential_cost = distance_matrix - demand_diff.abs() * 0.5
+    
+    # Assign a higher heuristic value to edges where the demand difference is positive
+    # and the resulting edge is not from a node to itself
+    heuristics[diagonal_mask] = torch.where(potential_cost < 0, -potential_cost, 0)
+    
+    # Return the heuristics matrix
+    return heuristics
+```

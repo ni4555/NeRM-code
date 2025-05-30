@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate the normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate the weight diversity as a complementary factor
+    diversity = (1 / sparsity)
+    
+    # Calculate additional metrics: weight sum and number of active dimensions
+    weight_sum = np.sum(weight, axis=1)
+    num_active_dims = np.count_nonzero(weight, axis=1)
+    
+    # Combine the metrics in a weighted heuristic formula
+    # Giving preference to lower density and weight diversity,
+    # balanced by a slight weight sum consideration,
+    # but avoiding high sparsity or dense concentration.
+    heuristic_value = density / diversity * 0.4 - sparsity * 0.5 + (1 / (1 + num_active_dims)) * weight_sum * 0.1
+    
+    # Apply penalties for dense or sparse items to maintain a good mix in the heuristic values
+    dense_penalty = np.where(density > 0.6, (0.6 - density), 0)
+    sparse_penalty = np.where(sparsity > 0.3, (sparsity - 0.3), 0)
+    penalty = dense_penalty + sparse_penalty
+    
+    # Adjust the heuristic by subtracting penalties to prevent overly dense or sparse solutions
+    adjusted_heuristic = heuristic_value - penalty
+    
+    # Normalize by the maximum heuristic value
+    max_heuristic_value = np.max(adjusted_heuristic)
+    normalized_heuristic = adjusted_heuristic / (max_heuristic_value + 1e-8)
+    
+    # Ensure diversity in solutions by avoiding extremely small or large values
+    # We use a smoothing approach to avoid having near-zero weights affecting diversity
+    smooth_weight_sum = weight_sum + 1e-8
+    smoothed_heuristic = normalized_heuristic / np.sqrt(smooth_weight_sum)
+    
+    return smoothed_heuristic
+```

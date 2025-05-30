@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True))
+    # Introduce a penalty for high demands to encourage capacity adherence
+    capacity_penalty = (demands - demands.mean()) * 0.1
+    # Calculate the local capacity adherence penalty
+    local_capacity_penalty = torch.clamp(heuristics_matrix, min=-1e10)
+    # Adjust the penalty for edges that are too far apart
+    radius = 5  # Assuming 5 is the radius for neighborhood
+    distance_diff = torch.abs(distance_matrix - torch.eye(n))
+    local_capacity_penalty[distance_diff > radius] *= 0
+    # Modify the heuristics matrix based on a local capacity adherence heuristic
+    heuristics_matrix += capacity_penalty.unsqueeze(1) * capacity_penalty.unsqueeze(0)
+    heuristics_matrix -= local_capacity_penalty
+    return heuristics_matrix
+```

@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on value-to-weight ratio and sparsity
+    for i in range(n):
+        value_to_weight_ratio = prize[i] / weight[i].sum()
+        weight_sparsity = 1 - (weight[i].sum() / m)
+        heuristic[i] = value_to_weight_ratio * weight_sparsity
+    
+    # Normalize heuristics to ensure they are in the range [0, 1]
+    heuristic /= heuristic.max()
+    
+    # Dynamically adjust heuristics based on average heuristic value
+    average_heuristic = heuristic.mean()
+    heuristic[heuristic < average_heuristic / 2] = 0
+    
+    # Balance exploration and exploitation by rewarding high-value items
+    for i in range(n):
+        heuristic[i] *= prize[i] / (heuristic.max() + 1e-8)
+    
+    # Adjust heuristics based on importance
+    importance_factor = heuristic / heuristic.sum()
+    heuristic *= importance_factor
+    
+    # Incorporate performance metric by scaling the heuristic with the inverse of the dot product
+    performance_metric = np.dot(heuristic, prize)
+    heuristic *= (prize / (performance_metric + 1e-8))
+    
+    # Set low-value items and those with high total weight to zero
+    weight_threshold = m * 0.8
+    heuristic[weight.sum(axis=1) > weight_threshold] = 0
+    
+    # Enhance diversity by rewarding items that are not fully utilized in their dimensions
+    unused_dimension_factor = np.zeros(n)
+    for i in range(n):
+        unused_weight = weight[i, weight[i] < weight[i].max()]
+        if unused_weight.size > 0:
+            unused_dimension_factor[i] = prize[i] / unused_weight.sum()
+    heuristic *= unused_dimension_factor
+    
+    return heuristic
+```

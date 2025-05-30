@@ -1,0 +1,47 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    
+    # Initialize a random number generator seed for reproducibility
+    np.random.seed(42)
+    
+    # Calculate the normalized density for each item
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Introduce randomness with a random perturbation
+    random_perturbation = np.random.rand(len(density)) * (np.max(density) / 10)
+    
+    # Normalize the density by adding the random perturbation
+    density_normalized = density + random_perturbation
+    
+    # Prune dominated items by removing those with zero or very low density
+    domination_threshold = np.max(density_normalized)
+    non_dominated = density_normalized >= domination_threshold
+    
+    # Normalize the density of non-dominated items
+    density_normalized = density_normalized[non_dominated]
+    
+    # Calculate sparsity for non-dominated items
+    sparsity = np.sum(weight[non_dominated], axis=1) / (np.max(weight[non_dominated], axis=1) + 1e-8)
+    
+    # Introduce variance as a diversity metric
+    variance = np.std(density_normalized)
+    
+    # Calculate heuristic value by combining density, sparsity, and variance
+    heuristic_value = density_normalized * (1 - sparsity) - variance
+    
+    # Introduce a diversity factor based on variance
+    diversity_factor = variance / (np.mean(variance) + 1e-8)
+    
+    # Combine heuristic value with diversity factor
+    heuristic = heuristic_value * diversity_factor
+    
+    # Normalize the heuristics by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Prune dominated items by setting their heuristics to zero
+    combined_heuristics = np.zeros(n)
+    combined_heuristics[non_dominated] = normalized_heuristic
+    
+    return combined_heuristics
+```

@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the negative of the demand for each edge to penalize high demand edges
+    demand_penalty = -normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0)
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    # Note: We add a small constant to avoid division by zero
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Introduce a dynamic routing factor based on the current vehicle load
+    # Here, we use a simple exponential decay of the distance heuristic based on the cumulative load
+    vehicle_loads = torch.cumsum(demands, dim=0)
+    dynamic_factor = torch.exp(-vehicle_loads.unsqueeze(1) / (vehicle_loads.max() + 1e-6))
+    dynamic_factor = dynamic_factor.unsqueeze(0)
+    
+    # Combine the demand penalty, distance heuristic, and dynamic routing factor to get the final heuristic values
+    combined_heuristic = demand_penalty + distance_heuristic * dynamic_factor
+    
+    return combined_heuristic
+```

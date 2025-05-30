@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate normalized demand vector and distance matrix
+    normalized_demand = demands / total_demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+
+    # Demand-based heuristic
+    demand_heuristic = normalized_demand[None, :] * inv_distance_matrix[:, :, None]
+
+    # Capacity-based heuristic
+    remaining_capacity = 1 - demands
+    capacity_heuristic = remaining_capacity[None, :, None] * inv_distance_matrix
+
+    # Precompute the nearest-neighbor heuristic
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values[None, :, None]
+
+    # Combine heuristics
+    combined_heuristic = (demand_heuristic + capacity_heuristic + nearest_neighbor) * 0.5
+
+    # Penality for infeasible edges
+    infeasible_edges = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[infeasible_edges] = -torch.inf
+
+    # Ensure that the heuristics are balanced between the demand and capacity factors
+    balance_factor = 0.3  # This can be adjusted based on the specific problem characteristics
+    combined_heuristic = balance_factor * combined_heuristic + (1 - balance_factor) * nearest_neighbor
+
+    return combined_heuristic
+```

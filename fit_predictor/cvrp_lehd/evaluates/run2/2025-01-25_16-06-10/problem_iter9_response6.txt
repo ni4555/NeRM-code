@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demands = demands / demands.sum()  # Normalize demands by total demand
+    remaining_capacity = demands[1:]  # Exclude the depot node from capacity calculation
+    demand_cumsum = torch.cumsum(demands, dim=0)[:, None]  # Add a dimension for broadcasting
+    
+    # Vectorized approach to calculate potential heuristic values
+    possible_pairs = torch.triu_indices(n_nodes, n_nodes, offset=1)
+    distance = distance_matrix[possible_pairs[0], possible_pairs[1]]
+    total_demand = demand_cumsum[possible_pairs[1]] - demand_cumsum[possible_pairs[0]]
+    
+    valid_pairs = total_demand <= remaining_capacity[possible_pairs[0]]
+    heuristics[possible_pairs[0], possible_pairs[1]] = torch.where(
+        valid_pairs, distance, 0
+    )
+    
+    # Symmetry breaking and balance criteria
+    heuristics = heuristics + heuristics.t() - torch.diag(heuristics.diag())
+    total_distance_to_depot = torch.sum(distance_matrix[:, 0])
+    heuristics = heuristics / total_distance_to_depot
+    return heuristics
+```

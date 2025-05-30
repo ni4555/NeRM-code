@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize prize to have a range from 0 to 1
+    prize_normalized = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Calculate the ratio of normalized prize to sum of weights for each dimension
+    weight_ratios = prize_normalized / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity factor for each item
+    sparsity_factor = np.sum(weight == 0, axis=1) / weight.shape[1]
+    
+    # Adjust the sparsity factor based on the average sparsity
+    average_sparsity = np.mean(sparsity_factor)
+    adjusted_sparsity_factor = (1 - sparsity_factor) * average_sparsity
+    
+    # Incorporate a dynamic sparsity threshold
+    dynamic_threshold = np.percentile(adjusted_sparsity_factor, 70)
+    sparsity_factor[sparsity_factor < dynamic_threshold] = 0
+    
+    # Calculate the average minimum weight across dimensions for each item
+    min_average_weight = np.min(weight, axis=1)
+    
+    # Create a heuristic value combining normalized prize ratio, adjusted sparsity factor, and min weight
+    heuristic_value = weight_ratios * adjusted_sparsity_factor * (1 / (1 + min_average_weight))
+    
+    # Normalize the heuristic values by their maximum
+    max_heuristic = np.max(heuristic_value)
+    if max_heuristic > 0:
+        heuristic_value /= max_heuristic
+    
+    return heuristic_value
+```

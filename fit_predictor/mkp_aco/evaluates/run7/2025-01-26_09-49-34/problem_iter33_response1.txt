@@ -1,0 +1,47 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the sparsity factor based on the number of non-zero weight dimensions
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Calculate the inverse variance factor
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    
+    # Calculate the initial heuristics based on the product of normalized prize and sparsity factor
+    heuristics = normalized_prize * sparsity_factor * inv_variance_factor
+    
+    # Introduce diversity by adding a random perturbation to heuristics
+    np.random.seed(0)  # Ensure reproducibility
+    perturbation = np.random.normal(0, 0.01, size=heuristics.shape)
+    heuristics += perturbation
+    
+    # Introduce a dynamic threshold based on a rolling window of heuristics
+    rolling_window_size = 10
+    rolling_window = np.convolve(heuristics, np.ones(rolling_window_size)/rolling_window_size, mode='valid')
+    dynamic_threshold = np.mean(rolling_window)
+    
+    # Adjust heuristics based on the dynamic threshold
+    heuristics[heuristics < dynamic_threshold] *= 1.5
+    
+    # Introduce sparsity thoughtfully by setting heuristics below a certain percentile to zero
+    lower_threshold = np.percentile(heuristics, 10)  # 10% threshold for sparsity
+    heuristics[heuristics < lower_threshold] = 0
+    
+    # Normalize heuristics by dividing by the sum of heuristics to avoid division by zero
+    heuristic_sum = np.sum(heuristics)
+    if heuristic_sum > 0:
+        heuristics /= heuristic_sum
+    
+    # Refine heuristics iteratively by balancing exploration and exploitation
+    # Increase heuristics for items that are in the top quartile but not too sparse
+    top_quartile = np.percentile(heuristics, 75)
+    for i in range(len(heuristics)):
+        if heuristics[i] > top_quartile and sparsity_factor[i] > 0.5:
+            heuristics[i] *= 1.2
+    
+    return heuristics
+```

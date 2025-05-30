@@ -1,0 +1,16 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the start node
+    cum_demands = torch.cumsum(demands, dim=0)
+    # Create a binary mask where a 1 indicates the vehicle is still under capacity
+    capacity_mask = cum_demands < demands[0]
+    # Calculate the potential of each edge based on the capacity of the vehicle
+    potential = torch.exp(-distance_matrix * 0.1) * capacity_mask
+    # Combine potential and capacity mask to create the heuristic values
+    heuristics = potential * capacity_mask
+    # Apply a non-linear scaling to the heuristic values to emphasize short distances
+    heuristics = heuristics * (1 / (1 + distance_matrix))
+    return heuristics
+```

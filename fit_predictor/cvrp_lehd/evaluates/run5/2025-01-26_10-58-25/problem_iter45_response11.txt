@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the ratio of the demand to vehicle capacity
+    demand_ratios = demands / vehicle_capacity
+    
+    # Initialize the heuristic matrix with zero values
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Loop over all edges
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i == j or demand_ratios[i] + demand_ratios[j] > 1:
+                # Set heuristic to negative for unsuitable edges
+                heuristics_matrix[i][j] = -distance_matrix[i][j]
+            else:
+                # Normalize the edge weights considering both distance and demand constraints
+                heuristics_matrix[i][j] = 1 / (1 + distance_matrix[i][j] + 0.1 * torch.abs(demand_ratios[i] - demand_ratios[j]))
+    
+    return heuristics_matrix
+```

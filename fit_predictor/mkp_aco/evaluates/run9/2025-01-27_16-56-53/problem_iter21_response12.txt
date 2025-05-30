@@ -1,0 +1,55 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = 0
+        total_weight = 0
+        for j in range(m):
+            total_prize += prize[i] * weight[i, j]
+            total_weight += weight[i, j]
+        # Normalize by weight to get a per-item heuristic and penalize high weight
+        heuristic[i] = (total_prize / total_weight) / (1 + weight[i].sum())
+    
+    # Incorporate sparsity by penalizing low-value or high-weight items
+    # High-value to weight ratio and weight sparsity
+    for i in range(n):
+        value_to_weight_ratio = prize[i] / weight[i].sum()
+        weight_sparsity = 1 - (weight[i].sum() / m)
+        heuristic[i] = heuristic[i] * value_to_weight_ratio * weight_sparsity
+    
+    # Further refine the heuristic to favor diversity in selected items
+    for i in range(n):
+        # Use a diversity factor that increases with the number of dimensions
+        # that are not at the maximum weight for the item
+        diversity_factor = 1
+        for j in range(m):
+            if weight[i, j] < weight[i].max():
+                diversity_factor += 1
+        heuristic[i] *= diversity_factor
+    
+    # Introduce an adaptive exploration strategy that balances exploration and exploitation
+    # Adjust heuristic based on the current state of exploration and exploitation
+    exploration_factor = np.random.rand(n)
+    exploitation_factor = np.zeros(n)
+    for i in range(n):
+        exploitation_factor[i] = 1 / (1 + weight[i].sum())
+    adaptive_heuristic = (exploration_factor + exploitation_factor) * heuristic
+    
+    # Incorporate mutation to increase diversity
+    mutation_factor = np.random.rand(n)
+    mutation_factor = mutation_factor / mutation_factor.sum()
+    heuristic *= mutation_factor
+    
+    # Introduce an adaptive adjustment factor based on the current heuristic values
+    adjustment_factor = (heuristic / np.max(heuristic)) ** 2
+    heuristic *= adjustment_factor
+    
+    # Set low-value items and those with high total weight to zero
+    heuristic[heuristic < heuristic.max() / 10] = 0
+    heuristic[weight.sum(axis=1) > m * 0.8] = 0
+    
+    return heuristic
+```

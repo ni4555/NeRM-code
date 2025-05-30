@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    combined_score = score * ratio
+    # Use the adaptive threshold based on the weighted mean of the scores
+    weighted_score = combined_score * ratio
+    adaptive_threshold = np.average(weighted_score * normalized_weights)
+    # Adjust the threshold by considering the standard deviation to ensure diversity
+    adjusted_threshold = adaptive_threshold + np.std(weighted_score) * 0.5
+    heuristics = combined_score > adjusted_threshold
+    return heuristics.astype(int)
+```

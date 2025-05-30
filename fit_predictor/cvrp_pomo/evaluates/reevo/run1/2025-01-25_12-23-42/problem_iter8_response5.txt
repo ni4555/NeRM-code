@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = demands.unsqueeze(1)  # Ensure demands are 2D for broadcasting
+    # Calculate the squared distance matrix
+    distance_matrix_squared = distance_matrix ** 2
+    # Find the nearest customer for each node
+    min_distance = torch.min(distance_matrix, dim=1)[0] ** 2
+    # Normalize demands by the sum of all demands
+    normalized_demands = demands / demands.sum()
+    # Calculate the demand-based heuristic considering the distance to the nearest customer
+    demand_based_heuristic = normalized_demands * min_distance
+    # Calculate the load at each node
+    node_loads = demands / demands.sum()
+    # Introduce exploration by adding a term that encourages visiting nodes with lower load
+    exploration_term = (1 - node_loads) * distance_matrix_squared
+    # Combine distance, demand-based heuristic, and exploration term
+    heuristic = -distance_matrix_squared + demand_based_heuristic + exploration_term
+    return heuristic
+```

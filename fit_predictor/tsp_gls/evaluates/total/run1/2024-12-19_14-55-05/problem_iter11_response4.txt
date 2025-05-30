@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Loop penalty emphasizing loops and relative distances
+    loop_penalty_factor = 0.1
+    median_distance = np.median(distance_matrix)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, np.roll(i, 1)] + distance_matrix[np.roll(i, 1), j]
+                relative_loop = loop_distance / median_distance
+                heuristics[i, j] += loop_penalty_factor * relative_loop
+
+    # Global large distance penalty
+    global_large_distance_penalty = 1e6
+    large_distances_mask = distance_matrix > global_large_distance_penalty
+    heuristics[large_distances_mask] += (global_large_distance_penalty - np.max(distance_matrix)) * large_distances_mask
+
+    # Frequency diversity factor
+    diversity_factor = 1e-3
+    visited_count = np.sum(distance_matrix > 0, axis=0)
+    diversity_penalty = diversity_factor * (visited_count / num_nodes - 1)
+    heuristics += diversity_penalty
+
+    # Normalize the heuristics to maintain non-negativity and relative differences
+    heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+
+    return heuristics
+```

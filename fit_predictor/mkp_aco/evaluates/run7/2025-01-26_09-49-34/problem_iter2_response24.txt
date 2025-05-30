@@ -1,0 +1,27 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize value for each item
+    normalized_prize = prize / np.sum(prize)
+    
+    # Normalize the weight for each item in each dimension by summing the weight per item
+    normalized_weight = weight / np.sum(weight, axis=1)[:, np.newaxis]
+    
+    # Combine normalized prize with normalized weight, using element-wise multiplication
+    combined_heuristics = normalized_prize * normalized_weight
+    
+    # Normalize the combined heuristics to the [0, 1] range by their maximum value
+    normalized_combined_heuristics = combined_heuristics / np.max(combined_heuristics)
+    
+    # Set a sparsity threshold to promote sparser solutions
+    sparsity_threshold = 0.1
+    
+    # Create a boolean mask for heuristics that exceed the threshold
+    promising_mask = normalized_combined_heuristics > sparsity_threshold
+    
+    # Convert the boolean mask to an array of zeros and ones, with 1 indicating higher promise
+    heuristics = np.where(promising_mask, 1.0, 0.0)
+    
+    return heuristics
+```

@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the demand, with zero for the depot to prevent division by zero
+    inv_demand = torch.clamp(1 / demands[1:], min=0)
+    
+    # Normalize the demand-to-distance ratio using the inverse demand values
+    demand_to_distance_ratio = demands[1:] / distance_matrix[1:]
+    
+    # Apply the inverse demand values to scale the heuristic scores
+    scaled_heuristic = demand_to_distance_ratio * inv_demand
+    
+    # Adjust the values based on the ratio to ensure negative scores for longer routes
+    adjusted_scaled_heuristic = torch.where(distance_matrix[1:] < scaled_heuristic, scaled_heuristic, -scaled_heuristic)
+    
+    # Return a diagonal matrix for the depot as all edges from the depot to itself are desirable
+    # Initialize an identity matrix with the same shape as the demand tensor
+    identity_matrix = torch.eye(demands.size(0), dtype=torch.float)
+    identity_matrix.fill_diagonal_(-adjusted_scaled_heuristic[:, 1:].diagonal())
+    
+    return identity_matrix
+```

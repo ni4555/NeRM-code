@@ -1,0 +1,47 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    
+    # Step 1: Calculate the weighted ratio for each item
+    weighted_ratio = prize / weight.sum(axis=1)
+    
+    # Step 2: Use adaptive dynamic sorting to order items based on their weighted ratio
+    # Here, we'll use a simple selection sort for demonstration purposes; however,
+    # in a real-world scenario, a more sophisticated algorithm might be needed.
+    indices = np.argsort(weighted_ratio)[::-1]  # Sort in descending order
+    sorted_weighted_ratio = weighted_ratio[indices]
+    sorted_prize = prize[indices]
+    sorted_weight = weight[indices]
+    
+    # Step 3: Implement an intelligent sampling mechanism
+    # For simplicity, we'll use a random sampling here; in practice, a more sophisticated
+    # mechanism should be employed.
+    sample_size = min(n, 10)  # Sample a subset of items to consider
+    sampled_indices = np.random.choice(n, sample_size, replace=False)
+    sampled_weighted_ratio = weighted_ratio[sampled_indices]
+    sampled_prize = prize[sampled_indices]
+    sampled_weight = weight[sampled_indices]
+    
+    # Step 4: Use a greedy algorithm to determine the heuristic value for each item
+    # Initialize the heuristic array with zeros
+    heuristics = np.zeros(n)
+    
+    # For each sampled item, check if adding it to the knapsack is beneficial
+    for i in sampled_indices:
+        # Check if the item fits into the knapsack based on all dimensions
+        if np.all(weight[i] <= 1):
+            # Update the heuristic value for the item
+            heuristics[i] = sorted_weighted_ratio[i]
+    
+    # Step 5: Return the heuristics array
+    return heuristics
+
+# Example usage:
+# n = 5
+# m = 2
+# prize = np.array([10, 40, 30, 50, 20])
+# weight = np.array([[0.5, 0.5], [1, 0], [0.2, 0.8], [0.4, 0.6], [0.1, 0.9]])
+# heuristics = heuristics_v2(prize, weight)
+# print(heuristics)

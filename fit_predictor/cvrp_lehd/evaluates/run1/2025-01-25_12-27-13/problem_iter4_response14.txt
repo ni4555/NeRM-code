@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Incorporate non-linear transformations like exponential decay
+    decay_factor = 0.5  # This can be tuned based on the problem context
+    demand_exponential = torch.exp(-decay_factor * torch.abs(demands))
+
+    # Incorporate demand and distance balancing using a sigmoid function
+    sigmoid_coefficient = 1.0  # This can be tuned
+    sigmoid = torch.sigmoid
+    distance_scaled = sigmoid(distance_matrix * sigmoid_coefficient)
+    demand_scaled = sigmoid(demands * sigmoid_coefficient)
+
+    # Vectorized operations to combine the heuristics components
+    edge_heuristic = demand_exponential * demand_scaled * distance_scaled
+    edge_heuristic = edge_heuristic.clamp(min=0)  # Keep only positive heuristics
+
+    # Normalize the heuristic matrix to ensure the sum of heuristic values for any node equals the vehicle capacity
+    max_demand = demands.max()
+    heuristic_matrix = edge_heuristic / (max_demand * torch.ones_like(edge_heuristic))
+
+    return heuristic_matrix
+```

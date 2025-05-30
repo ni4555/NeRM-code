@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the inverse of the distance matrix as a heuristic
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Implement a demand-based heuristic, higher demand gets more negative weight
+    demand_heuristic = -torch.abs(normalized_demands.unsqueeze(1) - normalized_demands.unsqueeze(0))
+    
+    # Implement a load balancing factor using the absolute difference in demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Introduce a dynamic load balancing factor that decreases as the cumulative demand increases
+    cumulative_demands = torch.cumsum(normalized_demands, dim=0)
+    dynamic_load_balance = 1 - (cumulative_demands.unsqueeze(1) - 0.5)
+    
+    # Simulate a dynamic time factor considering historical usage
+    edge_usage_frequency = (1 / (distance_matrix + 1e-6)).sum(dim=0)
+    historical_traffic = torch.cumsum(edge_usage_frequency, dim=0)
+    time_of_day = torch.rand(distance_matrix.shape[0]) * 24
+    traffic_factor = (historical_traffic.unsqueeze(1) / historical_traffic.max()) * (time_of_day.unsqueeze(1) - 12) / 12
+    dynamic_time_factor = (1 / (1 + traffic_factor))
+    
+    # Introduce a diversity heuristic by adding a small random perturbation
+    diversity_factor = torch.rand(distance_matrix.shape) * 0.01
+    diversity_heuristic = torch.abs(combined_heuristic + diversity_factor)
+    
+    # Combine the different heuristics with appropriate weighting
+    combined_heuristic = (distance_heuristic * 0.6 +
+                          demand_heuristic * 0.2 +
+                          load_balance * 0.1 +
+                          dynamic_load_balance * 0.05 +
+                          dynamic_time_factor * 0.05 +
+                          diversity_heuristic * 0.05)
+    
+    return combined_heuristic
+```

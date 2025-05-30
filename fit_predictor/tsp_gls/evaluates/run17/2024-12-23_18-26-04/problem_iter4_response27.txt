@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    heuristic_matrix = np.full(distance_matrix.shape, np.inf)
+    
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=1)
+    
+    # Initialize a matrix to store the shortest cycle distance for each edge
+    min_cycle_distance = np.zeros((n, n))
+    
+    # Initialize a graph to perform the cycle detection
+    graph = {i: [] for i in range(n)}
+    
+    # Count the usage of each edge and detect cycles
+    for i in range(n):
+        for j in range(i+1, n):
+            edge_usage_count = np.sum((distance_matrix == distance_matrix[i, j])[i:j])
+            min_cycle_distance[i, j] = edge_usage_count * distance_matrix[i, j]
+            graph[i].append(j)
+            graph[j].append(i)
+    
+    # Adjust the heuristic values based on the degree of the node and the shortest cycle distance
+    for i in range(n):
+        for j in range(i+1, n):
+            if min_cycle_distance[i, j] != 0:
+                # Calculate the ratio of the shortest cycle distance to the edge weight
+                ratio = min_cycle_distance[i, j] / distance_matrix[i, j]
+                # Increase the heuristic for high ratio (indicating a potential for short cycles)
+                # Adjust by node degree to give more importance to highly connected nodes
+                heuristic_value = distance_matrix[i, j] * (1 + degrees[i] * (ratio / 10))
+                # Set the heuristic matrix based on the heuristic value
+                heuristic_matrix[i, j] = heuristic_value
+                heuristic_matrix[j, i] = heuristic_value
+    
+    # Ensure that no self-loops have a non-zero heuristic
+    np.fill_diagonal(heuristic_matrix, np.inf)
+    
+    return heuristic_matrix
+```

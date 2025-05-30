@@ -1,0 +1,43 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(1 + distance_matrix)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Use log-sum-exp trick to normalize the potential matrix
+    max_potential = potential_matrix.max(dim=1, keepdim=True)[0]
+    normalized_potential_matrix = potential_matrix - max_potential
+    
+    # Apply exp to the normalized potential matrix, which promotes higher potential edges
+    exp_potential_matrix = torch.exp(normalized_potential_matrix)
+    
+    # Sum the columns of the exp_potential_matrix to get the probability of each node
+    # as the starting node
+    probability_matrix = exp_potential_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize the probability matrix to make it a probability distribution
+    probability_matrix = probability_matrix / probability_matrix.sum()
+    
+    # Create a heuristic matrix, using the probability distribution to adjust the distances
+    heuristics_matrix = distance_matrix + (probability_matrix - 1)
+    
+    # Adjust the heuristics matrix to ensure that the values are not too close to zero
+    heuristics_matrix = heuristics_matrix - torch.min(heuristics_matrix)
+    
+    # Transform the heuristics matrix into a matrix with negative values for undesirable edges
+    # and positive values for promising ones
+    heuristics_matrix = -heuristics_matrix
+    
+    return heuristics_matrix
+```

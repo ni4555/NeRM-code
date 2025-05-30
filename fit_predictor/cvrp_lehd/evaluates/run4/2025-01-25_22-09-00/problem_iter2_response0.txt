@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Enhanced heuristic considering demand significance, distance penalties, and balance."""
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    potential = -distance_matrix * normalized_demands
+    dampen = torch.exp(-distance_matrix / 10)
+    weight_potential = torch.clamp(potential, min=-1, max=1)
+    weight_dampen = torch.clamp(dampen, min=0.1, max=1)
+    # Balancing potential and dampening with a linear combination
+    heuristics = weight_potential * weight_dampen
+    # Adjust heuristics to ensure a balance between high potential and low penalties
+    adjusted_heuristics = heuristics / (heuristics + torch.exp(-0.5 * distance_matrix))
+    return adjusted_heuristics
+```

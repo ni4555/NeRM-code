@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Create a mask for all edges with non-zero distance
+    non_zero_edges = (distance_matrix != 0)
+    # Vectorized implementation of the heuristic calculation
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    for start_node in range(n_nodes):
+        remaining_capacity = demands[start_node]
+        for destination_node in range(n_nodes):
+            if start_node != destination_node and non_zero_edges[start_node, destination_node]:
+                total_demand = demand_cumsum[destination_node]
+                if total_demand <= remaining_capacity:
+                    distance = distance_matrix[start_node, destination_node]
+                    heuristics[start_node, destination_node] = 1 - distance
+                    remaining_capacity -= total_demand
+                    if remaining_capacity <= 0:
+                        heuristics[start_node, 0] = 1 - distance_matrix[start_node, 0]
+                        break
+    # Update heuristics for return to depot
+    heuristics[1:, 0] = heuristics[1:, 0].clamp(min=0)
+    return heuristics
+```

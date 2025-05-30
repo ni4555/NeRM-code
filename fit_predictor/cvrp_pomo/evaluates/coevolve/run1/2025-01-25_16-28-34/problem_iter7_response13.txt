@@ -1,0 +1,58 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a more refined heuristic that considers the balance between overloading and underloading
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Calculate penalties for overloading and underloading
+    overload_penalty = torch.abs(heuristics)
+    underload_penalty = torch.abs(1 - heuristics)
+    
+    # Weighted combination of overloading and underloading penalties
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Introduce additional exploration by adjusting the heuristics based on a PSO-inspired mechanism
+    # Increase the penalty for edges with high demand variance
+    demand_variance = torch.var(average_demand_per_edge, dim=0)
+    heuristics += demand_variance * (1 - heuristics)
+    
+    # Integrate tabu search-inspired strategy by considering the recency of demand changes
+    # Assuming a simplified tabu list that keeps track of recently visited edges
+    recency_factor = torch.zeros_like(average_demand_per_edge)
+    tabu_list = torch.zeros_like(average_demand_per_edge)
+    # Here, we simulate a tabu list with a fixed size that is a fraction of the number of edges
+    tabu_list_size = int(0.05 * (n * (n - 1)) / 2)
+    for i in range(n):
+        for j in range(n):
+            if tabu_list[i, j] == 0:
+                recency_factor[i, j] = 1 / (1 + demands[i] + demands[j])
+                if torch.sum(tabu_list) < tabu_list_size:
+                    tabu_list[i, j] = 1
+                else:
+                    # Simulate tabu list replacement strategy
+                    for k in range(tabu_list_size):
+                        if tabu_list[i, j] == 0:
+                            tabu_list[i, j] = tabu_list[k, k]
+                            break
+    heuristics += recency_factor * (1 - heuristics)
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

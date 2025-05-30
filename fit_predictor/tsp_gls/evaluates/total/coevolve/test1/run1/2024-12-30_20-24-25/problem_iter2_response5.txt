@@ -1,0 +1,25 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the precision heuristic matrix using the inverse of the distance matrix
+    precision_matrix = 1 / (1 + distance_matrix)
+    
+    # Apply a sigmoid function to map the precision matrix to the range [0, 1]
+    sigmoid_transformed = 1 / (1 + np.exp(-precision_matrix))
+    
+    # Introduce a penalty for the longest edge in each row to discourage it from being included
+    penalty = np.max(distance_matrix, axis=1, keepdims=True)
+    sigmoid_transformed = np.where(distance_matrix == penalty, 0, sigmoid_transformed)
+    
+    # Amplify the effect of short distances by adjusting the precision factor
+    precision_factor = np.random.uniform(0.1, 0.9)
+    amplified_precision_matrix = sigmoid_transformed * precision_factor
+    
+    # Normalize the amplified precision matrix to preserve the scale
+    max_value = np.max(amplified_precision_matrix)
+    min_value = np.min(amplified_precision_matrix)
+    normalized_heuristic_matrix = (amplified_precision_matrix - min_value) / (max_value - min_value)
+    
+    return normalized_heuristic_matrix
+```

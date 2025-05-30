@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+    
+    # Problem-specific Local Search
+    edge_load = torch.dot(normalized_demands[:, None], normalized_demands[None, :]) * distance_matrix
+    load_imbalance = edge_load.sum(dim=1) + edge_load.sum(dim=0) - 2 * total_capacity
+    load_penalty = torch.where(edge_load > total_capacity, edge_load - total_capacity, torch.zeros_like(edge_load))
+    load_bonus = torch.where(edge_load < total_capacity, 1 - (edge_load / total_capacity), torch.zeros_like(edge_load))
+    
+    # Calculate a base heuristic based on load imbalance
+    base_heuristic = load_imbalance / distance_matrix
+    
+    # Calculate demand-based penalties and bonuses
+    demand_penalty = torch.where(edge_load > total_capacity, torch.ones_like(edge_load), torch.zeros_like(edge_load))
+    demand_bonus = torch.where(edge_load < total_capacity, torch.ones_like(edge_load), torch.zeros_like(edge_load))
+    
+    # Combine penalties and bonuses into the heuristics matrix
+    heuristics = base_heuristic * demand_bonus - base_heuristic * demand_penalty + load_bonus - load_penalty
+    
+    # Avoid division by zero and set negative values to zero
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics < 0] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics array
+    heuristics = np.zeros_like(prize)
+    
+    # Normalize the prize values
+    prize_normalized = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Calculate the normalized density for each item
+    density = prize_normalized / np.sum(weight, axis=1) + 1e-8
+    
+    # Introduce randomness to promote diversity
+    np.random.shuffle(density)
+    
+    # Prune dominated items by selecting only the top N items based on density
+    N = int(0.2 * len(prize))
+    heuristics[np.argsort(density)[-N:]] = density[np.argsort(density)[-N:]]
+    
+    # Incorporate the weight sum as a penalty for including items with high total weight
+    weight_sum_penalty = np.sum(weight, axis=1) / np.max(np.sum(weight, axis=1)) + 1e-8
+    
+    # Combine the heuristics with the penalty
+    heuristics *= (1 - weight_sum_penalty)
+    
+    # Normalize the heuristics to ensure they are between 0 and 1
+    heuristics = heuristics / np.sum(heuristics)
+    
+    return heuristics
+```

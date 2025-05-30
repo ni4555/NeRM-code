@@ -1,0 +1,46 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to the range [0, 1]
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Calculate the ratio of prize to the sum of weights in each dimension
+    ratio_to_weight_sum = normalized_prize / weight.sum(axis=1)
+    
+    # Calculate the standard deviation of each item's weight to control variance
+    std_dev = np.std(weight, axis=1)
+    
+    # Use the inverse of the standard deviation to promote selection of items with lower variance
+    std_dev_factor = 1 / (std_dev + 1e-8)  # Add a small constant to avoid division by zero
+    
+    # Calculate the diversity factor based on the mean of the standard deviations
+    diversity_factor = 1 / np.mean(std_dev)
+    
+    # Calculate the heuristic as the product of normalized prize, standard deviation factor, and diversity factor
+    heuristics = normalized_prize * std_dev_factor * diversity_factor
+    
+    # Normalize heuristics by ensuring the sum of all heuristics equals 1
+    heuristics /= np.sum(heuristics)
+    
+    # Introduce a sparsity factor that promotes diversity
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Combine sparsity and heuristics to encourage diversity
+    combined_heuristics = heuristics * sparsity_factor
+    
+    # Calculate the mean and standard deviation of the combined heuristics
+    mean_combined = np.mean(combined_heuristics)
+    std_dev_combined = np.std(combined_heuristics)
+    
+    # Introduce an adaptive threshold based on the mean and standard deviation of the combined heuristics
+    adaptive_threshold = mean_combined + 2 * std_dev_combined
+    
+    # Apply the adaptive threshold to encourage exploration
+    combined_heuristics[combined_heuristics < adaptive_threshold] = 0
+    
+    # Normalize the combined heuristics to ensure the sum is 1
+    combined_heuristics /= np.sum(combined_heuristics)
+    
+    return combined_heuristics
+```

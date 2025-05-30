@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the start node
+    cum_demands = torch.cumsum(demands, dim=0)
+    # Calculate the total distance from the depot to each node
+    total_distance = distance_matrix.sum(dim=1)
+    # Initialize heuristics matrix with negative infinity for comparison
+    heuristics = torch.full_like(distance_matrix, float('-inf'))
+    # Iterate over each edge
+    for i in range(len(demands)):
+        for j in range(i + 1, len(demands)):
+            # Calculate the cost of visiting node j from node i
+            edge_cost = distance_matrix[i, j]
+            # Check if the edge is promising by considering the vehicle capacity
+            if cum_demands[i] + demands[j] <= demands[0]:
+                # Apply exponential decay to the distance
+                edge_cost *= torch.exp(-edge_cost * 0.1)
+                # Apply a penalty if the next node is a high-demand node
+                high_demand_penalty = demands[j] * (cum_demands[i] + demands[j] > demands[0])
+                # Combine the cost and the penalty to create the heuristic value
+                heuristics[i, j] = heuristics[j, i] = edge_cost - high_demand_penalty
+    # Set the heuristic for the depot to the first node to zero
+    heuristics[0, 1] = 0
+    heuristics[1, 0] = 0
+    return heuristics
+```

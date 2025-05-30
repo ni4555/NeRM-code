@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Calculate the relative demand for each node
+    relative_demand = demands / total_demand
+    
+    # Calculate the demand correlation matrix
+    demand_correlation = torch.corrcoef(relative_demand, rowvar=False)
+    
+    # Scale distances to balance local and global factors
+    distance_scale = 1.0 / (distance_matrix + 1e-6)  # Adding a small constant to avoid division by zero
+    
+    # Compute the heuristic value based on demand correlation and distance
+    heuristic_values = -demand_correlation * distance_scale
+    
+    # Refine the heuristic by incorporating the sum of demands
+    total_demand_factor = torch.sum(demand_correlation, dim=1)[:, None]
+    refined_heuristic_values = heuristic_values - total_demand_factor
+    
+    # Ensure that the depot edges have a high heuristics value
+    depot_mask = (torch.arange(n) == 0).unsqueeze(1).unsqueeze(2)
+    refined_heuristic_values[depot_mask] *= 10
+    
+    return refined_heuristic_values
+```

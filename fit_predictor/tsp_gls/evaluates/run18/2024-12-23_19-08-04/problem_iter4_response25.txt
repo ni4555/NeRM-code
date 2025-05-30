@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the number of times each edge is used in the distance matrix
+    usage_matrix = np.zeros_like(distance_matrix)
+    for i in range(distance_matrix.shape[0]):
+        for j in range(i + 1, distance_matrix.shape[1]):
+            usage_matrix[i, j] = usage_matrix[j, i] = np.sum((distance_matrix[:, i] == distance_matrix[j, :]) & 
+                                                          (distance_matrix[:, j] == distance_matrix[i, :]))
+
+    # Calculate the average distance of the edges
+    avg_distance = np.mean(distance_matrix[~np.eye(distance_matrix.shape[0], k=0, dtype=bool)].flatten())
+
+    # Adjust the distance matrix based on the deviation from the average distance
+    adjusted_matrix = (1 + (distance_matrix - avg_distance) / (2 * avg_distance))
+
+    # Adjust the distances for highly used edges
+    penalty_factor = 0.1
+    adjusted_matrix *= (1 + penalty_factor * usage_matrix)
+
+    # Ensure connectivity by avoiding too small distances between highly connected nodes
+    connectivity_factor = 0.1
+    for i in range(distance_matrix.shape[0]):
+        connected_nodes = np.where(usage_matrix[i] > avg_distance)[0]
+        if len(connected_nodes) > 1:
+            min_edge = adjusted_matrix[i, connected_nodes].min()
+            if min_edge < connectivity_factor:
+                adjusted_matrix[i, connected_nodes] += connectivity_factor - min_edge
+
+    # Encourage diversity by penalizing identical edges
+    diversity_factor = 0.1
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[0]):
+            if i != j:
+                for k in range(distance_matrix.shape[0]):
+                    if k != i and k != j:
+                        if np.all(distance_matrix[i, k] == distance_matrix[j, k]):
+                            adjusted_matrix[i, j] += diversity_factor
+                            adjusted_matrix[j, i] += diversity_factor
+
+    return adjusted_matrix
+```

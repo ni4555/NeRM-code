@@ -1,0 +1,51 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape
+    heuristic = np.zeros((n,))
+    
+    # Deep reinforcement learning model for real-time decision-making
+    # Assuming a pre-trained model 'model' that takes a state and returns a value
+    # For the sake of this example, we'll use a dummy function 'get_model_value'
+    def get_model_value(state):
+        # Dummy implementation of a model that returns a random value
+        return np.random.rand()
+    
+    # Adaptive constraint-driven filtering
+    # Initialize a filter with a certain number of particles
+    num_particles = 10
+    particles = np.random.rand(num_particles, n)
+    
+    # Particle swarm optimization
+    # Initialize positions and velocities
+    velocities = np.zeros((num_particles, n))
+    best_positions = particles.copy()
+    best_values = np.zeros(num_particles)
+    
+    # Iterate to update particles
+    for iteration in range(100):  # Assuming a fixed number of iterations
+        # Evaluate each particle
+        for i in range(num_particles):
+            # Calculate the state based on the current particle's position
+            state = particles[i]
+            # Get the heuristic value from the deep reinforcement learning model
+            heuristic_value = get_model_value(state)
+            # Update the particle's best position if the current heuristic value is better
+            if heuristic_value > best_values[i]:
+                best_values[i] = heuristic_value
+                best_positions[i] = state
+        
+        # Update velocities and positions
+        velocities = velocities * 0.9 + np.random.rand(num_particles, n) * 0.1
+        particles += velocities
+    
+    # Use the best positions to determine the heuristics
+    for i in range(n):
+        for j in range(num_particles):
+            if best_positions[j][i] == 1:
+                heuristic[i] += best_values[j]
+    
+    # Sparsify the heuristics by setting unpromising elements to zero
+    heuristic[heuristic < np.mean(heuristic)] = 0
+    
+    return heuristic
+```

@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Initialize a matrix of potential values
+    potential_values = torch.zeros((n, n))
+    
+    # Apply node partitioning based on demand threshold
+    demand_threshold = 0.5
+    partitioned_nodes = torch.where(normalized_demands < demand_threshold, 1, 0).bool()
+    
+    # Assign adaptive weights based on node partitioning
+    for i in range(n):
+        for j in range(n):
+            if partitioned_nodes[i] and partitioned_nodes[j]:
+                # High weight for intra-partition edges
+                potential_values[i, j] = 2 * normalized_distances[i, j]
+            elif not partitioned_nodes[i] and not partitioned_nodes[j]:
+                # Low weight for inter-partition edges
+                potential_values[i, j] = normalized_distances[i, j] / 2
+            else:
+                # Medium weight for edges between partition boundaries
+                potential_values[i, j] = normalized_distances[i, j]
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

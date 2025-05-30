@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Use a combination of distance-based potential and demand-based potential
+    # The distance-based potential is inversely proportional to the distance,
+    # and the demand-based potential is proportional to the demand.
+    # Additionally, introduce a decay factor to give preference to closer nodes
+    # as the search progresses to prevent local optima.
+    decay_factor = 0.9  # Decay factor for distance-based potential
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    
+    # Calculate distance-based potential
+    distance_potential = 1 / (distance_matrix + epsilon)
+    
+    # Calculate demand-based potential and apply decay
+    demand_potential = normalized_demands * decay_factor
+    
+    # Combine the two potentials
+    combined_potential = (distance_potential * demand_potential).clamp(min=0)
+    
+    return combined_potential
+```

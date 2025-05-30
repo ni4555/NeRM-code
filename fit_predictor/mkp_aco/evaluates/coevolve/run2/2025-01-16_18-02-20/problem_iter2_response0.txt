@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate the variance of the normalized prize values to identify outliers
+    variance = np.var(normalized_prize)
+    
+    # Calculate the average normalized prize value
+    average_prize = np.mean(normalized_prize)
+    
+    # Identify outliers as items with normalized prize values beyond a certain threshold
+    outlier_threshold = average_prize + variance
+    non_outliers = (normalized_prize < outlier_threshold)
+    
+    # Calculate a diversity score based on the sparsity of the item's weight
+    sparsity = 1 / (np.sum(weight, axis=1) + 1e-6)
+    
+    # Combine normalized prize value and diversity score to get a combined score
+    combined_score = normalized_prize * sparsity
+    
+    # Rank the items based on their combined score for non-outliers
+    weighted_rank = np.argsort(combined_score)[::-1]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    heuristics[weighted_rank] = np.arange(len(weighted_rank))
+    
+    # Sparsify the heuristics by setting outliers and items with normalized prize below the average to zero
+    heuristics[~non_outliers] = 0
+    heuristics[combined_score < average_prize] = 0
+    
+    return heuristics
+```

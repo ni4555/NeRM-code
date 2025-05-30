@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize and weight to emphasize high-value items
+    prize_normalized = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    weight_normalized = (weight - np.min(weight, axis=1, keepdims=True)) / (np.max(weight, axis=1, keepdims=True) - np.min(weight, axis=1, keepdims=True))
+    
+    # Calculate value-to-weight ratio and apply a logarithmic transformation to increase variance
+    value_to_weight_ratio = prize_normalized / np.sum(weight_normalized, axis=1)
+    log_ratio = np.log(value_to_weight_ratio + 1e-10)  # Adding a small constant to avoid log(0)
+    
+    # Apply a sparsity control by setting the lower half of the sorted ratios to zero
+    sparsified_ratio = np.sort(log_ratio, axis=1)[:, ::-1]
+    sparsified_ratio = np.where(sparsified_ratio < np.quantile(sparsified_ratio, 0.5), 0, sparsified_ratio)
+    
+    # Apply a non-linear transformation to amplify the most valuable features
+    non_linear_transformed = sparsified_ratio ** 3
+    
+    return non_linear_transformed
+```

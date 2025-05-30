@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate normalized prize-to-weight ratio
+    normalized_ratio = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the sum of weights
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Prune dominated items (items with lower prize-to-weight ratio than their competitors)
+    sorted_indices = np.argsort(normalized_ratio)[::-1]
+    dominated_indices = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            if normalized_ratio[sorted_indices[j]] > normalized_ratio[sorted_indices[i]]:
+                dominated_indices.add(sorted_indices[i])
+    non_dominated_indices = [idx for idx in sorted_indices if idx not in dominated_indices]
+    
+    # Adjust the normalized ratio for non-dominated items
+    adjusted_normalized_ratio = normalized_ratio[non_dominated_indices]
+    
+    # Introduce randomness to encourage exploration
+    random_factor = np.random.rand(n)
+    
+    # Create a heuristic based on the adjusted normalized ratio and randomness
+    heuristic = adjusted_normalized_ratio * random_factor
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Set zero weights to a small value to maintain diversity
+    normalized_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return normalized_heuristic
+```

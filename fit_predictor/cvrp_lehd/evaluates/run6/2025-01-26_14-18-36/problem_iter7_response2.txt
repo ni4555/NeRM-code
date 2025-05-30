@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Calculate the potential of each edge based on the product of distances and the absolute difference in demand
+    heuristic_values = -torch.abs(demand_diff) * distance_matrix[0, 1:] * distance_matrix[1:, 0]
+    
+    # Incorporate a penalty for edges that are far from the depot
+    depot_penalty = (distance_matrix[0, 1:] + distance_matrix[1:, 0]) * -1000
+    
+    # Apply penalties for infeasibility where demand exceeds the vehicle capacity
+    feasibility_penalty = (demands[1:] > 1.0).to(torch.float32) * -10000
+    
+    # Prioritize high-demand edges by giving them a higher positive heuristic value
+    high_demand_bonus = (demands[1:] > average_demand).to(torch.float32) * 1000
+    
+    # Combine the heuristic values and the penalties
+    combined_heuristic_values = heuristic_values + depot_penalty + feasibility_penalty + high_demand_bonus
+    
+    # Initialize the heuristic matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Update the heuristic matrix with combined heuristic values
+    heuristic_matrix[0, 1:] = combined_heuristic_values
+    heuristic_matrix[1:, 0] = combined_heuristic_values
+    
+    # Include the depot node in the heuristic matrix by setting its inward and outward edges to the average demand
+    depot_heuristic_values = average_demand * torch.cat([distance_matrix[0, 1:], distance_matrix[1:, 0]], dim=0)
+    heuristic_matrix[0, 0] = depot_heuristic_values.sum()
+    
+    return heuristic_matrix
+```

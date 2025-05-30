@@ -1,0 +1,49 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Dynamic item sorting based on a combination of weighted prize ratio, sparsity of weight dimensions, and adaptive stochastic sampling
+    def get_combination_score(item_idx):
+        weighted_ratio = prize[item_idx] / weight[item_idx, :].sum()
+        sparsity_score = np.count_nonzero(weight[item_idx, :] > 0) / m
+        return weighted_ratio + sparsity_score * np.log(np.sum(weight[item_idx, :] > 0))
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Perform adaptive stochastic sampling with dynamic item sorting
+    for _ in range(n):  # Repeat the process n times for a more robust heuristic
+        sorted_indices = np.argsort(-np.array([get_combination_score(i) for i in range(n)]))
+
+        # Initialize the accumulated weight for each dimension
+        accumulated_weight = np.zeros(m)
+
+        # Iterate over the sorted items and assign a heuristic value
+        for i in sorted_indices:
+            # Update the accumulated weight for each dimension
+            for j in range(m):
+                accumulated_weight[j] += weight[i, j]
+
+            # Calculate the heuristic for the current item
+            current_sum = np.sum(heuristics[:i+1])
+            heuristic_value = get_combination_score(i) + current_sum
+
+            # Update the heuristic values array
+            heuristics[i] = heuristic_value
+
+            # Break if the accumulated weight exceeds the limit
+            if np.any(accumulated_weight > 1):
+                break
+
+    # Sparsify the heuristics by setting values below a threshold to zero
+    threshold = np.max(heuristics) / 2  # Example threshold
+    heuristics[heuristics < threshold] = 0
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

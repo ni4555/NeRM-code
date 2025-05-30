@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum distance from the depot to any customer
+    max_depot_to_customer = torch.max(distance_matrix[:, 1:], dim=1)[0]
+
+    # Calculate the maximum distance from any customer to the depot
+    max_customer_to_depot = torch.max(distance_matrix[1:, :], dim=1)[0]
+
+    # Calculate the sum of demands up to each customer
+    cumulative_demand = torch.cumsum(demands[1:], dim=0).to(torch.float32)
+
+    # Calculate the cost of visiting each customer in order
+    cost_to_visit_in_order = cumulative_demand * max_depot_to_customer
+
+    # Calculate the cost of returning to the depot after visiting each customer
+    cost_to_return_to_depot = cumulative_demand[:-1] * max_customer_to_depot
+
+    # Calculate the total cost for each possible path
+    total_cost = cost_to_visit_in_order + cost_to_return_to_depot
+
+    # Normalize the costs to create a heuristic value
+    # Promising edges have negative heuristic values
+    # Undesirable edges have positive heuristic values
+    heuristic_values = torch.relu(total_cost - max_depot_to_customer.sum())
+
+    return heuristic_values
+```

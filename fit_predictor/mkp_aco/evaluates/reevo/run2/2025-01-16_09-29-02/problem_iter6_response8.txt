@@ -1,0 +1,21 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to the range of 0 to 1
+    prize_normalized = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    # Calculate the inverse of the sum of weights for each item
+    weight_inverse = 1.0 / np.sum(weight, axis=1)
+    # Combine normalized prize and inverse sum of weights
+    heuristics = prize_normalized * weight_inverse
+    # Apply a sparsity threshold based on domain knowledge, e.g., the average heuristic value
+    avg_heuristic_value = np.mean(heuristics)
+    sparsity_threshold = 0.75 * avg_heuristic_value
+    heuristics[heuristics < sparsity_threshold] = 0
+    # Apply a transformation that considers both the value and the diversity of the items
+    diversity_factor = np.std(prize_normalized) / np.mean(prize_normalized)
+    transformed_heuristics = heuristics * diversity_factor
+    # Adjust the heuristics to balance risk and reward
+    adjusted_heuristics = transformed_heuristics * (1 - np.std(transformed_heuristics) / np.mean(transformed_heuristics))
+    return adjusted_heuristics
+```

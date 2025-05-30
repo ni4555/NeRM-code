@@ -1,0 +1,78 @@
+```python
+import torch
+
+def time_adaptive_scaling(factor, cumulative_demand, total_capacity, scale_factor):
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * scale_factor))
+    return factor * time_factor
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic capacity penalty
+    dynamic_capacity_penalty = time_adaptive_scaling(
+        -torch.log1p(torch.abs(demands - total_capacity) - 1e-8),
+        cumulative_demand,
+        total_capacity,
+        5
+    )
+    
+    # Distance penalty
+    distance_penalty = time_adaptive_scaling(
+        -torch.log1p(torch.abs(distance_matrix) - 1e-8),
+        cumulative_demand,
+        total_capacity,
+        5
+    )
+    
+    # Overflow penalty
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance penalty
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = time_adaptive_scaling(
+        -torch.log1p(load_balance - 1e-8),
+        cumulative_demand,
+        total_capacity,
+        5
+    )
+    
+    # Randomness factor
+    randomness_factor = time_adaptive_scaling(
+        torch.abs(torch.randn_like(demands)) * 0.1,
+        cumulative_demand,
+        total_capacity,
+        5
+    )
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Diversity factor
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine core penalties with randomness
+    heuristics = distance_penalty + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty
+    heuristics += randomness_factor
+    
+    # Add diversity factor to encourage exploration
+    heuristics += diversity_factor
+    
+    # Adjust heuristics based on early overflow and imbalance
+    early_overflow = cumulative_demand > total_capacity_vector
+    heuristics *= (1 + early_overflow)
+    
+    # Cap the heuristics to maintain stability
+    heuristics = torch.clamp(heuristics, min=-10.0, max=10.0)
+    
+    # Apply a large penalty for the depot to return to itself
+    heuristics[0, 0] = -1e7
+    
+    return heuristics
+```

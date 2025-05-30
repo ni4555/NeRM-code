@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate potential value for each edge considering demand relaxation
+    demand_relaxed = normalized_demands / (1 + normalized_demands)
+    
+    # Use a combination of distance, relaxed demand, and node partitioning
+    # Node partitioning heuristic: Group nodes by demand and assign weights based on group size
+    demand_weights = torch.histc(normalized_demands, bins=10, min=0, max=1)
+    demand_weights = demand_weights / demand_weights.sum()
+    node_partitioning = demand_weights[torch.arange(n)]
+    
+    # Combine heuristics
+    potential_values = normalized_distances - demand_relaxed + node_partitioning
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

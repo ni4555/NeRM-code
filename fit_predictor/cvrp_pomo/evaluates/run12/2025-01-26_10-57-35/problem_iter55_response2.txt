@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate normalized demand for self-comparison
+    demand_matrix = (demands[:, None] * demands)
+    
+    # Normalize by sum of demands to prevent overfitting to individual node demand
+    demand_matrix = demand_matrix / demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance by integrating demand
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    normalized_weighted_distance_matrix = weighted_distance_matrix / weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity by inversely scaling by demand
+    capacity_scaled_weighted_distance_matrix = normalized_weighted_distance_matrix * (1 / (demands + 1e-8))
+    
+    # Apply a decay factor to depot edges to avoid them being favored over non-depot edges
+    depot_decay = torch.log1p(torch.abs(distance_matrix[:, 0]))
+    capacity_scaled_weighted_distance_matrix[:, 0] *= depot_decay
+    capacity_scaled_weighted_distance_matrix[0, :] *= depot_decay
+    
+    # Add penalties for exceeding vehicle capacity and for not fully utilizing vehicle capacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    capacity_scaled_weighted_distance_matrix += overcapacity_penalty - undercapacity_penalty
+    
+    # Ensure no single edge has excessive influence by preventing overdomination
+    no_overdomination_matrix = torch.min(
+        capacity_scaled_weighted_distance_matrix.unsqueeze(1) + capacity_scaled_weighted_distance_matrix.unsqueeze(0) -
+        capacity_scaled_weighted_distance_matrix.unsqueeze(2),
+        capacity_scaled_weighted_distance_matrix
+    )
+    
+    # Avoid loops by ensuring loop edges have the lowest heuristic values
+    loop_edges_matrix = capacity_scaled_weighted_distance_matrix + capacity_scaled_weighted_distance_matrix.T - torch.diag(capacity_scaled_weighted_distance_matrix)
+    loop_edges_matrix[loop_edges_matrix > 0] = 0
+    loop_edges_matrix += loop_edges_matrix.T
+    no_overdomination_matrix += loop_edges_matrix
+    
+    # Return the computed heuristic matrix
+    return no_overdomination_matrix
+```

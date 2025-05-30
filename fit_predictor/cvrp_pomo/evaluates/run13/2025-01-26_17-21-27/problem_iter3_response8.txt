@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands_cumsum = torch.cumsum(demands, dim=0)
+    demand_excess = demands_cumsum > 1.0  # Threshold set to 1.0 (full capacity)
+    demand_excess_cumsum = torch.cumsum(demand_excess, dim=0)
+    penalty = -torch.log(1.0 - demand_excess_cumsum)
+    
+    demand_distance_interaction = distance_matrix * demands
+    normalized_demand_distance_interaction = demand_distance_interaction / demands_cumsum[:, None]
+    
+    heuristic_matrix = penalty + normalized_demand_distance_interaction
+    heuristic_matrix[demand_excess] = -heuristic_matrix[demand_excess]
+    
+    return heuristic_matrix
+```

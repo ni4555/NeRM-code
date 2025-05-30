@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Calculate the minimum distance to the nearest customer with a positive demand that can be served
+    min_distance_to_demand = torch.min(torch.abs(cumulative_demand - cumulative_capacity[:, None]), dim=1)[0]
+    
+    # Calculate penalties for each edge
+    # The penalties are the sum of distance penalties (negative) and demand penalties (positive)
+    distance_penalties = -torch.triu(distance_matrix)
+    demand_penalties = (demands > 0) * (cumulative_demand - cumulative_capacity[:, None]) / cumulative_demand
+    penalties = distance_penalties + demand_penalties
+    
+    # For each edge from the depot to a customer, assign a heuristic value based on the combined penalties
+    # We want to penalize edges that are far away and/or have a high demand-to-cumulative demand ratio
+    heuristics_matrix = penalties + min_distance_to_demand
+    
+    return heuristics_matrix
+```

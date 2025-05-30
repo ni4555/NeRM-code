@@ -1,0 +1,52 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate demand-to-demand interactions and normalize by node total demand
+    demand_matrix = demands[:, None] * demands
+    demand_matrix = (demand_matrix - torch.diag(demand_matrix)) / demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Incorporate demand into the distance matrix, emphasizing larger demands
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Integrate capacity constraint using inverse demand
+    capacity_factor = 1 / (demands + 1e-8)
+    weighted_distance_matrix *= capacity_factor
+    
+    # Apply logarithmic decay to balance demand and distance
+    weighted_distance_matrix = torch.log1p(weighted_distance_matrix)
+    
+    # Apply decay to prevent edges to the depot from dominating the heuristics
+    depot_decay_factor = torch.log1p(torch.abs(distance_matrix[:, 0]))
+    weighted_distance_matrix[:, 0] *= depot_decay_factor
+    weighted_distance_matrix[0, :] *= depot_decay_factor
+    
+    # Normalize heuristics to prevent dominance and ensure stability
+    max_heuristic = weighted_distance_matrix.max()
+    weighted_distance_matrix /= max_heuristic
+    
+    # Introduce penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    weighted_distance_matrix += overcapacity_penalty - undercapacity_penalty
+    
+    # Adjust heuristics for loops by setting their value to zero
+    loop_heuristics = weighted_distance_matrix + weighted_distance_matrix.T - torch.diag(weighted_distance_matrix)
+    loop_heuristics[loop_heuristics > 0] = 0
+    
+    # Ensure that the heuristic for the depot is the highest
+    depot_cost = demands[0]
+    weighted_distance_matrix[0, :] += depot_cost
+    weighted_distance_matrix[:, 0] += depot_cost
+    
+    # Apply the combined effect of loop adjustment and demand-based heuristics
+    heuristics = weighted_distance_matrix + loop_heuristics
+    
+    # Avoid dominance by limiting the maximum possible value of any heuristic
+    max_value = heuristics.max()
+    heuristics = torch.min(heuristics, max_value[:, None])
+    
+    return heuristics
+```

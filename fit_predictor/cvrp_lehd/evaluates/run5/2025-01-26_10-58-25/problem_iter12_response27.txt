@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+
+    # Use logarithmic distance to avoid negative values and reduce the impact of long distances
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+
+    # Combine the logarithmic distance penalties and the absolute demand penalties
+    combined_penalty_matrix = penalty_matrix + distance_penalty_matrix
+
+    # Apply a non-linear transformation (e.g., ReLU) to emphasize larger penalties
+    transformed_penalty_matrix = torch.relu(combined_penalty_matrix)
+
+    # Normalize the transformed penalty matrix to maintain a range of values
+    normalized_penalty_matrix = transformed_penalty_matrix / transformed_penalty_matrix.max()
+
+    # To represent the desirability of edges, use 1 minus the normalized penalty value
+    heuristics_matrix = 1 - normalized_penalty_matrix
+
+    return heuristics_matrix
+```

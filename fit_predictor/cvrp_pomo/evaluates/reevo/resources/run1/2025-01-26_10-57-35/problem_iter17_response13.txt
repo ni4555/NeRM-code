@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison and normalize by the total demand for each node
+    demand_matrix = demands[:, None] * demands
+    demand_matrix = (demand_matrix - torch.diag(demand_matrix)) / demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Subtract distance matrix to incorporate dominance minimization
+    normalized_weighted_distance = (distance_matrix - torch.diag(torch.min(distance_matrix, dim=1)[0])) * demand_matrix
+    
+    # Integrate capacity constraint by using the inverse of demand (addition to heuristic)
+    capacity_factor = (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Calculate heuristic by combining dominance minimized distance and demand
+    heuristics = normalized_weighted_distance * capacity_factor
+    
+    # Enhance promising edges by scaling the heuristic with demand
+    heuristics = heuristics * (1 + demands)
+    
+    # Ensure non-negative values to avoid undesirable edges
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

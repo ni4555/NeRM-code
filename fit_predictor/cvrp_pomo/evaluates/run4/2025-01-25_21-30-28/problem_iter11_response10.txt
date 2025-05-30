@@ -1,0 +1,55 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Load balancing strategy
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Normalize and adjust the weights
+    mean_value = (inverse_distance + demand_weight + load_balance).mean()
+    inverse_distance = (inverse_distance - mean_value) / mean_value
+    demand_weight = (demand_weight - mean_value) / mean_value
+    load_balance = (load_balance - mean_value) / mean_value
+
+    # Introduce adaptive weightings based on problem complexity
+    complexity_weight = (torch.sum(normalized_demands != 0) + torch.sum(inverse_distance < 1) + 
+                         torch.sum(load_balance < 1)) / n
+    adaptive_weights = torch.ones(3)
+    adaptive_weights[0] *= (1 + complexity_weight)  # Adjust weight for inverse_distance
+    adaptive_weights[1] *= (1 - complexity_weight)  # Adjust weight for demand_weight
+    adaptive_weights[2] *= (1 + complexity_weight)  # Adjust weight for load_balance
+
+    # Combine heuristics with adaptive weights
+    combined_heuristic = (inverse_distance * adaptive_weights[0] +
+                          demand_weight * adaptive_weights[1] +
+                          load_balance * adaptive_weights[2])
+
+    # Apply heuristic range adjustment
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+    combined_heuristic = combined_heuristic * heuristic_range
+
+    # Clamp combined heuristic values to avoid extreme values
+    combined_heuristic = torch.clamp(combined_heuristic, min=-1.0, max=1.0)
+
+    # Mutation to introduce variability in search
+    mutation_range = combined_heuristic.abs().max()
+    random_factor = mutation_range * torch.rand_like(combined_heuristic)
+    mutated_heuristic = combined_heuristic + random_factor
+
+    # Clamp mutated values to avoid extreme values
+    mutated_heuristic = torch.clamp(mutated_heuristic, min=-1.0, max=1.0)
+
+    return mutated_heuristic
+```

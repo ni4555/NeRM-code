@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    distances_from_depot = distance_matrix[0, 1:]  # Distance from depot to customers
+    distances_to_customers = distance_matrix[1:, 0]  # Distance from customers to depot
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Calculate the potential of each edge based on the product of distances and the absolute difference in demand
+    heuristic_values = -torch.abs(demand_diff) * distances_from_depot * distances_to_customers
+    
+    # Incorporate a penalty for edges that are far from the depot
+    depot_penalty = (distances_from_depot + distances_to_customers) * -1000
+    
+    # Combine the heuristic values and the penalty
+    combined_heuristic_values = heuristic_values + depot_penalty
+    
+    # Prioritize high-demand nodes
+    high_demand_penalty = (demands[1:] > average_demand).float() * -1000
+    
+    # Apply penalties for infeasibility
+    infeasibility_penalty = (demands[1:] > 1).float() * -10000
+    
+    # Combine all penalties
+    combined_penalties = high_demand_penalty + infeasibility_penalty
+    
+    # Update the heuristic matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    heuristic_matrix[0, 1:] = combined_heuristic_values + combined_penalties
+    heuristic_matrix[1:, 0] = combined_heuristic_values + combined_penalties
+    heuristic_matrix[0, 0] = -depot_heuristic_values.sum() - combined_penalties.sum()
+    
+    return heuristic_matrix
+```

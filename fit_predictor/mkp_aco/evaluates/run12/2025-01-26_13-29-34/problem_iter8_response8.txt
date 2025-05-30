@@ -1,0 +1,65 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning component (with a more complex model)
+    model_scores = np.random.rand(n)  # Simulate a more complex model
+    model_scores /= np.sum(model_scores)  # Normalize scores to sum to 1
+
+    # Adaptive constraint-driven filtering with dynamic feasibility assessment
+    feasible_items = np.ones(n, dtype=bool)
+    for i in range(n):
+        if np.any(weight[i, :] > 1):
+            feasible_items[i] = False
+
+    # Particle swarm optimization for evolutionary swarm intelligence
+    # Initialize PSO parameters
+    num_particles = 30
+    w = 0.5  # Inertia weight
+    c1 = 1.5  # Cognitive coefficient
+    c2 = 1.5  # Social coefficient
+
+    # Initialize particles
+    particles = np.random.rand(num_particles, n)
+    velocities = np.random.rand(num_particles, n)
+    best_scores = np.copy(model_scores)
+    best_positions = np.copy(particles)
+
+    # PSO main loop
+    for _ in range(100):  # Number of iterations
+        for i in range(num_particles):
+            # Update velocities
+            velocities[i, :] = w * velocities[i, :] + c1 * np.random.rand(n) * (best_positions[i, :] - particles[i, :]) + c2 * np.random.rand(n) * (best_scores[:, np.newaxis] - particles[i, :])
+
+            # Update particles
+            particles[i, :] += velocities[i, :]
+
+            # Update personal bests
+            for j in range(n):
+                if particles[i, j] > 1 or not feasible_items[j]:
+                    particles[i, j] = 0
+                else:
+                    current_score = model_scores[j] * (prize[j] / (prize[np.argmax(model_scores)] + 1e-6))
+                    if current_score > best_scores[j]:
+                        best_scores[j] = current_score
+                        best_positions[j] = particles[i, j]
+
+    # Update heuristics based on PSO results
+    global_best_index = np.argmax(best_scores)
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            heuristic[i] = best_scores[i] * (prize[i] / (prize[global_best_index] + 1e-6))
+
+    # Use diverse fitness functions for balanced adaptation
+    for i in range(n):
+        if heuristic[i] < best_scores[global_best_index] * 0.5:
+            heuristic[i] *= 0.9
+
+    return heuristic
+```

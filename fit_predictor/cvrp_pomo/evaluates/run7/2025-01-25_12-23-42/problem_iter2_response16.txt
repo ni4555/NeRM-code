@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic function for the CVRP problem."""
+    n = distance_matrix.shape[0]
+    demands = demands.unsqueeze(1)  # Ensure demands is a 2D tensor for broadcasting
+    distance_matrix_squared = distance_matrix ** 2
+    min_distance = torch.min(distance_matrix, dim=1)[0] ** 2  # Squared distance to nearest customer
+    max_demand = torch.max(demands, dim=0)[0]  # Maximum demand in the network
+    
+    # Calculate a heuristic that considers both distance and demand
+    heuristic = -distance_matrix_squared + min_distance * max_demand
+    # Normalize the heuristic to ensure all values are within the range [0, 1]
+    heuristic = torch.clamp(heuristic, min=0, max=1)
+    # Subtract the cumulative demand to avoid revisits and ensure that the potential is non-negative
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    heuristic += (cumulative_demand > demands.unsqueeze(0)).float() * -1e9
+    return heuristic
+```

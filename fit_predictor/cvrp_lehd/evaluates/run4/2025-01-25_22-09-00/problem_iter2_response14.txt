@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Create a matrix of edge costs based on the ratio of demand to distance
+    # We use 1/distance to give a higher weight to edges that are closer
+    # and demand to represent the importance of the customer's location
+    edge_costs = (1 / distance_matrix) * demands / total_demand
+    
+    # To avoid division by zero, add a small epsilon to the denominator
+    epsilon = 1e-10
+    edge_costs = edge_costs + epsilon
+    
+    # Normalize the edge costs to a range between 0 and 1 to ensure the heuristics are well-behaved
+    heuristic_matrix = torch.exp(-edge_costs)
+    
+    # Subtract the smallest value from the matrix to shift all values to be positive
+    heuristic_matrix -= heuristic_matrix.min()
+    
+    # Divide by the largest value to scale the matrix between 0 and 1
+    heuristic_matrix /= heuristic_matrix.max()
+    
+    return heuristic_matrix
+```

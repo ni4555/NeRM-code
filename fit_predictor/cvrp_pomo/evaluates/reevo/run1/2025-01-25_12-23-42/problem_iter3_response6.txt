@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic by incorporating distance, demand, and avoiding revisits."""
+    total_demand = demands.sum()
+    demand_threshold = total_demand / len(demands)
+    # Normalize the demand by the threshold
+    normalized_demand = (demands / demand_threshold).where(demands <= demand_threshold, other=0)
+    # Avoid revisits by ensuring that if a node is revisited, its heuristic value is reduced
+    revisits = torch.any(torch.eq(distance_matrix, 0), dim=1)
+    no_revisits = 1 - revisits
+    # Calculate the heuristic value based on the normalized demand and distance
+    heuristics = (1 / (1 + distance_matrix)) * normalized_demand * no_revisits
+    # Balance load by reducing the heuristic value for nodes that are close to exceeding the vehicle capacity
+    load_balance = 1 - (demands / total_demand)
+    heuristics *= load_balance
+    return heuristics
+```

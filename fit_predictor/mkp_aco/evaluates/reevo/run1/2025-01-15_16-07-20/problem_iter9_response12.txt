@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize and average weight for each item
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    
+    # Calculate density based on prize and average weight
+    density = prize / average_weight
+    
+    # Calculate constraint balance for each item
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate utility considering both density and constraint balance
+    utility = density * (1 - constraint_balance)
+    
+    # Calculate a dynamic factor based on the remaining capacity of the knapsack
+    # Assuming a fixed knapsack capacity of 1 for simplicity
+    dynamic_factor = 1 / (1 + np.sum(weight, axis=1))
+    
+    # Combine utility with the dynamic factor
+    combined_score = utility * dynamic_factor
+    
+    # Normalize scores to sum to 1
+    normalized_score = combined_score / np.sum(combined_score)
+    
+    # Sparsify the heuristics by setting elements below a threshold to zero
+    threshold = np.percentile(normalized_score, 90)  # 90th percentile threshold
+    sparsity = (normalized_score > threshold) * 1.0
+    
+    # Return the heuristics scores
+    return normalized_score * sparsity
+```

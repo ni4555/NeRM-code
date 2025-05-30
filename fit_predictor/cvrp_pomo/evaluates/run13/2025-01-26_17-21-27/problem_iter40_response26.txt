@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Combined penalty for distance, load, and overflow
+    combined_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * (cumulative_demand / total_capacity)
+    combined_penalty += -torch.log1p(torch.abs(demands - total_capacity) - 1e-8) * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Overflow penalty to encourage early returns
+    overflow_penalty = torch.where(
+        cumulative_demand[:, None] + demands[None, :] > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balancing heuristic to encourage even distribution of demand
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Diversity heuristic to avoid similar load distributions
+    diversity_heuristic = torch.sum(torch.abs(distance_matrix - distance_matrix.mean()), dim=0)
+    
+    # Scaling factors for different penalties
+    scaling_distance_load = 3.0
+    scaling_overflow = 1.0
+    scaling_load_balance = 2.0
+    scaling_diversity = 1.0
+    
+    # Combine all penalties with their respective scaling factors
+    heuristics = (scaling_distance_load * combined_penalty +
+                  scaling_overflow * overflow_penalty +
+                  scaling_load_balance * load_balance_penalty +
+                  scaling_diversity * diversity_heuristic)
+    
+    # Cap heuristics to maintain stability
+    heuristics = torch.clamp(heuristics, min=-100, max=100)
+    
+    return heuristics
+```

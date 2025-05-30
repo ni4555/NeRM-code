@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    depot = 0
+    
+    # Calculate the negative distance heuristic
+    negative_distance_heuristic = -distance_matrix
+    
+    # Calculate the demand heuristic, scaled to vehicle capacity
+    demand_heuristic = (demands[:, None] + demands) * distance_matrix[depot, :].unsqueeze(1)
+    
+    # Incorporate diversity by using a random noise factor
+    noise_factor = 0.1 * torch.rand_like(distance_matrix) - 0.05
+    
+    # Balance exploitation and exploration with a factor that promotes diversity
+    exploration_exploitation_factor = 0.8 * torch.rand_like(distance_matrix) + 0.2
+    
+    # Combine heuristics and noise factor
+    combined_heuristic = negative_distance_heuristic + demand_heuristic + noise_factor * exploration_exploitation_factor
+    
+    # Normalize the heuristics to ensure they are in the same scale
+    # Adding a small epsilon to avoid division by zero
+    normalized_combined_heuristic = combined_heuristic / (combined_heuristic.sum() + 1e-8)
+    
+    return normalized_combined_heuristic
+```

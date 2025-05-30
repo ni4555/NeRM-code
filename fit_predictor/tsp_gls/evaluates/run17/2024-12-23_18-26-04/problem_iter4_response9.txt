@@ -1,0 +1,33 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    heuristic_matrix = np.copy(distance_matrix)
+    edge_usage = np.zeros_like(distance_matrix, dtype=int)
+    
+    # Initialize edge usage
+    for i in range(distance_matrix.shape[0]):
+        for j in range(i + 1, distance_matrix.shape[1]):
+            edge_usage[i][j] += 1
+            edge_usage[j][i] += 1
+    
+    # Adjust distances based on usage frequency
+    for i in range(distance_matrix.shape[0]):
+        for j in range(i + 1, distance_matrix.shape[1]):
+            if edge_usage[i][j] > 1:
+                heuristic_matrix[i][j] += distance_matrix[i][j] * 0.1 * (edge_usage[i][j] - 1)
+    
+    # Iterate to refine the heuristic matrix
+    for _ in range(10):  # Number of iterations can be tuned
+        for i in range(distance_matrix.shape[0]):
+            for j in range(i + 1, distance_matrix.shape[1]):
+                # Enhanced neighborhood scope
+                neighborhood_distances = distance_matrix[i, i+1:j] + distance_matrix[j, j+1:] + distance_matrix[i, j:]
+                average_distance = np.mean(neighborhood_distances)
+                
+                # Weighted adjustments based on a more complex interaction rule
+                if distance_matrix[i][j] < average_distance:
+                    heuristic_matrix[i][j] += distance_matrix[i][j] * 0.1 * (1 + (np.count_nonzero(neighborhood_distances < distance_matrix[i][j]) / len(neighborhood_distances) - 0.5))
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic array with zeros
+    heuristic = np.zeros_like(prize)
+
+    # Define a threshold for density to consider items
+    density_threshold = np.max(prize) / np.sum(weight, axis=1)
+    
+    # Iterate over items to calculate heuristic based on density and weight
+    for i in range(weight.shape[0]):
+        # Calculate density for the current item
+        item_density = prize[i] / np.sum(weight[i])
+        
+        # If the density is above the threshold and item is not dominated
+        if item_density > density_threshold and not np.any(weight[i] < weight):
+            # Add a random factor to introduce diversity
+            random_factor = np.random.rand()
+            
+            # Update the heuristic value for the item
+            heuristic[i] = item_density * (1 - random_factor)
+    
+    # Normalize the heuristic values
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Set dominated items' heuristic to zero
+    dominated_items = np.any(weight < weight, axis=1)
+    normalized_heuristic[dominated_items] = 0
+    
+    return normalized_heuristic
+```

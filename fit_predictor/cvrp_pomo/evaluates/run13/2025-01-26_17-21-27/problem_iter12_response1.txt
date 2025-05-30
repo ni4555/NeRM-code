@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    demand_balance = ((cumulative_demand - demands.unsqueeze(0)).pow(2))
+
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+    demand_balance = demand_balance * (1 + cumulative_demand / total_capacity)
+    heuristics = distance_scaling - demand_balance.unsqueeze(0)
+    
+    over_capacity_indices = (cumulative_demand > total_capacity)
+    over_capacity_penalty = (torch.arange(n)[over_capacity_indices].float() - total_capacity[over_capacity_indices] + 1) * demand_balance[over_capacity_indices].unsqueeze(0)
+
+    heuristics[over_capacity_indices] += over_capacity_penalty
+    heuristics[torch.arange(n) == 0] += demands[0]  # Ensure the depot node is visited last
+    return heuristics
+```

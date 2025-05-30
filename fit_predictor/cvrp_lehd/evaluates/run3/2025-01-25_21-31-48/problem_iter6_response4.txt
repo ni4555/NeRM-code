@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize features
+    normalized_distance = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    # Use distance inverses to emphasize closer nodes
+    inverse_distance = 1 - normalized_distance
+    
+    # Balance distance and demand by dividing the product by the sum of demands
+    distance_demand_ratio = inverse_distance * (demands / demands.sum())
+    
+    # Incorporate domain knowledge:
+    # Promote edges to nodes with high demand and low distance
+    # Penalize edges leading to overcapacity scenarios
+    heuristic_matrix = (demands - demands.min()) * distance_demand_ratio
+    # Introduce a penalty for longer paths, encouraging efficient use of vehicles
+    heuristic_matrix = -torch.sum(heuristic_matrix * normalized_distance, dim=1)
+    
+    return heuristic_matrix
+```

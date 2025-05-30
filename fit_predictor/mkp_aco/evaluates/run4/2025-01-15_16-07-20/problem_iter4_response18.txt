@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    density = prize / average_weight
+    
+    # Define a sparsity measure that is higher for items with lower weight per dimension
+    sparsity = np.prod(1 - weight, axis=1)
+    
+    # Adjust the sparsity measure to give higher weight to items with more dimensions contributing to the weight constraint
+    sparsity = sparsity * (np.sum(weight, axis=1) / weight.shape[1])
+    
+    # Combine density and sparsity into a heuristic score, with density having a higher weight
+    heuristic_score = density * 0.7 + sparsity * 0.3
+    
+    # Normalize the heuristic score by the maximum prize to get a relative score
+    relative_score = heuristic_score / max_prize
+    
+    # Apply a penalty to items that are less than half as good as the best item
+    penalty = (relative_score < 0.5) * -1.0
+    
+    # Final heuristic value, with penalty applied
+    heuristics = relative_score + penalty
+    
+    return heuristics
+```

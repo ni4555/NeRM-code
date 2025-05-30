@@ -1,0 +1,40 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def sigmoid(x):
+    return 1 / (1 + torch.exp(-x))
+
+def softmax(x, dim):
+    return F.softmax(x, dim=dim)
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Apply a non-linear transformation to emphasize positive contributions
+    emphasized_matrix = F.relu(potential_matrix)
+    
+    # Normalize the emphasized matrix to ensure non-negativity
+    normalized_emphasized_matrix = softmax(emphasized_matrix, dim=1)
+    
+    # Scale the normalized matrix to ensure the balance of demand and distance factors
+    demand_scale_factor = torch.max(penalty_matrix)
+    distance_scale_factor = torch.max(distance_penalty_matrix)
+    
+    # Scale the normalized matrix to ensure the balance of demand and distance factors
+    scaled_emphasized_matrix = (normalized_emphasized_matrix * demand_scale_factor) / (distance_scale_factor + 1e-6)
+    
+    # Normalize the heuristics matrix to ensure it sums to 1 over each row
+    heuristics_matrix = scaled_emphasized_matrix / scaled_emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    return heuristics_matrix
+```

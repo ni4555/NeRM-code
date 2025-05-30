@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Normalize demand to be relative to the total demand
+    normalized_demand = demands / total_demand
+    
+    # Calculate the negative distance for local heuristic
+    local_heuristic = -distance_matrix
+    
+    # Create global heuristic that captures total demand relative to capacity
+    global_heuristic = demands * (demands / total_demand)
+    
+    # Combine local and global heuristics
+    combined_heuristic = local_heuristic + global_heuristic
+    
+    # Incorporate global demand information
+    combined_heuristic += (normalized_demand * demands).unsqueeze(1).transpose(0, 1)
+    
+    # Scale by the inverse of the sum of demands per node to account for capacity constraints
+    heuristics = combined_heuristic / (1 + torch.sum(demands.unsqueeze(0), dim=1))
+    
+    # Use exponential to dampen the effect of negative values
+    heuristics = torch.exp(heuristics)
+    
+    # Normalize the heuristics to ensure non-negative values and scale the values for better interpretation
+    heuristics = torch.clamp(heuristics, min=0)
+    heuristics /= heuristics.max()
+    
+    return heuristics
+```

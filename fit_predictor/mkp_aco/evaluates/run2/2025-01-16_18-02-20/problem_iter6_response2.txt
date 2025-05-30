@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate a diversity score based on the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - normalized_prize.reshape(-1, 1)), axis=0)
+    
+    # Sparsity score measured by the sum of the weights that are zero across dimensions
+    sparsity_scores = np.sum(weight == 0, axis=1)
+    
+    # Create a comprehensive score that balances the normalized prize, diversity, and sparsity
+    comprehensive_score = 0.7 * normalized_prize + 0.2 * diversity_scores - 0.1 * sparsity_scores
+    
+    # Normalize the comprehensive score to get a heuristic
+    heuristics = comprehensive_score / np.sum(comprehensive_score)
+    
+    # Sparsify the heuristics by setting the top 50% of promising elements to 1
+    heuristics = np.where(heuristics >= 0.5, 1, 0)
+    
+    return heuristics
+```

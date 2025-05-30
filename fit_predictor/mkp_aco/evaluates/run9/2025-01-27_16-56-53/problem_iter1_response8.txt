@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Combine factors: weighted prize ratio, sparsity bonus, weight penalty
+    for i in range(n):
+        total_prize = np.sum(prize[i] * weight[i])
+        total_weight = np.sum(weight[i])
+        prize_ratio = total_prize / total_weight if total_weight != 0 else 0
+        
+        # Sparsity bonus for items with less weight in multiple dimensions
+        sparsity_bonus = 1 / (np.sum(weight[i] > 0) + 1)
+        
+        # Weight penalty for items with higher total weight
+        weight_penalty = total_weight / (np.sum(weight) + 1)
+        
+        # Adjust heuristic to balance exploration and exploitation
+        heuristic[i] = prize_ratio * sparsity_bonus - weight_penalty
+    
+    # Sparsify by setting items with very low heuristic to zero
+    heuristic[heuristic < heuristic.mean() * 0.01] = 0
+    
+    return heuristic
+```

@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a demand-based penalty matrix
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Use a non-linear transformation for distance matrix
+    distance_matrix = torch.log(distance_matrix + 1e-6)
+    
+    # Scale demand and distance penalties using min-max normalization
+    scaled_demand_penalty_matrix = (demand_penalty_matrix - torch.min(demand_penalty_matrix)) / \
+                                   (torch.max(demand_penalty_matrix) - torch.min(demand_penalty_matrix))
+    scaled_distance_matrix = (distance_matrix - torch.min(distance_matrix)) / \
+                              (torch.max(distance_matrix) - torch.min(distance_matrix))
+    
+    # Combine scaled demand and distance penalties
+    combined_potential = scaled_demand_penalty_matrix + scaled_distance_matrix
+    
+    # Normalize combined potential to avoid redundant steps
+    normalized_combined_potential = F.softmax(combined_potential, dim=1)
+    
+    # Avoid redundant steps by directly using the normalized potential
+    heuristics_matrix = normalized_combined_potential - torch.min(normalized_combined_potential)
+    
+    return heuristics_matrix
+```

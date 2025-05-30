@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    # Calculate the total demand for all customers
+    total_demand = demands[1:].sum()
+    # Normalize demands by the total capacity
+    normalized_demands = demands[1:] / total_demand
+    # Calculate the cost to serve each customer alone
+    individual_costs = distance_matrix[depot, 1:] * demands[1:]
+    # Calculate the weighted sum of distances
+    weighted_distances = distance_matrix[1:, 1:].sum(dim=0) * normalized_demands
+    # Calculate the heuristics value for each edge
+    heuristics = (individual_costs - weighted_distances).unsqueeze(0)
+    # Calculate the heuristics value for the return to the depot
+    heuristics[0, depot] = individual_costs[depot]
+    return heuristics
+```

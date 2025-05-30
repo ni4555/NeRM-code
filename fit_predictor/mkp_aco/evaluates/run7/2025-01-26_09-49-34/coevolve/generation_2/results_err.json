@@ -1,0 +1,38 @@
+{
+  "generation": 2,
+  "description": "Integrate a probabilistic selection mechanism with a metaheuristic framework to tackle the Multi-Knapsack Problem, optimizing for maximum prize while respecting weight capacities. This approach should leverage dimensionality reduction for normalized item data, implement an adaptive sampling routine for iterative improvement, and utilize a dynamic fitness assessment for real-time optimization. By combining a hybrid evolutionary algorithm with local search techniques, this strategy aims to achieve a balanced exploration-exploration trade-off, ensuring efficient prize maximization under stringent weight constraints.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    # Normalize weight data\n    weight_normalized = weight / np.sum(weight, axis=1, keepdims=True)\n    # Calculate initial heuristic values based on normalized weights\n    heuristic = np.dot(weight_normalized, prize)\n    # Dimensionality reduction using Principal Component Analysis (PCA)\n    from sklearn.decomposition import PCA\n    pca = PCA(n_components=1)\n    weight_reduced = pca.fit_transform(weight)\n    # Update heuristic with reduced dimensionality\n    heuristic += np.dot(weight_reduced, prize)\n    # Adaptive sampling routine for iterative improvement\n    for _ in range(10):  # Example of 10 iterations\n        # Dynamic fitness assessment\n        fitness = np.dot(weight_normalized, prize)\n        # Update heuristic based on fitness\n        heuristic = (heuristic * (1 - 0.1)) + (fitness * 0.1)\n    # Local search to refine the heuristic\n    for i in range(n):\n        # Swap items to find a better heuristic\n        for j in range(i + 1, n):\n            # Swap and calculate new heuristic\n            new_heuristic = heuristic.copy()\n            new_heuristic[i], new_heuristic[j] = new_heuristic[j], new_heuristic[i]\n            # Update heuristic if better\n            if np.sum(new_heuristic * weight) <= np.sum(heuristic * weight) and np.sum(new_heuristic * prize) > np.sum(heuristic * prize):\n                heuristic = new_heuristic\n    # Convert heuristic to binary selection\n    heuristic_binary = (heuristic > np.mean(heuristic)).astype(int)\n    return heuristic_binary",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 2, confidence: 0.9975)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    normalized_weight = weight / np.sum(weight, axis=1, keepdims=True)\n    fitness = prize / normalized_weight\n    \n    # Initialize heuristics based on fitness\n    heuristics = np.zeros(n)\n    \n    # Probabilistic selection based on fitness\n    cumulative_fitness = np.cumsum(fitness)\n    total_probability = np.sum(fitness)\n    random_points = np.random.rand(n)\n    for i in range(n):\n        heuristics[i] = cumulative_fitness[i] / total_probability\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 3, confidence: 0.9831)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    assert prize.shape == weight.shape, \"prize and weight must have the same shape\"\n\n    # Normalize items based on prize to weight ratio\n    normalized_prize = prize / weight.sum(axis=1)[:, np.newaxis]\n    \n    # Initial heuristic based on normalized prize\n    initial_heuristics = normalized_prize\n    \n    # Adaptive sampling routine\n    def adaptive_sampling(heuristic, n_samples=100):\n        sample_indices = np.random.choice(n, n_samples, replace=False)\n        sample_heuristics = heuristic[sample_indices]\n        return np.mean(sample_heuristics)\n    \n    # Dynamic fitness assessment\n    def dynamic_fitness(heuristic, weight, prize):\n        total_weight = np.dot(heuristic, weight)\n        return np.dot(heuristic, prize) if total_weight <= weight.sum() else 0\n    \n    # Iterative improvement using hybrid evolutionary algorithm with local search\n    def hybrid_evolutionary_local_search(heuristic, weight, prize, iterations=10):\n        for _ in range(iterations):\n            # Evolutionary step: Adaptive sampling\n            new_heuristic = adaptive_sampling(heuristic)\n            \n            # Local search step: Adjust heuristic based on dynamic fitness\n            for i in range(n):\n                potential_new_value = dynamic_fitness(new_heuristic, weight, prize)\n                if potential_new_value > dynamic_fitness(heuristic, weight, prize):\n                    new_heuristic[i] = 1 if potential_new_value > 0 else 0\n            \n            # Update heuristic\n            heuristic = new_heuristic\n        \n        return heuristic\n    \n    # Perform the hybrid evolutionary local search\n    optimized_heuristic = hybrid_evolutionary_local_search(initial_heuristics, weight, prize)\n    \n    return optimized_heuristic",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 4, confidence: 0.7086)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Normalize weight data\n    normalized_weight = weight / np.sum(weight, axis=1, keepdims=True)\n    \n    # Calculate the heuristic values\n    heuristic_values = normalized_weight * prize\n    \n    # Implement adaptive sampling\n    num_items = prize.shape[0]\n    sample_size = min(num_items, 100)  # Example of adaptive sampling size\n    sampled_indices = np.random.choice(num_items, sample_size, replace=False)\n    sampled_heuristics = heuristic_values[sampled_indices]\n    adaptive_heuristic = np.mean(sampled_heuristics)\n    \n    # Implement dynamic fitness assessment\n    dynamic_fitness = heuristic_values / (1 + np.abs(heuristic_values - adaptive_heuristic))\n    \n    # Combine with local search technique (e.g., local greedy selection)\n    selected_indices = np.argsort(dynamic_fitness)[::-1]\n    heuristics = np.zeros(num_items)\n    total_weight = np.zeros(m)\n    for i in selected_indices:\n        if np.all(total_weight < 1):\n            heuristics[i] = 1\n            total_weight += weight[i]\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main\\problems\\mkp_aco\\gpt.py\", line 9, in heuristics_v2\n    heuristic_values = normalized_weight * prize\n                       ~~~~~~~~~~~~~~~~~~^~~~~~~\nValueError: operands could not be broadcast together with shapes (100,5) (100,) \n",
+      "stdout_file": "coevolve\\generation_2\\stdout_1.txt",
+      "code_file": "coevolve\\generation_2\\code_1.py"
+    }
+  ]
+}

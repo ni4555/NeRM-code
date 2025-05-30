@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    available_capacity = demands[1:].clone()  # Exclude the depot node from capacity calculation
+
+    # Initialize the heuristics with the distance from the depot to each customer
+    heuristics[:, 1:] = distance_matrix[:, 1:]
+
+    # Apply symmetry and balance criteria
+    heuristics = (heuristics + heuristics.t()) / 2
+    available_capacity = available_capacity + available_capacity.t()
+
+    # Iterate over each customer to update heuristics based on capacity and demand
+    for node in range(1, n_nodes):
+        demand_diff = cumulative_demand[node] - cumulative_demand[node - 1]
+        for i in range(node + 1, n_nodes):
+            total_demand = cumulative_demand[i] - cumulative_demand[node]
+            if total_demand <= available_capacity[node]:
+                distance = distance_matrix[node, i]
+                heuristics[node, i] = distance
+                available_capacity[node] -= total_demand
+                if available_capacity[node] <= 0:
+                    break  # Vehicle is full, no more capacity for other destinations
+            else:
+                # If the vehicle goes to a node and can't go to another one due to capacity
+                break
+
+    # Add the distance back to the depot if needed
+    for node in range(1, n_nodes):
+        if available_capacity[node] <= 0:
+            heuristics[node, 0] = distance_matrix[node, 0]
+
+    return heuristics
+```

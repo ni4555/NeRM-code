@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize an array to store the heuristics values
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Calculate the maximum and minimum distances in the matrix
+    max_distance = np.max(distance_matrix)
+    min_distance = np.min(distance_matrix)
+    
+    # Calculate the average distance
+    average_distance = np.mean(distance_matrix)
+    
+    # Identify edges that are too long or too short relative to the average distance
+    long_edges = distance_matrix > (average_distance + average_distance * 0.1)
+    short_edges = distance_matrix < (average_distance - average_distance * 0.1)
+    
+    # Assign penalties for long and short edges based on their deviation from the average
+    heuristics[long_edges] = np.sqrt(distance_matrix[long_edges] - average_distance)
+    heuristics[short_edges] = np.sqrt(average_distance - distance_matrix[short_edges])
+    
+    # Apply a penalty for high connectivity which might indicate redundant paths
+    connectivity_penalty = np.sum(distance_matrix, axis=0) / max_distance
+    heuristics += connectivity_penalty
+    
+    # Apply a conditional penalty for edges that connect nodes with high similarity in their coordinates
+    # Assuming that the distance matrix contains Euclidean distances and that the coordinates are in the same row/column
+    # This part requires that the distance matrix is square and that the coordinates are available
+    # For simplicity, we will use the absolute difference between the maximum and minimum row sums as a proxy
+    row_similarity = np.abs(np.sum(distance_matrix, axis=1) - np.sum(distance_matrix, axis=0))
+    high_similarity_edges = row_similarity > average_distance * 0.05
+    heuristics[high_similarity_edges] += 1
+    
+    return heuristics
+```

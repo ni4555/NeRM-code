@@ -1,0 +1,55 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Dynamic distance penalty to account for cumulative load
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+
+    # Dynamic capacity penalty with consideration for the current load
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+
+    # Load balance heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+
+    # Introduce diversity by penalizing highly similar load distributions
+    diversity_penalty = torch.mean(torch.abs(load_balance - load_balance.mean()), dim=0)
+
+    # Apply scaling factors to prioritize core objectives
+    scaling_factors = {
+        'distance': 1.5,
+        'capacity': 1.0,
+        'overflow': 0.5,
+        'load_balance': 1.0,
+        'diversity': 0.5
+    }
+
+    # Combine penalties into a single heuristic score
+    heuristics = (scaling_factors['distance'] * distance_scaling +
+                  scaling_factors['capacity'] * capacity_penalty +
+                  scaling_factors['overflow'] * overflow_penalty +
+                  scaling_factors['load_balance'] * load_balance_penalty +
+                  scaling_factors['diversity'] * diversity_penalty)
+
+    # Apply an additional penalty for high load balance to avoid overloading any single vehicle
+    high_load_balance_penalty = torch.where(
+        load_balance > total_capacity / (3 * n),
+        -torch.log1p(load_balance - 1e-8),
+        torch.zeros_like(load_balance)
+    )
+    heuristics += high_load_balance_penalty
+
+    return heuristics
+```

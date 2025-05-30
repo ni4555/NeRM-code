@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Normalize the distances to account for varying scales
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Normalize the demands to get the fractional load per customer
+    fractional_loads = demands / total_demand
+    
+    # Encourage exploration over exploitation by adding a small constant to the heuristics
+    small_constant = 1e-4
+    
+    # Incorporate exploration-exploitation bias
+    heuristics_explore = -fractional_loads.unsqueeze(-1) * norm_distances
+    
+    # Incorporate exploitation by considering the current load
+    current_loads = torch.cumsum(fractional_loads, dim=0)
+    heuristics_exploit = -current_loads.unsqueeze(-1) * norm_distances
+    
+    # Weigh demand diversity
+    diversity_heuristics = -torch.sum(fractional_loads * norm_distances, dim=0).unsqueeze(-1)
+    
+    # Penalize clustering by penalizing consecutive visits to the same node
+    consecutive_penalty = (fractional_loads[:, None] == fractional_loads.unsqueeze(0)).float()
+    clustering_penalty = -consecutive_penalty * norm_distances
+    
+    # Combine heuristics for exploration, exploitation, diversity, and clustering
+    heuristics = (heuristics_explore + heuristics_exploit + diversity_heuristics + clustering_penalty)
+    
+    # Ensure non-negative heuristics by clamping
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    # Incorporate a cumulative demand insight to prioritize nodes that add more to the load
+    cumulative_loads = torch.cumsum(fractional_loads, dim=0)
+    heuristics += (cumulative_loads - cumulative_loads.unsqueeze(-1) * cumulative_loads)
+    
+    return heuristics
+```

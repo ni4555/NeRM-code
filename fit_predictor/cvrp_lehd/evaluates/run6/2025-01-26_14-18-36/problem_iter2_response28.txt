@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, vehicle_capacity: float) -> torch.Tensor:
+    """
+    An improved heuristic function for the CVRP that combines various criteria with weights.
+    """
+    n = distance_matrix.shape[0]
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    # Initialize the total demand
+    total_demand = demands.sum()
+    # Calculate the normalized demand
+    normalized_demand = demands / vehicle_capacity
+    
+    # Iterate over the edges
+    for i in range(1, n):
+        for j in range(1, n):
+            # Calculate the potential of the edge based on normalized demand and distance
+            potential = normalized_demand[i] * normalized_demand[j] * distance_matrix[i, j]
+            # Add a penalty for edges that go to nodes with high demand
+            penalty = (demands[i] + demands[j] > vehicle_capacity).float() * -1000
+            # Calculate the heuristic value by combining the potential and penalty
+            heuristic_value = potential + penalty
+            # Set the heuristic value on the heuristic matrix
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value
+    
+    # Add an incentive for edges going to the depot
+    incentive_depot = (normalized_demand.unsqueeze(0) * distance_matrix[:, 0]).sum(1)
+    heuristic_matrix[:, 0] = incentive_depot
+    
+    return heuristic_matrix
+```

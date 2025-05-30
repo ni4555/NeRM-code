@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate distance-weighted cumulative demand
+    distance_weighted_cumulative_demand = distance_matrix * cumulative_demand.unsqueeze(1)
+
+    # Calculate the potential heuristic based on remaining capacity and distance-weighted cumulative demand
+    potential_heuristic = remaining_capacity - distance_weighted_cumulative_demand
+
+    # Introduce a penalty for nodes with demands exceeding capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+
+    # Introduce a penalty for edges leading back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+
+    # Combine penalties and potential heuristic
+    heuristic = potential_heuristic - capacity_penalty - depot_penalty
+
+    # Add exploration noise to encourage diverse solutions
+    exploration_noise = torch.randn_like(heuristic) * 0.01
+
+    # Normalize the heuristic to encourage exploration and exploitation
+    heuristic = torch.exp(heuristic)
+    heuristic = heuristic / (heuristic + 1.0)
+
+    # Apply penalties to ensure a balance between exploration and exploitation
+    heuristic -= capacity_penalty * 0.5
+    heuristic += depot_penalty * 0.5
+
+    # Ensure all heuristics are in a range [0, 1] for proper selection
+    heuristic = torch.clamp(heuristic, min=0.0, max=1.0)
+
+    return heuristic
+```

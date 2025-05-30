@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Define weights for different components
+    demand_weight = 0.5
+    distance_weight = 0.3
+    outlier_penalty_weight = 0.2
+
+    # Define outlier thresholds
+    max_demand_threshold = 0.8
+    high_demand_threshold = 1.1
+
+    # Create masks for outlier penalties
+    high_demand_mask = (demands > demands.max() * max_demand_threshold).float()
+    outlier_mask = (demands > demands.max() * high_demand_threshold).float()
+
+    # Calculate the demand-based heuristic component
+    demand_component = -torchOuterProduct(normalized_demands, normalized_demands)
+
+    # Calculate the distance-based heuristic component
+    distance_component = distance_matrix
+
+    # Calculate the demand outlier penalty
+    demand_penalty = outlier_penalty_weight * (high_demand_mask * high_demand_mask)
+
+    # Combine the components to create the heuristic matrix
+    heuristic_matrix = demand_component * demand_weight + distance_component * distance_weight + demand_penalty
+
+    # Normalize the heuristic matrix to ensure positive values for promising edges
+    heuristic_matrix = heuristic_matrix / (heuristic_matrix.abs().max() + 1e-8)
+
+    return heuristic_matrix
+
+# Custom implementation of torchOuterProduct for vectorization
+def torchOuterProduct(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    return a[:, None] * b[None, :]
+```

@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that balances demand and distance penalties and leverages vectorization."""
+    n = distance_matrix.shape[0]
+    demand_diff = demands - demands.mean()
+    distance_penalty = distance_matrix * (1 - torch.exp(-demands))
+    
+    # We balance the penalties by normalizing the heuristic matrix
+    # We use a normalization factor to avoid large negative values
+    max_demand_diff = torch.max(torch.abs(demand_diff))
+    max_distance_penalty = torch.max(torch.abs(distance_penalty))
+    
+    # We use a small positive constant to avoid division by zero
+    epsilon = 1e-6
+    
+    # Normalize the penalties
+    normalized_demand_diff = -torch.abs(demand_diff) / (max_demand_diff + epsilon)
+    normalized_distance_penalty = distance_penalty / (max_distance_penalty + epsilon)
+    
+    # Combine the normalized penalties
+    heuristic_matrix = normalized_demand_diff + normalized_distance_penalty
+    
+    # Adding a bonus to return to the depot
+    heuristic_matrix[torch.arange(n), torch.arange(n)] += 1
+    
+    return heuristic_matrix
+```

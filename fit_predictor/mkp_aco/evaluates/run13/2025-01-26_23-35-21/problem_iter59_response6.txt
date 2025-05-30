@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the density as a metric for how valuable each item is per unit weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate sparsity as a measure of how spread out the weight distribution is
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items by removing items that are dominated by others
+    dominance_filter = np.ones(n, dtype=bool)
+    for i in range(n):
+        for j in range(n):
+            if (prize[j] / weight[j, :].sum() > prize[i] / weight[i, :].sum()) and (sparsity[j] < sparsity[i]):
+                dominance_filter[i] = False
+                break
+    
+    # Use a random factor to ensure diversity in the selection
+    random_factor = np.random.rand(n)
+    
+    # Normalize the metrics and random factor
+    normalized_density = density / (np.max(density) + 1e-8)
+    normalized_sparsity = sparsity / (np.max(sparsity) + 1e-8)
+    
+    # Integrate the metrics and random factor to create a heuristic
+    heuristic = normalized_density * (1 - normalized_sparsity) + random_factor
+    
+    # Apply the dominance filter to remove dominated items
+    heuristic[~dominance_filter] = 0
+    
+    return heuristic
+```

@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+
+    # Introduce penalties for infeasibilities and balance between exploration and exploitation
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    feasible_edges = (heuristics_matrix > 0).float()
+    exploration_factor = (torch.rand(n) * 2 - 1) * feasible_edges  # Exploration factor
+    exploitation_factor = feasible_edges  # Exploitation factor
+
+    # Adjust heuristics based on the exploration and exploitation factors
+    heuristics_matrix += exploration_factor + exploitation_factor * infeasibility_penalty
+    return heuristics_matrix
+```

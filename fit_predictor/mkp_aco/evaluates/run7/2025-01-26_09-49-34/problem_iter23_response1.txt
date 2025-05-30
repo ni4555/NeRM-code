@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the diversity factor based on the standard deviation of weight dimensions
+    diversity_factor = np.std(weight, axis=1)
+    
+    # Calculate the sparsity factor based on the number of non-zero weight dimensions
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Calculate the inverse variance factor
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    
+    # Combine factors to create a heuristic
+    combined_heuristic = normalized_prize * diversity_factor * sparsity_factor * inv_variance_factor
+    
+    # Introduce an adaptive threshold based on the average heuristic value
+    adaptive_threshold = np.mean(combined_heuristic)
+    
+    # Apply thresholding to promote sparsity
+    heuristics = np.where(combined_heuristic > adaptive_threshold, combined_heuristic, 0)
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    return heuristics
+```

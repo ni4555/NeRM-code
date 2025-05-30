@@ -1,0 +1,38 @@
+{
+  "generation": 1,
+  "description": "Employing advanced metaheuristics and stochastic optimization techniques, we propose a novel solution framework for the Multi-Knapsack Problem (MKP) that leverages adaptive sampling strategies to iteratively refine candidate solutions. This approach integrates dynamic fitness evaluation, multi-objective optimization, and robust perturbation algorithms to achieve a synergistic balance between exploration and exploitation, ultimately leading to more effective and efficient prize maximization under stringent weight constraints.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom scipy.optimize import differential_evolution\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    def objective_function(x):\n        selected_indices = np.where(x > 0)[0]\n        if not selected_indices.any():\n            return np.sum(prize)\n        weight_sum = np.sum(weight[selected_indices])\n        return np.sum(prize[selected_indices]) - weight_sum\n\n    bounds = [(0, 1) for _ in range(prize.size)]\n    result = differential_evolution(objective_function, bounds, strategy='best1bin', polish=True, popsize=40, mutation=(0.5, 1.0), recombination=0.7, disp=False)\n    return result.x",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 2, confidence: 0.9689)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    m = weight.shape[1]\n    if m != 1:\n        raise ValueError(\"Each item must have only one weight dimension\")\n    \n    # Calculate the sum of prizes for each item\n    item_values = prize.sum(axis=1)\n    \n    # Calculate the maximum weight capacity\n    max_capacity = np.prod(weight, axis=1).sum()\n    \n    # Normalize item values based on maximum capacity\n    normalized_values = item_values / max_capacity\n    \n    # Initialize the heuristic array\n    heuristics = np.zeros_like(prize, dtype=np.float64)\n    \n    # Calculate the heuristic based on normalized values\n    heuristics = normalized_values\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 3, confidence: 0.9988)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    heuristic_values = np.zeros(n)\n    \n    # Initialize a priority queue with items sorted by prize-to-weight ratio\n    priority_queue = [(prize[i] / np.sum(weight[i]), i) for i in range(n)]\n    heapq.heapify(priority_queue)\n    \n    # Adaptive sampling strategy\n    for i in range(min(n, m)):  # Limit the number of items to explore\n        _, item_index = heapq.heappop(priority_queue)\n        heuristic_values[item_index] = 1.0\n    \n    # Dynamic fitness evaluation\n    for i in range(n):\n        if heuristic_values[i] == 0:\n            # Robust perturbation algorithm\n            perturbed_item = np.random.choice(n)\n            if np.sum(weight[perturbed_item]) <= m and np.sum(prize[perturbed_item]) > 0:\n                heuristic_values[perturbed_item] = 1.0\n    \n    # Multi-objective optimization\n    heuristic_values /= np.sum(heuristic_values)\n    \n    return heuristic_values",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 4, confidence: 0.1476)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the total weight capacity for each knapsack\n    total_capacity = np.sum(weight, axis=1)\n    \n    # Calculate the total prize for each item\n    item_prize_weight_ratio = prize / weight\n    \n    # Initialize heuristics array with zeros\n    heuristics = np.zeros_like(prize)\n    \n    # Sort items based on the prize-to-weight ratio in descending order\n    sorted_indices = np.argsort(item_prize_weight_ratio)[::-1]\n    \n    # Iterate over each knapsack\n    for i in range(weight.shape[0]):\n        # Calculate the remaining capacity of the knapsack\n        remaining_capacity = total_capacity[i] - np.sum(weight[:i], axis=1)\n        \n        # Iterate over the sorted items\n        for j in sorted_indices:\n            # Check if the item can be added to the current knapsack\n            if weight[j, i] <= remaining_capacity:\n                # Update the heuristics value\n                heuristics[j] = 1\n                # Update the remaining capacity of the knapsack\n                remaining_capacity -= weight[j, i]\n                break\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main\\problems\\mkp_aco\\gpt.py\", line 9, in heuristics_v2\n    item_prize_weight_ratio = prize / weight\n                              ~~~~~~^~~~~~~~\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve\\generation_1\\stdout_0.txt",
+      "code_file": "coevolve\\generation_1\\code_0.py"
+    }
+  ]
+}

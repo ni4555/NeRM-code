@@ -1,0 +1,58 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate the heuristic value for each edge based on scaled demand and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Introduce a dampening factor to reduce the impact of high penalties
+    dampening_factor = 0.5
+
+    # Add a penalty for edges that lead to a node with demand greater than vehicle capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * dampening_factor
+
+    # Add a dampened penalty for edges leading back to the depot (index 0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * dampening_factor
+
+    # Normalize the heuristic values to the range [0, 1] using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Introduce a diversity factor to balance the heuristic distribution
+    diversity_factor = 0.1
+    distance_to_depot = distance_matrix[:, 0]
+    diversity_term = torch.mean(distance_to_depot)
+    heuristics += diversity_factor * (distance_to_depot - diversity_term)
+
+    # Fine-tune dampening for stability and balance
+    heuristics *= dampening_factor
+
+    # Apply a non-linear transformation to the heuristic values to avoid local optima
+    heuristics = torch.sigmoid(heuristics)
+
+    # Further balancing of penalties to promote a better heuristic distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    # Normalize penalties uniformly
+    penalties = torch.cat([capacity_penalty, depot_penalty], dim=1)
+    max_penalty = penalties.max()
+    min_penalty = penalties.min()
+    penalties = (penalties - min_penalty) / (max_penalty - min_penalty)
+
+    # Apply penalties to the heuristics
+    heuristics -= penalties * dampening_factor
+
+    return heuristics
+```

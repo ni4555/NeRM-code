@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Integrate demand and distance with non-linear penalties, normalize, and adjust weights dynamically
+    # Here we introduce a non-linear component to the heuristic which could be a more complex function
+    # of the distance and demand, e.g., a logarithmic or exponential function.
+    non_linear_component = torch.log1p(torch.mul(normalized_demands, distance_matrix))
+    
+    # Balance diversity and demand variance
+    # Normalize the variance and apply a threshold
+    demand_variance = (demands - normalized_demands.mean()).pow(2).mean()
+    variance_adjustment = demand_variance / demand_variance.max()
+    variance_adjustment = torch.clamp(variance_adjustment, min=0.1, max=1.0)
+    
+    # Incorporate cumulative demand, capacity, and global network stats
+    # Calculate the cumulative demand and add a penalty if the cumulative demand exceeds a certain threshold
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    capacity_threshold = torch.tensor(1.0, dtype=distance_matrix.dtype)
+    capacity_penalty = torch.where(cumulative_demand > capacity_threshold,
+                                   torch.abs(cumulative_demand - capacity_threshold),
+                                   torch.zeros_like(cumulative_demand))
+    
+    # Normalize, smooth, and penalize outliers
+    # Use a moving average to smooth the heuristics and penalize outliers
+    moving_average = torch.nn.functional.moving_average(distance_matrix, window_size=3)
+    outlier_penalty = torch.abs(distance_matrix - moving_average)
+    outlier_penalty = torch.clamp(outlier_penalty, min=0.0, max=1.0)
+    
+    # Combine the components into a single heuristic matrix
+    heuristic_matrix = non_linear_component * variance_adjustment + capacity_penalty + outlier_penalty
+    
+    # Normalize the heuristic matrix to ensure values are within a range
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-torch.tensor(0.1, dtype=distance_matrix.dtype),
+                                   max=torch.tensor(1.0, dtype=distance_matrix.dtype))
+    
+    return heuristic_matrix
+```

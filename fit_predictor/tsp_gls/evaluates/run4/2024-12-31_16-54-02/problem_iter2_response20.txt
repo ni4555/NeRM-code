@@ -1,0 +1,37 @@
+```python
+import numpy as np
+
+def dijkstra_shortest_path(source: int, distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    visited = np.zeros(n, dtype=bool)
+    min_distance = np.full(n, np.inf)
+    min_distance[source] = 0
+    path = np.zeros(n)
+    path[source] = -1  # -1 indicates that this node is the source node
+
+    for _ in range(n):
+        current_index = np.argmax(min_distance[~visited])
+        visited[current_index] = True
+
+        for i in range(n):
+            if not visited[i] and distance_matrix[current_index, i] < min_distance[i]:
+                min_distance[i] = distance_matrix[current_index, i]
+                path[i] = current_index
+                if min_distance[i] == 0:  # If we have reached a destination node
+                    break
+
+    return min_distance, path
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    heuristics = np.zeros_like(distance_matrix)
+    n = distance_matrix.shape[0]
+
+    for i in range(n):
+        min_distance, _ = dijkstra_shortest_path(i, distance_matrix)
+        for j in range(n):
+            if i != j:
+                heuristics[i, j] = min_distance[j]
+
+    # Since the heuristic is symmetric, we only calculate it for i to j
+    return heuristics
+```

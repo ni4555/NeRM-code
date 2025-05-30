@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands = demands / total_capacity
+    demand_scale = demands.unsqueeze(1) - demands.unsqueeze(0)
+    distance_scale = distance_matrix / distance_matrix.max()
+
+    # Calculate the penalty for returning to the depot and add it to the heuristic values.
+    return_penalty = demands[0] * -1  # Using negative for a penalty
+    heuristic_matrix = distance_scale * demand_scale
+    heuristic_matrix[torch.arange(n), 0] += return_penalty
+    heuristic_matrix[0, torch.arange(n)] += return_penalty
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = heuristic_matrix.max()
+    min_heuristic = heuristic_matrix.min()
+    if max_heuristic != min_heuristic:
+        heuristic_matrix = (heuristic_matrix - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        # Avoid division by zero
+        heuristic_matrix = torch.ones_like(heuristic_matrix)
+
+    return heuristic_matrix
+```

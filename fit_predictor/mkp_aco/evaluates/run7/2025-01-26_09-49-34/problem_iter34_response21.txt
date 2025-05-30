@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    
+    # Normalize prize and weight
+    normalized_prize = prize / np.sum(prize)
+    inv_weight_sum = 1 / np.sum(weight, axis=1)
+    
+    # Diversity through sparsity factor
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Inverse variance factor to promote items with lower variance
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    
+    # Initial heuristic calculation
+    heuristics = normalized_prize * inv_weight_sum * sparsity_factor * inv_variance_factor
+    
+    # Introduce noise for diversity with dynamic noise level
+    noise_level = np.random.rand() / np.sum(sparsity_factor)
+    np.random.seed(0)
+    perturbation = np.random.normal(0, noise_level, size=heuristics.shape)
+    heuristics += perturbation
+    
+    # Adaptive thresholding
+    threshold_weight = np.random.rand()
+    adaptive_threshold = np.percentile(heuristics, (1 - threshold_weight) * 100)
+    
+    # Apply threshold to encourage diversity and avoid overfitting
+    heuristics[heuristics < adaptive_threshold] = 0
+    
+    # Iterative refinement
+    for i in range(n):
+        if heuristics[i] > 0 and sparsity_factor[i] > 0.3:
+            heuristics[i] = adaptive_threshold
+    
+    # Normalize heuristics to ensure they sum to 1
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce a random factor for diversity
+    random_factor = torch.randn_like(remaining_capacity) * 0.1
+
+    # Calculate a penalty for exceeding the vehicle capacity
+    capacity_penalty = (scaled_demands > 1.0).float() * -1000.0
+
+    # Use a heuristic value based on normalized distance and remaining capacity
+    heuristics = (distance_matrix * remaining_capacity).squeeze()
+
+    # Apply exploration and exploitation
+    heuristics = heuristics - (capacity_penalty * remaining_capacity) + random_factor
+
+    # Dampen extreme heuristic values to encourage balance
+    heuristics = torch.sigmoid(heuristics)
+
+    # Apply a penalty for returning to the depot and for edges far from the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    distance_from_depot = distance_matrix[:, 0]
+    distance_penalty = torch.clamp(distance_from_depot - distance_from_depot.mean(), min=0) * -5
+    heuristics += depot_penalty * 0.5 + distance_penalty * 0.5
+
+    # Ensure heuristic values are balanced by clamping
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

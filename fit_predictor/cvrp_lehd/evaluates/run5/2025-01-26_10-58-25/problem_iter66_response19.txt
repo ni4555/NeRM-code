@@ -1,0 +1,41 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a demand penalty matrix where high demand is penalized
+    demand_penalty_matrix = -torch.relu(1 - demands / vehicle_capacity)
+    
+    # Normalize the distance matrix using softmax to give a probability distribution
+    # This helps in emphasizing shorter distances
+    normalized_distance_matrix = F.softmax(-torch.log(distance_matrix + 1e-6), dim=1)
+    
+    # Create a distance-based penalty matrix to balance with demand penalties
+    distance_penalty_matrix = -normalized_distance_matrix
+    
+    # Combine demand and distance penalties into a single potential matrix
+    combined_potential_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Apply a non-linear transformation to emphasize the constraints
+    emphasized_matrix = F.relu(combined_potential_matrix)
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = F.normalize(emphasized_matrix, p=1, dim=1)
+    
+    # Blend the normalized emphasized matrix with the distance penalty matrix
+    blend_ratio = 0.5  # Example blend ratio, can be adjusted
+    blended_potential_matrix = blend_ratio * normalized_emphasized_matrix + (1 - blend_ratio) * distance_penalty_matrix
+    
+    # Adjust the blended penalty matrix to ensure that the values are not too close to zero
+    adjusted_blended_potential_matrix = blended_potential_matrix - torch.min(blended_potential_matrix)
+    
+    # Create the heuristics matrix by inverting the adjusted blended penalty matrix
+    heuristics_matrix = 1 / (adjusted_blended_potential_matrix + 1e-6)
+    
+    # Ensure the matrix has non-negative values by adding a small positive value
+    heuristics_matrix = heuristics_matrix - torch.min(heuristics_matrix)
+    
+    return heuristics_matrix
+```

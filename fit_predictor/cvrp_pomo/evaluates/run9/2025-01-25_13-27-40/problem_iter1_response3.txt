@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """
+    A heuristic function that assigns higher values to edges that have a lower distance
+    and can be visited without exceeding the vehicle's capacity, considering the demand
+    of the destination node.
+    """
+    # Calculate the sum of demands up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the maximum demand that can be visited without exceeding the vehicle's capacity
+    max_demand = (cumulative_demand - demands) / demands
+    
+    # Calculate the heuristic value for each edge
+    heuristic_values = (1 / (distance_matrix + 1e-8)) * max_demand
+    
+    # Ensure that edges that exceed the vehicle's capacity are marked as undesirable
+    heuristic_values[torch.cumsum(demands, dim=0) > demands] = -float('inf')
+    
+    return heuristic_values
+```

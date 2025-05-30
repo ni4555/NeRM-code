@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate a penalty for each edge based on distance, remaining capacity, and overflow risk
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    capacity_penalty = -torch.log1p(torch.abs(demands - remaining_capacity) - 1e-8)
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Introduce load balancing by encouraging equal demand distribution across nodes
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Dynamic load scaling to increase penalties for nodes that add to higher loads
+    load_scaling = torch.clamp((demands - 1) / demands, min=0, max=1)
+    
+    # Combine penalties to form the heuristic values
+    heuristics = (
+        distance_penalty +
+        capacity_penalty +
+        overflow_penalty +
+        load_balance_penalty
+    ) * load_scaling
+
+    # Introduce diversity by penalizing nodes with very similar load distributions
+    diversity_penalty = torch.exp(-torch.sum((load_balance[:, None] == load_balance[None, :])**2, dim=1))
+
+    # Normalize the heuristics so that the sum of heuristics across all edges equals the number of edges
+    total_heuristics = heuristics.sum()
+    normalized_heuristics = heuristics / (total_heuristics + 1e-8)
+
+    return normalized_heuristics
+```

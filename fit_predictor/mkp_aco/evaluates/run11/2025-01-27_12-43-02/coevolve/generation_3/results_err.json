@@ -1,0 +1,38 @@
+{
+  "generation": 3,
+  "description": "Develop an advanced algorithmic framework for addressing the Multiple Knapsack Problem (MKP) through a comprehensive stochastic sampling strategy. This framework will integrate state-of-the-art reinforcement learning algorithms with adaptive sampling mechanisms to dynamically select item subsets. The emphasis will be on leveraging a synergistic blend of evolutionary computation, specifically incorporating genetic algorithms, and heuristic-based stochastic local search techniques. The objective is to optimize the selection process, maximizing the cumulative value while respecting complex weight constraints, thus providing a robust and efficient solution approach for MKP.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    # Initialize heuristic scores as the inverse of the average weight for each item\n    heuristics = 1 / np.mean(weight, axis=1)\n    # Adjust heuristics based on prize to weight ratio\n    heuristics = heuristics * (prize / heuristics)\n    # Incorporate stochastic local search to refine heuristics\n    for _ in range(10):  # Number of iterations for stochastic local search\n        for i in range(n):\n            # Randomly swap two items to evaluate the impact on heuristic\n            j = np.random.randint(n)\n            heuristics[i], heuristics[j] = heuristics[j], heuristics[i]\n            # Evaluate the feasibility of the swap\n            if np.all(weight * heuristics < 1):\n                break\n            # Swap back if the swap is not feasible\n            heuristics[i], heuristics[j] = heuristics[j], heuristics[i]\n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 2, confidence: 0.9980)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Initialize heuristic values to 0\n    heuristics = np.zeros_like(prize)\n    \n    # Calculate heuristic as the ratio of prize to weight\n    heuristics = prize / np.sum(weight, axis=1)\n    \n    # Apply a simple stochastic local search to refine the heuristic values\n    for _ in range(10):  # Number of iterations for the local search\n        for i in np.argsort(heuristics)[::-1]:  # Consider items in descending order of heuristic\n            for j in range(i+1, len(prize)):\n                if np.all(weight[i] <= weight[j]):\n                    # Swap items if the new item has a higher heuristic value\n                    heuristics[i], heuristics[j] = heuristics[j], heuristics[i]\n                    break\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 3, confidence: 0.9990)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Assuming that the prize and weight arrays are 1D and have the same length\n    n = prize.shape[0]\n    m = weight.shape[1]\n    \n    # Calculate the inverse of the weights for each item\n    weight_inverse = 1.0 / weight\n    \n    # Calculate the heuristic value for each item\n    heuristics = prize / (weight_inverse.sum(axis=1) + 1e-8)  # Adding a small constant to avoid division by zero\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 4, confidence: 0.9990)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nimport random\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    heuristic_scores = np.zeros(n)\n    \n    # Initialize with a random subset\n    selected_items = set(random.sample(range(n), n // 2))\n    \n    # Genetic Algorithm Parameters\n    population_size = 10\n    mutation_rate = 0.05\n    generations = 100\n    \n    # Stochastic Local Search Parameters\n    local_search_iterations = 20\n    \n    # Genetic Algorithm\n    for _ in range(generations):\n        population = [selected_items for _ in range(population_size)]\n        for _ in range(local_search_iterations):\n            for individual in population:\n                # Mutation\n                if random.random() < mutation_rate:\n                    item_to_change = random.choice(list(individual))\n                    new_item = random.randint(0, n - 1)\n                    individual.remove(item_to_change)\n                    individual.add(new_item)\n                \n                # Evaluate the individual\n                value = sum(prize[i] for i in individual)\n                weight_sum = sum(weight[i, 0] for i in individual)\n                heuristic_scores[individual] = value - weight_sum\n        \n        # Select the best individual\n        selected_items = max(population, key=lambda x: heuristic_scores[x])\n    \n    # Stochastic Local Search\n    best_value = sum(prize[i] for i in selected_items)\n    best_weight_sum = sum(weight[i, 0] for i in selected_items)\n    for _ in range(local_search_iterations):\n        for i in selected_items:\n            if random.random() < 0.5:\n                # Remove item\n                selected_items.remove(i)\n                weight_sum = sum(weight[j, 0] for j in selected_items)\n                if weight_sum + weight[i, 0] <= 1:\n                    selected_items.add(i)\n            else:\n                # Add item\n                for j in range(n):\n                    if j not in selected_items and weight[j, 0] <= 1 - sum(weight[k, 0] for k in selected_items):\n                        selected_items.add(j)\n                        weight_sum = sum(weight[k, 0] for k in selected_items)\n                        if weight_sum > 1:\n                            selected_items.remove(j)\n                        break\n        \n        # Evaluate the new solution\n        value = sum(prize[i] for i in selected_items)\n        weight_sum = sum(weight[i, 0] for i in selected_items)\n        if value > best_value:\n            best_value = value\n            best_weight_sum = weight_sum\n    \n    # Calculate heuristic scores based on the best solution found\n    for i in range(n):\n        if weight[i, 0] <= 1 - best_weight_sum:\n            heuristic_scores[i] = prize[i] - weight[i, 0]\n    \n    return heuristic_scores",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main\\problems\\mkp_aco\\gpt.py\", line 35, in heuristics_v2\n    heuristic_scores[individual] = value - weight_sum\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^\nIndexError: only integers, slices (`:`), ellipsis (`...`), numpy.newaxis (`None`) and integer or boolean arrays are valid indices\n",
+      "stdout_file": "coevolve\\generation_3\\stdout_3.txt",
+      "code_file": "coevolve\\generation_3\\code_3.py"
+    }
+  ]
+}

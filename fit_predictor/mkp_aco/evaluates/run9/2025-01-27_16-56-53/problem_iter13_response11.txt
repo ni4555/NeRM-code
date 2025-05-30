@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = np.sum(prize[i] * weight[i])
+        total_weight = np.sum(weight[i])
+        # Normalize by weight to get a per-item heuristic and penalize high weight
+        heuristic[i] = (total_prize / total_weight) / (1 + total_weight)
+    
+    # Normalize factors, apply consistent mutation, and use granular penalties
+    heuristic = (heuristic - np.min(heuristic)) / (np.max(heuristic) - np.min(heuristic))
+    mutation_factor = np.random.normal(0, 0.01, n)
+    heuristic += mutation_factor
+    
+    # Introduce randomness, enhance diversity, and penalize outliers
+    for i in range(n):
+        heuristic[i] *= (1 - np.std(weight[i]) / np.max(weight))
+    
+    # Balance exploration and exploitation using an adaptive mechanism
+    exploration_factor = np.random.rand(n)
+    exploitation_factor = np.zeros(n)
+    for i in range(n):
+        exploitation_factor[i] = 1 / (1 + weight[i].sum())
+    adaptive_heuristic = (exploration_factor + exploitation_factor) * heuristic
+    
+    # Set low-value items and those with high total weight to zero
+    heuristic[heuristic < np.min(adaptive_heuristic) * 0.1] = 0
+    heuristic[weight.sum(axis=1) > m * 0.8] = 0
+    
+    return adaptive_heuristic
+```

@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Initialize potential values matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Incorporate distance-based potential
+    potential_values += normalized_distances
+    
+    # Incorporate demand relaxation based on partitioning
+    partition_threshold = 0.7  # Adaptive threshold for partitioning
+    relaxed_demands = torch.where(normalized_demands > partition_threshold, 
+                                  normalized_demands, 
+                                  0.0)
+    
+    # Use a weighted combination of distance and demand relaxation
+    weights = torch.rand(1, n) * 2 - 1  # Random weights between -1 and 1
+    potential_values += weights * relaxed_demands
+    
+    # Apply dynamic window approach
+    time_factor = torch.arange(n).float() / n
+    potential_values += torch.exp(-time_factor)
+    
+    # Balance weights based on total demand of neighbors
+    neighbor_demand_sums = torch.zeros(n)
+    for i in range(n):
+        # Sum the demands of all neighbors within a certain distance threshold
+        neighbor_indices = distance_matrix[i, :] < max_distance
+        neighbor_demand_sums[i] = demands[neighbor_indices].sum()
+    
+    # Increase potential if the total demand of the neighbors is low
+    potential_values[neighbor_demand_sums < max_demand] += (1 - (neighbor_demand_sums / max_demand))
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

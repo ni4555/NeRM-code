@@ -1,0 +1,57 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, vehicle_capacity: float) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a balance heuristic
+    distance_weight = 0.5
+    demand_weight = 2.0
+    penalty_threshold = 0.8  # Nodes with demand greater than 0.8 times the average demand are penalized
+    average_demand = normalized_demands.mean()
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                normalized_demands - average_demand, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Introduce a node partitioning approach to separate nodes based on their demand
+    partitioning_factor = 0.5
+    partitioning = torch.where(normalized_demands > average_demand, 
+                                normalized_demands, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Adjust potential values based on partitioning
+    potential_values = (normalized_distances * (1 - partitioning) +
+                        distance_weight * normalized_distances +
+                        demand_weight * normalized_demands - 
+                        penalty_term * partitioning).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Introduce a dynamic window approach to adapt weights based on current vehicle capacity
+    dynamic_weight = 1.0 / (1.0 + vehicle_capacity)
+    potential_values *= dynamic_weight
+    
+    # Demand variance-based heuristic
+    demand_variance = (normalized_demands - average_demand)**2
+    variance_weight = 0.3
+    potential_values += variance_weight * demand_variance
+    
+    # Avoid redundancy by introducing a proximity-based adjustment
+    proximity_weight = 0.2
+    proximity_adjustment = torch.sum(normalized_distances**2, dim=1)
+    potential_values -= proximity_adjustment * proximity_weight
+    
+    return potential_values
+```

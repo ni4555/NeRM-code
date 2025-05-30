@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the start node
+    cum_demands = torch.cumsum(demands, dim=0)
+    # Calculate the cumulative distance from the start node
+    cum_distance = distance_matrix.sum(dim=1)
+    # Calculate the total demand from the start node to each node
+    total_demand = cum_demands - demands[0]
+    # Create a binary mask where a 1 indicates the vehicle is still under capacity
+    capacity_mask = total_demand < demands[0]
+    # Initialize the heuristic matrix with a negative value
+    heuristics = -torch.ones_like(distance_matrix)
+    # Calculate the heuristic values based on the cumulative demand and distance
+    heuristics[capacity_mask] = (demands[0] - cum_demands[capacity_mask]) / cum_distance[capacity_mask]
+    # Return the heuristic matrix
+    return heuristics
+```

@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize a matrix of zeros with the same shape as the distance matrix
+    edge_potential = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Incorporate problem-specific constraints:
+    # - High demand penalizes edge potential
+    # - Short distance edges have higher potential
+    # - Distance above a certain threshold is penalized
+    # - Distance below a certain threshold is also penalized
+    # - The potential is influenced by the difference between the maximum and minimum demand
+    #   to encourage diversity in the solution.
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    demand_diff = max_demand - min_demand
+    
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    distance_threshold = 1.5  # Threshold for penalizing short and long distances
+    
+    # Compute the potential for each edge
+    edge_potential = normalized_demands * (1 / (distance_matrix + epsilon)) - demand_diff * (distance_matrix - 1)
+    
+    # Apply penalties for distances that are too short or too long
+    edge_potential = torch.where(
+        distance_matrix < distance_threshold,
+        edge_potential - normalized_demands * (distance_matrix - distance_threshold),
+        edge_potential + normalized_demands * (distance_matrix - distance_threshold)
+    )
+    
+    # Ensure that the potential is within a certain range
+    edge_potential = torch.clamp(edge_potential, min=-10.0, max=10.0)
+    
+    return edge_potential
+```

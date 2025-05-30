@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Demand factor: scaled demand for dominance consideration
+    demand_factor = -demands / (torch.max(demands) if torch.max(demands) > 0 else 1)
+    
+    # Distance dampening: non-linear dampening to focus on local edges
+    distance_dampening = 1 / (1 + torch.exp(distance_matrix / (torch.mean(torch.abs(distance_matrix)) * 0.5)))
+    
+    # Local factors: excluding the depot, focusing on demand-driven local paths
+    local_factors = torch.where(
+        distance_matrix < torch.mean(torch.abs(distance_matrix)),
+        demand_factor,
+        0
+    )
+    
+    # Scale demand to vehicle capacity for problem invariance
+    demand_scaled = demand_factor / total_capacity
+    
+    # Vectorized operation for normalizing demand and distance factors
+    demand_normalized = torch.clamp(demand_scaled, 0, 1)
+    distance_normalized = torch.clamp(distance_dampening, 0, 1)
+    
+    # Combine the factors
+    heuristic_matrix = demand_normalized + distance_normalized
+    
+    # Exclude depot from local factors and adjust for non-negative weights
+    for i in range(1, n):
+        route_demand = demands[i] + (total_capacity - demands[i])
+        heuristic_matrix[0, i] = -route_demand
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    return heuristic_matrix
+```

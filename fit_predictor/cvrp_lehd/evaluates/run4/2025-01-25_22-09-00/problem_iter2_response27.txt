@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic that considers edge-based attributes, demand distribution, and distance metrics.
+    
+    The heuristic assigns a higher score to edges that are closer to the demand distribution and have lower
+    distances."""
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the weighted distance matrix, where each edge is weighted by its inverse distance and
+    # normalized by the total demand.
+    weighted_distances = (1.0 / distance_matrix) * (demands / total_demand)
+    
+    # Assign a higher weight to edges with higher demand and lower distances to the demand.
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            # Skip edges that lead to the same node or the depot
+            if i == j or (i == 0 and j != 0):
+                continue
+            # Use the normalized weighted distance as the heuristic for the edge
+            heuristic_matrix[i][j] = weighted_distances[i][j]
+    
+    return heuristic_matrix
+```

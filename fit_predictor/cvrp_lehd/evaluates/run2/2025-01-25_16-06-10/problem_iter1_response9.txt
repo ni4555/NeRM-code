@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the sum of the demands for each vehicle
+    total_demand = demands.sum()
+    
+    # Calculate the minimum distance from each node to the depot
+    min_distance_to_depot = torch.min(distance_matrix[:, 0], dim=0).values
+    
+    # Calculate the minimum distance from each node to the next node (excluding the depot)
+    min_distance_to_next = torch.min(distance_matrix[1:, 1:], dim=0).values
+    
+    # Calculate the potential profit of visiting each customer (demand / distance)
+    potential_profit = demands[1:] / min_distance_to_next
+    
+    # Calculate the heuristics score for each edge
+    # A positive score indicates a promising edge, a negative score indicates an undesirable edge
+    heuristics_scores = (potential_profit * min_distance_to_depot[1:] * -1)
+    
+    # Return the heuristics matrix with a large negative value for the depot to depot edge
+    heuristics_matrix = torch.cat([torch.full((1,), float('-inf')), heuristics_scores], dim=0)
+    return heuristics_matrix
+```

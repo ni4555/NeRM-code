@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize by its maximum value
+    prize_normalized = prize / np.max(prize)
+    
+    # Calculate the sum of prizes for each item after removing the maximum prize from it
+    non_max_prize_sum = np.sum(prize_normalized[:, np.newaxis] * (1 - np.eye(weight.shape[0])), axis=0)
+    
+    # Calculate the average non-max prize sum for normalization
+    average_non_max_prize_sum = np.mean(non_max_prize_sum)
+    
+    # Calculate the weighted ratio of the maximum prize sum over all items
+    weighted_max_ratio = non_max_prize_sum.max() / average_non_max_prize_sum
+    
+    # Incorporate a factor to avoid uniform selections in high-dimensionality
+    dim_factor = 1 / np.sqrt(weight.shape[1])
+    
+    # Create a heuristic based on the above factors
+    heuristics = weighted_max_ratio * prize_normalized + dim_factor
+    
+    # Apply a threshold to sparsify the heuristics by setting elements below the threshold to zero
+    sparsity_threshold = np.percentile(heuristics, 95)
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    return heuristics
+```

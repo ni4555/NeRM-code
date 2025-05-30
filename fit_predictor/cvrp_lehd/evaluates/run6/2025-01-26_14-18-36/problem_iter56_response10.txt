@@ -1,0 +1,63 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce diversity by shuffling the demands and distance matrix
+    permuted_indices = torch.randperm(n)
+    shuffled_scales = scaled_demands[permuted_indices]
+    shuffled_distances = distance_matrix[permuted_indices][:, permuted_indices]
+
+    # Calculate the heuristic value for each edge based on shuffled scaled demand and remaining capacity
+    heuristics = (shuffled_scales.unsqueeze(1) - shuffled_scales.unsqueeze(0)).abs() * remaining_capacity
+
+    # Dampen penalties to prevent high penalties from dominating the heuristic
+    dampening_factor = 0.3
+
+    # Introduce a dampened penalty for edges that lead to a node with demand exceeding vehicle capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * dampening_factor
+
+    # Add a dampened penalty for edges leading back to the depot (index 0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * dampening_factor
+
+    # Normalize the heuristic values to the range [0, 1] using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Apply a non-linear transformation to the heuristic values to avoid local optima
+    heuristics = torch.relu(heuristics)  # ReLU function for a different non-linear transformation
+
+    # Further balancing of penalties to promote a better heuristic distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    # Balance capacity and distance by scaling with weights
+    capacity_weight = 0.7
+    distance_weight = 0.3
+    balanced_heuristics = capacity_weight * heuristics + distance_weight * (distance_matrix[:, 0] - distance_matrix[:, 0].mean())
+
+    # Normalize the balanced heuristic values to the range [0, 1] using min-max scaling
+    max_balanced = balanced_heuristics.max()
+    min_balanced = balanced_heuristics.min()
+    balanced_heuristics = (balanced_heuristics - min_balanced) / (max_balanced - min_balanced)
+
+    # Apply a sigmoid function to ensure values are in the range [0, 1]
+    balanced_heuristics = torch.sigmoid(balanced_heuristics)
+
+    # Ensure the balanced heuristic values are within the range [0, 1]
+    balanced_heuristics = torch.clamp(balanced_heuristics, min=0.0, max=1.0)
+
+    return balanced_heuristics
+```

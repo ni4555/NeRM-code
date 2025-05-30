@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Loop penalty emphasizing loops relative to direct distances
+    loop_penalty_factor = 0.1
+    median_distance = np.median(distance_matrix)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, np.roll(i, 1)] + distance_matrix[np.roll(i, 1), j]
+                heuristics[i, j] += loop_penalty_factor * (loop_distance - 2 * median_distance)
+
+    # Global penalty for large distances relative to the minimum distance
+    min_distance = np.min(distance_matrix)
+    global_large_distance_penalty = 1e6
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if distance_matrix[i, j] > min_distance * global_large_distance_penalty:
+                heuristics[i, j] += global_large_distance_penalty - distance_matrix[i, j]
+
+    # Diversity factor encouraging visiting less frequently visited nodes
+    diversity_factor = 1e-3
+    visited_count = np.sum(distance_matrix > 0, axis=0)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                heuristics[i, j] += diversity_factor * visited_count[j]
+
+    # Normalize the heuristics to ensure non-negativity
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+
+    return heuristics
+```

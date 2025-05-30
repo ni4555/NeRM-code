@@ -1,0 +1,38 @@
+{
+  "generation": 3,
+  "description": "Enhance the MKP resolution with an advanced stochastic iterative heuristic that leverages adaptive sampling, real-time fitness recalibration, and resilient perturbation strategies. The core strategy is to maximize the cumulative value of selected items within complex weight constraints, ensuring an optimal trade-off between exploration and exploitation. This innovative approach integrates a sophisticated multi-objective optimization framework to synergistically refine candidate solutions and broaden the search space, ultimately yielding robust solutions under stringent weight limitations.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    # Initialize heuristic values with 0\n    heuristics = np.zeros(n)\n    # Adaptive sampling\n    alpha = 0.5\n    # Resilient perturbation parameters\n    max_perturbation = 0.1\n    perturbation_std = 0.05\n    # Real-time fitness recalibration\n    for _ in range(100):  # Number of iterations\n        # Randomly select a subset of items for exploration\n        selected_indices = np.random.choice(n, size=int(n * alpha), replace=False)\n        # Calculate fitness of the selected items\n        fitness = np.sum(prize[selected_indices] * weight[selected_indices], axis=1)\n        # Update heuristics based on fitness\n        heuristics[selected_indices] = fitness / np.sum(fitness)\n        # Resilient perturbation\n        perturbation = np.random.normal(0, perturbation_std, size=n)\n        perturbation = np.clip(perturbation, -max_perturbation, max_perturbation)\n        heuristics += perturbation\n        # Recalibrate heuristics to ensure they sum to 1\n        heuristics /= np.sum(heuristics)\n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 2, confidence: 0.3741)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n = prize.shape[0]\n    m = weight.shape[1]\n    \n    # Initialize the heuristic array with zeros\n    heuristics = np.zeros(n)\n    \n    # Adaptive sampling based on initial fitness\n    for i in range(n):\n        fitness = prize[i] / np.sum(weight[i])\n        heuristics[i] = fitness\n    \n    # Real-time fitness recalibration\n    while True:\n        # Select the best item to include\n        best_index = np.argmax(heuristics)\n        \n        # Check if adding this item exceeds weight constraints\n        if np.sum(weight[best_index]) <= 1:\n            heuristics[best_index] = -1  # Mark as included\n            # Recalculate fitness for all items\n            for i in range(n):\n                if heuristics[i] != -1:\n                    fitness = prize[i] / np.sum(weight[i])\n                    heuristics[i] = fitness\n            # Check for convergence or maximum iterations\n            if np.all(heuristics == -1):\n                break\n        else:\n            # Perturbation strategy\n            for i in range(n):\n                if heuristics[i] != -1:\n                    # Randomly change weight to allow better fit\n                    perturb_index = np.random.randint(m)\n                    weight[i, perturb_index] += np.random.normal(0, 0.1)\n                    heuristics[i] = prize[i] / np.sum(weight[i])\n            # Ensure weights still sum to 1\n            np.fill_diagonal(weight, np.sum(weight, axis=1))\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 3, confidence: 0.9989)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    heuristic_values = np.zeros(n)\n    exploration_prob = 0.5  # Initial exploration-exploitation ratio\n\n    for i in range(n):\n        # Adaptive sampling based on heuristic values\n        local_explore_prob = exploration_prob + (1 - exploration_prob) * np.random.rand()\n        sample_indices = np.random.choice(n, size=int(n * local_explore_prob), replace=False)\n        \n        # Real-time fitness recalibration\n        local_fitness = prize[sample_indices] / np.sum(weight[sample_indices, :], axis=1)\n        \n        # Resilient perturbation strategies\n        perturbation_prob = np.random.rand()\n        if perturbation_prob < 0.1:\n            # Introduce random swaps to avoid local optima\n            perturbation_indices = np.random.choice(n, size=2, replace=False)\n            local_fitness[perturbation_indices] = np.random.permutation(local_fitness[perturbation_indices])\n        \n        # Update heuristic value\n        heuristic_values[i] = np.mean(local_fitness)\n\n    return heuristic_values",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 4, confidence: 0.8322)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape\n    probabilities = np.zeros(n)\n    \n    # Adaptive sampling based on current cumulative prize and weight\n    cumulative_prize = np.sum(prize)\n    cumulative_weight = np.sum(weight, axis=1)\n    for i in range(n):\n        probabilities[i] = (prize[i] / cumulative_prize) * (1 - np.sum(cumulative_weight[i]))\n    \n    # Real-time fitness recalibration\n    fitness = np.random.rand(n)\n    for i in range(n):\n        if weight[i].any() > 1:\n            raise ValueError(\"Weights must sum to 1 for each item.\")\n        fitness[i] *= probabilities[i]\n    \n    # Resilient perturbation strategies\n    perturbed_fitness = np.copy(fitness)\n    perturbation_factors = np.random.normal(0, 0.1, n)\n    for i in range(n):\n        perturbed_fitness[i] = max(fitness[i] + perturbation_factors[i], 0)\n    \n    # Normalize the perturbed fitness\n    normalized_fitness = perturbed_fitness / np.sum(perturbed_fitness)\n    \n    return normalized_fitness",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main\\problems\\mkp_aco\\gpt.py\", line 5, in heuristics_v2\n    n, m = prize.shape\n    ^^^^\nValueError: not enough values to unpack (expected 2, got 1)\n",
+      "stdout_file": "coevolve\\generation_3\\stdout_0.txt",
+      "code_file": "coevolve\\generation_3\\code_0.py"
+    }
+  ]
+}

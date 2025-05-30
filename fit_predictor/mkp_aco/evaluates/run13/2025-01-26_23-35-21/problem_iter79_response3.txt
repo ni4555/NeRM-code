@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a random permutation to introduce randomness
+    permutation = np.random.permutation(len(prize))
+
+    # Calculate the density as before
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Integrate additional metrics
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Create a balanced heuristic value
+    heuristic_value = density * (1 - sparsity) - weight_sum
+    
+    # Use a diversity factor to ensure no item is overrepresented
+    diversity_factor = 1 / (np.sum(density) + 1e-8)
+    
+    # Combine heuristic value with diversity factor
+    heuristic = heuristic_value * diversity_factor
+    
+    # Prune dominated items (those with lower prize relative to weight)
+    dominance_mask = density / sparsity
+    heuristic[heuristic < np.min(dominance_mask[dominance_mask > 0])] = 0
+    
+    # Normalize heuristics
+    heuristic /= np.max(heuristic + 1e-8)
+    
+    # Apply the random permutation
+    return heuristic[permutation]
+```

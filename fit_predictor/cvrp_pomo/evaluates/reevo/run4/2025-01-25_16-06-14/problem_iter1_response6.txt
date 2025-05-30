@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand of all customers
+    total_demand = demands.sum()
+    
+    # Normalize distances by total demand to scale the heuristic
+    normalized_distances = distance_matrix / total_demand
+    
+    # Calculate the remaining capacity for each vehicle
+    remaining_capacity = torch.clamp(demands - 1.0, min=0.0)
+    
+    # Calculate the potential contribution of each edge to the solution
+    potential_contributions = (normalized_distances * remaining_capacity).unsqueeze(1)
+    
+    # Calculate the sum of potential contributions for each edge
+    sum_contributions = torch.sum(potential_contributions, dim=0)
+    
+    # Create a heuristic matrix with negative values for undesirable edges
+    heuristic_matrix = -torch.abs(sum_contributions)
+    
+    return heuristic_matrix
+```

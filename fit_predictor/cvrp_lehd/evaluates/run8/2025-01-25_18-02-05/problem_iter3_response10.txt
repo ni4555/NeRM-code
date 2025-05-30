@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Calculate cumulative metrics by summing up the demand-to-distance ratios
+    # for each path from the depot to the current node
+    cumulative_demand_to_distance_ratio = torch.cumsum(demand_to_distance_ratio, dim=1)
+    
+    # Invert high scores by taking the negative to favor higher cumulative ratios
+    inverted_cumulative_ratio = -cumulative_demand_to_distance_ratio
+    
+    # Normalize data to ensure a proper scale
+    normalized_inverted_cumulative_ratio = (inverted_cumulative_ratio - 
+                                           torch.min(inverted_cumulative_ratio)) / \
+                                          (torch.max(inverted_cumulative_ratio) - 
+                                           torch.min(inverted_cumulative_ratio))
+    
+    # Apply a threshold to the normalized values to avoid overfitting
+    threshold = 0.5  # Threshold chosen for example purposes
+    heuristic_matrix = torch.where(normalized_inverted_cumulative_ratio > threshold, 
+                                  normalized_inverted_cumulative_ratio, 0)
+    
+    return heuristic_matrix
+```

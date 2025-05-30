@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    scaled_distance_matrix = distance_matrix / total_demand
+    scaled_demands = demands / demands.max()
+    # Exponential decay for distance to emphasize short distances
+    distance_weight = torch.exp(-scaled_distance_matrix * 5)
+    # Non-linearly emphasize demands by using an exponential increase
+    demand_weight = torch.exp(-scaled_demands * 2)
+    # Combine both weights with a balanced factor to create the heuristic
+    combined_heuristic = -distance_weight + demand_weight
+    # Normalize to the range [-1, 1] for edge-specific factors
+    combined_heuristic = (combined_heuristic - combined_heuristic.min()) / (combined_heuristic.max() - combined_heuristic.min())
+    return combined_heuristic
+```

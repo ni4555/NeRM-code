@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    scaled_demands = demands / total_demand
+    cumulative_demand = torch.cat((torch.zeros(1), scaled_demands.cumsum(0)))
+    capacity = 1.0  # Assuming the vehicle capacity is 1 for normalization
+    demand_diff = (cumulative_demand - capacity).clamp(min=0)
+    # Non-linear transformation using a Gaussian function
+    non_linear_demand = torch.exp(-demand_diff**2)
+    # Non-linear transformation of distance matrix
+    non_linear_distance = torch.exp(-distance_matrix**2)
+    # Combine non-linear demand and distance using a weighted sum
+    heuristic_values = 0.5 * non_linear_demand + 0.5 * non_linear_distance
+    return heuristic_values
+```

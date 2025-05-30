@@ -1,0 +1,32 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties into a single potential matrix with non-linear weightings
+    potential_matrix = torch.exp(-penalty_matrix) * torch.pow(distance_penalty_matrix, 0.5)
+    
+    # Normalize the potential matrix
+    max_potential = torch.max(potential_matrix)
+    normalized_potential_matrix = potential_matrix / max_potential
+    
+    # Emphasize feasibility by adding a term that promotes edges with high demand to be less promising
+    feasibility_term = torch.clamp(torch.log(torch.clamp(demands, min=1e-6)) * 2, max=0)
+    feasibility_matrix = normalized_potential_matrix - feasibility_term
+    
+    # Transform the feasibility matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -feasibility_matrix
+    
+    return heuristics_matrix
+```

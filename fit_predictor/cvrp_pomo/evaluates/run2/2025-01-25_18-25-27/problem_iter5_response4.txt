@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    
+    # Penalize infeasibilities by adding a large negative value for edges connecting the depot to a customer with a demand above the average
+    infeasible_edges = (normalized_demands > avg_demand)
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    infeasible_penalty = -1e5 * torch.ones_like(heuristics_matrix)
+    heuristics_matrix[torch.arange(n), infeasible_edges] += infeasible_penalty[torch.arange(n), infeasible_edges]
+    
+    # Normalize and scale the heuristics matrix for better convergence in genetic algorithms
+    heuristics_matrix = (heuristics_matrix - heuristics_matrix.min()) / (heuristics_matrix.max() - heuristics_matrix.min())
+    
+    return heuristics_matrix
+```

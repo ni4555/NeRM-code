@@ -1,0 +1,29 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the difference between demand and vehicle capacity
+    demand_diff = demands - vehicle_capacity
+    
+    # Soft thresholding to minimize complexity and avoid dominance
+    thresholded_demand_diff = torch.clamp(demand_diff, min=-1.0, max=1.0)
+    
+    # Distance-based penalty matrix, with a soft log transformation
+    distance_penalty_matrix = torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand-based and distance-based penalties using a linear combination
+    combined_matrix = 0.5 * thresholded_demand_diff + 0.5 * distance_penalty_matrix
+    
+    # Scale the combined matrix to ensure non-negativity and balance
+    scaled_combined_matrix = F.relu(combined_matrix)
+    
+    # Transform the scaled combined matrix into a heuristics matrix
+    # Here, the larger values indicate more promising edges
+    heuristics_matrix = scaled_combined_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the distance matrix to prioritize short edges
+    distance_matrix_inv = 1 / distance_matrix
+    
+    # Calculate the product of demand and inverse distance for each edge
+    demand_distance_product = demands * distance_matrix_inv
+    
+    # Normalize the product by the total vehicle capacity to get a demand-based heuristic
+    normalized_demand = demands / demands.sum()
+    demand_based_heuristic = demand_distance_product * normalized_demand
+    
+    # Set the edges with zero demand or zero distance to zero in the heuristic matrix
+    demand_based_heuristic = torch.where(torch.isnan(demand_based_heuristic), 0, demand_based_heuristic)
+    
+    # Apply a non-linear transformation to emphasize longer distances
+    heuristic_matrix = torch.exp(-demand_based_heuristic)
+    
+    return heuristic_matrix
+```

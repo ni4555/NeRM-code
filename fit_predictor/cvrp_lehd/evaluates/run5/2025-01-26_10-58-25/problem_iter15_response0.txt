@@ -1,0 +1,32 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Normalize demand penalties with a log scale for emphasis on exceeding demand
+    normalized_demand_penalties = -torch.log(1 + demands)
+    
+    # Normalize distances with respect to vehicle capacity and a base logarithm for a smooth transition
+    normalized_distances = torch.log(distance_matrix + 1e-6) / torch.log(demands.sum() + 1e-6)
+    
+    # Calculate the normalized demand that corresponds to vehicle capacity for each vehicle
+    max_normalized_demand_per_vehicle = (demands.sum() / demands.numel())
+    
+    # Create a penalty matrix for demand constraint violations with a non-linear transformation
+    non_linear_demand_penalty_matrix = torch.nn.functional»ÌªØ(torch.clamp(1 - demands / max_normalized_demand_per_vehicle, 0, 1))
+    
+    # Combine the normalized demand penalties with the non-linear demand penalty matrix
+    combined_potentials = normalized_demand_penalties + non_linear_demand_penalty_matrix
+    
+    # Scale combined potentials based on distance normalization for a balanced heuristic
+    scaled_combined_potentials = combined_potentials + normalized_distances
+    
+    # Use log-softmax normalization to ensure non-negative values and scale the heuristics
+    log_softmax_scaled_potentials = F.log_softmax(scaled_combined_potentials, dim=1)
+    
+    # Convert the log probabilities to positive heuristics with a threshold to minimize redundancy
+    heuristics_matrix = torch.exp(log_softmax_scaled_potentials) - 1
+    
+    return heuristics_matrix
+```

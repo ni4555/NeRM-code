@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Define a penalty for infeasibility
+    infeasibility_penalty = torch.min(distance_matrix)
+    
+    # Introduce penalties for edges with demands that are significantly below the average
+    below_average_penalty = (normalized_demands < avg_demand / 2).float() * infeasibility_penalty
+
+    # Create a penalty matrix
+    penalties = (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) +
+                 avg_demand * distance_matrix.sum(axis=0, keepdim=True)) + below_average_penalty
+
+    # Adjust heuristics matrix by considering the penalties
+    heuristics_matrix = distance_matrix - penalties
+
+    return heuristics_matrix
+```

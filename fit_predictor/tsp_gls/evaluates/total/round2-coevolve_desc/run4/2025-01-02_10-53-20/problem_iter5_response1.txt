@@ -1,0 +1,37 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    edge_usage = np.zeros_like(distance_matrix)
+    for i in range(n):
+        for j in range(i+1, n):
+            edge_usage[i, j] += 1
+            edge_usage[j, i] += 1
+
+    # Calculate the usage density, which is the ratio of the usage count to the number of possible edges
+    usage_density = edge_usage / (n * (n - 1) / 2)
+
+    # Calculate the average edge usage
+    average_usage = np.mean(usage_density)
+
+    # Adjust distances based on usage density and edge length
+    adjusted_distances = distance_matrix * (1 + 0.1 * (usage_density > average_usage) - 0.1 * (distance_matrix > average_usage.mean()))
+
+    # Introduce non-linear transformations to the adjusted distances
+    adjusted_distances = np.exp(adjusted_distances - adjusted_distances.mean())
+
+    # Introduce controlled noise for exploration
+    noise = np.random.normal(size=(n, n)) * 0.05
+    adjusted_distances += noise
+
+    # Maintain bounds to avoid over-amplification
+    min_distance = 0.01
+    max_distance = distance_matrix.max() * 0.9
+    adjusted_distances = np.clip(adjusted_distances, min_distance, max_distance)
+
+    # Introduce symmetry to prevent premature convergence
+    adjusted_distances = (adjusted_distances + adjusted_distances.T) / 2
+
+    return adjusted_distances
+```

@@ -1,0 +1,27 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    
+    diversity_factor = np.exp(-np.sqrt(utility))
+    exploration_factor = np.random.normal(0, 0.1, size=utility.shape)
+    sharpness_factor = 1 / (1 + np.exp(-5 * utility))
+    time_factor = np.arange(1, len(utility) + 1)
+    
+    adaptive_factor = diversity_factor * sharpness_factor * time_factor * exploration_factor
+    
+    utility_normalized = (utility - np.min(utility)) / (np.max(utility) - np.min(utility))
+    normalized_utility = np.exp(utility_normalized - np.max(utility_normalized))
+    
+    heuristics = adaptive_factor * normalized_utility
+    heuristics = np.clip(heuristics, a_min=0, a_max=1)
+    peak_heuristics = heuristics * (1 / (np.exp(-heuristics) + 1))
+    
+    exploration_exploitation_balance = (np.exp(-2 * utility) + np.exp(utility)) / (1 + np.exp(-2 * utility) + np.exp(-utility))
+    balanced_heuristics = peak_heuristics * exploration_exploitation_balance
+    
+    return balanced_heuristics.sum(axis=1)
+```

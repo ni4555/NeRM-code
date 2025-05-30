@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demand = demands / total_capacity
+    cumulative_demand = torch.cumsum(normalized_demand, dim=0)
+    remaining_capacity = (total_capacity - cumulative_demand).unsqueeze(1)
+    
+    # Incentive for edges that are part of the path
+    path_incentive = 1 - torch.exp(-cumulative_demand)
+    
+    # Penalty for edges with high cumulative demand relative to the maximum demand
+    max_demand = demands.max()
+    demand_penalty = torch.relu((cumulative_demand / max_demand) - 1)
+    
+    # Scale penalties and incentives by distance
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Heuristic based on the balance between incentives and penalties
+    heuristics = distance_penalty * (1 - demand_penalty) + distance_penalty * remaining_capacity
+    
+    return heuristics
+```

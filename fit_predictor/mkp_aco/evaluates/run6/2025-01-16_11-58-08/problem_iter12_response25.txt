@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Normalize the ratio to a range between 0 and 1
+    normalized_ratio = (value_to_weight_ratio - np.min(value_to_weight_ratio)) / (np.max(value_to_weight_ratio) - np.min(value_to_weight_ratio))
+    # Apply a non-linear transformation to emphasize high values
+    non_linear_transformed_ratio = normalized_ratio ** 2
+    # Incorporate diversity by penalizing items with similar ratios
+    diversity_factor = np.sum(weight, axis=1) / np.sum(weight, axis=1).mean()
+    # Combine factors and sparsify
+    combined_heuristics = non_linear_transformed_ratio * diversity_factor
+    # Threshold for sparsification to avoid all zeros in case all heuristics are below 0.1
+    sparsification_threshold = 0.1
+    sparsified_heuristics = np.clip(combined_heuristics, sparsification_threshold, 1)
+    sparsified_heuristics /= np.sum(sparsified_heuristics)
+    return sparsified_heuristics
+```

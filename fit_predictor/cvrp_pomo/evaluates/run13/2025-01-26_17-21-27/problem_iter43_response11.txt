@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_remaining = 1.0 - cumulative_demand / total_capacity
+
+    # Core objective penalties
+    core_penalties = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * (1 + capacity_remaining)
+
+    # Early detection and correction of overflows
+    overflow_penalty = torch.where(cumulative_demand[:, None] > capacity_remaining[None, :],
+                                  -torch.log1p(cumulative_demand[:, None] - capacity_remaining[None, :]),
+                                  torch.zeros_like(cumulative_demand))
+    
+    # Diversity through uniform load distribution
+    diversity_load = torch.abs(cumulative_demand - (1 / (n + 1)) * total_capacity)
+    diversity_heuristics = -torch.log1p(diversity_load) * capacity_remaining
+    
+    # Embrace diversity to avoid getting stuck in local optima
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity = -torch.log1p(diversity_factor)
+
+    # Adapting to complex environments by penalizing early returns
+    early_return_penalty = -torch.log1p(torch.abs(cumulative_demand) - 1e-8) * capacity_remaining
+
+    # Combine penalties while keeping a focus on the core objectives
+    combined_penalties = core_penalties + overflow_penalty + diversity_heuristics + early_return_penalty + diversity
+    
+    return combined_penalties
+```

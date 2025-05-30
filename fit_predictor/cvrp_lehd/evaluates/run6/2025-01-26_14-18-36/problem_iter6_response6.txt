@@ -1,0 +1,47 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_capacity = demands.sum()
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the distance to the nearest neighbor for each node
+    nearest_neighbor_distance = torch.min(distance_matrix, dim=1, keepdim=True)[0]
+    
+    # Calculate the balance score for each node, which is the difference between the maximum and minimum demands
+    demand_balance = torch.max(demands) - torch.min(demands)
+    
+    # Calculate the local potential based on distance to the nearest neighbor
+    local_potential = nearest_neighbor_distance
+    
+    # Calculate the global potential based on the difference from the total demand
+    global_potential = demands[:, None] + demands - demands
+    
+    # Calculate the heuristic value for each edge, considering both local and global potential
+    heuristic_values = local_potential + global_potential
+    
+    # Calculate a penalty for edges leading to a node with demand greater than vehicle capacity
+    penalty = (demands > 1.0).float() * 1000.0
+    
+    # Combine the heuristic values with the penalty, ensuring that the penalty dominates for infeasible edges
+    for i in range(1, n):
+        for j in range(i, n):
+            if j == depot:
+                continue
+            
+            # Calculate the total demand of nodes i and j
+            total_demand = demands[i] + demands[j]
+            
+            # If the total demand is greater than the capacity, add the penalty to the heuristic value
+            if total_demand > total_capacity:
+                heuristic_values[i, j] += penalty[i]
+                heuristic_values[j, i] += penalty[j]
+            else:
+                # Adjust the heuristic value by adding the demand balance and subtracting the distance
+                heuristic_values[i, j] = heuristic_values[i, j] + demand_balance[i] - distance_matrix[i, j]
+                heuristic_values[j, i] = heuristic_values[j, i] + demand_balance[j] - distance_matrix[i, j]
+    
+    return heuristic_matrix
+```

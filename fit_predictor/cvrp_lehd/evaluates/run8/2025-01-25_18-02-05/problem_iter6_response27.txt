@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Normalize the demand-to-distance ratio by the sum of all ratios to avoid overfitting
+    ratio_normalized = demand_to_distance_ratio / torch.sum(demand_to_distance_ratio, dim=0, keepdim=True)
+    
+    # Invert the normalized ratio to use as a heuristic
+    heuristic_matrix = -torch.log(1 + ratio_normalized)
+    
+    # Apply a non-linear transformation to emphasize longer distances
+    heuristic_matrix = torch.exp(-heuristic_matrix)
+    
+    # Set a threshold based on the minimum value in the heuristic matrix
+    threshold = torch.min(heuristic_matrix)
+    
+    # Apply the threshold to ensure all undesirable edges have negative values
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, heuristic_matrix, 0)
+    
+    # Adjust the heuristic matrix to ensure it is within the range of [-1, 1]
+    adjusted_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    return adjusted_matrix
+```

@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adjust the average demand per edge to be relative to the total capacity
+    adjusted_average_demand = average_demand_per_edge / total_capacity
+    
+    # Introduce penalties for imbalances and high demand
+    load_penalty = adjusted_average_demand.clamp(min=1) - 1
+    
+    # Introduce bonuses for efficient load distribution
+    efficiency_bonus = adjusted_average_demand.clamp(max=1)
+    
+    # Apply penalties and bonuses to the heuristics matrix
+    heuristics = -load_penalty ** 2 + efficiency_bonus ** 3
+    
+    # Introduce a diversity factor that encourages exploration of the solution space
+    diversity_factor = (torch.abs(adjusted_average_demand) - 0.1) * torch.log(distance_matrix) / (n - 2)
+    heuristics = heuristics + diversity_factor
+    
+    # Introduce exploration and exploitation mechanisms
+    exploration = torch.rand_like(heuristics) * 0.1
+    exploitation = (1 - adjusted_average_demand) ** 3
+    
+    # Integrate exploration and exploitation
+    heuristics = heuristics + exploration - exploitation
+    
+    # Set edges with zero distance to zero
+    heuristics[distance_matrix == 0] = 0
+    
+    # Normalize heuristics to ensure they are negative for undesirable edges
+    heuristics = heuristics - heuristics.max()  # Shift min to zero and max to positive
+    
+    return heuristics
+```

@@ -1,0 +1,66 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total vehicle capacity
+    total_capacity = demands.sum()
+    
+    # Calculate the edge potential as the product of demand and distance
+    edge_potential = demands[:, None] * demands[None, :]
+    # Normalize by total capacity and add a penalty for exceeding capacity
+    heuristics = (edge_potential / total_capacity) - (1 - edge_potential / total_capacity)
+    
+    # Apply local search to refine neighborhood exploration
+    # Use a simulated annealing-like mechanism to balance loads
+    temperature = 1.0
+    while temperature > 1e-4:
+        for i in range(n):
+            for j in range(i + 1, n):
+                load_change = (demands[i] + demands[j]) - total_capacity
+                if 0 < load_change < temperature:
+                    distance_matrix[i, j], distance_matrix[j, i] = distance_matrix[j, i], distance_matrix[i, j]
+                    demands[j] = demands[i]
+                    demands[i] = 0
+                    # Update heuristics based on the new load
+                    edge_potential[i, j] = demands[i] * demands[j]
+                    edge_potential[j, i] = demands[j] * demands[i]
+                    heuristics = (edge_potential / total_capacity) - (1 - edge_potential / total_capacity)
+                temperature *= 0.95  # Cool down the system
+    
+    # Apply adaptive PSO with population management
+    # This is a conceptual implementation and should be expanded with real PSO logic
+    for i in range(100):  # Example number of iterations
+        # Update the heuristics using velocity and position update rules
+        # Introduce diversity by swapping random edges with high potential
+        for i in range(n):
+            for j in range(i + 1, n):
+                if heuristics[i, j] > heuristics[j, i]:
+                    distance_matrix[i, j], distance_matrix[j, i] = distance_matrix[j, i], distance_matrix[i, j]
+                    demands[j] = demands[i]
+                    demands[i] = 0
+                    edge_potential[i, j] = demands[i] * demands[j]
+                    edge_potential[j, i] = demands[j] * demands[i]
+                    heuristics = (edge_potential / total_capacity) - (1 - edge_potential / total_capacity)
+    
+    # Apply dynamic tabu search with adaptive cost function
+    # Introduce a tabu list to avoid revisiting certain edges
+    tabu_list = set()
+    for i in range(n):
+        for j in range(i + 1, n):
+            if (i, j) not in tabu_list and heuristics[i, j] < heuristics[j, i]:
+                distance_matrix[i, j], distance_matrix[j, i] = distance_matrix[j, i], distance_matrix[i, j]
+                demands[j] = demands[i]
+                demands[i] = 0
+                edge_potential[i, j] = demands[i] * demands[j]
+                edge_potential[j, i] = demands[j] * demands[i]
+                heuristics = (edge_potential / total_capacity) - (1 - edge_potential / total_capacity)
+                tabu_list.add((i, j))
+    
+    # Ensure that the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0  # Avoid division by zero
+    heuristics[heuristics >= 0] = 0  # Set non-negative values to zero
+    
+    return heuristics
+```

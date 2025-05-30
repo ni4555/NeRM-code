@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize the heuristics matrix with a large negative value for all edges
+    heuristics_matrix = -torch.inf * torch.ones_like(distance_matrix)
+    
+    # Set the heuristic value for the depot to the customer edges
+    depot_index = 0
+    for customer_index in range(1, len(demands)):
+        heuristics_matrix[depot_index, customer_index] = -distance_matrix[depot_index, customer_index]
+    
+    # Iterate through each customer to calculate the heuristic values
+    for current_customer in range(1, len(demands)):
+        # Initialize the best heuristic value for the current customer
+        best_heuristic = -torch.inf
+        best_next_customer = None
+        
+        # Calculate the cumulative capacity up to the current customer
+        cumulative_capacity = torch.cumsum(torch.ones_like(demands)[:current_customer+1], dim=0)
+        
+        # Iterate through all customers to find the best next customer
+        for next_customer in range(1, len(demands)):
+            # Calculate the current demand if this customer is visited next
+            current_demand = cumulative_demand[next_customer] - cumulative_capacity[current_customer]
+            
+            # Check if the next customer can be served without exceeding the capacity
+            if current_demand <= 1:
+                # Update the best heuristic if this edge is better
+                current_heuristic = -distance_matrix[current_customer, next_customer]
+                if current_heuristic > best_heuristic:
+                    best_heuristic = current_heuristic
+                    best_next_customer = next_customer
+        
+        # Set the best heuristic value for the current customer
+        if best_next_customer is not None:
+            heuristics_matrix[current_customer, best_next_customer] = best_heuristic
+    
+    return heuristics_matrix
+```

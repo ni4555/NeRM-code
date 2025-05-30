@@ -1,0 +1,20 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    # Calculate the total demand sum
+    total_demand = demands.sum()
+    # Calculate the scaled demand matrix
+    scaled_demands = demands / total_demand
+    # Calculate the potential matrix combining distance and demand
+    potential_matrix = distance_matrix + scaled_demands * vehicle_capacity
+    # Normalize the potential matrix to have a range between 0 and 1
+    normalized_potential_matrix = (potential_matrix - potential_matrix.min()) / (potential_matrix.max() - potential_matrix.min())
+    # Use the softmax function to incorporate randomness and give higher probability to edges with higher potential
+    softmax_matrix = F.softmax(normalized_potential_matrix, dim=1)
+    # Calculate the heuristics matrix as the complement of the softmax matrix
+    heuristics_matrix = 1 - softmax_matrix
+    return heuristics_matrix
+```

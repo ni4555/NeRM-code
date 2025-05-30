@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize to ensure consistency
+    prize_normalized = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+
+    # Calculate the normalized density
+    density = prize_normalized / (np.sum(weight, axis=1) + 1e-8)
+
+    # Normalize the sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+
+    # Create a heuristic based on the balance between density and sparsity
+    balance_heuristic = density / (1 + sparsity)
+
+    # Introduce a randomness factor to encourage diversity
+    randomness_factor = np.random.rand(len(prize))
+
+    # Combine the metrics with the randomness factor
+    heuristic = balance_heuristic * randomness_factor
+
+    # Normalize the heuristic to ensure all values are within [0, 1]
+    normalized_heuristic = (heuristic - np.min(heuristic)) / (np.max(heuristic) - np.min(heuristic))
+
+    # Prune dominated items by setting their heuristic to zero
+    dominated_indices = np.argsort(normalized_heuristic)[::-1]  # Sort in descending order
+    for i in range(1, len(dominated_indices)):
+        if normalized_heuristic[dominated_indices[i]] <= normalized_heuristic[dominated_indices[i - 1]]:
+            normalized_heuristic[dominated_indices[i]] = 0
+
+    return normalized_heuristic
+```

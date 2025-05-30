@@ -1,0 +1,24 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the maximum and minimum distances in the matrix
+    max_distance = np.max(distance_matrix)
+    min_distance = np.min(distance_matrix)
+    
+    # Define ranges for edge lengths that we consider "extreme" or "non-standard"
+    extreme_threshold = max_distance * 0.8
+    short_threshold = min_distance * 1.2
+    
+    # Calculate penalties for edges that are too long or too short
+    long_edge_penalty = np.maximum(0, distance_matrix - extreme_threshold)
+    short_edge_penalty = np.maximum(0, distance_matrix - short_threshold)
+    
+    # Introduce a penalty for connectivity: edges with high penalty should be avoided
+    # High connectivity is defined as the sum of the shortest distances to all other nodes
+    connectivity_penalty = np.apply_along_axis(lambda x: -np.sum(np.min(distance_matrix[:, x], axis=0)), axis=1, arr=distance_matrix)
+    
+    # Combine the penalties using a weighted average
+    combined_penalty = 0.4 * long_edge_penalty + 0.3 * short_edge_penalty + 0.3 * connectivity_penalty
+    return combined_penalty
+```

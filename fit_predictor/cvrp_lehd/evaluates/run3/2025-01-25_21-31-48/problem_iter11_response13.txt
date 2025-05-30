@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_sum = torch.sum(demands)
+    demand_mean = demand_sum / n
+    demand_balance = (demands - demand_mean).abs()
+    
+    # Normalize the demand balance by the total demand and add a small constant
+    demand_balance = (demand_balance / demand_sum) + 1e-8
+    
+    # Invert the balance to favor balanced demands
+    demand_balance = 1 - demand_balance
+    
+    # Incorporate distance into the heuristic, using logarithm to penalize long distances
+    distance_heuristic = torch.log(distance_matrix + 1e-8) / (torch.log(torch.max(distance_matrix) + 1e-8) + 1e-8)
+    
+    # Combine heuristics, weighted by importance
+    combined_heuristic = demand_balance * 0.6 + distance_heuristic * 0.4
+    
+    # Calculate penalties for edges that exceed demand
+    demand_penalty = 1 / demands
+    demand_penalty[demand_penalty <= 1] = 0
+    
+    # Combine penalties with combined heuristics
+    combined_heuristic = combined_heuristic + demand_penalty
+    
+    # Apply a normalization step to scale values to a certain range
+    max_val = torch.max(combined_heuristic)
+    combined_heuristic = (combined_heuristic - torch.min(combined_heuristic)) / (max_val - torch.min(combined_heuristic))
+    
+    return combined_heuristic
+```

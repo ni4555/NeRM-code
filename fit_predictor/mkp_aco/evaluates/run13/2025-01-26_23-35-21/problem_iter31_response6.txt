@@ -1,0 +1,33 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Randomly shuffle indices for additional diversity
+    indices = np.arange(prize.size)
+    np.random.shuffle(indices)
+    
+    # Normalize prize and weights for balance
+    prize_normalized = prize / np.max(prize)
+    weight_normalized = weight / np.sum(weight, axis=1, keepdims=True)
+    
+    # Penalize outliers by setting high variance weights to zero
+    weight_variance = np.var(weight, axis=1)
+    penalty_factor = np.exp(-weight_variance)
+    penalty_factor[penalty_factor < 0.1] = 0
+    
+    # Use the normalized prize and the normalized weights to calculate heuristic
+    heuristic = prize_normalized * penalty_factor
+    
+    # Normalize by the maximum heuristic value
+    max_heuristic = np.max(heuristic)
+    heuristic = heuristic / (max_heuristic + 1e-8)
+    
+    # Apply a random factor to increase the diversity of the heuristics
+    random_factor = np.random.rand(heuristic.size)
+    heuristic *= random_factor
+    
+    # Ensure that the heuristic is between 0 and 1
+    heuristic = np.clip(heuristic, 0, 1)
+    
+    return heuristic
+```

@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Introduce randomness by adding Gaussian noise with a small standard deviation
+    noise_matrix = torch.randn_like(penalty_matrix) * 1e-2
+    
+    # Combine demand penalty with noise
+    combined_demand_matrix = penalty_matrix + noise_matrix
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Use a non-linear transformation to emphasize constraints, focusing on demand
+    emphasized_demand_matrix = torch.exp(-torch.abs(combined_demand_matrix))
+    
+    # Normalize the emphasized demand matrix
+    normalized_demand_matrix = emphasized_demand_matrix / emphasized_demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine the normalized demand matrix with the distance penalty matrix
+    combined_matrix = normalized_demand_matrix + 0.5 * distance_penalty_matrix
+    
+    # Introduce a second noise term for further randomness
+    second_noise_matrix = torch.randn_like(combined_matrix) * 1e-2
+    
+    # Adjust the combined matrix to account for additional randomness
+    adjusted_combined_matrix = combined_matrix + second_noise_matrix
+    
+    # Transform the adjusted combined matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -adjusted_combined_matrix
+    
+    return heuristics_matrix
+```

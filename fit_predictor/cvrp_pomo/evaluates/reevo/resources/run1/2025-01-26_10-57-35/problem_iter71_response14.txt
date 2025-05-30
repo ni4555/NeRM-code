@@ -1,0 +1,56 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison and normalization
+    demand_matrix = (demands[:, None] * demands - torch.diag(demands[:, None] * demands)) / demands.sum()
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Integrate capacity constraint using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))  # Avoid division by zero
+    
+    # Calculate heuristic with emphasis on capacity
+    heuristics = weighted_distance_matrix + capacity_factor
+    
+    # Normalize the heuristics to balance the influence of edges
+    max_heuristic = heuristics.max()
+    normalized_heuristics = heuristics / max_heuristic
+    
+    # Adjust heuristics to minimize loops and maintain stability
+    loop_minimization_factor = 0.95
+    heuristics = torch.min(heuristics, loop_minimization_factor * heuristics)
+    
+    # Apply dampening factor to stabilize the heuristic values
+    dampening_factor = 0.7
+    heuristics *= dampening_factor
+    
+    # Emphasize capacity constraints by adding demand to the heuristics
+    heuristics += demands
+    
+    # Minimize the effect of dominated edges
+    dominated_edges = normalized_heuristics.unsqueeze(1) + normalized_heuristics.unsqueeze(0) - normalized_heuristics.unsqueeze(2)
+    dominated_edges[dominated_edges > 0] = 0
+    dominated_edges = dominated_edges.view(n, n, n)
+    dominated_edges = dominated_edges.min(dim=2)[0]
+    heuristics = torch.max(heuristics, dominated_edges)
+    
+    # Apply a dampening factor again to ensure the heuristics are stable
+    heuristics *= dampening_factor
+    
+    # Normalize the heuristics one last time to avoid dominance
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    # Apply a final dampening to the heuristics to ensure stability
+    final_dampening_factor = 0.9
+    heuristics *= final_dampening_factor
+    
+    # Ensure the depot cost is adjusted to the sum of demands
+    depot_cost = demands.sum()
+    heuristics[0, :] += depot_cost
+    heuristics[:, 0] += depot_cost
+    
+    return heuristics
+```

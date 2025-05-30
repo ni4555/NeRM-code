@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic for the CVRP that takes into account local and global information."""
+    # Normalize demands to vehicle capacity (assumed to be 1 for simplicity)
+    demand_ratio = demands / demands.sum()
+    
+    # Compute the negative distance (penalty for longer paths)
+    neg_distance = -distance_matrix
+    
+    # Compute the sum of demands along each edge (reward for full capacity)
+    edge_demand_sum = torch.einsum('ij,ij->ij', distance_matrix, demand_ratio)
+    
+    # Calculate heuristic values based on weighted sum of penalties and rewards
+    # Weighting the distance by a higher factor to prioritize short paths
+    heuristic = neg_distance + (edge_demand_sum / 2)
+    
+    return heuristic
+```

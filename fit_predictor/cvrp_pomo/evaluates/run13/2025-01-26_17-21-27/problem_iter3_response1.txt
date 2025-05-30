@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = len(demands)
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands[1:], dim=0)  # Excluding the depot demand
+
+    # Calculate the distance penalties based on the demand
+    distance_penalties = distance_matrix * cumulative_demand
+
+    # Calculate the capacity penalties for each edge
+    capacity_penalties = torch.where(demands[1:] > total_capacity - cumulative_demand[:-1],
+                                     distance_matrix, torch.zeros_like(distance_matrix))
+
+    # Sum the penalties for each edge
+    heuristics = distance_penalties + capacity_penalties
+    return heuristics
+```

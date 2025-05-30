@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_per_weight = prize / np.sum(weight, axis=1)
+    diversity_factor = np.sum(weight, axis=1) / (np.linalg.norm(weight, axis=1) + 1e-8)
+    normalized_prize = prize / np.sum(prize)
+    sparsity = 1 / (np.linalg.norm(weight, axis=1) + 1e-8)
+    
+    # Focus on problem-specific features by emphasizing high prize per weight and diversity
+    heuristics = (value_per_weight * diversity_factor * normalized_prize) ** 2
+    
+    # Apply a threshold to filter out items that are not promising enough
+    sparsity_threshold = 0.1
+    heuristics[sparsity < sparsity_threshold] = 0
+    
+    # Normalize to ensure the heuristics sum to a reasonable value, making it suitable for stochastic sampling
+    heuristics /= np.sum(heuristics)
+    return heuristics
+```

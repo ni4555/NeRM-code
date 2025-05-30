@@ -1,0 +1,53 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce a dampened demand difference heuristic to encourage diversity
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+    demand_diff_heuristic = (demand_diff * torch.exp(-demand_diff * 0.01)).clamp(min=0.0)
+
+    # Calculate the distance-based heuristic
+    distance_heuristic = (distance_matrix + 1).clamp(min=1.0) / distance_matrix.mean() * 10
+
+    # Combine demand difference and distance heuristics
+    combined_heuristic = demand_diff_heuristic + distance_heuristic
+
+    # Introduce a dampened capacity penalty heuristic
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    capacity_penalty = torch.exp(-capacity_penalty * 0.01).clamp(min=0.0)
+
+    # Normalize the combined heuristic by the maximum of the demand difference heuristic and the capacity penalty
+    normalized_combined_heuristic = combined_heuristic / (combined_heuristic + capacity_penalty).clamp(min=1.0)
+
+    # Introduce randomness for exploration
+    exploration_noise = torch.randn_like(normalized_combined_heuristic) * 0.05
+    exploration = torch.sigmoid(exploration_noise)
+
+    # Combine the exploration with the normalized heuristic
+    heuristics = exploration * normalized_combined_heuristic
+
+    # Apply a penalty for edges leading back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics -= depot_penalty * 0.5
+
+    # Introduce a dampened local preference for edges closer to the depot
+    distance_to_depot = distance_matrix[:, 0].unsqueeze(1)
+    local_preference = torch.exp(-distance_to_depot / distance_to_depot.mean()) * 5
+    heuristics += local_preference * 0.5
+
+    # Clamp the heuristic values to ensure a balanced heuristic distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

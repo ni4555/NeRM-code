@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    
+    # Vectorized approach to calculate the potential cost
+    potential_costs = distance_matrix * (demands[:, None] + demands.T <= total_capacity - demand_cumsum)
+    potential_costs = potential_costs + (potential_costs.t() * potential_costs).mean(axis=0)
+    
+    # Initialize heuristics with a large negative value
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # Only keep positive potential costs, which represent promising edges
+    heuristics[distance_matrix > 0] = potential_costs[distance_matrix > 0]
+    
+    return heuristics
+```

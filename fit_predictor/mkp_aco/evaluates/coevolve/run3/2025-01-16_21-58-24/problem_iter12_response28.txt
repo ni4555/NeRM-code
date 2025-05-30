@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Factor 1: Value-to-weight ratio with density
+    density_factor = value_to_weight_ratio / np.mean(value_to_weight_ratio)
+    
+    # Factor 2: The sum of the weights (to avoid overly heavy items)
+    weight_factor = weight.sum(axis=1)
+    
+    # Factor 3: The number of non-zero weights (to avoid items with too many dimensions)
+    dimension_factor = (weight != 0).sum(axis=1)
+    
+    # Factor 4: The average weight in each dimension (to balance the weight across dimensions)
+    avg_weight_factor = np.mean(weight, axis=1)
+    
+    # Factor 5: The total value (to prioritize high-value items)
+    value_factor = prize / np.max(prize)
+    
+    # Combine factors to create a heuristic
+    combined_heuristics = density_factor * (1 / weight_factor) * (1 / (dimension_factor + 1)) * (1 / (avg_weight_factor + 1)) * value_factor
+    
+    # Normalize the combined heuristic to a range between 0 and 1
+    min_combined_heuristic = np.min(combined_heuristics)
+    max_combined_heuristic = np.max(combined_heuristics)
+    combined_heuristics = (combined_heuristics - min_combined_heuristic) / (max_combined_heuristic - min_combined_heuristic)
+    
+    # Sparsify the heuristics by setting lower elements to zero
+    sparsity_threshold = np.percentile(combined_heuristics, 25)
+    heuristics = np.where(combined_heuristics > sparsity_threshold, combined_heuristics, 0)
+    
+    return heuristics
+```

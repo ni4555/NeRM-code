@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Extract the distance to the depot and the demand for the depot
+    depot_distance = distance_matrix[:, 0]
+    depot_demand = demands[0]
+    # Calculate the total demand excluding the depot
+    total_demand = demands.sum() - depot_demand
+    # Normalize the demand by the total vehicle capacity
+    normalized_demand = demands / total_demand
+    # Calculate the difference between the demand and the normalized demand
+    demand_diff = demands - normalized_demand
+    # Incorporate node proximity using the exponential decay function
+    proximity = 1 - torch.exp(-distance_matrix)
+    # The heuristic value is a combination of the demand variation and node proximity
+    heuristics = demand_diff * proximity
+    # Adjust the heuristics to ensure they are negative for undesirable edges
+    heuristics[heuristics <= 0] *= -1
+    return heuristics
+```

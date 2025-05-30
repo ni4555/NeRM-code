@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that considers demand-based weight, dampens long distances, normalizes for scale, and adapts dampening factor dynamically."""
+    total_demand = demands.sum()
+    # Normalize demands by total demand
+    normalized_demands = demands / total_demand
+    # Calculate the potential contribution of each edge
+    potential = -distance_matrix * normalized_demands
+    # Determine a dampening factor that scales with the distance and the normalized demand
+    dampen = torch.exp(-0.1 * distance_matrix / torch.sqrt(torch.max(distance_matrix)))
+    # Combine potential and dampening
+    heuristics = potential * dampen
+    # Normalize the heuristics to have a range between -1 and 1
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    return heuristics
+```

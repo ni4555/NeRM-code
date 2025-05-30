@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Demand relaxation based on a threshold
+    partition_threshold = 0.5
+    relaxed_demands = torch.where(normalized_demands > partition_threshold,
+                                  normalized_demands,
+                                  0.0)
+    
+    # Calculate potential values for edges, incorporating relaxed demands
+    # Here, we use a more balanced approach that also considers the capacity constraints
+    capacity = 1.0  # Assuming total vehicle capacity is 1 for normalization
+    potential_values = normalized_distances - (capacity * relaxed_demands)
+    
+    # Adjust weights dynamically based on the sum of relaxed demands
+    total_demand = demands.sum().item()
+    weights = torch.clamp(1.0 - total_demand, min=0.0, max=1.0)
+    
+    # Apply the weights to the potential values
+    potential_values *= weights
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

@@ -1,0 +1,55 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize the demands
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Calculate the weighted demand matrix
+    weighted_demand_matrix = distance_matrix * normalized_demands[:, None]
+    
+    # Apply a logarithmic transformation to dampen the influence of high demands
+    log_demand_matrix = torch.log1p(weighted_demand_matrix)
+    
+    # Introduce a capacity factor by inverting the demands
+    capacity_factor = 1 / (demands + 1e-8)
+    
+    # Normalize the log demand matrix by the capacity factor
+    normalized_log_demand_matrix = log_demand_matrix * capacity_factor
+    
+    # Normalize the normalized log demand matrix
+    max_normalized_log_demand = normalized_log_demand_matrix.max()
+    normalized_log_demand_matrix /= max_normalized_log_demand
+    
+    # Apply a dampening factor to avoid dominance
+    dampening_factor = 0.8
+    normalized_log_demand_matrix *= dampening_factor
+    
+    # Minimize loops by setting the heuristic of a loop to be the minimum of the two edges
+    loop_heuristics = normalized_log_demand_matrix + normalized_log_demand_matrix.T - torch.diag(normalized_log_demand_matrix)
+    loop_heuristics[loop_heuristics > 0] = 0
+    normalized_log_demand_matrix += loop_heuristics
+    
+    # Apply penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    normalized_log_demand_matrix += normalized_log_demand_matrix * overcapacity_penalty - undercapacity_penalty
+    
+    # Emphasize capacity constraints by adjusting the demand factor
+    adjusted_demand_factor = (capacity_factor - 1) * demands
+    normalized_log_demand_matrix += adjusted_demand_factor
+    
+    # Ensure the depot has the highest heuristic
+    depot_cost = demands[0]
+    normalized_log_demand_matrix[0, :] += depot_cost
+    normalized_log_demand_matrix[:, 0] += depot_cost
+    
+    # Normalize the heuristics to prevent dominance
+    max_heuristic = normalized_log_demand_matrix.max()
+    normalized_log_demand_matrix /= max_heuristic
+    
+    return normalized_log_demand_matrix
+```

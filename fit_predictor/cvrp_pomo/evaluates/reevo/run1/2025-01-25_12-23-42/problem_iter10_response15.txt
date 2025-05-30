@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    demand_threshold = total_demand / len(demands)
+    
+    # Calculate the inverse of the distance matrix, avoiding division by zero
+    inv_distances = 1 / (distance_matrix + 1e-8)
+    
+    # Calculate the demand load factor
+    load_factor = (demands - demand_threshold) / demand_threshold
+    
+    # Use an exponential function to increase the penalty as the load increases
+    load_factor_penalty = torch.exp(load_factor)
+    
+    # Combine the inverse distances with the demand-based load factor
+    heuristics = inv_distances + load_factor_penalty
+    
+    # Introduce an exploration element using noise
+    noise = torch.randn_like(heuristics) * 0.1
+    
+    # Combine the heuristics with the noise
+    heuristics += noise
+    
+    # Ensure the heuristics are within a certain range
+    heuristics = torch.clamp(heuristics, min=-2.0, max=2.0)
+    
+    return heuristics
+```

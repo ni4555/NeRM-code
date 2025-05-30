@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    
+    # Calculate the ratio of prize to the sum of weights for each item
+    ratio = prize / np.sum(weight, axis=1)[:, None]
+    
+    # Normalize weights across all dimensions to ensure a fair comparison
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    
+    # Compute the importance based on both ratio and normalized weights
+    importance = ratio * normalized_weights
+    
+    # Normalize the importance to a scale from 0 to 1 for better comparison
+    max_importance = np.max(importance)
+    min_importance = np.min(importance)
+    normalized_importance = (importance - min_importance) / (max_importance - min_importance)
+    
+    # Determine the threshold using the 80th percentile to ensure some diversity in selection
+    threshold = np.percentile(normalized_importance, 80)
+    
+    # Create the heuristics vector by including items that are above the threshold
+    heuristics = (normalized_importance >= threshold).astype(float)
+    
+    # Apply sparsity by only considering the top items according to the threshold
+    sparsity_reduction = (importance / threshold).clip(min=0)
+    
+    # Adjust heuristics scores based on sparsity, keeping higher scores for sparser solutions
+    heuristics = (heuristics * sparsity_reduction).clip(max=1)
+    
+    return heuristics
+```

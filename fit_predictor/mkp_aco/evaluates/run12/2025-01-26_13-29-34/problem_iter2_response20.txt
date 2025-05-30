@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    n = prize.shape[0]
+    heuristic = np.zeros((n,))
+
+    # Define a simple reward function based on the prize and weight constraints
+    def reward(i):
+        total_weight = sum(weight[i])
+        return prize[i] if total_weight <= 1 else 0
+
+    # Deep reinforcement learning for real-time decision-making with Q-learning
+    q_table = {}
+    alpha = 0.1  # Learning rate
+    gamma = 0.6  # Discount factor
+    episodes = 1000
+
+    for _ in range(episodes):
+        state = np.random.randint(n)
+        action = state
+        next_state = np.random.randint(n)
+        reward_val = reward(next_state)
+        if (state, action) not in q_table:
+            q_table[(state, action)] = 0
+        q_table[(state, action)] = q_table[(state, action)] + alpha * (reward_val + gamma * max(q_table.get((next_state, a), 0) for a in range(n)) - q_table[(state, action)])
+
+    # Use Q-values to determine the heuristic
+    for i in range(n):
+        heuristic[i] = q_table.get((i, i), 0)
+
+    # Adaptive constraint-driven filtering to maintain multi-dimensional feasibility
+    for i in range(n):
+        if weight[i].any() > 1:
+            heuristic[i] = 0
+
+    return heuristic
+```

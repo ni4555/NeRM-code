@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Define the importance of demand, distance, and capacity constraint
+    demand_weight = 1.5
+    distance_weight = 0.5
+    capacity_constraint_weight = 0.5
+
+    # Calculate the heuristic considering the weighted sum of demand, distance, and capacity constraint
+    demand_component = demand_weight * normalized_demands
+    distance_component = distance_weight * distance_matrix
+    capacity_constraint_component = capacity_constraint_weight * torch.clamp(1 - normalized_demands.sum(dim=0), min=0)  # Encourage selecting edges where the total demand of the path is close to the capacity limit
+
+    # Combine the components to get the heuristic matrix
+    heuristic_matrix = -torch.add(torch.add(demand_component, distance_component), capacity_constraint_component)
+
+    return heuristic_matrix
+```

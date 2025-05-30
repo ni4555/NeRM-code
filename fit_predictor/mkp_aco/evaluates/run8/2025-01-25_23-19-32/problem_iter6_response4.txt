@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_weight_ratio = prize / np.sum(weight, axis=1)
+    variance = np.var(value_weight_ratio, axis=0)
+    average_weight = np.mean(weight, axis=1)
+    
+    # Adjust heuristics based on value-weight ratio, variance, and average weight
+    adjusted_heuristics = value_weight_ratio / (1 + variance * 0.01) - average_weight / np.mean(average_weight) + 1
+    
+    # Normalize heuristics to ensure they sum to 1
+    adjusted_heuristics /= np.sum(adjusted_heuristics)
+    
+    # Introduce sparsity by pruning the lowest values based on a threshold
+    threshold = np.percentile(adjusted_heuristics, 5)  # Use the 5th percentile as the threshold
+    heuristics_sparsified = np.where(adjusted_heuristics < threshold, 0, adjusted_heuristics)
+    
+    return heuristics_sparsified
+```

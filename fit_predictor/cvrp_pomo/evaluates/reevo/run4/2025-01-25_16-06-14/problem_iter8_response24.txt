@@ -1,0 +1,16 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_distance_matrix = distance_matrix / total_demand
+    scaled_demands = demands / demands.max()
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    exponentiated_distance = torch.exp(normalized_distance_matrix)
+    logarithmic_demand = torch.log(1 + cumulative_demand)
+    heuristic = exponentiated_distance - logarithmic_demand
+    # Normalize the heuristic to be between -1 and 1 for better interpretability
+    min_val = heuristic.min()
+    max_val = heuristic.max()
+    return 2 * (heuristic - min_val) / (max_val - min_val) - 1
+```

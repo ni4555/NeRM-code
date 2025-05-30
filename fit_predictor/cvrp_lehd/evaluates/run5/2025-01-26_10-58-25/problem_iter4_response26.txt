@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = 1.0
+    
+    # Create a matrix with negative infinity for edges where demand is greater than vehicle capacity
+    demand_matrix = -torch.cumsum(demands, dim=0) / vehicle_capacity
+    demand_matrix = torch.clamp(demand_matrix, min=float('-inf'))
+    
+    # Adjust the matrix for edges where the demand is exactly zero
+    demand_matrix[torch.where(demands == 0)] = float('-inf')
+    
+    # Add the distance matrix to the demand matrix to create a potential matrix
+    potential_matrix = distance_matrix + demand_matrix
+    
+    # Apply an exponential transformation to the potential matrix to non-linearly weigh the edges
+    exp_potential_matrix = torch.exp(potential_matrix)
+    
+    # Normalize the rows of the exponential potential matrix to create a probability distribution
+    row_sums = exp_potential_matrix.sum(dim=1, keepdim=True)
+    probability_matrix = exp_potential_matrix / row_sums
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    heuristics_matrix = 1 - probability_matrix
+    
+    # Incorporate realistic costs such as fixed travel costs or time windows
+    # Assuming a fixed cost for travel per unit distance and a cost for waiting at the depot
+    fixed_travel_cost = 0.1
+    depot_waiting_cost = 0.5
+    heuristics_matrix = heuristics_matrix + fixed_travel_cost * distance_matrix + depot_waiting_cost
+    
+    # Consider dynamic edge selection, for example, by adjusting the heuristics for time-dependent factors
+    # Assuming a time-dependent factor such as rush hour which increases the cost of travel
+    rush_hour_factor = torch.where(distance_matrix < 5, 1.5, 1)  # Example: increase cost on edges within 5 units
+    heuristics_matrix = heuristics_matrix * rush_hour_factor
+    
+    return heuristics_matrix
+```

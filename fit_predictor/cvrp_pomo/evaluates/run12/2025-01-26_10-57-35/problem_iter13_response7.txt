@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison and normalization
+    demand_matrix = demands[:, None] * demands
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix = demand_matrix / demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Incorporate demand and distance in a single step
+    combined_factor = demand_matrix + distance_matrix
+    
+    # Normalize the combined factor
+    combined_factor = combined_factor / combined_factor.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by scaling the demand matrix
+    capacity_factor = (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Calculate heuristic by combining normalized factors and scaling by capacity
+    heuristics = combined_factor * capacity_factor
+    
+    # Apply loop penalty by penalizing self-comparison
+    loop_penalty = torch.ones_like(combined_factor)
+    loop_penalty -= torch.eye(n)
+    
+    # Final heuristic with loop penalty
+    heuristics = heuristics * loop_penalty
+    
+    # Clip negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

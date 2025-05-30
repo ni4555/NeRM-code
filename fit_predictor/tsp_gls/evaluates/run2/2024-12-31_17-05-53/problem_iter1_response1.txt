@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the shortest path from each node to the next node in a loop as the heuristic
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    for i in range(len(distance_matrix)):
+        for j in range(len(distance_matrix[i])):
+            if i != j:
+                path_length = distance_matrix[i, j] + np.sum(distance_matrix[j, :j] + distance_matrix[j, j+1:])
+                heuristic_matrix[i, j] = path_length
+    
+    # Apply a penalty to edges that are on the longest path to discourage their selection
+    path_lengths = np.max(distance_matrix, axis=1)  # Find the longest distance from each node to another node
+    longest_path_penalty = np.max(path_lengths)
+    heuristic_matrix = np.maximum(heuristic_matrix, longest_path_penalty - path_lengths[:, np.newaxis])
+    
+    # Normalize the heuristic matrix as before
+    epsilon = 1e-10
+    heuristic_matrix[heuristic_matrix == 0] = epsilon
+    row_sums = np.sum(heuristic_matrix, axis=1)
+    normalized_heuristic_matrix = heuristic_matrix / (row_sums[:, np.newaxis] + epsilon)
+    
+    return normalized_heuristic_matrix
+```

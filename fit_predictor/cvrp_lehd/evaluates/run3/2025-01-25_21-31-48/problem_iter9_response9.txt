@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    max_demand = torch.max(demands)
+    
+    # Weight demand by its importance, higher demand nodes should have higher priority
+    demand_weight = demands / max_demand
+    
+    # Invert the demand weight to make larger demands more penalized
+    demand_weight = 1 - demand_weight
+    
+    # Incorporate distance into the heuristic, normalize by max distance to ensure consistency
+    distance_heuristic = distance_matrix / (torch.max(distance_matrix) + 1e-8)
+    
+    # Combine heuristics, now the distance heuristic is weighted by demand
+    combined_heuristic = distance_heuristic * demand_weight
+    
+    # Dynamically adapt the heuristic by penalizing high-demand edges
+    capacity_exceeded_mask = demands > 1
+    penalty = -torch.max(combined_heuristic[capacity_exceeded_mask]) * capacity_exceeded_mask
+    combined_heuristic -= penalty
+    
+    # Cap the heuristics to avoid negative values and to normalize them
+    cap = torch.max(combined_heuristic)
+    combined_heuristic = torch.clamp(combined_heuristic, min=0, max=cap)
+    
+    return combined_heuristic
+```

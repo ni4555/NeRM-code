@@ -1,0 +1,28 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Calculate the cumulative sum of demands
+    cum_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize the potential matrix with the distance matrix
+    potential_matrix = distance_matrix.clone()
+    
+    # Add a penalty for distances that scales with vehicle capacity
+    potential_matrix *= torch.sqrt(vehicle_capacity)
+    
+    # Add a penalty for exceeding vehicle capacity
+    capacity_penalty = (cum_demand > vehicle_capacity) * torch.tensor(float('-inf'))
+    potential_matrix += capacity_penalty
+    
+    # Apply a non-linear transformation to the potential matrix
+    potential_matrix = F.log_softmax(potential_matrix, dim=1)
+    
+    # Normalize the potential matrix to ensure the sum of each row is 1
+    heuristics_matrix = F.softmax(potential_matrix, dim=1)
+    
+    return heuristics_matrix
+```

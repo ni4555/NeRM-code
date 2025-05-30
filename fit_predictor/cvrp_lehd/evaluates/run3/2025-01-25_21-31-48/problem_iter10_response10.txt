@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for the CVRP that balances distance, demand, and diversity, with normalization and score inversion."""
+    # Normalize the demands by the total capacity
+    demand_normalized = demands / demands.sum()
+
+    # Calculate the inverse of the distance matrix to emphasize shorter distances
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)  # Add a small value to avoid division by zero
+
+    # Combine the inverse distance with normalized demands to balance distance and demand
+    combined_weight = distance_matrix_inv * demand_normalized
+
+    # Introduce a diversity factor to encourage selection of a wider variety of customers
+    diversity_factor = demand_normalized / demand_normalized.sum()
+
+    # Introduce a distance decay to promote shorter paths
+    distance_decay = 1 - torch.exp(-distance_matrix)
+
+    # Normalize the combined weight to ensure all values are within a certain range
+    max_combined = combined_weight.max()
+    min_combined = combined_weight.min()
+    normalized_combined_weight = (combined_weight - min_combined) / (max_combined - min_combined)
+
+    # Combine the factors to get the heuristic value
+    heuristics = normalized_combined_weight * diversity_factor * distance_decay
+
+    # Invert the scores to have negative values for undesirable edges and positive for promising ones
+    inverted_scores = 1 - heuristics
+
+    return inverted_scores
+```

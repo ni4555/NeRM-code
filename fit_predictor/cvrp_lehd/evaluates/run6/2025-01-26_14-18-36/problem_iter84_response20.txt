@@ -1,0 +1,49 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate normalized demand differences
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Calculate the capacity penalty
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+
+    # Calculate the dampened distance
+    dampened_distance = torch.exp(-distance_matrix)
+
+    # Calculate the heuristic value using demand differences, dampened distance, and exploration noise
+    heuristics = demand_diff * dampened_distance
+    exploration_noise = torch.randn_like(heuristics) * 0.01
+    heuristics += exploration_noise
+
+    # Normalize and scale heuristics for balanced impact
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Introduce a sigmoid balance for exploration and exploitation
+    sigmoid_balance = torch.sigmoid(torch.arange(n, device=distance_matrix.device) * 0.1)
+    heuristics *= sigmoid_balance
+
+    # Apply the capacity penalty to reduce the value of edges leading to nodes that exceed capacity
+    heuristics *= (1 - capacity_penalty)
+
+    # Introduce penalties for edges leading back to the depot and for edges with local preferences
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+    distance_penalty = torch.clamp(distance_penalty, min=0.0)
+
+    # Combine penalties and apply to heuristic values
+    heuristics -= depot_penalty * 0.5
+    heuristics += distance_penalty * 0.5
+
+    # Clamp the heuristic values to ensure a balanced distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

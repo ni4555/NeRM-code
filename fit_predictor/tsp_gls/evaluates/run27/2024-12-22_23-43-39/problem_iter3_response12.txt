@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    heuristics_matrix = np.zeros_like(distance_matrix)
+
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Incorporate domain knowledge by considering the nearest neighbor distances
+                nearest_neighbor_i = np.argmin(distance_matrix[i, ~np.isin(np.arange(n), [i])])
+                nearest_neighbor_j = np.argmin(distance_matrix[j, ~np.isin(np.arange(n), [j])])
+                
+                # Local structure by considering the distance to the nearest common neighbor
+                common_neighbors = np.intersect1d(np.argsort(distance_matrix[i, ~np.isin(np.arange(n), [i]))[1:], np.argsort(distance_matrix[j, ~np.isin(np.arange(n), [j]))[1:]))
+                if len(common_neighbors) > 0:
+                    nearest_common_neighbor = np.argmin(distance_matrix[i, common_neighbors])
+                    distance_to_common = distance_matrix[i, common_neighbors[nearest_common_neighbor]]
+                else:
+                    distance_to_common = float('inf')
+                
+                # Diverse distance metrics by considering the sum of distances to both nodes
+                heuristics_matrix[i, j] = (distance_matrix[i, nearest_neighbor_i] +
+                                           distance_matrix[j, nearest_neighbor_j] +
+                                           distance_to_common +
+                                           distance_matrix[i, j]) / 4
+            else:
+                heuristics_matrix[i, j] = float('inf')
+
+    return heuristics_matrix
+```

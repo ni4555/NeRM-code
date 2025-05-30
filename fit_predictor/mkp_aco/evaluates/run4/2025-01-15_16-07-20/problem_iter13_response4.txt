@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Calculate normalized prize based on maximum prize
+    normalized_prize = prize / max_prize
+    
+    # Calculate sparsity bonus, prefer items with zero weights in at least one dimension
+    sparsity_bonus = np.where(np.sum(weight, axis=1) < weight.shape[1], 1, 0)
+    
+    # Calculate density based on normalized prize and average weight
+    density = normalized_prize / np.mean(weight, axis=1)
+    
+    # Calculate a feature importance score that is balanced between density and sparsity
+    feature_importance = (density * 0.7 + sparsity_bonus * 0.3)
+    
+    # Introduce a non-linear transformation for the utility score to give more weight to items
+    # with a high ratio of prize to the sum of weights in their dimension
+    utility = np.log1p(feature_importance / (1 - feature_importance))
+    
+    # Normalize utility scores to ensure they sum to 1
+    normalized_utility = utility / np.sum(utility)
+    
+    # Return the heuristics scores
+    return normalized_utility
+```

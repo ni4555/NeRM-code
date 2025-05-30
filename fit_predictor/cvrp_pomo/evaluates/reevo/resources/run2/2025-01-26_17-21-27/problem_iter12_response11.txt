@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Calculate the balance between demand and distance
+    demand_balance = -torch.abs(cumulative_demand - total_capacity) / total_capacity
+    distance_balance = 1 / (1 + distance_matrix)
+    # Combine demand and distance balance
+    combined_balance = demand_balance * distance_balance
+    # The depot node is 0, which has no demand, so it gets a priority
+    depot_priority = (torch.arange(n) == 0).float().unsqueeze(0)
+    # Combine the balance with the depot priority
+    heuristics = combined_balance * depot_priority
+    return heuristics
+```

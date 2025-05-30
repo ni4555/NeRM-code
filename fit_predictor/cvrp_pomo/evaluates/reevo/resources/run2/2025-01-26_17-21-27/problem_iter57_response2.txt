@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Use a more aggressive dynamic capacity penalty
+    dynamic_capacity_penalty = -torch.log(torch.abs(demands - total_capacity_vector))
+    
+    # Use a simpler distance penalty that increases linearly with distance
+    distance_penalty = -distance_matrix / total_capacity_vector
+    
+    # Use a penalty for overflow that scales with the demand difference
+    overflow_penalty = -torch.log(torch.abs(cumulative_demand + demands - total_capacity_vector) + 1e-8)
+    
+    # Introduce a load balance heuristic that penalizes imbalances
+    load_balance_penalty = -torch.log(torch.abs(cumulative_demand - total_capacity_vector) + 1e-8)
+    
+    # Use randomness only for the depot-vehicle connections to reduce complexity
+    randomness_factor = torch.abs(torch.randn(n) * 0.1)
+    randomness_factor[0] = 0  # Ensure no randomness for the depot
+    
+    # Introduce diversity through random walk to encourage exploration
+    diversity_factor = torch.abs(torch.randn(n)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine all factors
+    heuristics = (
+        dynamic_capacity_penalty +
+        distance_penalty +
+        overflow_penalty +
+        load_balance_penalty +
+        randomness_factor +
+        diversity_factor
+    )
+    
+    # Ensure no negative heuristics to maintain the promise of an improvement
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

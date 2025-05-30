@@ -1,0 +1,49 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize the distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize the demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate balance factors for distance and demand
+    distance_balance = torch.clamp(1 - normalized_distances, min=0)
+    demand_balance = torch.clamp(1 - normalized_demands, min=0)
+    
+    # Combine the balance factors using a weighted average
+    balance_factor = (distance_balance + demand_balance) / 2
+    
+    # Apply a non-linear transformation to the balance factors
+    non_linear_balance = torch.exp(-balance_factor)
+    
+    # Incorporate a demand relaxation term
+    average_demand = normalized_demands.mean()
+    demand_relaxation = torch.where(normalized_demands > average_demand, (normalized_demands - average_demand) * 0.5, 0)
+    
+    # Combine the non-linear balance with the demand relaxation
+    combined_balance = non_linear_balance + demand_relaxation
+    
+    # Apply a non-linear function to adjust the edge weights
+    non_linear_adjustment = torch.exp(-normalized_distances)
+    
+    # Incorporate multi-criteria evaluations using a weighted sum of adjusted distances and demands
+    criteria_weight = torch.tensor([1.2, 0.8], dtype=torch.float)  # Example weights for distance and demand
+    potential_values = criteria_weight[0] * combined_balance * non_linear_adjustment + criteria_weight[1] * normalized_demands
+    
+    # Apply node partitioning and demand relaxation
+    partition_threshold = 0.75  # Adaptive threshold for partitioning
+    relaxed_demands = torch.where(normalized_demands > partition_threshold, (normalized_demands - average_demand) * 0.7, 0)
+    potential_values += relaxed_demands
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

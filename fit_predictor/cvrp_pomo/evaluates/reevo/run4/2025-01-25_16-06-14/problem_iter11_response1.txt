@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Scale demands to the range [0, 1]
+    scaled_demands = demands / demands.max()
+    # Apply a non-linear transformation to the distance matrix to enhance the gradient-based search
+    non_linear_distance = torch.tanh(normalized_distance_matrix)  # Using tanh for non-linearity to maintain range between -1 and 1
+    # Create a demand factor that will penalize edges with high demand
+    demand_factor = torch.exp(-scaled_demands)
+    # Combine the non-linear distance and demand factors, then subtract the demand factor to get a heuristic
+    combined_heuristic = non_linear_distance - demand_factor
+    # Invert the sign to get negative values for undesirable edges
+    return -combined_heuristic
+```

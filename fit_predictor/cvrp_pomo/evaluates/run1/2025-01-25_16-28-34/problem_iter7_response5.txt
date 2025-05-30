@@ -1,0 +1,51 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a more refined heuristic that considers the balance between overloading and underloading
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Introduce a local search heuristic that considers the load balance
+    # We use a simple heuristic based on the average distance to the nearest depot
+    average_distance_to_depot = torch.mean(distance_matrix, dim=1)
+    local_search_heuristic = -average_distance_to_depot
+    
+    # Update the heuristics with the local search heuristic
+    heuristics += local_search_heuristic
+    
+    # Introduce a PSO-inspired adaptive population management heuristic
+    # This is a simplified representation and may require further refinement
+    diversity_factor = torch.rand(n) - 0.5
+    heuristics += diversity_factor * torch.log1p(average_demand_per_edge)
+    
+    # Introduce a tabu search-inspired dynamic cost function heuristic
+    # This is a simplified representation and may require further refinement
+    tabu_search_heuristic = torch.where(
+        heuristics > 0,
+        -torch.log1p(average_demand_per_edge) + torch.log1p(total_capacity),
+        torch.zeros_like(heuristics)
+    )
+    
+    # Combine all heuristics with proper weighting
+    weighted_heuristics = 0.3 * heuristics + 0.5 * local_search_heuristic + 0.2 * tabu_search_heuristic
+    
+    # Apply the penalty to the heuristics
+    penalty = 0.5 * (torch.abs(weighted_heuristics) + torch.abs(1 - weighted_heuristics))
+    heuristics -= penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

@@ -1,0 +1,47 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce diversity factors based on a small random shuffle
+    diversity_factors = (torch.rand_like(distance_matrix) - 0.5) * 0.2
+
+    # Calculate the capacity factor as the difference in scaled demands times remaining capacity
+    capacity_factors = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Introduce penalties for edges that lead to a node with demand exceeding vehicle capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    capacity_factors -= capacity_penalty
+
+    # Introduce a penalty for edges leading back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    capacity_factors += depot_penalty
+
+    # Combine the capacity factor and diversity factor, normalize, and apply a non-linear transformation
+    combined_factors = capacity_factors * diversity_factors
+    max_combined_factors = combined_factors.max()
+    min_combined_factors = combined_factors.min()
+    combined_factors = (combined_factors - min_combined_factors) / (max_combined_factors - min_combined_factors)
+    combined_factors = torch.tanh(combined_factors)
+
+    # Introduce a dampening factor for stability and to reduce the influence of capacity factors
+    dampening_factor = 0.3
+    combined_factors *= dampening_factor
+
+    # Introduce a distance-based penalty to favor closer nodes
+    distance_penalty = (distance_matrix - distance_matrix[:, 0][:, None]).abs() * 0.01
+    combined_factors -= distance_penalty
+
+    # Clamp the combined factors to ensure they are within the range [0, 1]
+    combined_factors = torch.clamp(combined_factors, min=0.0, max=1.0)
+
+    return combined_factors
+```

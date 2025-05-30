@@ -1,0 +1,60 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand) and normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine weighted distances and demands
+    combined_weights = distance_matrix * demand_matrix
+    
+    # Normalize the combined weights
+    combined_weights /= combined_weights.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by using the inverse of demand
+    capacity_factor = 1 / (demands + 1e-8)
+    
+    # Apply logarithmic scale to balance demand and distance
+    combined_weights = torch.log1p(combined_weights)
+    
+    # Normalize to avoid dominance
+    max_weight = combined_weights.max()
+    normalized_weights = combined_weights / max_weight
+    
+    # Emphasize capacity by using the capacity factor
+    emphasized_capacity = normalized_weights * capacity_factor
+    
+    # Apply penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    emphasized_capacity += overcapacity_penalty - undercapacity_penalty
+    
+    # Ensure that the heuristic for the depot is the highest
+    depot_cost = demands[0]
+    emphasized_capacity[0, :] += depot_cost
+    emphasized_capacity[:, 0] += depot_cost
+    
+    # Minimize loops by reducing the weights of edges that form a loop
+    loop_minimization = combined_weights + combined_weights.T - torch.diag(combined_weights)
+    loop_minimization[loop_minimization > 0] = 0
+    emphasized_capacity += loop_minimization
+    
+    # Avoid dominance by balancing the weights of edges
+    dominated_edges = combined_weights.unsqueeze(1) + combined_weights.unsqueeze(0) - combined_weights.unsqueeze(2)
+    dominated_edges[dominated_edges > 0] = 0
+    dominated_edges = dominated_edges.view(n, n, n)
+    dominated_edges = dominated_edges.min(dim=2)[0]
+    emphasized_capacity = torch.max(emphasized_capacity, dominated_edges)
+    
+    # Apply a dampening factor to all weights
+    dampening_factor = 0.8
+    emphasized_capacity *= dampening_factor
+    
+    return emphasized_capacity
+```

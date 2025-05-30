@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    balance_factor = torch.min(torch.abs(cumulative_demand), total_capacity - cumulative_demand)
+    
+    # Use a combination of demand and distance heuristics
+    demand_heuristic = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_heuristic = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Scale demand heuristic by cumulative demand
+    demand_heuristic *= cumulative_demand
+    
+    # Scale distance heuristic by a factor that decreases with the total capacity
+    distance_heuristic *= (total_capacity / (total_capacity + 1e-8))
+    
+    # Introduce a randomness factor to promote diversity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Integrate a load balance heuristic
+    load_balance_heuristic = -torch.log1p(balance_factor - 1e-8)
+    
+    # Combine all heuristics with controlled randomness
+    heuristics = (
+        demand_heuristic +
+        distance_heuristic +
+        load_balance_heuristic +
+        randomness_factor
+    )
+    
+    # Introduce diversity through random factor
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    
+    # Normalize the heuristics to have a mean close to zero
+    heuristics = (heuristics - heuristics.mean()) / (heuristics.std() + 1e-8)
+    
+    return heuristics
+```

@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the ratio of prize to the sum of weights for each item
+    ratio_factor = normalized_prize / weight.sum(axis=1)
+    
+    # Promote items with a lower average weight dimension as more promising
+    average_weight_factor = 1 / np.mean(weight, axis=1)
+    
+    # Introduce diversity by considering the standard deviation of the weights
+    std_factor = np.mean(np.std(weight, axis=1))
+    diversity_factor = 1 / (std_factor + 1e-5)
+    
+    # Combine factors into a weighted sum
+    combined_factor = ratio_factor * average_weight_factor * diversity_factor
+    
+    # Normalize combined factor to sum to 1
+    combined_factor /= np.sum(combined_factor)
+    
+    # Introduce sparsity by setting a fraction of the lowest heuristics to zero
+    num_to_zero = int(len(combined_factor) * 0.1)
+    combined_factor[np.argsort(combined_factor)[:num_to_zero]] = 0
+    
+    # Adjust heuristics based on the average prize value of selected items
+    selected_prize_average = np.mean(prize[combined_factor > 0])
+    adjustment_factor = selected_prize_average / np.mean(prize)
+    combined_factor *= adjustment_factor
+    
+    return combined_factor
+```

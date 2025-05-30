@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristic vector
+    heuristic = np.zeros_like(prize)
+    
+    # Iterate over items
+    for i in range(prize.shape[0]):
+        # Calculate the normalized density
+        density = prize[i] / np.sum(weight[i] + 1e-8)
+        
+        # Calculate the normalized sparsity
+        sparsity = np.sum(weight[i] + 1e-8) / np.max(weight[i] + 1e-8)
+        
+        # Calculate the balance between high density and low sparsity
+        balance = (density - sparsity) / (density + sparsity + 1e-8)
+        
+        # Calculate a diversity factor based on the relative density
+        diversity_factor = density / np.mean(prize)  # Assuming prize has a meaningful mean
+        
+        # Create a heuristic value combining the balance and diversity
+        heuristic_value = balance * diversity_factor
+        
+        # Adjust the heuristic based on the item's density and sparsity
+        if density > 0.5 and sparsity < 0.5:  # Adjusting thresholds as an example
+            heuristic[i] = heuristic_value
+        else:
+            heuristic[i] = 1e-8  # Unpromising items get a very small heuristic
+    
+    return heuristic
+```

@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Incorporate a demand balancing heuristic
+    demand_balance = 1 / (1 + (normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0)).sum(dim=1, keepdim=True))
+    
+    # Inverse distance matrix heuristic
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Dynamic load balancing factor considering current load and vehicle capacity
+    load_balance = torch.min(demands.unsqueeze(1), demands.unsqueeze(0)) / demands.sum()
+    
+    # Time dynamic factor considering real-time conditions
+    time_constant = torch.rand(distance_matrix.shape[0])
+    time_heuristic = torch.exp(-time_constant.unsqueeze(1) * time_constant.unsqueeze(0))
+    
+    # Combine heuristics with proper balancing weights
+    combined_heuristic = demand_balance * distance_heuristic * 0.4 + load_balance * time_heuristic * 0.6
+    
+    # Normalize the combined heuristic values to ensure they sum to 1 for each row (edge)
+    row_sums = combined_heuristic.sum(dim=1, keepdim=True)
+    normalized_combined_heuristic = combined_heuristic / row_sums
+    
+    return normalized_combined_heuristic
+```

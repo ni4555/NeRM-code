@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Demand factor: high demand nodes have higher priority
+    demand_factor = 1 / (1 + torch.exp(-(demands / total_demand - 0.5) * 2))
+    
+    # Distance factor: shorter distances have higher priority
+    distance_factor = torch.exp(-distance_matrix / (distance_matrix.max() / 2))
+    
+    # Combine demand and distance factors
+    heuristic_matrix = demand_factor * distance_factor
+    
+    # Normalize the heuristic values to ensure a consistent scale
+    heuristic_matrix = (heuristic_matrix - heuristic_matrix.min()) / (heuristic_matrix.max() - heuristic_matrix.min())
+    
+    # Ensure the depot is not included in the heuristic matrix
+    heuristic_matrix[0, :] = 0
+    heuristic_matrix[:, 0] = 0
+    
+    return heuristic_matrix
+```

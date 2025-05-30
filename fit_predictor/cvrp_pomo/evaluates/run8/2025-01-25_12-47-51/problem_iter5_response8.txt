@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate inverse distance matrix and normalize by total demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Demand-based heuristic: prioritize edges with higher demand
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = normalized_inv_distance_matrix * demand_normalized
+
+    # Remaining capacity-based heuristic: prioritize edges with higher remaining capacity
+    remaining_capacity = 1 - demands
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Nearest-neighbor heuristic: add the closest node for each customer
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # Balance between demand and capacity
+    balance_factor = 0.5  # Example balance factor
+    balanced_heuristic = (balance_factor * demand_weighted_distance) + ((1 - balance_factor) * capacity_weighted_distance)
+
+    # Scale the combined heuristic for optimization
+    scaled_heuristic = balanced_heuristic * 100  # Example scaling factor
+
+    # Combine heuristics and penalize infeasibility
+    combined_heuristic = scaled_heuristic + nearest_neighbor
+    combined_heuristic[demands[:, None] + demands[None, :] > 1] = -torch.inf
+
+    return combined_heuristic
+```

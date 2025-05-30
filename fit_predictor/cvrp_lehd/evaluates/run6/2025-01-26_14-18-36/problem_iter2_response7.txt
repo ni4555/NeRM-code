@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """
+    A heuristic function that uses demand-based penalties and prioritizes edges with lower demand.
+    """
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_penalty = (demands / demands.max() * -1000).unsqueeze(1)  # Scale penalties for normalization
+    distance_penalty = distance_matrix * 0.1  # Add a distance penalty factor
+
+    # Initialize the heuristic matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Iterate over the nodes to compute the heuristic values
+    for i in range(1, n):
+        # Calculate the penalty for the current node if it's added to the route
+        current_penalty = demand_penalty[i]
+        # Calculate the distance-based penalty from the current node to all other nodes
+        distance_based_penalty = distance_penalty[i]
+        # Set the heuristic values
+        heuristic_matrix[i] = (1 - (demands / demands.max())) * current_penalty + distance_based_penalty
+
+    # Add the penalty for the depot to return to the route
+    return_penalty = demand_penalty[0]
+    heuristic_matrix[:, 0] = heuristic_matrix[:, 0] + return_penalty
+    heuristic_matrix[0, :] = heuristic_matrix[0, :] + return_penalty
+
+    return heuristic_matrix
+```

@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Create a matrix that represents the number of times each edge has been used
+    usage_matrix = np.zeros_like(distance_matrix)
+    np.fill_diagonal(usage_matrix, np.inf)  # Diagonal edges are not used in the TSP
+
+    # Calculate the current tour usage
+    for i in range(len(distance_matrix)):
+        for j in range(i + 1, len(distance_matrix)):
+            usage_matrix[i, j] = usage_matrix[j, i] = (usage_matrix[i, j] + 1) / 2
+
+    # Calculate the average usage and the number of unique edges used
+    average_usage = np.mean(usage_matrix)
+    num_unique_edges = np.count_nonzero(usage_matrix > 0)
+
+    # Introduce a penalty for highly used edges, highly used unique edges, and high distance edges
+    adjusted_distances = distance_matrix
+    for i in range(len(distance_matrix)):
+        for j in range(i + 1, len(distance_matrix)):
+            # Apply a higher penalty for edges that are used more than the average
+            # and for edges that are unique to the tour
+            edge_penalty = 0.1 * (usage_matrix[i, j] > average_usage) + 0.2 * (usage_matrix[i, j] > 1)
+            # Balance distance and usage by increasing the distance for highly used edges
+            adjusted_distances[i, j] = adjusted_distances[j, i] = distance_matrix[i, j] * (1 + edge_penalty)
+            # Avoid diagonal dominance by ensuring that the penalty does not make diagonal edges longer
+            if i == j:
+                adjusted_distances[i, j] = 0
+
+    return adjusted_distances
+```

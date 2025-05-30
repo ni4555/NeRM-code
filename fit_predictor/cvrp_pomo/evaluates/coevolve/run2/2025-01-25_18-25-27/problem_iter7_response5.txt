@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Calculate the initial heuristic matrix
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+
+    # Introduce randomness and a penalty for infeasibilities
+    penalty = torch.rand(n)
+    feasible_edges = (heuristics_matrix > 0).float()
+    random_factor = (torch.rand(n) * 2 - 1) * feasible_edges
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    heuristics_matrix += random_factor + infeasibility_penalty * (1 - feasible_edges)
+
+    # Mutate the heuristics matrix by randomly swapping edges and introducing small changes
+    mutation_rate = 0.05  # Probability of mutation
+    num_mutation_operations = int(mutation_rate * n * n)
+    for _ in range(num_mutation_operations):
+        i, j = torch.randint(0, n, (2,)), torch.randint(0, n, (2,))
+        # Ensure we are not swapping the same edge
+        while i[0] == i[1] or j[0] == j[1]:
+            i, j = torch.randint(0, n, (2,)), torch.randint(0, n, (2,))
+        heuristics_matrix[i[0], j[0]] -= random_factor[i[0]] - infeasibility_penalty[i[0]]
+        heuristics_matrix[i[0], j[0]] += random_factor[j[0]] - infeasibility_penalty[j[0]]
+        heuristics_matrix[j[0], i[0]] -= random_factor[j[0]] - infeasibility_penalty[j[0]]
+        heuristics_matrix[j[0], i[0]] += random_factor[i[0]] - infeasibility_penalty[i[0]]
+
+    return heuristics_matrix
+```

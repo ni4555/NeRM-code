@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    distance_heuristic = 1 / (distance_matrix + 1e-6)
+    
+    # Introduce a diversity factor that penalizes edges with similar demand
+    diversity_factor = torch.abs(1 - normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0))
+    
+    # Add a load balancing factor by considering the difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Integrate a dynamic routing factor that adapts to real-time data
+    # Assuming a time constant for the speed of vehicles and time of day
+    time_constant = torch.rand(distance_matrix.shape[0])
+    time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0)))
+    
+    # Normalize heuristics
+    distance_heuristic = distance_heuristic / distance_heuristic.sum()
+    diversity_factor = diversity_factor / diversity_factor.sum()
+    load_balance = load_balance / load_balance.sum()
+    time_heuristic = time_heuristic / time_heuristic.sum()
+    
+    # Combine the heuristics with a weighted sum to balance their influence
+    combined_heuristic = (distance_heuristic * 0.4 +
+                          diversity_factor * 0.2 +
+                          load_balance * 0.3 +
+                          time_heuristic * 0.1)
+    
+    # Clip values to ensure they are within a reasonable range
+    combined_heuristic = torch.clamp(combined_heuristic, min=-1.0, max=1.0)
+    
+    return combined_heuristic
+```

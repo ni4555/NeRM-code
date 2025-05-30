@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized density and sparsity
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Introduce correlation metrics using the Pearson correlation coefficient
+    correlations = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            correlations[i, j] = np.corrcoef(prize[i], prize[j])[0, 1]
+    # Normalize correlations
+    correlations = (correlations - np.min(correlations)) / (np.max(correlations) - np.min(correlations))
+    
+    # Prune dominated items by removing items with lower prize than any dominant item
+    dominance_mask = np.array([np.all(prize > prize) for prize in np.array_split(prize, n)])
+    prize[dominance_mask] = -np.inf  # Set dominated items' prize to negative infinity
+    
+    # Introduce randomness with exploration
+    random_factor = np.random.rand(n)
+    
+    # Create a heuristic combining density, sparsity, correlations, and randomness
+    heuristic = density * (1 - sparsity) * correlations * random_factor
+    
+    # Normalize the heuristic
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Set zero weights to a small value to maintain diversity
+    normalized_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return normalized_heuristic
+```

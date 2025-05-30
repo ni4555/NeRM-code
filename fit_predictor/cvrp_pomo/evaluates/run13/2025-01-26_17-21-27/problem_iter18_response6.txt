@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_penalty = -torch.log1p(torch.abs(demands) - 1e-8)
+    demand_over_capacity_penalty = demand_penalty * (cumulative_demand > total_capacity)
+
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand)
+
+    balance_factor = (cumulative_demand - total_capacity) / (total_capacity * (n - 1))
+    balance_factor = torch.clamp(balance_factor, min=0, max=1)  # Ensure balance factor is within [0, 1]
+
+    # Multi-factor scaling: demand balance, demand over capacity, and distance
+    multi_factor_scale = balance_factor * demand_over_capacity_penalty + (1 - balance_factor) * distance_scaling
+
+    # Consider relative importance of factors
+    relative_importance = torch.tensor([0.3, 0.4, 0.3])  # Example relative importance: demand balance, demand over capacity, distance
+    heuristics = relative_importance[0] * multi_factor_scale + relative_importance[1] * demand_over_capacity_penalty + relative_importance[2] * distance_penalty
+    return heuristics
+```

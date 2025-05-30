@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.size(0)
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Compute the potential for each edge based on distance and demand
+    alpha = torch.clamp(distance_matrix / distance_matrix.max(), min=0.1, max=1.0)
+    beta = normalized_demands * demands / demands.sum()
+    edge_potential = alpha + beta
+    
+    # Apply soft thresholding to the potential to avoid extreme values
+    max_potential = edge_potential.max()
+    edge_potential = torch.clamp(edge_potential, min=-max_potential * 0.1, max=max_potential * 0.1)
+    
+    # Apply a diversity heuristic, penalizing edges connecting nodes with similar demand
+    demand_diff = torch.abs(normalized_demands[:, None] - normalized_demands[None, :])
+    diversity_penalty = 1 / (demand_diff + 1e-8)  # Avoid division by zero
+    diversity_penalty = diversity_penalty.mean(axis=2)  # Average over pairs of demands
+    
+    # Adjust the edge potential based on the diversity penalty
+    edge_potential *= diversity_penalty
+    
+    # Apply a soft constraint to ensure that the potential is within a certain range
+    edge_potential = torch.clamp(edge_potential, min=-max_potential, max=max_potential)
+    
+    # Normalize the heuristics matrix to the range [0, 1]
+    edge_potential = edge_potential / edge_potential.max()
+    
+    # Adjust the heuristics based on the total vehicle capacity to ensure it can serve all demands
+    heuristics_matrix = (1 - (edge_potential.sum(1) / n)) * edge_potential
+    
+    return heuristics_matrix
+```

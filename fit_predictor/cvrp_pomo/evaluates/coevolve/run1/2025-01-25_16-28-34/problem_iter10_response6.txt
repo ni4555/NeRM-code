@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a penalty for deviation from the average demand
+    demand_deviation_penalty = torch.abs(average_demand_per_edge - total_capacity / n)
+    
+    # Introduce a distance-based penalty that encourages closer node pairs
+    distance_penalty = 1 / (distance_matrix + 1)
+    
+    # Combine penalties into a heuristic
+    heuristics = -demand_deviation_penalty + distance_penalty
+    
+    # Calculate the load for each customer node and introduce penalties for load imbalance
+    load = torch.cumsum(average_demand_per_edge, dim=0) - average_demand_per_edge
+    overload_penalty = torch.abs(load - total_capacity)
+    underload_penalty = torch.abs(load)
+    
+    # Weighted combination of overload and underload penalties
+    dynamic_penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply dynamic penalties to the heuristics
+    heuristics -= dynamic_penalty
+    
+    # Introduce a penalty for edges with zero distance to the depot
+    zero_distance_penalty = distance_matrix.sum(dim=1, keepdim=True)
+    heuristics += zero_distance_penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

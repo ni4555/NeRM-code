@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot demand
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Vectorized approach to calculate the heuristic for each edge
+    # The diagonal is not included since we cannot move from a node to itself
+    heuristic_matrix[1:, 1:] = average_demand - demands[1:] - distance_matrix[1:, 1:]
+    # Set negative heuristics to zero as they are not desirable
+    heuristic_matrix[1:, 1:][heuristic_matrix[1:, 1:] < 0] = 0
+
+    # The heuristic from the depot to each node is the demand of the node
+    heuristic_matrix[:, depot] = -demands[1:]
+    # The heuristic from each node to the depot is the negative of the distance from the node to the depot
+    heuristic_matrix[depot, 1:] = -distance_matrix[depot, 1:]
+
+    return heuristic_matrix
+```

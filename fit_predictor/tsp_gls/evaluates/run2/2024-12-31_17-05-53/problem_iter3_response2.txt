@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # This heuristic function improves upon v1 by incorporating a more domain-specific approach
+    # It assumes that edges that are part of a cycle in a minimum spanning tree (MST) are likely to be
+    # shorter than those that are not. Therefore, it uses the sum of the distances to the nearest
+    # node in the MST as the heuristic value for each edge.
+    
+    # First, perform a minimum spanning tree using Kruskal's algorithm (approximation for TSP)
+    edges = [(i, j, distance_matrix[i, j]) for i in range(len(distance_matrix)) for j in range(i+1, len(distance_matrix))]
+    edges.sort(key=lambda x: x[2])
+    mst = []
+    for edge in edges:
+        u, v, dist = edge
+        if not any((u in s or v in s) for s in mst):
+            mst.append(edge)
+            if len(mst) == len(distance_matrix) - 1:
+                break
+
+    # Create a matrix of the shortest distances to the nearest MST node for each edge
+    nearest_mst_node_dist = np.zeros_like(distance_matrix)
+    for u, v, _ in mst:
+        nearest_mst_node_dist[u, v] = distance_matrix[u, v]
+        nearest_mst_node_dist[v, u] = distance_matrix[u, v]
+    
+    # Calculate the heuristic values for each edge
+    heuristic_matrix = nearest_mst_node_dist
+    
+    # Normalize the heuristic matrix to avoid negative values and to provide a relative scale
+    row_sums = np.sum(heuristic_matrix, axis=1)
+    epsilon = 1e-10
+    normalized_heuristic_matrix = (heuristic_matrix / (row_sums[:, np.newaxis] + epsilon))
+    
+    return normalized_heuristic_matrix
+```

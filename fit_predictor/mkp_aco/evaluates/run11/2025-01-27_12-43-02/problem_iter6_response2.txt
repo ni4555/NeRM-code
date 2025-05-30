@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    combined_score = score * ratio
+    threshold = np.percentile(combined_score, 90)  # Use 90th percentile as the threshold
+    
+    # Apply the threshold and also consider the sparsity of items
+    heuristics = np.logical_or(combined_score > threshold, 
+                               (prize / score) > (np.percentile(prize, 90) / np.percentile(score, 90)))
+    
+    return heuristics.astype(int)
+```

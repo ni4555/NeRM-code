@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+
+    # Normalize the distance matrix
+    normalized_distance_matrix = distance_matrix / total_demand
+
+    # Initialize a demand-based heuristic
+    demand_normalized = demands / total_demand
+    demand_heuristic = -demand_normalized
+
+    # Initialize a capacity-based heuristic
+    demand_normalized_matrix = demands / torch.sum(demands)
+    remaining_capacity = 1 - demand_normalized_matrix
+    capacity_heuristic = remaining_capacity
+
+    # Apply a nearest-neighbor heuristic by using the normalized distance matrix
+    nearest_neighbor_heuristic = torch.zeros_like(demand_heuristic)
+    for i in range(n):
+        nearest_neighbor_heuristic[i] = torch.min(normalized_distance_matrix[i])
+
+    # Blend the heuristics
+    combined_heuristic = (demand_heuristic + capacity_heuristic + nearest_neighbor_heuristic) / 3
+
+    # Ensure that edges with insufficient capacity are penalized
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    return combined_heuristic
+```

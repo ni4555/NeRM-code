@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize a matrix with high negative values for undesirable edges
+    heuristics_matrix = -torch.ones_like(distance_matrix)
+    
+    # Calculate incentives for edges that lead to better load balance
+    load_balance_incentive = (cumulative_demand[:, None] + demands) / demands[0]
+    
+    # Apply the load balance incentive
+    heuristics_matrix += load_balance_incentive * distance_matrix
+    
+    # Calculate penalties for edges that lead to overcapacity
+    overcapacity_penalty = (cumulative_demand + cumulative_demand[:, None]) > 1.0
+    heuristics_matrix[overcapacity_penalty] *= -1000
+    
+    # Penalize longer distances by adding a distance-based penalty
+    heuristics_matrix += distance_matrix * 0.1
+    
+    # Ensure that the depot does not have a positive heuristic
+    heuristics_matrix[torch.arange(n), torch.arange(n)] = 0
+    
+    return heuristics_matrix
+```

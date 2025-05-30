@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize to have a sum of 1
+    normalized_prize = prize / np.sum(prize)
+    
+    # Normalize the weights for each dimension to have a sum of 1
+    normalized_weight = np.apply_along_axis(lambda x: x / np.sum(x), axis=1, arr=weight)
+    
+    # Calculate the inverse of the normalized weights
+    inverse_normalized_weight = 1 / (normalized_weight + 1e-8)  # Adding a small value to avoid division by zero
+    
+    # Calculate the sum of the inverses along each item to account for each dimension
+    sum_inverse_normalized_weight = np.sum(inverse_normalized_weight, axis=1)
+    
+    # Combine the normalized prize with the sum of inverses of the normalized weights
+    combined = normalized_prize * sum_inverse_normalized_weight
+    
+    # Normalize the combined values to ensure sparsity
+    max_combined = np.max(combined)
+    normalized_combined = combined / max_combined
+    
+    # Sparsify the heuristics by setting elements below a threshold to zero
+    threshold = np.mean(normalized_combined)
+    heuristics = np.where(normalized_combined > threshold, normalized_combined, 0)
+    
+    return heuristics
+```

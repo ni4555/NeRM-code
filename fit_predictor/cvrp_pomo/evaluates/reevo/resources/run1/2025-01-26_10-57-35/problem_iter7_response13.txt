@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate the weighted distance matrix based on demand
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    normalized_weighted_distance_matrix = weighted_distance_matrix / weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate capacity balance metric (difference between max and min demands divided by vehicle capacity)
+    vehicle_capacity = demands.max()
+    capacity_balance_metric = (demands.max() - demands.min()) / vehicle_capacity
+    
+    # Calculate the heuristic by combining normalized demand, normalized distance, and capacity balance
+    heuristics = normalized_weighted_distance_matrix + demand_matrix + capacity_balance_metric
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

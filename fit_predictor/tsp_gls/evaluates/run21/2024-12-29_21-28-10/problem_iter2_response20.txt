@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = np.zeros_like(distance_matrix)
+
+    # Calculate the average distance between each node and all other nodes
+    node_distances = np.mean(distance_matrix, axis=1)
+
+    # Calculate the standard deviation of distances from each node
+    std_distances = np.std(distance_matrix, axis=1)
+
+    # For each edge, calculate the heuristic as the difference between the edge distance and the average distance
+    # Additionally, penalize edges that are significantly longer than the average distance or that are outliers
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                heuristic_matrix[i, j] = distance_matrix[i, j] - node_distances[i]
+                if distance_matrix[i, j] > node_distances[i] * 1.5:
+                    heuristic_matrix[i, j] *= 1.2  # Increase the "badness" of this edge
+                # If the edge is an outlier, increase the "badness" of the edge
+                if abs(distance_matrix[i, j] - node_distances[i]) > std_distances[i] * 2:
+                    heuristic_matrix[i, j] *= 1.5
+
+    # Consider the importance of edges based on the connectivity of nodes
+    # Avoid nodes with very few neighbors
+    for i in range(num_nodes):
+        num_neighbors = np.sum(distance_matrix[i, :]) != 0
+        if num_neighbors < 2:
+            # If a node has very few neighbors, increase the heuristic value of its edges
+            heuristic_matrix[i, :] *= 1.1
+
+    return heuristic_matrix
+```

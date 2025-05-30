@@ -1,0 +1,66 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning component (simplified)
+    model_scores = np.random.rand(n)
+
+    # Maintain feasibility with constraint checks
+    feasible_items = np.all(weight <= 1, axis=1)
+
+    # Initialize particle swarm optimization (PSO) with individual and global bests
+    global_best_index = np.argmax(model_scores)
+    pso_position = np.copy(model_scores)
+    pso_velocity = np.zeros(n)
+    pso_personal_best = np.copy(model_scores)
+    pso_global_best = np.copy(model_scores)
+
+    # Initialize adaptive sparsity threshold
+    sparsity_threshold = np.percentile(model_scores[feasible_items], 10)
+
+    # Initialize diversity maintenance
+    diversity_maintenance_factor = 0.1
+
+    # Simulate PSO for a few iterations
+    for _ in range(10):  # Using a small number of iterations for demonstration
+        for i in range(n):
+            # Balance exploration and exploitation
+            pso_velocity[i] = 0.5 * pso_velocity[i] + 0.5 * (np.random.rand() - 0.5)
+            pso_position[i] += pso_velocity[i]
+            # Ensure feasibility
+            if not feasible_items[i]:
+                pso_position[i] = pso_personal_best[i]
+        # Update personal bests
+        pso_personal_best = np.maximum(pso_position, pso_personal_best)
+        # Update global best
+        pso_global_best = np.maximum(pso_personal_best, pso_global_best)
+        global_best_index = np.argmax(pso_global_best)
+
+        # Update heuristics based on model scores, PSO scores, and feasibility
+        for i in range(n):
+            if not feasible_items[i]:
+                heuristic[i] = 0
+            else:
+                # Heuristic based on model scores and PSO global best
+                heuristic[i] = (model_scores[i] * (prize[i] / (prize[global_best_index] + 1e-6))) + \
+                               (pso_global_best[i] * (1 - model_scores[i]))
+
+            # Diversity maintenance to avoid premature convergence
+            if np.random.rand() < diversity_maintenance_factor:
+                heuristic[i] = np.random.rand()
+
+        # Dynamic adjustment of sparsity threshold
+        if np.random.rand() < 0.5:
+            sparsity_threshold = np.percentile(heuristic[feasible_items], 10)
+        else:
+            sparsity_threshold = np.percentile(heuristic[feasible_items], 20)
+
+        # Sparsify heuristics by setting less promising elements to zero
+        heuristic[heuristic < sparsity_threshold] = 0
+
+    return heuristic
+```

@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize by dividing each prize by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Normalize the weight by subtracting the minimum weight from each weight
+    # This approach can help balance the influence of weight and promote diversity
+    min_weight = np.min(weight, axis=1)
+    normalized_weight = weight - min_weight[:, np.newaxis]
+    
+    # Normalize the weight to the range [0, 1] to have a similar scale as the prize
+    max_weight = np.max(normalized_weight, axis=1)
+    max_weight[max_weight == 0] = 1e-8  # Avoid division by zero
+    normalized_weight /= max_weight[:, np.newaxis]
+    
+    # Combine the normalized prize and the normalized weight
+    combined = normalized_prize * (1 / (normalized_weight + 1e-8))
+    
+    # Use a sigmoid function to adjust the combined value to a sparsity threshold
+    # The sigmoid function allows for smooth transitions between high and low values
+    def sigmoid(x):
+        return 1 / (1 + np.exp(-x))
+    
+    # Determine the sigmoid steepness (alpha) and the threshold (beta)
+    alpha = 1.0
+    beta = np.mean(combined)
+    
+    # Apply the sigmoid function to the combined value
+    heuristics = sigmoid(alpha * (combined - beta))
+    
+    return heuristics
+```

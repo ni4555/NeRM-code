@@ -1,0 +1,40 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Incorporate problem dimensions into the heuristic factor
+    heuristic_factor = value_to_weight_ratio * (1 + np.log(1 + len(weight)))
+    
+    # Normalize the heuristic factor by its maximum value
+    max_factor = np.max(heuristic_factor)
+    normalized_factor = heuristic_factor / max_factor
+    
+    # Apply a sparsity factor to enhance distinctiveness
+    sparsity_factor = np.exp(-normalized_factor)
+    
+    # Incorporate diversity by considering the inverse of the number of items
+    diversity_factor = 1 / (1 + len(weight))
+    
+    # Combine the normalized heuristic factor, sparsity factor, and diversity factor
+    combined_heuristics = normalized_factor * sparsity_factor * diversity_factor
+    
+    # Set elements with low heuristics to zero to sparsify the array
+    sparsity_threshold = np.percentile(combined_heuristics, 25)
+    heuristics = np.where(combined_heuristics > sparsity_threshold, combined_heuristics, 0)
+    
+    # Add a mutation step to introduce diversity
+    mutation_rate = 0.1
+    random_indices = np.random.choice(len(combined_heuristics), int(len(combined_heuristics) * mutation_rate), replace=False)
+    heuristics[random_indices] = 1 - heuristics[random_indices]
+    
+    return heuristics
+```

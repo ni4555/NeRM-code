@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate diversity
+    diversity = np.mean(sparsity)
+    
+    # Introduce randomness by adding small noise
+    randomness = np.random.normal(0, 1e-3, size=n)
+    
+    # Create heuristic considering density, sparsity, diversity, and randomness
+    heuristic = density * (1 - sparsity) + diversity * density - randomness
+    
+    # Normalize the heuristic values
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Prune dominated solutions by setting low utility heuristic values to zero
+    dominated = np.argsort(density)[::-1]
+    for i in range(1, len(dominated)):
+        if np.any(normalized_heuristic[dominated[i]] < normalized_heuristic[dominated[i-1]]):
+            normalized_heuristic[dominated[i]] = 0
+    
+    # Adjust for diversity to ensure it doesn't dominate the heuristic
+    normalized_heuristic = normalized_heuristic * (1 - diversity) + diversity
+    
+    # Ensure the sum of heuristics is one
+    normalized_heuristic = normalized_heuristic / np.sum(normalized_heuristic)
+    
+    return normalized_heuristic
+```

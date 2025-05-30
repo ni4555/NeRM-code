@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize the heuristics matrix with the distance matrix values
+    heuristics_matrix = -torch.abs(distance_matrix)
+    
+    # Calculate cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Identify edges where the demand would exceed capacity if visited
+    over_capacity_edges = cumulative_demand[:, None] + demands > 1.0
+    
+    # Add a penalty for overcapacity edges
+    heuristics_matrix[over_capacity_edges] = heuristics_matrix[over_capacity_edges] - 1000
+    
+    # Calculate the cumulative distance to the nearest demand
+    nearest_demand = torch.argmin(cumulative_demand, dim=1) + 1  # Add 1 for 1-based index
+    
+    # Calculate the difference between the current node and the nearest demand node
+    distance_to_nearest_demand = torch.abs(torch.arange(n)[:, None] - nearest_demand) * 10  # Multiplying by 10 for scaling
+    
+    # Apply a bonus for edges that lead to the nearest demand node
+    heuristics_matrix.scatter_add_(0, torch.arange(n)[None, :], distance_to_nearest_demand)
+    
+    # Calculate the total demand to serve
+    total_demand = torch.sum(demands)
+    
+    # Adjust heuristics based on the fraction of demand that can be served before returning to the depot
+    fraction_of_demand = cumulative_demand / total_demand
+    heuristics_matrix = heuristics_matrix * (1 - fraction_of_demand[:, None])
+    
+    return heuristics_matrix
+```

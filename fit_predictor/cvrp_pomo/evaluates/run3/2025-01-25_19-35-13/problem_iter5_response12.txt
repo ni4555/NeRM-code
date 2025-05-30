@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+    
+    # Use a heuristic like the nearest neighbor to initialize the solution
+    unvisited = torch.arange(1, len(demands))
+    vehicle_capacity = 1.0
+    route = torch.tensor([0])
+    for _ in range(len(demands) - 1):
+        unvisited = unvisited[unvisited != route[-1]]
+        if len(unvisited) == 0:
+            break
+        nearest = unvisited[torch.argmin(distance_matrix[route[-1], unvisited])]
+        route = torch.cat((route, nearest))
+    
+    # Calculate the potential based on the actual route and demand
+    epsilon = 1e-8
+    edge_potential = torch.zeros_like(distance_matrix)
+    for i in range(len(route) - 1):
+        edge_potential[route[i], route[i+1]] = edge_potential[route[i+1], route[i]] = 1.0
+    
+    edge_potential = (edge_potential / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+    
+    # Add penalties for nodes with high demand and for long distances
+    edge_potential = edge_potential - (edge_potential * 0.1 * (demands > 1.5).float())
+    edge_potential = edge_potential + (edge_potential * 0.05 * (distance_matrix < 10).float())
+    
+    return edge_potential
+```

@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate a penalty factor for outliers based on the percentile of the ratio
+    penalty_factor = np.abs(value_to_weight_ratio - np.percentile(value_to_weight_ratio, 75))
+    
+    # Normalize the penalty factor
+    max_penalty = np.max(penalty_factor)
+    penalty_factor = penalty_factor / max_penalty
+    
+    # Calculate a density factor based on the ratio
+    density_factor = value_to_weight_ratio / np.mean(value_to_weight_ratio)
+    
+    # Combine the normalized ratio with the penalty and density factors
+    combined_heuristics = value_to_weight_ratio * (1 - penalty_factor + density_factor)
+    
+    # Apply a threshold to the heuristics and sparsify
+    threshold = 0.5
+    sparsified_heuristics = np.where(combined_heuristics > threshold, combined_heuristics, 0)
+    
+    # Introduce randomness to maintain heuristic diversity
+    random_noise = np.random.normal(0, 0.1, size=sparsified_heuristics.shape)
+    
+    # Mutation step: shuffle the high heuristic values to introduce diversity
+    high_index = np.argsort(sparsified_heuristics)[::-1]
+    shuffled_high_index = np.random.permutation(high_index)
+    shuffled_high = sparsified_heuristics[shuffled_high_index]
+    
+    # Combine the original sparsified heuristics with the mutated high values
+    final_heuristics = np.copy(sparsified_heuristics)
+    final_heuristics[high_index] = shuffled_high
+    
+    return final_heuristics
+```

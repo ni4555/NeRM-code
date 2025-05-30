@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Loop distance penalty: penalize loops that are longer than the direct path
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, np.roll(i, 1)] + distance_matrix[np.roll(i, 1), j]
+                direct_distance = distance_matrix[i, np.roll(i, 1)]
+                heuristics[i, j] += loop_distance - direct_distance
+
+    # Connectivity penalty: apply higher penalties to highly connected nodes
+    connectivity_penalty = np.zeros_like(distance_matrix)
+    for i in range(num_nodes):
+        connected_nodes = np.where(distance_matrix[i, :] != np.inf)[0]
+        num_connected = len(connected_nodes)
+        if num_connected > num_nodes / 2:
+            penalty_factor = num_connected - num_nodes / 2
+            connectivity_penalty[i, connected_nodes] = penalty_factor * np.ones_like(connected_nodes)
+    heuristics += connectivity_penalty
+
+    # Large distance penalty: penalize edges with large distances
+    large_distance_threshold = 1e6
+    large_distance_mask = distance_matrix > large_distance_threshold
+    heuristics[large_distance_mask] = large_distance_threshold - distance_matrix[large_distance_mask]
+
+    # Normalize the heuristic values to maintain a balanced scale
+    max_heuristic_value = np.max(heuristics)
+    heuristics /= max_heuristic_value
+    
+    return heuristics
+```

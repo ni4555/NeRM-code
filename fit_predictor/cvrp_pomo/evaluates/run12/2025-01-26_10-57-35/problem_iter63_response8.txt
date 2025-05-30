@@ -1,0 +1,62 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize a matrix to store heuristics
+    heuristics = torch.zeros((n, n), dtype=distance_matrix.dtype)
+    
+    # Normalize the demand vector
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Normalize the distance matrix
+    distance_matrix /= distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Iterate over each node to calculate heuristics
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the potential demand for the edge
+                potential_demand = normalized_demands[i] + normalized_demands[j]
+                
+                # Calculate the weighted distance
+                weighted_distance = distance_matrix[i, j] * potential_demand
+                
+                # Integrate the capacity constraint
+                capacity_factor = (1 / (demands[i] + demands[j] + 1e-8))
+                
+                # Calculate the heuristic value
+                heuristic_value = weighted_distance * capacity_factor
+                
+                # Normalize and adjust the heuristic
+                heuristics[i, j] = heuristic_value
+                heuristics[j, i] = heuristic_value
+                
+                # Apply dampening factor
+                heuristics[i, j] *= 0.8
+                
+                # Adjust for loop minimization
+                if i > 0 and j > 0:
+                    loop_adjustment = (heuristics[i, 0] + heuristics[0, j] - heuristics[i, j]) * 0.1
+                    heuristics[i, j] -= loop_adjustment
+                    heuristics[j, i] -= loop_adjustment
+                    
+                # Adjust for dominance
+                dominated = False
+                for k in range(n):
+                    if k != i and k != j:
+                        if heuristics[i, j] < heuristics[i, k] + heuristics[k, j]:
+                            dominated = True
+                            break
+                if dominated:
+                    heuristics[i, j] = heuristics[i, k] + heuristics[k, j]
+    
+    # Adjust for capacity constraint
+    heuristics += (1 / demands) - 1
+    
+    # Ensure that the heuristic for the depot is the highest
+    heuristics[0, :] += demands[1:]
+    heuristics[:, 0] += demands[1:]
+    
+    return heuristics
+```

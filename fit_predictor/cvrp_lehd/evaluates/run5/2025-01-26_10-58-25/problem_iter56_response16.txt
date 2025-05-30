@@ -1,0 +1,36 @@
+```python
+import torch
+
+def softmax(tensor, dim):
+    exp_tensor = torch.exp(tensor - tensor.max(dim=dim, keepdim=True)[0])
+    return exp_tensor / exp_tensor.sum(dim=dim, keepdim=True)
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Apply exponential decay to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(potential_matrix))
+    
+    # Normalize the emphasized matrix by row to get values between 0 and 1
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize the distance penalty matrix by column to balance the scales
+    normalized_distance_penalty_matrix = distance_penalty_matrix / distance_penalty_matrix.sum(dim=0, keepdim=True)
+    
+    # Combine the normalized emphasized matrix with the normalized distance penalty matrix
+    combined_matrix = normalized_emphasized_matrix + normalized_distance_penalty_matrix
+    
+    # Transform the combined matrix into a heuristics matrix
+    heuristics_matrix = -combined_matrix
+    
+    return heuristics_matrix
+```

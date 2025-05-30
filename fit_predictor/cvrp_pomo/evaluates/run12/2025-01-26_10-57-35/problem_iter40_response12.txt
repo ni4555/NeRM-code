@@ -1,0 +1,57 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    weighted_distance_matrix /= weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by subtracting the inverse of demand from the weighted distance
+    capacity_factor = (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Calculate heuristic by combining normalized weighted distance and demand, subtracting capacity factor
+    heuristics = weighted_distance_matrix - demand_matrix * capacity_factor
+    
+    # Normalize heuristics for better comparison
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic if max_heuristic != 0 else torch.zeros_like(heuristics)
+    
+    # Bias towards depot visitation
+    depot_cost = demands[0]  # Fixed cost of visiting the depot
+    heuristics[0, :] = 1.0
+    heuristics[:, 0] = 1.0
+    
+    # Saturate heuristics to ensure all are non-negative and to maintain a distinct edge between depot and other nodes
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+    
+    # Enhance promising edges by considering both distance and demand, and balance with capacity
+    heuristics *= (1 + demands)
+    
+    # Reduce dominance and loops
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics -= loop_heuristics
+    
+    dominated_edges = heuristics.unsqueeze(1) + heuristics.unsqueeze(0) - heuristics.unsqueeze(2)
+    dominated_edges[dominated_edges > 0] = 0
+    dominated_edges = dominated_edges.view(n, n, n)
+    dominated_edges = dominated_edges.min(dim=2)[0]
+    heuristics = torch.max(heuristics, dominated_edges)
+    
+    # Ensure that the heuristic for the depot is always the highest
+    heuristics[0, :] = 1.0
+    heuristics[:, 0] = 1.0
+    
+    return heuristics
+```

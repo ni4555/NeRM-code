@@ -1,0 +1,25 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = np.zeros_like(distance_matrix)
+
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                edge_dist = distance_matrix[i, j]
+                # Calculate the centrality of each node
+                centrality_i = np.sum(distance_matrix[i, :]) + np.sum(distance_matrix[:, j])
+                centrality_j = np.sum(distance_matrix[j, :]) + np.sum(distance_matrix[:, i])
+                # Normalize the centrality to account for nodes with a degree of 1
+                centrality_i = np.where(centrality_i == 0, 1, centrality_i)
+                centrality_j = np.where(centrality_j == 0, 1, centrality_j)
+                # Balance edge length with the inverse of the centrality
+                heuristic_value = edge_dist + (1 / centrality_i) + (1 / centrality_j)
+                # Store the calculated heuristic value for the edge
+                heuristic_matrix[i, j] = heuristic_value
+                heuristic_matrix[j, i] = heuristic_value  # Assuming the matrix is symmetric
+
+    return heuristic_matrix
+```

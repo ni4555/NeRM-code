@@ -1,0 +1,47 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Node partitioning based on demand
+    partition_threshold = 0.2  # This threshold can be adjusted
+    partitions = torch.zeros(n)
+    for i in range(n):
+        if normalized_demands[i] > partition_threshold:
+            partitions[i] = 1
+    
+    # Demand balancing weight
+    demand_balance_weight = 0.1  # This weight can be adjusted
+    
+    # Calculate the potential value for each edge
+    potential_values = torch.where(
+        partitions == 0,
+        normalized_distances + (normalized_demands * (1 - normalized_demands)),
+        (normalized_distances + normalized_demands) * (1 - 2 * normalized_demands)
+    )
+    
+    # Apply demand balancing weight to the partitioned nodes
+    potential_values *= (1 + demand_balance_weight * (partitions == 1))
+    
+    # Further refine potential values based on total demand
+    for i in range(n):
+        # Calculate the total demand of the neighbors
+        neighbor_demand = demands[distance_matrix[i, :] < max_distance]
+        if len(neighbor_demand) > 0:
+            total_neighbor_demand = neighbor_demand.sum()
+            # Adjust potential values to favor lower total demand
+            potential_values[i, distance_matrix[i, :] < max_distance] -= (total_neighbor_demand / max_demand) / (len(neighbor_demand) + 1)
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

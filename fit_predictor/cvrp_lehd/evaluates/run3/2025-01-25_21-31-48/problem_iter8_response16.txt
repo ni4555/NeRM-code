@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic for CVRP that incorporates distance, demand, and a more granular balance of demands."""
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    demand_balance = (demands - total_demand / n).abs()
+    
+    # Normalize demand balance
+    demand_balance = demand_balance / total_demand
+    
+    # Incorporate distance into the heuristic
+    distance_heuristic = distance_matrix / torch.max(distance_matrix)
+    
+    # Combine demand balance and distance heuristic
+    combined_heuristic = demand_balance * distance_heuristic
+    
+    # Apply a non-linear transformation to emphasize certain features
+    combined_heuristic = torch.clamp(combined_heuristic, min=0, max=1)
+    combined_heuristic = torch.relu(combined_heuristic)
+    
+    # Invert the heuristic to give negative values to undesirable edges
+    inverted_scores = 1 - combined_heuristic
+    
+    return inverted_scores
+```

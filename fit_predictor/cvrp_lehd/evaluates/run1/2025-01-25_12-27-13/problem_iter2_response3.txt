@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_diff = demands - demands.mean()
+    distance_to_depot = torch.arange(n) - n // 2
+    distance_penalty = distance_matrix * torch.exp(-distance_to_depot * 0.1)  # Custom distance metric
+    
+    # Incentivize nodes with lower demand and close to the depot
+    node_value = -torch.abs(demand_diff) + (1 - demand_diff ** 2)
+    
+    heuristic_matrix = node_value * distance_penalty
+    heuristic_matrix[torch.arange(n), torch.arange(n)] += 1  # Adding a bonus to return to the depot
+    
+    return heuristic_matrix
+```

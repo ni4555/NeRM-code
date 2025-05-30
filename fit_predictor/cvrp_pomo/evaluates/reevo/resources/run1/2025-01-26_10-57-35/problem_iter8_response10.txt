@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum().item()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    max_demand_index = torch.argmax(cumulative_demand)
+    max_demand = cumulative_demand[max_demand_index]
+    
+    # Initialize the heuristics matrix
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Normalize distances by the maximum distance
+    normalized_distances = distance_matrix / distance_matrix.max()
+    
+    # Normalize demands by the total capacity
+    normalized_demands = demands / total_capacity
+    
+    # Calculate the potential of each edge based on normalized demand and distance
+    heuristics = (1 - normalized_demands) * normalized_distances
+    
+    # Apply capacity constraints: decrease the heuristic if adding this node would exceed max_demand
+    for i in range(n):
+        for j in range(1, n):
+            # Avoid the case where the node j is the depot (index 0)
+            if i == 0 or j == 0:
+                continue
+            # Update heuristics only if adding node j would exceed capacity of node i
+            current_cumulative_demand = cumulative_demand[j - 1]
+            if current_cumulative_demand + demands[j] > max_demand:
+                heuristics[i, j] *= 0.5  # This is a simple penalty, could be more sophisticated
+    
+    return heuristics
+```

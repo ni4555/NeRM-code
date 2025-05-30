@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate inverse distance matrix and normalize by total demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Demand-based heuristic: prioritize edges with higher demand
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = normalized_inv_distance_matrix * demand_normalized
+
+    # Remaining capacity-based heuristic: prioritize edges with higher remaining capacity
+    remaining_capacity = 1 - demands
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Nearest-neighbor heuristic: add the closest node for each customer
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # Balance the heuristics to optimize for capacity and demand
+    balanced_heuristic = (demand_weighted_distance + capacity_weighted_distance) / 2
+
+    # Use a greedy approach to add edges based on the combined heuristic
+    greedy_addition = torch.argsort(balanced_heuristic, descending=True)
+
+    # Ensure that edges with insufficient capacity are penalized
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    heuristics[insufficient_capacity_mask] = -torch.inf
+
+    # Initialize a variable to keep track of the total demand
+    total_demand_covered = torch.zeros(n)
+
+    # Iterate over the sorted edges and add them to the solution if they do not exceed capacity
+    for edge in greedy_addition:
+        if total_demand_covered[edge] + demands[edge] <= 1:
+            heuristics[edge] = balanced_heuristic[edge]
+            total_demand_covered[edge] += demands[edge]
+
+    return heuristics
+```

@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = len(demands)
+    total_demand = demands.sum()
+    normalized_demands = demands / (total_demand + 1e-8)
+    
+    # Incentive for close proximity
+    distance_incentive = 1 / (distance_matrix + 1e-8)
+    
+    # Incentive for demand clustering
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    demand_cluster_incentive = (max_demand - normalized_demands) * (max_demand - normalized_demands)
+    
+    # Incentive for balancing demand distribution
+    demand_balance_incentive = torch.abs(normalized_demands - 0.5)
+    
+    # Incentive for avoiding long distances
+    distance_threshold = 10
+    distance_avoidance_incentive = torch.where(distance_matrix > distance_threshold, distance_threshold - distance_matrix, 0)
+    
+    # Apply dynamic programming to estimate the lower bound
+    dp = torch.zeros((n, n))
+    for d in range(1, n):
+        for s in range(d):
+            dp[d, s] = torch.min(dp[s, min(d-1, s)] + distance_matrix[s, d], dp[d, s])
+    
+    # Compute the potential based on the lower bound and demand
+    epsilon = 1e-8
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5)
+    
+    # Combine the incentives with the lower bound estimate
+    edge_potential = distance_incentive * edge_potential + demand_cluster_incentive * 0.5 + demand_balance_incentive * 0.5 + distance_avoidance_incentive * 0.5
+    
+    # Normalize the potential to ensure balance
+    edge_potential = edge_potential / (edge_potential.sum() + 1e-8)
+    
+    # Ensure potential is within a defined range
+    edge_potential = torch.clamp(edge_potential, min=-10.0, max=10.0)
+    
+    return edge_potential
+```

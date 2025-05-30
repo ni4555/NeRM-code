@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Demand factor: emphasize high demand nodes
+    demand_factor = 1 - (demands / total_demand)
+    
+    # Distance factor: penalize longer distances
+    distance_factor = torch.exp(-distance_matrix / (torch.max(torch.abs(distance_matrix)) + 1))
+    
+    # Local balance factor: encourage visiting nodes that are close to the others
+    local_balance_factor = demands / torch.sum(torch.abs(distance_matrix))
+    
+    # Global balance factor: prevent distant edges from being overvalued
+    global_balance_factor = torch.clamp(1 - distance_matrix / torch.mean(torch.abs(distance_matrix)), 0)
+    
+    # Normalize the factors to ensure non-negative values and combine them
+    heuristic_matrix = demand_factor * distance_factor * local_balance_factor * global_balance_factor
+    
+    # Exclude the depot node from the heuristic matrix
+    heuristic_matrix[0, :] = 0
+    heuristic_matrix[:, 0] = 0
+    
+    return heuristic_matrix
+```

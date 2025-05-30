@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True))
+    # Adjust the heuristics matrix to ensure balance between global and local criteria
+    heuristics_matrix -= torch.clamp(heuristics_matrix, min=-1.0)
+    # Incorporate domain-specific insights by penalizing highly demanded customers more
+    highly_demanding_penalty = 0.1 * (demands - normalized_demands)
+    heuristics_matrix += highly_demanding_penalty * (distance_matrix.sum(axis=1, keepdim=True))
+    return heuristics_matrix
+```

@@ -1,0 +1,56 @@
+Fitness: inf
+
+Description:
+Problem Description:
+Develop an optimization algorithm that employs stochastic solution sampling combined with a hybrid approach, incorporating both evolutionary algorithms and stochastic local search methods, to solve the Multiple Knapsack Problem (MKP). The goal is to maximize the total value of items selected, while adhering to the weight constraints of each knapsack. This approach will leverage clear and direct strategies, avoiding unnecessary complexity and providing explicit details on the techniques used, such as genetic algorithms and local search, to achieve effective item subset selection and enhanced performance in the MKP solution space.
+
+Code:
+import numpy as np
+import numpy as np
+import random
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    
+    # Initialize population for evolutionary algorithm
+    population_size = 100
+    population = np.random.randint(2, size=(population_size, n))
+    
+    # Evaluate fitness
+    fitness = np.sum(prize * population, axis=1) - np.sum(weight * population, axis=1)
+    
+    # Genetic algorithm
+    for generation in range(100):
+        # Selection
+        selected_indices = np.argsort(fitness)[-population_size//2:]
+        selected_population = population[selected_indices]
+        
+        # Crossover
+        offspring = np.random.choice(selected_population, size=population_size, replace=True)
+        
+        # Mutation
+        for i in range(population_size):
+            mutation_point = np.random.randint(n)
+            offspring[i, mutation_point] = 1 - offspring[i, mutation_point]
+        
+        population = offspring
+        
+        # Evaluate fitness
+        fitness = np.sum(prize * population, axis=1) - np.sum(weight * population, axis=1)
+    
+    # Stochastic local search
+    best_solution = population[np.argmax(fitness)]
+    for _ in range(100):
+        candidate_solution = best_solution.copy()
+        swap_point1, swap_point2 = np.random.randint(n), np.random.randint(n)
+        candidate_solution[[swap_point1, swap_point2]] = candidate_solution[[swap_point2, swap_point1]]
+        
+        candidate_fitness = np.sum(prize * candidate_solution) - np.sum(weight * candidate_solution)
+        if candidate_fitness > fitness:
+            best_solution = candidate_solution
+            fitness = candidate_fitness
+    
+    # Calculate heuristic values
+    heuristic_values = np.exp(fitness - np.max(fitness)) / np.sum(np.exp(fitness - np.max(fitness)))
+    
+    return heuristic_values

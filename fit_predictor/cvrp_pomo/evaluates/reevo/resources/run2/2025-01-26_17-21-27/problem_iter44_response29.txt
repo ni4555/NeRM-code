@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Dynamic penalty for load balancing
+    load_balance_penalty = torch.where(
+        cumulative_demand > (2 * total_capacity / n),
+        -torch.log1p(torch.abs(cumulative_demand - (2 * total_capacity / n)) - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Dynamic distance scaling that adapts to the current load
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / (2 * total_capacity))
+    
+    # Encourage the inclusion of edges with low demand to prevent early overflow
+    low_demand_heuristic = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Apply a combination of heuristics to balance the impact of various objectives
+    heuristics = low_demand_heuristic + distance_scaling + load_balance_penalty
+    
+    # Implementing diversity by introducing a small random factor
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    
+    # Scale heuristics to ensure they contribute appropriately to the objective function
+    scaling_factor = 1.5
+    heuristics = scaling_factor * heuristics + diversity_factor
+    
+    # Additional penalty to avoid selecting the depot as the next node
+    depot_penalty = torch.arange(n) == 0
+    heuristics[depot_penalty] -= 1e8
+    
+    return heuristics
+```

@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic considering local and global demand, distance, and capacity constraints."""
+    n = distance_matrix.shape[0]
+    
+    # Calculate the inverse of distance matrix with a small constant to avoid division by zero
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+    
+    # Calculate the weighted sum of inverse distances and demands
+    # Weights for distances are inversely proportional to the distances and directly proportional to the demands
+    weights = (inv_distance_matrix * demands) / (torch.sum(inv_distance_matrix * demands) + 1e-8)
+    
+    # Normalize the weighted sum by the total vehicle capacity
+    heuristic_matrix = weights / total_demand
+    
+    # Adjust the heuristic to balance distance and capacity constraints
+    # The adjustment is proportional to the inverse distance
+    adjustment_factor = 1 / (distance_matrix + 1e-8)
+    adjusted_heuristic_matrix = heuristic_matrix * adjustment_factor
+    
+    # Clamp the heuristic values to ensure they do not exceed 1
+    adjusted_heuristic_matrix = torch.clamp(adjusted_heuristic_matrix, max=1)
+    
+    return adjusted_heuristic_matrix
+```

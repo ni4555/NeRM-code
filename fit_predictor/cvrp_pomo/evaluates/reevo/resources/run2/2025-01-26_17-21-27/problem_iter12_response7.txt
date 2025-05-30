@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    capacity = demands.max()  # Assuming all vehicles have the same capacity as the largest demand
+
+    # Calculate savings for each edge
+    savings = (distance_matrix**2 - torch.clamp(distance_matrix, min=1e-8)) * (demands[:, None] - demands[None, :])
+
+    # Calculate cumulative demand at each node if visited
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Create a mask to check if adding a node exceeds the vehicle capacity
+    demand_mask = cumulative_demand <= capacity
+
+    # Adjust savings heuristic to consider demand
+    adjusted_savings = savings * demand_mask
+
+    # Non-linear transformation to reduce the impact of larger distances
+    adjusted_savings = torch.log1p(adjusted_savings)
+
+    # Add a penalty for edges that exceed the vehicle capacity
+    adjusted_savings[~demand_mask] *= -1
+
+    # Normalize savings to have a range of [0, 1]
+    min_savings = adjusted_savings.min()
+    max_savings = adjusted_savings.max()
+    normalized_savings = (adjusted_savings - min_savings) / (max_savings - min_savings)
+
+    # Normalize by the shortest distance to encourage paths that visit closer nodes first
+    min_distance = distance_matrix.min()
+    normalized_savings = normalized_savings / (distance_matrix - min_distance + 1)
+
+    # Cap the maximum heuristic value to ensure the solution is not overly optimistic
+    normalized_savings = torch.clamp(normalized_savings, max=1)
+
+    # Invert the normalized matrix to make higher values more promising
+    inverted_normalized_matrix = 1 - normalized_savings
+
+    return inverted_normalized_matrix
+```

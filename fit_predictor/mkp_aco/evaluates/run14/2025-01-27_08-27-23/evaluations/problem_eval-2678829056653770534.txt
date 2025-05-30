@@ -1,0 +1,14 @@
+import numpy as np
+
+def heuristics_v2(prize, weight):
+    n, m = prize.shape[0], weight.shape[1]
+    # Calculate minimum average weights of items for their winning solutions in previous solutions to all combinations
+    min_avg_weights = np.inf * np.ones(n)
+    for i in range(2 ** n):  # Iterate through all possible combinations
+        mask = [(j.bit_length() <= bin(i & (1 << j)).count('1')) for j in range(n)]  # Winning items mask
+        weights_sum = np.sum(weight[mask], axis=0) if mask.any() else 0
+        min_avg_weights[mask] = np.minimum(min_avg_weights[mask], weights_sum / len(mask) if mask else 0)
+    
+    # Calculate heuristics using min_avg_weights and item-specific weighted values
+    heuristics = min_avg_weights + prize * (2 / m - 1)
+    return heuristics_matrix

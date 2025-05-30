@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Use a non-linear transformation to emphasize the importance of distance and feasibility
+    transformed_potential_matrix = torch.relu(potential_matrix)
+    
+    # Normalize the transformed potential matrix to balance non-linearities
+    normalized_matrix = transformed_potential_matrix / transformed_potential_matrix.sum(dim=1, keepdim=True)
+    
+    # Adjust the normalized matrix to ensure feasibility by adding a positive offset for the depot
+    feasibility_adjustment = torch.ones_like(normalized_matrix[:, 0])
+    adjusted_normalized_matrix = normalized_matrix + feasibility_adjustment
+    
+    # Normalize the heuristics matrix to maintain a consistent scale
+    max_heuristic = adjusted_normalized_matrix.max()
+    min_heuristic = adjusted_normalized_matrix.min()
+    heuristics_matrix = (adjusted_normalized_matrix - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # To encourage visiting all customers, add a small positive incentive for not visiting each customer
+    not_visited_incentive = 0.01 * demands
+    heuristics_matrix += not_visited_incentive
+    
+    return heuristics_matrix
+```

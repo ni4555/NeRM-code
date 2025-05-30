@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    demand_penalty = demands / (1e-5 + total_demand)
+    distance_penalty = distance_matrix * (1 - torch.exp(-0.1 * demands))  # Scaled by demand
+
+    # Weight demands more heavily based on the difference from the mean demand
+    weighted_demand_penalty = torch.abs(demand_penalty - demands.mean())
+
+    # Weight the distance by how far it is from the mean distance of non-depot edges
+    mean_distance = distance_matrix[1:, 1:].mean()
+    weighted_distance_penalty = distance_penalty * (mean_distance - distance_matrix) / mean_distance
+
+    # Combine the penalties using a non-linear transformation
+    heuristic_matrix = torch.sigmoid(weighted_demand_penalty + weighted_distance_penalty)
+
+    # Bonus for the return to the depot
+    heuristic_matrix[torch.arange(n), torch.arange(n)] += 1
+
+    return heuristic_matrix
+```

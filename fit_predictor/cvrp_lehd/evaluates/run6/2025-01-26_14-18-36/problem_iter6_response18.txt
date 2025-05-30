@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot demand
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Vectorized approach to calculate the heuristic for each edge
+    heuristic_matrix[1:, 1:] = average_demand - demands[1:] - distance_matrix[1:, 1:]
+    heuristic_matrix[1:, 1:][heuristic_matrix[1:, 1:] < 0] = 0
+
+    # Incorporate a penalty for edges leading to a node with demand greater than vehicle capacity
+    penalty = (demands[1:] > 1.0).float() * -1000.0
+    heuristic_matrix[1:, 1:] += penalty
+
+    # Set the depot to 0 since it's the starting point
+    heuristic_matrix[depot, 1:] = average_demand - demands[1:]
+    heuristic_matrix[1:, depot] = average_demand - demands[1:]
+
+    return heuristic_matrix
+```

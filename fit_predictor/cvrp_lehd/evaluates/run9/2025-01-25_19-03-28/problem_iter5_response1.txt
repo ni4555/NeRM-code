@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate cumulative demand
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+
+    # Calculate the heuristic with weighted demand and distance
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, distance_matrix),
+        (cumulative_demand - normalized_demands)
+    )
+
+    # Incorporate global network statistics to balance
+    global_stats = (distance_matrix.sum() / (distance_matrix.shape[0] * distance_matrix.shape[1]))
+
+    # Dynamic adjustment of weights based on cumulative demand and global stats
+    dynamic_weights = cumulative_demand / (global_stats + 1e-6)
+
+    # Apply penalties to balance diversity and demand variance
+    demand_variance = torch.var(normalized_demands)
+    variance_threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    penalties = -demand_variance * (variance_threshold - demand_variance)
+
+    # Combine heuristics with penalties and normalize
+    combined_heuristics = heuristic_matrix + dynamic_weights + penalties
+
+    # Smooth and penalize outliers
+    smoothed_heuristics = torchÆ½»¬º¯Êý(combined_heuristics)  # Assuming a smoothing function
+    outliers_penalty = -torch.abs(smoothed_heuristics - smoothed_heuristics.mean())
+    heuristics_with_penalty = smoothed_heuristics + outliers_penalty
+
+    # Enforce limits for heuristic stability
+    heuristic_matrix = torch.clamp(heuristics_with_penalty, min=-torch.tensor(0.1, dtype=distance_matrix.dtype), max=torch.tensor(0.1, dtype=distance_matrix.dtype))
+
+    return heuristic_matrix
+```

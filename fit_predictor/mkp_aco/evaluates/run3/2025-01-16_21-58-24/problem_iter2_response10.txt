@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Adjust the heuristic by incorporating the inverse of the normalized value-to-weight ratio
+    # to ensure that highly promising items get higher heuristics, while still considering the
+    # total weight. We use an exponential decay function to penalize less promising items.
+    heuristics = np.exp(value_to_weight_ratio) * np.log(1 + weight.sum(axis=1))
+    
+    # To further promote exploration and ensure diversity in the early stages, add noise based
+    # on the total weight. This helps to avoid premature convergence to locally optimal solutions.
+    noise = np.random.normal scale=0.1 * weight.sum(axis=1)
+    
+    heuristics += noise
+    
+    # Cap the heuristics to avoid them from becoming too large
+    heuristics = np.clip(heuristics, a_min=0, a_max=1)
+    
+    # Apply a sparsity factor to ensure that the heuristic values are not overly dense,
+    # which may prevent the genetic algorithm from exploring the solution space efficiently.
+    sparsity_factor = np.random.binomial(n=1, p=0.9, size=heuristics.shape)
+    heuristics *= sparsity_factor
+    
+    return heuristics
+```

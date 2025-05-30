@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Inverse distance matrix normalized by total demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Demand-based heuristic: prioritize edges with higher demand
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = normalized_inv_distance_matrix * demand_normalized
+
+    # Remaining capacity-based heuristic: prioritize edges with higher remaining capacity
+    remaining_capacity = 1 - demands
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Nearest-neighbor heuristic: add the closest node for each customer
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # Greedy heuristic: consider a greedy approach to balance the load of the routes
+    greedy_heuristic = torch.zeros_like(distance_matrix)
+    for i in range(n):
+        if demands[i] > 0:
+            greedy_heuristic[i] = torch.min(distance_matrix[i])
+
+    # Local search heuristic: simulate a local search to improve the solution
+    local_search_heuristic = torch.zeros_like(distance_matrix)
+    for i in range(n):
+        for j in range(i + 1, n):
+            # Simulate a swap of customers i and j
+            simulated_demand = demands.clone()
+            simulated_demand[i], simulated_demand[j] = demands[j], demands[i]
+            if torch.all(simulated_demand <= 1):
+                simulated_cost = torch.sum(torch.min(distance_matrix, dim=1).values)
+                if simulated_cost < torch.sum(torch.min(distance_matrix[i], distance_matrix[j], dim=0).values):
+                    local_search_heuristic[i, j] = simulated_cost - torch.sum(torch.min(distance_matrix[i], distance_matrix[j], dim=0).values)
+
+    # Combine heuristics
+    combined_heuristic = demand_weighted_distance + capacity_weighted_distance + nearest_neighbor + greedy_heuristic + local_search_heuristic
+
+    # Ensure that edges with insufficient capacity are penalized
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    return combined_heuristic
+```

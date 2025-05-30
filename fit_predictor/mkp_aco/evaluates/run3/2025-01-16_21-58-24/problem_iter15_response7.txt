@@ -1,0 +1,49 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate a penalty factor for outliers based on the interquartile range
+    q1 = np.percentile(value_to_weight_ratio, 25)
+    q3 = np.percentile(value_to_weight_ratio, 75)
+    iqr = q3 - q1
+    penalty_factor = np.where((value_to_weight_ratio < q1 - 1.5 * iqr) | (value_to_weight_ratio > q3 + 1.5 * iqr),
+                              (value_to_weight_ratio - q1) / (q3 - q1),
+                              0)
+    
+    # Normalize the penalty factor
+    max_penalty = np.max(penalty_factor)
+    penalty_factor = penalty_factor / max_penalty
+    
+    # Factor 1: Value-to-weight ratio with penalty
+    combined_heuristics = value_to_weight_ratio * (1 - penalty_factor)
+    
+    # Factor 2: Sparsity based on a percentile threshold
+    sparsity_threshold = np.percentile(combined_heuristics, 25)
+    sparsity_factor = np.where(combined_heuristics > sparsity_threshold, combined_heuristics, 0)
+    
+    # Factor 3: The sum of the weights (to avoid overly heavy items)
+    weight_factor = weight.sum(axis=1)
+    
+    # Factor 4: The average weight in each dimension (to balance the weight across dimensions)
+    avg_weight_factor = np.mean(weight, axis=1)
+    
+    # Factor 5: The total value (to prioritize high-value items)
+    value_factor = prize
+    
+    # Combine factors to create a heuristic
+    heuristic = (sparsity_factor * (1 / weight_factor) * (1 / (avg_weight_factor + 1)) * (value_factor / np.max(value_factor)))
+    
+    # Normalize the heuristic to a range between 0 and 1
+    min_heuristic = np.min(heuristic)
+    max_heuristic = np.max(heuristic)
+    heuristic = (heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    return heuristic
+```

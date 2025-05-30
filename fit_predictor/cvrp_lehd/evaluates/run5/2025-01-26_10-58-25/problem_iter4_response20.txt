@@ -1,0 +1,29 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    vehicle_capacity = 1.0
+    
+    # Calculate the cumulative demand matrix
+    cumulative_demand = -torch.cumsum(demands, dim=0)
+    
+    # Create a matrix with -inf for edges where demand is greater than vehicle capacity
+    demand_matrix = torch.where(cumulative_demand < -vehicle_capacity, torch.full_like(cumulative_demand, float('-inf')),
+                                torch.zeros_like(cumulative_demand))
+    
+    # Calculate the total distance from the depot to all customers and back
+    total_distance = distance_matrix[0, 1:].sum() + distance_matrix[1:, 0].sum() + (n - 1) * vehicle_capacity
+    
+    # Combine distance and demand into a potential matrix
+    potential_matrix = distance_matrix + demand_matrix + total_distance
+    
+    # Normalize the potential matrix to create a probability distribution
+    normalized_potential_matrix = F.softmax(potential_matrix, dim=1)
+    
+    # Subtract from 1 to promote edges with lower potential and higher distances
+    heuristics_matrix = 1 - normalized_potential_matrix
+    
+    return heuristics_matrix
+```

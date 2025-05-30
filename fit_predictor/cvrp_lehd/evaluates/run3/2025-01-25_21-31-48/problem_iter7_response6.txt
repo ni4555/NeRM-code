@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the sum of demands for each node to identify heavily demanded nodes
+    demand_sum = demands.sum(dim=0)
+    
+    # Normalize the demand sum to identify heavily demanded nodes relative to total capacity
+    demand_sum_normalized = demand_sum / demands.sum()
+    
+    # Invert the demand sum to penalize heavily demanded nodes, which are less desirable
+    demand_sum_inverted = 1 / (demand_sum_normalized + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    # Calculate the distance balance for each node, favoring nodes closer to the average distance
+    average_distance = distance_matrix.mean()
+    distance_balance = (distance_matrix.mean(dim=0) + distance_matrix.mean(dim=1)) / (2 * average_distance)
+    
+    # Normalize the distance balance to bring it into the same scale as demand
+    distance_balance_normalized = distance_balance / average_distance
+    
+    # Combine the inverted demand and normalized distance balance to create the heuristic
+    heuristic_values = demand_sum_inverted * distance_balance_normalized
+    
+    # Invert the heuristic values to make higher values more promising
+    heuristic_values = 1 / (heuristic_values + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    return heuristic_values
+```

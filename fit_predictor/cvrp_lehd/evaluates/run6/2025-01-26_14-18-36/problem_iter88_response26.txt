@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Normalize demand differences to encourage diversity
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Calculate heuristic value using normalized demand differences and remaining capacity
+    heuristics = demand_diff * remaining_capacity
+
+    # Introduce randomness with dampening for exploration
+    exploration_noise = torch.randn_like(heuristics) * 0.01
+    heuristics += exploration_noise
+
+    # Normalize heuristic values to encourage exploration, with non-linear dampening
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    normalized_heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    dampened_heuristics = torch.sigmoid(normalized_heuristics)
+
+    # Introduce penalties for constraints violations using dampening
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    dampened_heuristics -= capacity_penalty * 0.5
+
+    # Add penalties for edges leading back to the depot and distance to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+    dampened_heuristics += depot_penalty * 0.5
+    dampened_heuristics += torch.clamp(distance_penalty, min=0.0) * 0.5
+
+    # Ensure the heuristic values have a balanced distribution with a non-linear dampening
+    balanced_heuristics = torch.clamp(dampened_heuristics, min=-1.0, max=1.0)
+
+    return balanced_heuristics
+```

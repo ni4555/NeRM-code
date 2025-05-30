@@ -1,0 +1,51 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Enhanced distance penalty with time-adaptive scaling
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_penalty *= (1 + cumulative_demand / total_capacity) * time_factor
+    
+    # Dynamic capacity penalty with adaptive scaling and early overflow detection
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    early_overflow = cumulative_demand > (demands - total_capacity)
+    capacity_penalty *= (1 + 0.3 * (total_capacity - cumulative_demand) / total_capacity) * (1 + early_overflow)
+    
+    # Load balance heuristic with refined balance factor
+    load_balance = torch.abs(cumulative_demand - (demands - total_capacity))
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Core objectives combining all penalties
+    core_objectives = (
+        distance_penalty +
+        capacity_penalty +
+        load_balance_penalty
+    )
+    
+    # Introduce randomness and diversity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine the objectives and factors
+    heuristics = core_objectives + randomness_factor + diversity_factor
+    
+    # Adjust heuristics based on overflow
+    heuristics *= (1 + early_overflow)
+    
+    # Adjust for depot penalty
+    depot_penalty = torch.arange(n) == 0
+    heuristics = heuristics - depot_penalty.float().unsqueeze(0)
+    
+    # Normalize the heuristics to maintain stability
+    heuristics /= (heuristics.abs().max() + 1e-8)
+    
+    # Clamp the heuristics to ensure they are within a specified range
+    heuristics = torch.clamp(heuristics, min=-10.0, max=10.0)
+    
+    return heuristics
+```

@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Normalize the prize vector to ensure non-linear factors are considered
+    normalized_prize = prize / np.linalg.norm(prize)
+    
+    # Sparsify the heuristics by considering only items that provide more than average value
+    avg_prize = np.mean(prize)
+    sparse_bonus = np.where(prize > avg_prize, 1, 0)
+    
+    # Normalize the weights to ensure meaningful features are balanced
+    normalized_weight = weight / np.linalg.norm(weight, axis=1, keepdims=True)
+    
+    # Integrate domain insights by penalizing items that have a low diversity of weights across dimensions
+    diversity_score = np.prod(np.diff(np.sort(weight, axis=1), axis=1), axis=1)
+    diversity_penalty = diversity_score / np.max(diversity_score)
+    
+    # Combine various factors to calculate a preliminary heuristic score
+    preliminary_score = normalized_prize * normalized_weight * sparse_bonus * (1 - diversity_penalty)
+    
+    # Introduce redundancy by adding an inverse square root of the sum of squared weights to encourage sparsity
+    redundancy_correction = np.sum(weight**2, axis=1) / np.sum(weight**2, axis=1) ** (3/2)
+    
+    # Adjust the preliminary score with the redundancy correction
+    adjusted_score = preliminary_score * redundancy_correction
+    
+    # Normalize the adjusted score to ensure fairness
+    normalized_utility = adjusted_score / np.sum(adjusted_score)
+    
+    # Return the heuristics scores
+    return normalized_utility
+```

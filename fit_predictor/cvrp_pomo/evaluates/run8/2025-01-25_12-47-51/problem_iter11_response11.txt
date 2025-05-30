@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Dynamic weights based on domain-specific knowledge (e.g., customer proximity to depot)
+    # Here we use a simple inverse distance weight
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+
+    # Normalize demand and distance
+    demand_normalized = demands / total_demand
+    distance_normalized = inv_distance_matrix / total_demand
+
+    # Prioritize edges with higher normalized demand and lower normalized distance
+    demand_weight = demand_normalized
+    distance_weight = distance_normalized
+
+    # Integrate diversity by considering edges not directly connected to the nearest neighbors
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+    diversity_factor = 1 / (distance_matrix[nearest_neighbor] + 1e-8)
+
+    # Apply dynamic weights
+    weighted_distance = distance_weight * diversity_factor
+
+    # Incorporate a balance between demand and capacity utilization
+    remaining_capacity = 1 - demands
+    balance_factor = (remaining_capacity / total_demand) * demand_weight
+
+    # Combine the heuristics with penalties for infeasibilities
+    # Penalties are applied for edges that exceed capacity and for high distance
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    capacity_penalty = -1
+    distance_penalty = -weighted_distance
+
+    # Apply the penalties
+    heuristics[insufficient_capacity_mask] = capacity_penalty
+    heuristics += distance_penalty
+
+    # Add the balance factor
+    heuristics += balance_factor
+
+    return heuristics
+```

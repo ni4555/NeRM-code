@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_scale = 1 / (demands + 1e-8)  # Avoid division by zero
+    
+    # Calculate the distance from the depot to all other nodes
+    depot_distance = distance_matrix[:, 0]
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the heuristics for each edge
+    for i in range(1, n):
+        # Calculate the demand for the route from the depot to node i and back
+        route_demand = demands[i] + (total_demand - demands[i])
+        # Calculate the heuristics value as the negative of the distance multiplied by the demand
+        heuristics[0, i] = -route_demand * depot_distance[i]
+        heuristics[i, 0] = heuristics[0, i]
+    
+    # Scale the heuristics with the inverse of the demand to balance the influence
+    heuristics = heuristics * demand_scale
+    
+    # Normalize the heuristics matrix to ensure non-negative values
+    heuristics = heuristics.clamp(min=0)
+    
+    # Apply a balance factor to ensure a global balance in the heuristics
+    balance_factor = (total_demand / (n - 1)) * demand_scale
+    heuristics = heuristics * balance_factor
+    
+    return heuristics
+```

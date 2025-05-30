@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize demands by the total vehicle capacity to get relative demands
+    relative_demands = demands / demands.sum()
+    
+    # Incorporate demand factors into the heuristic
+    demand_factor = relative_demands[:, None] * relative_demands[None, :]
+    
+    # Scale distances to balance local and global factors
+    distance_scale = 1.0 / (distance_matrix + 1e-6)  # Adding a small constant to avoid division by zero
+    
+    # Compute the heuristic value based on both demand and distance
+    heuristic_values = -demand_factor * distance_scale
+    
+    # Refine the heuristic by incorporating the sum of demands
+    total_demand_factor = torch.sum(demand_factor, dim=1)[:, None]
+    refined_heuristic_values = heuristic_values - total_demand_factor
+    
+    return refined_heuristic_values
+```

@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic based on a combination of demand and distance
+    # where edges with lower demand and closer distance are more promising.
+    # Introduce a spread factor to encourage diversity in the selection of routes.
+    demand_spread = demands.max() - demands.min()
+    spread_factor = demand_spread / total_capacity
+
+    # Normalize the spread factor with a threshold to avoid extreme values
+    spread_threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    normalized_spread_factor = torch.clamp(spread_factor, min=0, max=spread_threshold)
+
+    # Incorporate a demand penalty factor that increases with demand to avoid
+    # selecting edges that lead to overcapacity quickly.
+    demand_penalty_factor = 1 - normalized_demands
+
+    # Calculate the heuristic matrix combining demand, distance, and spread factors
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, distance_matrix),
+        normalized_spread_factor
+    )
+    heuristic_matrix = torch.add(heuristic_matrix, demand_penalty_factor)
+
+    # Normalize the heuristic matrix values to ensure all values are within a defined range
+    # This helps in preventing any single edge from having an exaggerated influence
+    min_heuristic_value = torch.min(heuristic_matrix)
+    max_heuristic_value = torch.max(heuristic_matrix)
+    if max_heuristic_value > 0:
+        heuristic_matrix = torch.clamp(heuristic_matrix, min=-max_heuristic_value / 2,
+                                       max=max_heuristic_value / 2)
+
+    return heuristic_matrix
+```

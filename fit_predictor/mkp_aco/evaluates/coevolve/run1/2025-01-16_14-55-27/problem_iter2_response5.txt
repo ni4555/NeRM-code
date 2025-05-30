@@ -1,0 +1,45 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Dynamic item sorting based on multiple criteria:
+    # 1. Weighted ratio (prize to weight ratio)
+    # 2. Average weight per dimension
+    # 3. Total prize
+    # 4. Inverse of the standard deviation of the weight dimensions (to consider item uniformity)
+    criteria = (-prize / weight.sum(axis=1)).ravel() * (1 - weight.mean(axis=1)) * (prize.sum() / n) * (1 / np.std(weight, axis=1))
+    sorted_indices = np.argsort(criteria)[::-1]
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Calculate an initial heuristic value based on total prize
+    total_prize = prize.sum()
+    heuristics.fill(total_prize / n)
+
+    # Iterate over the sorted items and adjust heuristic values
+    for i in sorted_indices:
+        weighted_ratio = prize[i] / weight[i, :].sum()
+        average_weight = weight[i, :].mean()
+        uniformity = 1 / np.std(weight[i, :])  # Uniformity factor
+
+        # Calculate the contribution of the current item to the heuristic
+        contribution = weighted_ratio * average_weight * uniformity
+
+        # Adjust the heuristic for the current item
+        heuristics[i] = heuristics[i] + contribution
+
+        # Normalize the contributions to ensure that the sum of heuristics remains 1
+        heuristics /= np.sum(heuristics)
+
+        # Sparsify the heuristic by setting it to zero if the contribution is below a threshold
+        # The threshold is dynamically adjusted based on the maximum heuristic value encountered
+        max_heuristic = np.max(heuristics)
+        threshold = max_heuristic * 0.05  # Example threshold, 5% of the max heuristic value
+        heuristics[heuristics < threshold] = 0
+
+    return heuristics
+```

@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a modified balance heuristic
+    # Introduce a demand variance adjustment to avoid redundant routes
+    demand_variance = torch.var(normalized_demands).item()
+    demand_weight = 1.0 / (1.0 + demand_variance)
+    
+    # Calculate a penalty term for high demand nodes
+    penalty_threshold = 0.8  # Nodes with demand greater than 0.8 times the average demand are penalized
+    average_demand = normalized_demands.mean()
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                normalized_demands - average_demand, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Incorporate a demand relaxation approach
+    demand_relaxation = torch.exp(-3 * (normalized_demands / max_demand))
+    
+    # Introduce a path decomposition heuristic by using a threshold for distance
+    distance_threshold = 0.1  # Threshold for considering a route promising
+    potential_values = (normalized_distances * demand_weight * demand_relaxation -
+                        penalty_term).clamp(min=distance_threshold)
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Vectorized dynamic window approach to adapt weights based on current vehicle capacity
+    vehicle_capacity = demands.sum().item() / n
+    dynamic_weight = 1.0 / (1.0 + vehicle_capacity)
+    potential_values *= dynamic_weight
+    
+    return potential_values
+```

@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Normalize demands to the total vehicle capacity
+    demands_normalized = demands / demands.sum()
+    
+    # Calculate the cumulative sum of normalized demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands_normalized, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    
+    # Avoid division by zero in cases where cumulative_distances might be zero
+    with torch.no_grad():
+        safe_distances = torch.where(cumulative_distances == 0, torch.tensor(1.0e-8), cumulative_distances)
+    
+    # Apply a non-linear transformation to emphasize shorter paths
+    # Using a logarithmic transformation to reduce the weight of longer paths
+    # and to provide more granularity in the heuristic values
+    heuristic_matrix = cumulative_demands / safe_distances
+    heuristic_matrix = torch.log1p(heuristic_matrix)  # log1p(x) = log(x + 1) to handle zero values
+    
+    # Apply a sparsity-based heuristic by penalizing edges with higher cumulative distances
+    sparsity_threshold = torch.min(safe_distances)  # Use the smallest cumulative distance as a dynamic threshold
+    heuristic_matrix = torch.where(safe_distances < sparsity_threshold, -torch.log1p(heuristic_matrix), heuristic_matrix)
+    
+    # Apply a dynamic threshold based on the cumulative demand to differentiate between
+    # feasible and infeasible routes, encouraging the selection of more promising edges
+    demand_threshold = torch.max(cumulative_demands) / 2
+    heuristic_matrix = torch.where(cumulative_demands < demand_threshold, -heuristic_matrix, heuristic_matrix)
+    
+    # Clip the values to be within the desired range to ensure they are within [-1, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

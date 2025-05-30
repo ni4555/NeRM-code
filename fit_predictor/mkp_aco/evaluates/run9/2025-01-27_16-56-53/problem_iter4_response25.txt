@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = np.sum(prize[i] * weight[i])
+        total_weight = np.sum(weight[i])
+        if total_weight == 0:
+            item_heuristic = 0
+        else:
+            item_heuristic = total_prize / total_weight
+        
+        # Incorporate a sparsity factor that penalizes items with higher weight
+        sparsity_factor = 1 - (total_weight / m)
+        
+        # Combine the heuristic with the sparsity factor and normalize
+        heuristic[i] = item_heuristic * sparsity_factor
+    
+    # Adjust heuristics to balance exploration and exploitation
+    # Use an adaptive scaling factor that prioritizes high-value items
+    adaptive_factor = np.exp(-np.sum(weight, axis=1) / np.sum(prize, axis=0))
+    heuristic *= adaptive_factor
+    
+    # Sparsify the heuristics by setting elements below a dynamic threshold to zero
+    # The threshold is based on the interquartile range (IQR) to maintain balance
+    Q1 = np.percentile(heuristic, 25)
+    Q3 = np.percentile(heuristic, 75)
+    IQR = Q3 - Q1
+    threshold = Q1 + 1.5 * IQR
+    heuristic[heuristic < threshold] = 0
+    
+    return heuristic
+```

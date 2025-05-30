@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Normalize demand for a heuristic value and ensure not to exceed capacity
+    normalized_demand = demands / demands.sum() * 1e6  # Large constant to ensure capacity is not exceeded
+    
+    # Initialize the heuristic with normalized demand
+    heuristics.fill_(normalized_demand)
+    
+    # Calculate the heuristic value by subtracting the distance to the depot from the normalized demand
+    heuristics[depot] -= distance_matrix[depot]
+    
+    # Subtract the distance matrix from the heuristic matrix
+    heuristics -= distance_matrix
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

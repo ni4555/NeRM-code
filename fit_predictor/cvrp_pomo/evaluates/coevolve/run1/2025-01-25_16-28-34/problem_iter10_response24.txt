@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a penalty for edges with a distance close to zero to avoid trivial detours
+    trivial_detour_penalty = torch.log1p(distance_matrix / (distance_matrix.max()))
+    
+    # Introduce a penalty for overloading and underloading based on vehicle capacity
+    overload_penalty = torch.log1p((average_demand_per_edge / total_capacity) ** 2)
+    underload_penalty = torch.log1p((total_capacity - average_demand_per_edge) ** 2)
+    
+    # Dynamic weights for penalties based on the current load balance of the solution
+    load_balance = (heuristics > 0).sum() / n
+    penalty_factor = 1 / (1 + load_balance)
+    penalty_overload = penalty_factor * (2 * overload_penalty)
+    penalty_underload = penalty_factor * (2 * underload_penalty)
+    
+    # Apply penalties and ensure heuristics are negative for undesirable edges
+    heuristics = -torch.abs(torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity) - 
+                             penalty_overload + penalty_underload - trivial_detour_penalty)
+    
+    # Normalize the heuristics to be in a range suitable for use in PSO
+    heuristics /= (heuristics.abs().max() + 1)
+    
+    return heuristics
+```

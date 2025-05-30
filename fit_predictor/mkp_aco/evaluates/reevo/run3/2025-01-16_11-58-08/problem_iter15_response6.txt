@@ -1,0 +1,22 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize values
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    # Apply log scaling to emphasize high values
+    log_scaled_prize = np.log1p(normalized_prize)
+    # Calculate value to weight ratio for each item in each dimension
+    value_to_weight_ratio = log_scaled_prize / np.sum(weight, axis=1)
+    # Normalize the ratios to keep them bounded
+    normalized_ratio = (value_to_weight_ratio - np.min(value_to_weight_ratio)) / (np.max(value_to_weight_ratio) - np.min(value_to_weight_ratio))
+    # Use random noise to encourage diversity
+    random_noise = np.random.rand(value_to_weight_ratio.shape)
+    # Amplify high-value features by combining normalized ratio with random noise
+    amplified_features = normalized_ratio * random_noise
+    # Apply sparsity by setting elements below a threshold to zero
+    amplified_features = np.where(amplified_features > 0.1, amplified_features, 0)
+    # Normalize the heuristics to sum to 1
+    heuristics = amplified_features / np.sum(amplified_features)
+    return heuristics
+```

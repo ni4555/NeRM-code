@@ -1,0 +1,24 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate cumulative demand for each node
+    cumulative_demand = demands.cumsum(0)
+    # Calculate the difference between cumulative demand and vehicle capacity
+    capacity = 1.0  # Assuming the vehicle capacity is 1 for normalization
+    demand_diff = (cumulative_demand - capacity).clamp(min=0)
+    # Apply a non-linear transformation to the demand difference to enhance the heuristic
+    # Use a softplus function to penalize high demand differences
+    demand_diff_transformed = F.softplus(-demand_diff)
+    # Normalize the demand difference to get a heuristic value
+    # Enhance weight on high demand differences and consider distance as a secondary factor
+    # Normalize the distance matrix to ensure the heuristic values are comparable
+    distance_matrix_normalized = distance_matrix / distance_matrix.max()
+    # Combine the transformed demand difference with the normalized distance
+    # The exponentiation emphasizes the importance of the distance
+    heuristic_values = -torch.exp(demand_diff_transformed * distance_matrix_normalized)
+    # Introduce symmetry by ensuring the heuristic is the same for both directions of the edge
+    heuristic_values = (heuristic_values + heuristic_values.t()) / 2
+    return heuristic_values
+```

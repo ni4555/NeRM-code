@@ -1,0 +1,52 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    
+    # Normalize prize to ensure no single item is dominating
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate sparsity factor for items with non-zero total weight
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Calculate inverse variance factor for balance in item selection
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    
+    # Combine the above factors to form an initial balance factor
+    balance_factor = normalized_prize * sparsity_factor * inv_variance_factor
+    
+    # Add noise to introduce diversity
+    noise_level = np.std(balance_factor)
+    noise = np.random.normal(0, noise_level, size=balance_factor.shape)
+    heuristics = balance_factor + noise
+    
+    # Adaptive thresholds to emphasize exploration over exploitation
+    median_heuristic = np.median(heuristics)
+    std_deviation = np.std(heuristics)
+    amplification_threshold = median_heuristic + std_deviation * np.random.normal(0, 0.1)
+    sparsity_threshold = np.percentile(heuristics, 30)
+    
+    # Adjust heuristics based on the above thresholds
+    heuristics[heuristics < amplification_threshold] = 0
+    heuristics[heuristics < sparsity_threshold] = 0
+    heuristics[heuristics >= amplification_threshold] *= 1.1
+    
+    # Iterate over a fixed number of steps to refine the heuristics
+    for _ in range(5):
+        # Amplify or suppress heuristics based on how well they score compared to others
+        for i in range(n):
+            dominated_by = np.all(heuristics >= heuristics[i])
+            if dominated_by:
+                heuristics[i] = 0
+            else:
+                not_dominated = np.all(heuristics < heuristics[i])
+                if not_dominated:
+                    heuristics[i] *= 1.05
+    
+    # Normalize heuristics to ensure they sum to 1
+    heuristic_sum = np.sum(heuristics)
+    heuristics /= heuristic_sum if heuristic_sum > 0 else 1
+    
+    return heuristics
+```

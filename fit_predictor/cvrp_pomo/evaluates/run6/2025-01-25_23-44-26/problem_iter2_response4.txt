@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the negative of the demand for each edge to penalize high demand edges
+    demand_penalty = -normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0)
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Calculate the load on each edge as a heuristic (lighter loads are better)
+    load_heuristic = 1 / (distance_matrix + 1e-6) * demands.unsqueeze(1) * demands.unsqueeze(0)
+    
+    # Combine the demand penalty, distance heuristic, and load heuristic to get the final heuristic values
+    combined_heuristic = demand_penalty + distance_heuristic + load_heuristic
+    
+    # Apply dynamic routing by adjusting the heuristic based on the current load
+    # We add a load-based penalty that decreases with load to encourage lighter loads
+    load_adjustment = 1 - (demands.unsqueeze(1) * demands.unsqueeze(0))
+    combined_heuristic *= load_adjustment.unsqueeze(1)
+    
+    # Introduce a real-time rerouting capability by considering the historical load
+    # We simulate this by adding a historical load factor that considers the cumulative load
+    historical_load_factor = torch.cumsum(demands, dim=0)
+    historical_load_penalty = 1 / (historical_load_factor + 1e-6)
+    combined_heuristic += historical_load_penalty.unsqueeze(1) * load_adjustment
+    
+    return combined_heuristic
+```

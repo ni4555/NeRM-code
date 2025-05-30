@@ -1,0 +1,58 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize the distance matrix
+    normalized_distance_matrix = distance_matrix / distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate capacity factor to emphasize capacity constraints
+    capacity_factor = (1 / (demands + 1e-8))
+    
+    # Calculate the initial heuristic as a weighted sum of normalized distance and demand
+    heuristics = normalized_distance_matrix * demand_matrix * capacity_factor
+    
+    # Normalize the heuristics to avoid dominance and ensure stability
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    # Dampen the influence of edges with high demand
+    dampen_factor = 0.5
+    heuristics = dampen_factor * heuristics + (1 - dampen_factor) * demand_matrix
+    
+    # Minimize loops by penalizing the edges that form loops
+    loop_penalty = 0.1
+    heuristics = heuristics + loop_penalty * (heuristics + heuristics.T - torch.diag(heuristics))
+    
+    # Adjust the heuristics to balance between distance and demand
+    balance_factor = 0.9
+    heuristics = balance_factor * heuristics + (1 - balance_factor) * demand_matrix
+    
+    # Apply penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += normalized_distance_matrix * overcapacity_penalty - undercapacity_penalty
+    
+    # Ensure that the heuristic for the depot is the highest
+    depot_cost = demands[0]
+    heuristics[0, :] += depot_cost
+    heuristics[:, 0] += depot_cost
+    
+    # Apply a dampening factor to all heuristic values
+    dampening_factor = 0.8
+    heuristics *= dampening_factor
+    
+    # Apply capacity factor to emphasize capacity constraints
+    heuristics += (capacity_factor - 1) * demands
+    
+    return heuristics
+```

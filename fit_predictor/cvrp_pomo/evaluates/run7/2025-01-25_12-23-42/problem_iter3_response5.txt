@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic considering demand, distance, and avoiding revisits."""
+    total_demand = demands.sum()
+    demand_threshold = total_demand / len(demands)
+    # Normalize the demand by the threshold to balance load
+    normalized_demands = demands / demand_threshold
+    # Calculate the heuristic value considering distance and demand
+    heuristics = (1 / (1 + distance_matrix)) * (1 - normalized_demands)
+    # Avoid revisits by penalizing edges that have already been visited
+    revisited_edges = torch.any(torch.eq(distance_matrix, 0), axis=1) & torch.any(torch.eq(distance_matrix, 0), axis=0)
+    heuristics[revisited_edges] = -float('inf')
+    return heuristics
+```

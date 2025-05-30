@@ -1,0 +1,15 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    zero_demand = demands == 0
+    demand_greater = (cumulative_demand[:, None] > cumulative_demand[None, :]) & ~torch.eye(n)
+    cost_diff = (cumulative_demand[None, :] - cumulative_demand[:, None]) * (1 - zero_demand[:, None] * zero_demand[None, :])
+    potential_cost = distance_matrix - cost_diff
+    potential_cost[demand_greater] = -potential_cost[demand_greater]
+    heuristics = potential_cost.clone()
+    heuristics[zero_demand] = 0  # Set edges from nodes with zero demand to zero
+    return heuristics
+```

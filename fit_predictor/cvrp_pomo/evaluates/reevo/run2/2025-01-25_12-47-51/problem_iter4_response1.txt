@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    demand_ratio = demands / total_demand
+
+    # Incorporate interaction terms between inverse distance and demand ratio
+    interaction_terms = inv_distance_matrix * demand_ratio * (1 - demand_ratio)
+
+    # Apply a balance factor to favor closer nodes with lower demand
+    balance_factor = torch.exp(-distance_matrix)
+
+    # Combine the interaction terms with the balance factor and normalize
+    combined_matrix = interaction_terms * balance_factor
+    normalized_combined_matrix = combined_matrix / total_demand
+
+    # Use the negative of the normalized matrix as the heuristic
+    heuristic_matrix = -normalized_combined_matrix
+
+    return heuristic_matrix
+```

@@ -1,0 +1,21 @@
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the demands by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+    
+    # Compute the potential utility of each edge as a function of distance and demand
+    # We use a simple heuristic: a smaller distance and higher demand lead to a higher utility
+    # The heuristic formula: utility = demand - (distance * some_penalty_factor)
+    # We use a negative penalty factor for distance to encourage shorter paths
+    penalty_factor = 0.1
+    edge_potential = normalized_demands - (distance_matrix * penalty_factor)
+    
+    # Apply a threshold to ensure that the utility is non-negative for promising edges
+    # and negative or zero for undesirable edges
+    threshold = 0.01
+    edge_potential = torch.clamp(edge_potential, min=threshold, max=0)
+    
+    return edge_potential

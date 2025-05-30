@@ -1,0 +1,48 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Incorporate usage frequency into the heuristic
+    usage_matrix = np.zeros_like(distance_matrix)
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if distance_matrix[i, j] > 0:
+                usage_matrix[i, j] = 1
+    usage_matrix = usage_matrix / np.sum(usage_matrix, axis=1, keepdims=True)
+
+    # Adjust the distances based on both the length of the edge and its usage
+    adjusted_distances = distance_matrix * (1 + usage_matrix)
+
+    # Introduce a penalty for highly connected nodes
+    degree_matrix = np.sum(adjusted_distances, axis=0)
+    penalty_factor = 1 / (degree_matrix + 1)
+    adjusted_distances *= penalty_factor
+
+    # Use a simulated annealing-like approach to balance exploration and exploitation
+    temperature = 1.0
+    while temperature > 0.01:
+        for i in range(distance_matrix.shape[0]):
+            for j in range(distance_matrix.shape[1]):
+                if i != j:
+                    # Swap two random edges
+                    swap_i, swap_j = np.random.choice(distance_matrix.shape[0]), np.random.choice(distance_matrix.shape[0])
+                    swap_k, swap_l = np.random.choice(distance_matrix.shape[1]), np.random.choice(distance_matrix.shape[1])
+                    while (swap_i == i and swap_j == j) or (swap_k == i and swap_l == j):
+                        swap_i, swap_j = np.random.choice(distance_matrix.shape[0]), np.random.choice(distance_matrix.shape[0])
+                        swap_k, swap_l = np.random.choice(distance_matrix.shape[1]), np.random.choice(distance_matrix.shape[1])
+                    
+                    # Calculate the change in total distance
+                    delta_distance = adjusted_distances[swap_i, swap_k] + adjusted_distances[swap_j, swap_l] - \
+                                     adjusted_distances[swap_i, swap_l] - adjusted_distances[swap_j, swap_k]
+                    
+                    # Metropolis acceptance criterion
+                    if delta_distance < 0 or np.random.rand() < np.exp(-delta_distance / temperature):
+                        # Swap the edges
+                        adjusted_distances[[swap_i, swap_j], [swap_k, swap_l]] = adjusted_distances[[swap_i, swap_j], [swap_l, swap_k]]
+        
+        # Cool down the temperature
+        temperature *= 0.99
+
+    # Return the adjusted matrix with exploration and exploitation balanced
+    return adjusted_distances
+```

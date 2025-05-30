@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate the variance of the normalized prize values
+    variance = np.var(normalized_prize)
+    
+    # Rank the items based on their normalized prize value and variance
+    combined_score = normalized_prize - variance
+    ranked_indices = np.argsort(combined_score)[::-1]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    heuristics[ranked_indices[:int(prize.size * 0.2)]] = 1  # Only keep top 20% of items
+    heuristics[ranked_indices[int(prize.size * 0.2):int(prize.size * 0.5)]] = 0.5  # Reduce weight of next 30%
+    heuristics[ranked_indices[int(prize.size * 0.5):]] = 0  # Set remaining to zero
+```

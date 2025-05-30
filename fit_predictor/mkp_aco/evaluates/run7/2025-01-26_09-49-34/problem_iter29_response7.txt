@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the diversity factor based on the range of weight dimensions
+    diversity_factor = (weight.max(axis=1) - weight.min(axis=1)) / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity factor based on the number of non-zero weight dimensions
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Calculate the entropy factor
+    entropy_factor = -np.sum((weight / np.sum(weight, axis=1)) * np.log(weight / np.sum(weight, axis=1)))
+    
+    # Calculate the initial heuristics based on a weighted combination of normalized prize,
+    # diversity, sparsity, and entropy factors
+    heuristics = normalized_prize * 0.5 + diversity_factor * 0.2 + sparsity_factor * 0.3 + entropy_factor * 0.1
+    
+    # Apply a dynamic threshold to balance exploration and exploitation
+    # Increase heuristics for items closer to the threshold
+    threshold = np.percentile(heuristics, 75)  # 75% threshold
+    heuristics[heuristics > threshold] *= 1.5
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Sparsify the heuristics by setting a fraction of the lowest heuristics to zero
+    num_to_zero = int(len(heuristics) * 0.1)  # Zero out 10% of the lowest heuristics
+    heuristics[np.argsort(heuristics)[:num_to_zero]] = 0
+    
+    # Apply adaptive weights to the factors to refine the heuristics iteratively
+    adaptive_weights = np.random.rand(4) / np.sum(np.random.rand(4))
+    heuristics = (adaptive_weights[0] * normalized_prize +
+                  adaptive_weights[1] * diversity_factor +
+                  adaptive_weights[2] * sparsity_factor +
+                  adaptive_weights[3] * entropy_factor)
+    
+    return heuristics
+```

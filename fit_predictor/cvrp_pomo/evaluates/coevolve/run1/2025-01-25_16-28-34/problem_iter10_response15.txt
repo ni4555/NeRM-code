@@ -1,0 +1,86 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Refined heuristic that considers both overloading and underloading
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Introduce penalties for overloading and underloading
+    overload_penalty = torch.relu(heuristics)
+    underload_penalty = torch.relu(1 - heuristics)
+    
+    # Weighted combination of overloading and underloading penalties
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    # Apply additional local search adjustments based on vehicle capacity constraints
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Check if the edge (i, j) leads to overloading
+                if heuristics[i, j] > 0:
+                    for k in range(n):
+                        if k != i and k != j:
+                            # Calculate potential load if customer k is visited instead of customer j
+                            potential_load = demands[j] - demands[k]
+                            if 0 < potential_load <= 1:
+                                heuristics[i, j] = -torch.abs(potential_load)
+    
+    # Incorporate imbalance penalties
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate imbalance penalty for each edge
+                edge_capacity = demands[i] + demands[j]
+                imbalance_penalty = torch.abs(edge_capacity - total_capacity / (n - 1))
+                # Adjust the heuristic value based on the imbalance penalty
+                heuristics[i, j] -= imbalance_penalty
+    
+    # Consider edge demand diversity
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the diversity score based on the difference in demand
+                diversity_score = torch.abs(demands[i] - demands[j])
+                # Adjust the heuristic value based on the diversity score
+                heuristics[i, j] -= diversity_score
+    
+    # Integrate Particle Swarm Optimization (PSO) inspired diversity and convergence
+    for _ in range(10):  # Number of PSO iterations for diversity enhancement
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    # PSO-inspired random perturbation
+                    heuristics[i, j] += torch.randn_like(heuristics[i, j]) * 0.1
+    
+    # Integrate Dynamic Tabu Search (DTS) inspired cost adjustment
+    tabu_list = set()
+    for _ in range(10):  # Number of DTS iterations for cost adjustment
+        for i in range(n):
+            for j in range(n):
+                if i != j and (i, j) not in tabu_list:
+                    # Calculate potential cost adjustment
+                    cost_adjustment = torch.log1p(demands[i]) - torch.log1p(demands[j])
+                    # Update heuristic if it improves
+                    if heuristics[i, j] < cost_adjustment:
+                        heuristics[i, j] = cost_adjustment
+                        tabu_list.add((i, j))
+    
+    return heuristics
+```

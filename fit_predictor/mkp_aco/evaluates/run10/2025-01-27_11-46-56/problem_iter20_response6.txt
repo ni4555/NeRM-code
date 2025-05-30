@@ -1,0 +1,27 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    diversity_factor = np.exp(-utility)
+    exploration_factor = np.random.normal(0, 0.1, size=utility.shape)
+    heuristics = utility * diversity_factor * exploration_factor
+    heuristics = np.clip(heuristics, a_min=0, a_max=1)
+    
+    # Apply a non-linear transformation to enhance the peak effect
+    peak_heuristics = heuristics * (1 / (np.exp(-heuristics) + 1))
+    
+    # Use a dynamic adaptive weight allocation mechanism to adjust the heuristics
+    adaptive_weight = np.exp(-np.arange(1, m+1) * utility)
+    adaptive_weight /= adaptive_weight.sum(axis=1, keepdims=True)
+    
+    # Adjust heuristics based on the adaptive weight
+    adjusted_heuristics = peak_heuristics * adaptive_weight
+    
+    # Normalize the adjusted heuristics
+    normalized_adjusted_heuristics = adjusted_heuristics / adjusted_heuristics.sum(axis=1, keepdims=True)
+    
+    return normalized_adjusted_heuristics.sum(axis=1)
+```

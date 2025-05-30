@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: increase the weight for edges that have not been visited in the current iteration
+    # Assuming we have a boolean matrix 'unvisited_edges' where True indicates that the edge has not been visited
+    # For simplicity, let's initialize all edges as unvisited
+    unvisited_edges = torch.ones_like(distance_matrix, dtype=torch.bool)
+    heuristic_range_adjustment = 1.0 / (1.0 + unvisited_edges.float() * torch.sum(unvisited_edges.float()) / (n * (n - 1)))
+
+    # Combine heuristics: sum the inverse distance, demand weight, and heuristic range adjustment for each edge
+    combined_heuristic = inverse_distance + demand_weight + heuristic_range_adjustment
+
+    return combined_heuristic
+```

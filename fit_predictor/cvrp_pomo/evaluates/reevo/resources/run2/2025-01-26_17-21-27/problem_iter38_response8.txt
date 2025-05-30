@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+
+    # Distance penalty with cumulative demand scaling
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + torch.cumsum(demands, dim=0) / total_capacity)
+
+    # Dynamic capacity penalty considering remaining capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity - torch.cumsum(demands, dim=0)) / total_capacity)
+
+    # Overflow penalty with early return to avoid overloading
+    overflow_penalty = torch.where(
+        (torch.cumsum(demands, dim=0) + demands) > total_capacity,
+        -torch.log1p((torch.cumsum(demands, dim=0) + demands) - total_capacity - 1e-8),
+        torch.zeros_like(torch.cumsum(demands, dim=0))
+    )
+
+    # Load balance penalty to encourage even distribution of load
+    load_balance = torch.abs(torch.cumsum(demands, dim=0) - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+
+    # Separate penalties for different objectives
+    penalties = torch.cat([distance_scaling, dynamic_capacity_penalty, overflow_penalty, load_balance_penalty], dim=1)
+
+    # Dynamic scaling based on problem state
+    dynamic_scaling = torch.exp(-torch.abs(torch.cumsum(demands, dim=0) / total_capacity))
+
+    # Apply dynamic scaling to the penalties
+    scaled_penalties = penalties * dynamic_scaling
+
+    # Ensure the depot penalty is subtracted to prevent it from being chosen as a next node
+    depot_penalty = torch.arange(n) == 0
+    scaled_penalties = scaled_penalties - depot_penalty.float().unsqueeze(0)
+
+    # Normalize the heuristics to sum to 1 for each edge
+    penalties_sum = scaled_penalties.sum(dim=1, keepdim=True)
+    normalized_heuristics = scaled_penalties / (penalties_sum + 1e-8)
+
+    return normalized_heuristics
+```

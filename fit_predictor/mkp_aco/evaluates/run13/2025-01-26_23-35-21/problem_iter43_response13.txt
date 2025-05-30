@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to maximize utility difference
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Normalize density
+    density = normalized_prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Normalize sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate balance metric between density and sparsity
+    balance = (density - sparsity) / (density + sparsity + 1e-8)
+    
+    # Calculate a dominance metric based on prize-to-weight ratio
+    dominance = normalized_prize / np.sum(weight, axis=1)
+    
+    # Combine balance and dominance using a weighted sum to prioritize balance
+    combined = 0.6 * balance + 0.4 * dominance
+    
+    # Add a diversity factor to encourage exploration
+    average_density = np.mean(density)
+    diversity_factor = density / (average_density + 1e-8)
+    
+    # Combine diversity factor with the combined heuristic
+    final_heuristic = combined * diversity_factor
+    
+    # Prune low-quality heuristics by setting a threshold
+    threshold = np.percentile(final_heuristic, 95)
+    final_heuristic[final_heuristic < threshold] = 0
+    
+    # Normalize the final heuristic
+    normalized_final_heuristic = final_heuristic / np.sum(final_heuristic)
+    
+    return normalized_final_heuristic
+```

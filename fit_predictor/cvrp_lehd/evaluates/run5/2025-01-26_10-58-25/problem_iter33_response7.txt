@@ -1,0 +1,38 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.pow((demands - vehicle_capacity), 2)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Use a non-linear scaling factor for the demand penalties to emphasize them more than distance
+    demand_scaling_factor = torch.pow(potential_matrix[:, 1:], 1.5)  # Assume last row is the depot to the rest
+    demand_scaling_factor[torch.where(demands < vehicle_capacity)] = 0
+    
+    # Apply non-linear transformation to the distance penalty matrix
+    distance_scaling_factor = torch.pow(distance_penalty_matrix[:, :-1], 0.5)  # Exclude the last row
+    
+    # Combine scaled demand and distance penalties into a single potential matrix
+    combined_potential_matrix = demand_scaling_factor + distance_scaling_factor
+    
+    # Normalize the combined potential matrix to ensure non-negativity and scale balance
+    normalized_combined_matrix = F.softmax(combined_potential_matrix, dim=1)
+    
+    # Combine the normalized combined matrix with the original penalty matrix to balance the scales
+    combined_matrix = (1 - 0.6) * normalized_combined_matrix + 0.6 * penalty_matrix
+    
+    # Invert non-linear scales to convert penalties into heuristic values
+    heuristics_matrix = -torch.pow(combined_matrix, 2)
+    
+    return heuristics_matrix
+```

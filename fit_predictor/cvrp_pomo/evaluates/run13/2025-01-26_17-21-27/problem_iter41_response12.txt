@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Simplify objectives: focus on capacity constraint and encourage diversity
+    load_penalty = -torch.log1p(torch.abs(demands) - 1e-8)
+    
+    # Scale distance penalty by the current load on the route
+    distance_penalty = -torch.log1p(distance_matrix) * cumulative_demand
+    
+    # Combine the simplified objectives and encourage diversity
+    base_heuristics = (load_penalty + distance_penalty) / n
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    heuristics = base_heuristics + diversity_factor
+    
+    # Apply redundancy avoidance and early overflow penalty
+    early_overflow = torch.where(cumulative_demand > demands, -torch.log1p(demands - cumulative_demand), torch.zeros_like(demands))
+    redundancy_penalty = heuristics * early_overflow
+    
+    # Avoid redundancy by only considering one edge for each demand
+    unique_demand_indices = torch.arange(n) != demands.argsort()[:-2:-1]
+    redundancy_avoidance = redundancy_penalty * ~unique_demand_indices
+    
+    # Final heuristic with adjusted penalties for early overflow and redundancy
+    heuristics *= (1 - early_overflow - redundancy_avoidance)
+    
+    # Vectorized operation to avoid redundancy without explicit loop
+    return heuristics
+```

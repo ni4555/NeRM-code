@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    capacity = demands.sum()  # Use total demand as capacity
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate cumulative demands up to each customer
+    cumulative_demands = demands.cumsum(0)
+    
+    # Vectorized heuristic calculation
+    feasible = (capacity - cumulative_demands)[:, None] > demands[None, :]
+    heuristics[feasible] = distance_matrix[feasible] / capacity
+    
+    # Handle cases where the total demand exceeds the capacity
+    infeasible_indices = (capacity - cumulative_demands)[:, None] <= demands[None, :]
+    heuristics[infeasible_indices] = -float('inf')
+    
+    # Normalize the heuristics matrix
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    
+    return heuristics
+```

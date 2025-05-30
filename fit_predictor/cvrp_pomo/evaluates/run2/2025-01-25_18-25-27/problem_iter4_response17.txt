@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix using a modified version of the savings algorithm
+    heuristics_matrix = distance_matrix - (normalized_demands.unsqueeze(1) * distance_matrix.sum(axis=1, keepdim=True))
+    # Adjust for negative values by adding the maximum value to all elements
+    max_val = torch.max(heuristics_matrix)
+    heuristics_matrix = heuristics_matrix + max_val.unsqueeze(0).unsqueeze(1)
+    # Normalize the heuristics matrix by dividing by the sum of the absolute values of the heuristics
+    abs_heuristics = torch.abs(heuristics_matrix)
+    max_abs_val = torch.max(abs_heuristics)
+    if max_abs_val != 0:
+        heuristics_matrix /= max_abs_val
+    else:
+        # In case there is a zero maximum absolute value, to avoid division by zero
+        heuristics_matrix.fill_(0)
+    return heuristics_matrix
+```

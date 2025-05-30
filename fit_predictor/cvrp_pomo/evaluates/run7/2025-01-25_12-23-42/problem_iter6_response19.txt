@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = demands.unsqueeze(1)  # Ensure demands is a 2D tensor for broadcasting
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands / demands.sum()
+    
+    # Calculate the distance heuristic
+    distance_heuristic = norm_distances * torch.log(1 + demands.unsqueeze(0))
+    
+    # Calculate the demand heuristic using a non-linear transformation
+    demand_heuristic = (1 / (1 + node_loads)) * (torch.log(demands) - demands)
+    
+    # Combine both heuristics to form the final heuristic matrix
+    heuristics = distance_heuristic + demand_heuristic
+    return heuristics
+```

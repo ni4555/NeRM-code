@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate diversity score as the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - np.tile(normalized_prize, (len(normalized_prize), 1))), axis=1)
+    
+    # Calculate sparsity score based on the percentage of zero weight dimensions
+    sparsity_scores = np.mean(weight.sum(axis=1) == 0, axis=0)
+    
+    # Calculate a penalty score for high weight variance to avoid overfitting to a particular knapsack dimension
+    penalty_scores = np.var(weight, axis=1)
+    
+    # Combine the normalized prize, diversity score, sparsity score, and penalty score
+    total_score = normalized_prize * 0.5 + diversity_scores * 0.3 + sparsity_scores * 0.1 - penalty_scores * 0.1
+    
+    # Rank the items based on their total score
+    ranked_indices = np.argsort(-total_score)
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    # Set the top 40% of promising elements to 1
+    heuristics[ranked_indices[:int(len(ranked_indices) * 0.4)]] = 1
+    
+    return heuristics
+```

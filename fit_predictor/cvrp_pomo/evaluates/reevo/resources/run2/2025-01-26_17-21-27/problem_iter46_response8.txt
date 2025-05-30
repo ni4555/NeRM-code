@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Dynamic capacity penalty
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / n) - 1e-8)
+    
+    # Enhanced distance penalty
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Simplified load balance penalty
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity / n) - 1e-8)
+    
+    # Vectorized overflow penalty
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Apply penalties to distance and assign heuristics
+    heuristics = distance_penalty + overflow_penalty + load_balance_penalty
+    
+    # Apply dynamic capacity penalty
+    heuristics *= dynamic_capacity_penalty
+    
+    # Foster diversity in heuristic selection
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    heuristics += diversity_factor
+    
+    # Balance penalties
+    penalty_balance = torch.tensor([0.7, 0.2, 0.1], dtype=torch.float32)  # Example penalty balance weights
+    heuristics = (penalty_balance[0] * distance_penalty +
+                  penalty_balance[1] * overflow_penalty +
+                  penalty_balance[2] * load_balance_penalty)
+    
+    # Ensure heuristics are within the [0, 1] range
+    heuristics = torch.clamp(heuristics, min=0, max=1)
+    
+    return heuristics
+```

@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Incentive for close proximity
+    distance_incentive = 1 / (distance_matrix + 1e-8)
+    
+    # Incentive for demand clustering
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    demand_cluster_incentive = (max_demand - normalized_demands) * (max_demand - normalized_demands)
+    
+    # Incentive for balancing demand distribution
+    demand_balance_incentive = torch.abs(normalized_demands - 0.5)
+    
+    # Incentive for avoiding long distances
+    distance_threshold = 2
+    distance_avoidance_incentive = torch.where(distance_matrix > distance_threshold, distance_threshold - distance_matrix, 0)
+    
+    # Combine the incentives
+    edge_potential = distance_incentive + demand_cluster_incentive + demand_balance_incentive + distance_avoidance_incentive
+    
+    # Normalize the potential to ensure balance
+    edge_potential = edge_potential / (edge_potential.sum() + 1e-8)
+    
+    # Ensure potential is within a defined range
+    edge_potential = torch.clamp(edge_potential, min=-10.0, max=10.0)
+    
+    return edge_potential
+```

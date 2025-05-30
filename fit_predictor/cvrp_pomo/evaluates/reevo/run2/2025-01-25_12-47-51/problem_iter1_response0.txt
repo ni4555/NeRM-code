@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Create a mask where the cumulative demand exceeds the vehicle capacity
+    capacity_exceeded = cumulative_demand > 1.0
+    # Assign a high negative value to edges that would exceed capacity
+    high_negative_mask = capacity_exceeded.unsqueeze(1) & capacity_exceeded.unsqueeze(0)
+    high_negative_edges = -torch.inf * high_negative_mask
+    # Calculate the cost of visiting each customer sequentially
+    cost_to_visit = distance_matrix.cumsum(dim=0) - distance_matrix.unsqueeze(1)
+    # Calculate the potential savings by not visiting a customer
+    potential_savings = cost_to_visit.cumsum(dim=1) - cost_to_visit
+    # Calculate the heuristics by subtracting the potential savings from the cost
+    heuristics = cost_to_visit - potential_savings
+    # Apply the high negative value mask
+    heuristics = heuristics + high_negative_edges
+    return heuristics
+```

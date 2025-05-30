@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(demands[1:], dim=0)
+    
+    # Calculate the cumulative distance from the depot to each node
+    cumulative_distance = torch.cumsum(distance_matrix[1:, :-1], dim=0)
+    
+    # Calculate the heuristic values as the negative cumulative demand
+    # and the positive cumulative distance
+    heuristic_values = -cumulative_demand + cumulative_distance
+    
+    # Adjust the values for the last node to ensure the vehicle can return to the depot
+    # without exceeding the capacity
+    last_node_index = len(demands) - 1
+    adjusted_values = heuristic_values.clone()
+    adjusted_values[last_node_index] = -demands[last_node_index]
+    
+    return adjusted_values
+```

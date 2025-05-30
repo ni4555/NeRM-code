@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Ensure there is no division by zero in the density calculation
+    total_weight = np.sum(weight, axis=1)
+    total_weight += 1e-8  # Add a small constant to avoid division by zero
+    density = prize / total_weight
+    
+    # Ensure there is no division by zero in the sparsity calculation
+    max_weight_per_dimension = np.max(weight, axis=1)
+    max_weight_per_dimension += 1e-8  # Add a small constant to avoid division by zero
+    sparsity = np.sum(weight, axis=1) / max_weight_per_dimension
+    
+    # Introduce randomness to the heuristic values to explore different solutions
+    random_factor = np.random.rand(len(prize))
+    
+    # Combine factors in a simple, balanced way
+    heuristic = 0.5 * density + 0.5 * sparsity
+    
+    # Introduce a randomness factor to the heuristic to explore a wider range of solutions
+    heuristic *= random_factor / np.max(random_factor)
+    
+    # Normalize by the maximum heuristic value
+    max_heuristic = np.max(heuristic)
+    heuristic /= max_heuristic
+    
+    # Ensure that items with zero total weight still have a non-zero heuristic value
+    heuristic[total_weight < 1e-8] = 0
+    
+    return heuristic
+```

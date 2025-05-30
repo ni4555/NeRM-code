@@ -1,0 +1,31 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = 1.0
+    
+    # Calculate cumulative demand and find the index of the vehicle that would be overloaded
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    max_capacity_exceeded_index = torch.argmax(torch.gt(cumulative_demand, vehicle_capacity))
+    
+    # Create a matrix with penalties for infeasible edges
+    infeasible_penalties = -torch.arange(0, len(demands))
+    feasible_penalties = torch.zeros_like(infeasible_penalties)
+    
+    # Apply penalties for infeasible edges
+    penalties_matrix = torch.where(cumulative_demand >= vehicle_capacity, infeasible_penalties, feasible_penalties)
+    
+    # Incorporate penalties into the distance matrix
+    penalty_matrix = distance_matrix + penalties_matrix
+    
+    # Apply softmax over each row to transform the penalty matrix into a probability distribution
+    softmax_matrix = F.softmax(penalty_matrix, dim=1)
+    
+    # Convert the softmax matrix to a heuristics matrix by ensuring each row sums to 1
+    # Negative values will represent undesirable edges and positive values promising ones
+    heuristics_matrix = torch.div(softmax_matrix, softmax_matrix.sum(dim=1, keepdim=True))
+    
+    return heuristics_matrix
+```

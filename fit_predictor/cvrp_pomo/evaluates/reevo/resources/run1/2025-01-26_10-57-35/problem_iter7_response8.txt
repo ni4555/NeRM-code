@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_matrix = (demands[:, None] * demands).triu(diagonal=1)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize the distance matrix by its diagonal to remove the self-loops
+    distance_matrix_diag_normalized = distance_matrix / distance_matrix.diag().view(n, 1)
+    
+    # Combine the demand variance and distance correlation
+    demand_distance_matrix = demand_matrix * distance_matrix_diag_normalized
+    
+    # Calculate the heuristic by combining the demand variance and distance correlation
+    heuristics = torch.exp(demand_distance_matrix)
+    
+    # Normalize the heuristics to ensure the sum of all heuristics is approximately equal to 1
+    heuristics /= heuristics.sum(dim=1, keepdim=True)
+    
+    return heuristics
+```

@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    heuristics_matrix = np.zeros_like(distance_matrix)
+
+    # Domain knowledge: Assume the center of the matrix is the most visited node
+    domain_knowledge_penalty = np.sum(distance_matrix) / (n * (n - 1) / 2)
+
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Local structure: Prefer edges that connect to neighbors of the current node
+                local_neighbors = np.isin(distance_matrix[:, i], np.min(distance_matrix[i, :]))
+                local_neighbors = np.where(local_neighbors)[0]
+                local_structure_bonus = np.sum(distance_matrix[local_neighbors, j] == np.min(distance_matrix[local_neighbors, :]))
+
+                # Global structure: Consider the minimum distance to a common neighbor
+                common_neighbors = np.setdiff1d(np.arange(n), [i, j])
+                min_common_neighbor_dist = np.min(distance_matrix[i, common_neighbors] + distance_matrix[j, common_neighbors])
+
+                # Diverse distance metrics: Use the average distance to all other nodes
+                average_distance = np.mean(distance_matrix[i, ~np.isin(np.arange(n), [i])] + distance_matrix[j, ~np.isin(np.arange(n), [j])])
+
+                # Balance metrics: Combine all metrics with appropriate weights
+                heuristics_value = (min_common_neighbor_dist + domain_knowledge_penalty +
+                                    (local_structure_bonus * 0.1) + (average_distance * 0.2) - (distance_matrix[i, j] * 0.2))
+
+                heuristics_matrix[i, j] = heuristics_value
+            else:
+                # Set the heuristic value to a high number if it's the same node (self-loop)
+                heuristics_matrix[i, j] = float('inf')
+
+    return heuristics_matrix
+```

@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, vehicle_capacity: float) -> torch.Tensor:
+    """Enhanced heuristic considering demand sensitivity, capacity constraints, and balance between distance and demand penalties."""
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    potential = -distance_matrix * normalized_demands
+
+    # Incorporate capacity constraints by penalizing nodes that cannot be visited due to capacity
+    capacity_penalty = (demands > vehicle_capacity).float() * -1000
+
+    # Apply a dampening factor to penalize longer distances
+    dampen = torch.exp(-distance_matrix / 10)
+
+    # Balance distance and demand penalties
+    distance_penalty = distance_matrix / 10
+    demand_penalty = (demands / vehicle_capacity) * 100
+
+    # Combine all factors to form the heuristics
+    heuristics = potential + capacity_penalty * dampen + distance_penalty + demand_penalty
+
+    # Normalize the heuristics to have a range between -1 and 1
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    return heuristics
+```

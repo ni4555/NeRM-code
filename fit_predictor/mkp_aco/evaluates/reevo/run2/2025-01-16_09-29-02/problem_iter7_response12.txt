@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_per_weight = prize / np.sum(weight, axis=1)
+    diversity_factor = np.sum(weight, axis=1) / (np.linalg.norm(weight, axis=1) + 1e-8)
+    normalized_prize = prize / np.sum(prize)
+    sparsity = 1 / (np.linalg.norm(weight, axis=1) + 1e-8)
+    heuristic_score = value_per_weight * diversity_factor * normalized_prize * sparsity
+    heuristic_score[heuristic_score < 0.01] = 0  # Sparsify the heuristics further
+    heuristic_score = heuristic_score / np.max(heuristic_score)  # Normalize the heuristics
+    # Introduce a randomness factor to promote diversity
+    random_factor = np.random.rand(prize.shape[0])
+    heuristics = heuristic_score + random_factor * 0.1
+    heuristics = np.clip(heuristics, 0, 1)  # Ensure that heuristics are within the range [0, 1]
+    return heuristics
+```

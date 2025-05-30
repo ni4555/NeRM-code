@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Calculate relative average demand per edge
+    relative_average_demand = average_demand_per_edge / total_capacity
+    
+    # Introduce a penalty for overloading and a bonus for underloading
+    overload_penalty = torch.relu(relative_average_demand - 1)
+    underload_bonus = torch.relu(1 - relative_average_demand)
+    
+    # Combine penalties and bonuses
+    heuristics = -overload_penalty + underload_bonus
+    
+    # Introduce a bonus for short edges to encourage local search
+    bonus_for_short_edges = torch.relu(1 - distance_matrix.clamp(0, 100))
+    
+    # Combine the bonuses for underloading and short edges
+    combined_bonus = underload_bonus + bonus_for_short_edges
+    
+    # Combine the heuristics with the combined bonus
+    heuristics += combined_bonus
+    
+    # Apply a penalty for imbalance in the distribution of loads
+    imbalance_penalty = torch.relu(torch.abs(demands - total_capacity / n))
+    heuristics -= imbalance_penalty
+    
+    # Ensure all heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics = -torch.abs(heuristics)
+    
+    return heuristics
+```

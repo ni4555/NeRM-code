@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the diversity factor based on the standard deviation of the weights across dimensions
+    diversity_factor = np.std(weight, axis=1)
+    
+    # Calculate the relevance factor based on the total prize divided by the total weight
+    relevance_factor = normalized_prize / weight.sum(axis=1)
+    
+    # Combine the factors to create an initial heuristic score
+    initial_heuristics = normalized_prize * diversity_factor * relevance_factor
+    
+    # Refine the heuristic scores based on the percentage of non-zero weight dimensions
+    refinement_factor = np.mean((weight.sum(axis=1) > 0).astype(float))
+    refined_heuristics = initial_heuristics * refinement_factor
+    
+    # Integrate the diversity factor, relevance factor, and refinement factor
+    combined_heuristics = refined_heuristics * (diversity_factor + relevance_factor)
+    
+    # Dynamically adjust weights based on item properties and performance
+    adjusted_weights = combined_heuristics / np.mean(combined_heuristics)
+    
+    # Sparsify the heuristics by setting a fraction of the lowest heuristics to zero
+    num_to_zero = int(len(adjusted_weights) * 0.05)  # Zero out 5% of the lowest heuristics
+    adjusted_weights[np.argsort(adjusted_weights)[:num_to_zero]] = 0
+    
+    return adjusted_weights
+```

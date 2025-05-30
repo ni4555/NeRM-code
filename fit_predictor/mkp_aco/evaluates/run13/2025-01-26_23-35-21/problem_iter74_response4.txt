@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Introduce a balance metric between density and sparsity
+    balance_metric = (density - sparsity) / (density + sparsity + 1e-8)
+    
+    # Introduce a dominance metric by checking if an item is dominated
+    dominance_metric = np.where(np.all(density > sparsity, axis=1), 1, 0)
+    
+    # Introduce a penalty for items that are too heavy
+    weight_penalty = weight_sum / (np.max(weight_sum) + 1e-8)
+    
+    # Create a heuristic value by blending the density, balance, dominance, and penalty
+    heuristic_value = density * (1 - sparsity) - weight_penalty + balance_metric + dominance_metric
+    
+    # Introduce a diversity factor based on the standard deviation of density
+    diversity_factor = density / (np.std(density) + 1e-8)
+    
+    # Create a final heuristic by combining the heuristic value with the diversity factor
+    heuristic = heuristic_value * diversity_factor
+    
+    # Normalize by the maximum heuristic value to maintain consistency
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Ensure diversity: if all items are dominated, give a small positive heuristic value
+    if np.allclose(density, 0):
+        normalized_heuristic = np.ones(n) * 1e-8
+
+    # Ensure that the sum of heuristics is close to 1
+    normalized_heuristic /= np.sum(normalized_heuristic)
+
+    return normalized_heuristic
+```

@@ -1,0 +1,12 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the cumulative demand
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    # Compute the heuristics matrix
+    heuristics_matrix = distance_matrix - (cumulative_demands.unsqueeze(1) * distance_matrix.sum(axis=1, keepdim=True))
+    # Add a term that penalizes edges leading to overcapacity
+    penalty = torch.clamp((cumulative_demands.unsqueeze(1) - demands.unsqueeze(0)) / demands.sum(), min=0) * 1000
+    heuristics_matrix += penalty
+    return heuristics_matrix
+```

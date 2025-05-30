@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize and average weight for each item
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    
+    # Calculate density based on prize and average weight
+    density = prize / average_weight
+    
+    # Calculate dimension-specific factors
+    dimension_factors = np.sum(weight, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate utility considering both density and dimension-specific factors
+    utility = density * dimension_factors
+    
+    # Normalize utility to ensure it's within a certain range to avoid overfitting
+    utility_normalized = (utility - np.min(utility)) / (np.max(utility) - np.min(utility))
+    
+    # Calculate sparsity based on the ratio of utility to maximum prize
+    sparsity = (utility_normalized > 0.5) * 1.0
+    
+    # Balance item diversity with promise by using a weighted sum of density and sparsity
+    heuristics = utility_normalized * sparsity * 0.5 + (1 - sparsity) * density
+    
+    # Apply a penalty to items that are not promising based on their average utility
+    average_utility = np.mean(heuristics)
+    penalty = (heuristics < average_utility) * (1 / heuristics)
+    
+    # Adjust the heuristics by applying the penalty
+    adjusted_heuristics = heuristics * (1 + penalty)
+    
+    # Normalize the adjusted heuristics to ensure they are non-negative
+    adjusted_heuristics = np.clip(adjusted_heuristics, 0, 1)
+    
+    return adjusted_heuristics
+```

@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    import numpy as np
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Create a mask for nodes with positive demand
+    demand_mask = (demands > 0).float()
+
+    # Normalize the demand vector
+    normalized_demands = demands / total_demand
+
+    # Vectorized computation of the heuristics value
+    edge_heuristic = normalized_demands[j] - normalized_demands[i]
+    edge_heuristic = edge_heuristic * distance_matrix[i][j]
+
+    # Apply the mask and scale the heuristic by the total capacity
+    heuristics[i][j] = torch.clamp(edge_heuristic * total_demand, min=0)
+    heuristics[j][i] = heuristics[i][j]
+
+    return heuristics
+```

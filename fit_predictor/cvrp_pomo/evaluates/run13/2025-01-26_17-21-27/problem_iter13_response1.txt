@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Apply a non-linear transformation to the distance penalty
+    distance_penalty = torch.exp(-torch.abs(distance_matrix) * (1 + cumulative_demand))
+    # Dynamic scaling of the distance penalty based on the cumulative demand
+    distance_scaling = distance_penalty * (1 + cumulative_demand)
+    # Balance between capacity and distance with dynamic scaling
+    balance_penalty = (demands - total_capacity) / (1 + cumulative_demand)
+    heuristics = distance_scaling + balance_penalty
+    return heuristics
+```

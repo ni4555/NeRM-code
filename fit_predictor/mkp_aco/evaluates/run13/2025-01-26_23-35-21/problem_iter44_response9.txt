@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    
+    # Normalize the prize to account for item differences
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate the density of each item as the ratio of prize to weight sum
+    density = normalized_prize / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity of each item as the ratio of the sum of weights to the max weight
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1)
+    
+    # Calculate the sum of weights for each item
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Calculate the diversity factor as the density relative to the average density
+    average_density = np.mean(density)
+    diversity_factor = density / (average_density + 1e-8)
+    
+    # Combine the density and sparsity into a single heuristic value
+    heuristic_value = density * (1 - sparsity)
+    
+    # Introduce an exploration-exploitation balance by adding a random factor
+    exploration_balance = np.random.rand(n)
+    
+    # Combine the heuristic value with the diversity factor and the random balance
+    combined_heuristic = heuristic_value * diversity_factor * exploration_balance
+    
+    # Normalize the combined heuristic to the range [0, 1]
+    combined_heuristic = combined_heuristic / np.max(combined_heuristic)
+    
+    # Prune very low-quality heuristics by setting them to zero
+    low_quality_threshold = np.percentile(combined_heuristic, 5)
+    combined_heuristic[combined_heuristic < low_quality_threshold] = 0
+    
+    # Ensure the sum of heuristics is one by normalizing them
+    combined_heuristic = combined_heuristic / np.sum(combined_heuristic)
+    
+    return combined_heuristic
+```

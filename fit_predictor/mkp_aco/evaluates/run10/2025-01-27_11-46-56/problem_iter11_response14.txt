@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    
+    diversity_factor = 1 / (1 + np.linalg.norm(normalized_weight, axis=1, keepdims=True))
+    heuristic = utility * diversity_factor
+    
+    exploration_exploitation_balance = np.exp(-heuristic) / np.sum(np.exp(-heuristic))
+    max_heuristic = heuristic.max(axis=1)
+    refined_heuristic = max_heuristic * exploration_exploitation_balance
+    
+    # Sparsify by setting low heuristic values to zero
+    sparsified_heuristic = np.where(refined_heuristic > 0.5, refined_heuristic, 0)
+    
+    return sparsified_heuristic
+```

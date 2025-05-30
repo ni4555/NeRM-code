@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic that considers both demand and distance."""
+    n = distance_matrix.shape[0]
+    demand_diff = demands - demands.mean()
+    distance_penalty = distance_matrix * (1 - torch.exp(-demands))
+    
+    heuristic_matrix = -torch.abs(demand_diff) * (1 - demands) - distance_penalty
+    heuristic_matrix[torch.arange(n), torch.arange(n)] += 1  # Adding a bonus to return to the depot
+    
+    # Apply a threshold to emphasize edges with lower demand and lower distance
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1000, max=1000)
+    
+    return heuristic_matrix
+```

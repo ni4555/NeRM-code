@@ -1,0 +1,28 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Dynamic item sorting based on a heuristic, e.g., inverse of weighted prize ratio
+    sorted_indices = np.argsort(-prize / weight.sum(axis=1))
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Iterate over the sorted items and assign a heuristic value
+    for i in sorted_indices:
+        # Calculate the weighted ratio for the current item
+        weighted_ratio = prize[i] / weight[i, :].sum()
+        
+        # Calculate the sum of current and previous heuristics
+        current_sum = np.sum(heuristics[:i+1])
+        
+        # Calculate the heuristic for the current item based on the weighted ratio and previous sum
+        heuristics[i] = weighted_ratio + current_sum
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics

@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized prize to weight ratio
+    normalized_ratio = prize / np.sum(weight, axis=1)
+    
+    # Apply a non-linear transformation to the ratio
+    transformed_ratio = np.log(normalized_ratio + 1)  # Avoiding log(0) by adding 1
+    
+    # Calculate the average transformed ratio
+    avg_transformed_ratio = np.mean(transformed_ratio, axis=1)
+    
+    # Calculate the variance of the transformed ratio
+    variance = np.var(transformed_ratio, axis=1)
+    
+    # Combine the average transformed ratio and the variance to create a combined score
+    combined_score = transformed_ratio - avg_transformed_ratio + variance
+    
+    # Sparsify the heuristics by setting elements below a certain variance threshold to zero
+    threshold = np.std(combined_score, axis=1) * 0.5
+    heuristics = np.where(variance > threshold, combined_score, 0)
+    
+    # Normalize the heuristics to maintain diversity while ensuring they sum to 1
+    total_nonzero = np.sum(heuristics)
+    heuristics /= total_nonzero
+    
+    return heuristics
+```

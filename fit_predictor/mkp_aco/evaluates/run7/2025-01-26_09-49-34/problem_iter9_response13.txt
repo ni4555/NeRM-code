@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a list to hold various heuristic components
+    heuristic_components = []
+
+    # Prize-to-weight ratio
+    ratio = prize / np.sum(weight, axis=1)
+    heuristic_components.append(ratio)
+
+    # Sparsity factor - items with more zero weights in their dimensions are less promising
+    sparsity_factor = np.sum(weight == 0, axis=1) / weight.shape[1]
+    heuristic_components.append(1 - sparsity_factor)  # Invert to increase sparsity
+
+    # Weight variance - penalize items with higher variance in weights
+    weight_variance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)
+    heuristic_components.append(1 / (1 + weight_variance))  # Normalize variance
+
+    # Combine the components, normalize, and apply a dynamic sparsification threshold
+    combined_heuristics = np.prod(heuristic_components, axis=0)
+    max_combined_heuristic = np.max(combined_heuristics)
+    if max_combined_heuristic > 0:
+        combined_heuristics /= max_combined_heuristic
+
+    # Dynamic sparsity threshold based on average minimum weight and average sparsity
+    average_min_weight = np.mean(np.min(weight, axis=1))
+    average_sparsity = np.mean(sparsity_factor)
+    sparsity_threshold = average_min_weight * (1 - average_sparsity)
+    combined_heuristics[combined_heuristics < sparsity_threshold] = 0
+
+    return combined_heuristics
+```

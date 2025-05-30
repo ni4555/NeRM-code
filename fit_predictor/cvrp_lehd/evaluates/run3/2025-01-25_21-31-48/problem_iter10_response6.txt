@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    # Calculate the inverse of the distance matrix to emphasize shorter distances
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)  # Add a small value to avoid division by zero
+    
+    # Weight the inverse distance by the demand to emphasize nodes with higher demand
+    demand_weighted_distance_matrix = distance_matrix_inv * demands
+    
+    # Introduce a penalty for uniformity to avoid nodes too close to the depot
+    uniformity_penalty = torch.max(distance_matrix, dim=1).values / (torch.max(distance_matrix, dim=1).values + 1e-10)
+    
+    # Normalize the demand-weighted distances
+    max_demand_weighted_distance = demand_weighted_distance_matrix.max()
+    min_demand_weighted_distance = demand_weighted_distance_matrix.min()
+    normalized_demand_weighted_distance_matrix = (demand_weighted_distance_matrix - min_demand_weighted_distance) / (max_demand_weighted_distance - min_demand_weighted_distance)
+    
+    # Introduce a penalty for uniformity to avoid nodes too far from the depot
+    uniformity_penalty *= torch.min(distance_matrix, dim=0).values / (torch.min(distance_matrix, dim=0).values + 1e-10)
+    
+    # Combine the weighted and normalized distances with uniformity penalties
+    heuristics = normalized_demand_weighted_distance_matrix * uniformity_penalty
+    
+    # Ensure that the depot is the last node considered by giving it a higher penalty
+    depot_penalty = torch.ones_like(heuristics)
+    depot_penalty[0] = float('inf')
+    heuristics += depot_penalty
+    
+    return heuristics
+```

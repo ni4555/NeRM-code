@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    
+    # Adapt threshold based on the average score
+    avg_score = np.mean(score)
+    threshold = avg_score * 0.8  # Example threshold set at 80% of the average score
+    
+    # Create heuristics with a binary indicator of relevance
+    binary_heuristics = (score >= threshold) * 1.0
+    
+    # Balance diversity by penalizing items with high overlap in their normalized weights
+    weight_similarity = np.dot(normalized_weights, normalized_weights.T)
+    diversity_penalty = (weight_similarity > 0.9).mean(axis=0)  # Penalize high similarity
+    heuristics = binary_heuristics - diversity_penalty
+    
+    # Normalize heuristics to ensure a sparse and balanced output
+    normalized_heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+    
+    return normalized_heuristics
+```

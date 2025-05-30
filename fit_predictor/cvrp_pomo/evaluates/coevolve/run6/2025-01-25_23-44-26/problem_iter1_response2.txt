@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Iterate over all pairs of nodes (excluding the depot)
+    for i in range(1, len(distance_matrix)):
+        for j in range(1, len(distance_matrix)):
+            # Calculate the sum of demands from the current node to the destination
+            demand_sum = (normalized_demands[i] + normalized_demands[j]).clamp(min=0)
+            
+            # Calculate the heuristic value for the edge
+            heuristic_value = torch.log1p(-demand_sum * distance_matrix[i, j])
+            
+            # Assign the heuristic value to the edge in the heuristic matrix
+            heuristic_matrix[i, j] = heuristic_value
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the diversity factor based on the maximum weight across dimensions
+    diversity_factor = np.max(weight, axis=1)
+    
+    # Calculate the utility factor based on the ratio of prize to the sum of all weights
+    utility_factor = normalized_prize / (np.sum(weight, axis=1) + 1e-6)  # Adding epsilon to avoid division by zero
+    
+    # Calculate the dynamic weight factor based on the sum of weight dimensions
+    dynamic_weight_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Combine the factors to create an initial heuristic score
+    initial_heuristics = normalized_prize * diversity_factor * utility_factor * dynamic_weight_factor
+    
+    # Normalize the initial heuristics
+    max_heuristic = np.max(initial_heuristics)
+    if max_heuristic > 0:
+        initial_heuristics /= max_heuristic
+    
+    # Apply a dynamic threshold to adjust the initial heuristics
+    threshold = np.percentile(initial_heuristics, 80)  # 80% threshold
+    adjusted_heuristics = np.where(initial_heuristics > threshold, initial_heuristics, threshold)
+    
+    # Integrate domain-specific heuristics by focusing on items that are more unique
+    # and have higher utility, which could be based on some domain knowledge
+    domain_specific_heuristics = adjusted_heuristics * (diversity_factor + utility_factor)
+    
+    # Normalize the final heuristics by dividing by the maximum value
+    final_heuristics = domain_specific_heuristics / np.max(domain_specific_heuristics)
+    
+    # Sparsify the heuristics by setting a fraction of the lowest heuristics to zero
+    num_to_zero = int(len(final_heuristics) * 0.05)  # Zero out 5% of the lowest heuristics
+    final_heuristics[np.argsort(final_heuristics)[:num_to_zero]] = 0
+    
+    return final_heuristics
+```

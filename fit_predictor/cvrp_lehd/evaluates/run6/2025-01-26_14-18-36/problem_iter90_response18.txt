@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    heuristics = demand_diff * remaining_capacity
+
+    exploration_noise = torch.randn_like(heuristics) * 0.02
+    heuristics += exploration_noise
+
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    heuristics = torch.sigmoid(heuristics)
+
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * 0.5
+
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * 0.5
+
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+    heuristics += torch.clamp(distance_penalty, min=0.0) * 0.5
+
+    # Introduce a dynamic range for heuristic values
+    heuristic_range = torch.clamp(heuristics.max() - heuristics.min(), min=0.1)
+    heuristics = (heuristics - heuristics.min()) / heuristic_range
+
+    return heuristics
+```

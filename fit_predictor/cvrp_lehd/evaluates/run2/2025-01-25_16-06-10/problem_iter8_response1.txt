@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    
+    # Negative distance heuristic
+    negative_distance_heuristic = -distance_matrix
+    
+    # Demand-based heuristic: a node is attractive if it has a high demand
+    demand_heuristic = demands[:, None] * demands
+    
+    # Capacity-based heuristic: avoid nodes that would lead to overloading a vehicle
+    capacity_heuristic = (demands - 1) * demands
+    
+    # Distance from the current node to the next node
+    distance_from_current = demands[None] * distance_matrix
+    
+    # Exploration heuristic: add randomness for diversity
+    exploration_heuristic = 0.1 * (torch.rand_like(distance_matrix) - 0.5)
+    
+    # Combine heuristics, favoring exploitation by giving more weight to negative values
+    combined_heuristic = (negative_distance_heuristic + demand_heuristic + capacity_heuristic +
+                          distance_from_current + exploration_heuristic)
+    
+    # Normalize to ensure all heuristic values are in the same scale
+    combined_heuristic /= (combined_heuristic.sum(dim=1, keepdim=True) + 1e-8)
+    
+    # Ensure that negative heuristics represent undesirable edges
+    heuristics = torch.clamp(combined_heuristic, min=-float('inf'))
+    
+    return heuristics
+```

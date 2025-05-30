@@ -1,0 +1,61 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+
+    # Calculate the inverse of distance matrix
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+
+    # Normalize the inverse distance matrix by the total demand
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Apply a demand-based heuristic
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = normalized_inv_distance_matrix * demand_normalized
+
+    # Apply a capacity-based heuristic
+    demand_normalized_matrix = demands / total_demand
+    remaining_capacity = 1 - demand_normalized_matrix
+    capacity_weighted_distance = (remaining_capacity * inv_distance_matrix).T
+
+    # Prioritize by demand, balancing between high demand and long distance
+    priority = demand_weighted_distance + capacity_weighted_distance
+
+    # Integrate early capacity constraints, penalizing edges with insufficient capacity
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    priority[insufficient_capacity_mask] = -torch.inf
+
+    # Apply nearest-neighbor strategy to refine priority
+    # Initialize a vector to store the visited nodes
+    visited = torch.zeros(n, dtype=torch.bool)
+    # Start from the depot
+    visited[0] = True
+    # Initialize the priority queue with the depot
+    queue = torch.full((n,), float('-inf'))
+    queue[0] = priority[0, 0]
+    # Initialize the result vector with zeros
+    result = torch.zeros_like(priority)
+    # While there are still nodes to visit
+    while torch.any(~visited):
+        # Find the nearest node in the queue
+        nearest_idx = torch.argmax(queue)
+        queue[nearest_idx] = float('-inf')
+        # Mark it as visited
+        visited[nearest_idx] = True
+        # Update the result
+        result[nearest_idx, nearest_idx] = priority[nearest_idx, nearest_idx]
+        # For each unvisited neighbor, update the queue
+        for j in range(n):
+            if not visited[j]:
+                result[nearest_idx, j] = priority[nearest_idx, j]
+                result[j, nearest_idx] = priority[j, nearest_idx]
+                queue[j] = max(queue[j], priority[nearest_idx, j])
+
+    return result
+```

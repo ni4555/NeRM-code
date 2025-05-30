@@ -1,0 +1,58 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Early problem-specific local search
+    while True:
+        imbalance = torch.max(torch.abs(demands)) / total_capacity
+        if imbalance < 1.0:
+            break
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    diff = demands[i] - demands[j]
+                    if diff > 0:
+                        demands[j] += diff * 0.1
+                        demands[i] -= diff * 0.1
+                    elif diff < 0:
+                        demands[i] += diff * 0.1
+                        demands[j] -= diff * 0.1
+        # Rebalance demand distribution
+        demands = demands / total_capacity
+    
+    edge_demand_per_vehicle = demands[:, None] + demands[None, :]
+    load_factor = edge_demand_per_vehicle * distance_matrix
+    
+    # Initial heuristics based on load factor
+    heuristics = (load_factor / total_capacity) - 1
+    
+    # Adaptive PSO with population management
+    swarm_size = 10
+    iterations = 100
+    for iteration in range(iterations):
+        for i in range(swarm_size):
+            velocity = torch.rand_like(distance_matrix) * 0.01  # Simplified velocity update
+            heuristics += velocity  # Simplified position update
+    
+    # Dynamic Tabu Search with adaptive cost function
+    tabu_list = set()
+    for iteration in range(iterations):
+        best_edge = torch.argmin(load_factor)
+        if (best_edge, best_edge) not in tabu_list:
+            load_factor[best_edge] *= -1
+            demands[best_edge] *= -1
+            tabu_list.add((best_edge, best_edge))
+        else:
+            for j in range(n):
+                if (best_edge, j) not in tabu_list:
+                    load_factor[best_edge, j] *= -1
+                    demands[best_edge] *= -1
+                    tabu_list.add((best_edge, j))
+    
+    # Refine heuristics based on tabu search and local search results
+    heuristics = torch.clamp(heuristics, min=-10.0, max=0.0)  # Adjusted heuristics range
+    
+    return heuristics
+```

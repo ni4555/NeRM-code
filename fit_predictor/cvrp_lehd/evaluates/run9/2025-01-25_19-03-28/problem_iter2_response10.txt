@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Feature 1: Distance-based feature (penalize longer distances)
+    distance_weight = torch.mean(distance_matrix)
+    
+    # Feature 2: Demand-based feature (encourage nodes with higher demand)
+    demand_weight = torch.mean(normalized_demands)
+    
+    # Feature 3: Cumulative demand feature (penalize edges that lead to overflow)
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    max_cumulative_demand = (cumulative_demand.cumsum(dim=0) / total_capacity) * 100  # Scale factor for visualization
+    
+    # Feature 4: Demand satisfaction feature (encourage nodes that satisfy more of the vehicle capacity)
+    demand_satisfaction = (cumulative_demand / demands).unsqueeze(1)
+    
+    # Weighted combination of features
+    heuristic_matrix = (torch.mul(normalized_demands, distance_matrix) * distance_weight +
+                        torch.mul(normalized_demands, demands) * demand_weight -
+                        max_cumulative_demand -
+                        torch.mul(demand_satisfaction, demands))
+    
+    # Normalize the heuristic matrix to ensure it contains both negative and positive values
+    min_val = heuristic_matrix.min()
+    max_val = heuristic_matrix.max()
+    normalized_heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    return normalized_heuristic_matrix
+```

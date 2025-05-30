@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    demand_penalty_matrix = torch.relu(torch.abs(demands - vehicle_capacity))
+    
+    # Create a distance-based penalty matrix
+    distance_penalty_matrix = distance_matrix * -1.0
+    
+    # Create a normalized penalty matrix, balancing demand and distance
+    total_penalty_matrix = demand_penalty_matrix + distance_penalty_matrix
+    max_penalty = total_penalty_matrix.max()
+    normalized_penalty_matrix = total_penalty_matrix / max_penalty
+    
+    # Apply exp to the normalized penalty matrix, which penalizes infeasibility
+    # and promotes higher potential edges
+    penalty_exp_matrix = torch.exp(normalized_penalty_matrix)
+    
+    # Create a heuristic matrix, using the distance matrix as a base to add potential
+    # to the promising edges, while keeping the penalties for infeasibility
+    heuristics_matrix = distance_matrix + penalty_exp_matrix
+    
+    return heuristics_matrix
+```

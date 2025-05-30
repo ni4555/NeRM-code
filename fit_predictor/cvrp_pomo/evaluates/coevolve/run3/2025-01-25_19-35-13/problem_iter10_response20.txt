@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    demand_weight = 0.8
+    distance_weight = 0.2
+
+    n = len(demands)
+    dp = torch.zeros((n, n))
+    for d in range(1, n):
+        for s in range(d):
+            dp[d, s] = torch.min(dp[s, d-1] + distance_matrix[s, d], dp[d, s])
+
+    epsilon = 1e-8
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+
+    demand_threshold = 1.5
+    distance_threshold = 10
+    edge_potential = edge_potential - (edge_potential * 0.2 * (demands > demand_threshold).float())
+    edge_potential = edge_potential + (edge_potential * 0.1 * (distance_matrix > distance_threshold).float())
+
+    max_capacity = 1.0
+    edge_potential = edge_potential - (edge_potential * 0.5 * (distance_matrix < max_capacity).float())
+
+    # Ensure the matrix is symmetric
+    edge_potential = (edge_potential + edge_potential.t()) / 2
+
+    return edge_potential
+```

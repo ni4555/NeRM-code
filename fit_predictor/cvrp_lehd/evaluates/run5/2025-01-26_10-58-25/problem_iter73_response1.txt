@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Introduce randomness by adding Gaussian noise with a small standard deviation
+    noise_matrix = torch.randn_like(potential_matrix) * 1e-2
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(potential_matrix))
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine the normalized emphasized matrix with the distance penalty matrix
+    combined_matrix = normalized_emphasized_matrix + 0.5 * distance_penalty_matrix
+    
+    # Introduce a second noise term for further randomness
+    second_noise_matrix = torch.randn_like(combined_matrix) * 1e-3
+    
+    # Apply a transformation to reduce the impact of large values
+    transformed_matrix = torch.relu(combined_matrix - second_noise_matrix)
+    
+    # Normalize the transformed matrix to ensure non-negativity and scale balance
+    normalized_transformed_matrix = transformed_matrix / transformed_matrix.sum(dim=1, keepdim=True)
+    
+    # Limit the noise impact by scaling down the noise matrix
+    scaled_noise_matrix = second_noise_matrix * 0.5
+    
+    # Combine the normalized transformed matrix with the scaled noise matrix
+    final_matrix = normalized_transformed_matrix + scaled_noise_matrix
+    
+    # Transform the final matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -final_matrix
+    
+    return heuristics_matrix
+```

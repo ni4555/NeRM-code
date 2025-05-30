@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Adaptive scaling for penalties based on early detection of overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    overflow_penalty *= (1 + 0.3 * (cumulative_demand - total_capacity_vector) / total_capacity)
+    
+    # Priority for shorter distances with dynamic load balancing
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    load_balance_factor = (1 - (cumulative_demand - total_capacity_vector) / (cumulative_demand / total_capacity))
+    distance_penalty *= load_balance_factor
+    
+    # Dynamic scaling for the load balance penalty
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector) - 1e-8)
+    load_balance_penalty *= load_balance_factor
+    
+    # Encourage diversity by introducing noise with decreasing impact as demand is met
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Core objective is to minimize distance and capacity violation, maximize load balance
+    core_objective = (
+        distance_penalty +
+        overflow_penalty +
+        load_balance_penalty
+    )
+    
+    # Scale core objective to prioritize it
+    scaling_factor = 2.0
+    scaled_core_objective = core_objective * scaling_factor
+    
+    # Final heuristic is a weighted sum of core objective and diversity factor
+    heuristics = scaled_core_objective + diversity_factor
+    
+    return heuristics
+```

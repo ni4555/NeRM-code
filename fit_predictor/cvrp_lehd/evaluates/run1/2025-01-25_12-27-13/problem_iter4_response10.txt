@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    heuristic_matrix = normalized_demands[:, None] * normalized_demands[None, :] * distance_matrix
+
+    # Calculate the difference from the average demand for each edge
+    average_demand = total_demand / n
+    demand_diff = demands - average_demand
+
+    # Apply the capacity constraint by adjusting the heuristic matrix
+    for i in range(1, n):
+        for j in range(1, n):
+            if demands[j] > 1.0:
+                heuristic_matrix[i, j] -= (demands[j] - 1.0)
+
+    # Normalize the heuristic matrix to ensure it has both positive and negative values
+    min_val, max_val = heuristic_matrix.min(), heuristic_matrix.max()
+    heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    return heuristic_matrix
+```

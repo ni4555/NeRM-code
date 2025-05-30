@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Use a weighted sum of inverse demand violations and logarithmic distance to form a baseline
+    baseline_potential = (torch.log(distance_matrix + 1e-6) + penalty_matrix) * 0.5
+    
+    # Inject diversity with random perturbations, emphasizing nodes with higher demand
+    random_perturbations = (torch.rand_like(demands) * (torch.max(penalty_matrix) - torch.min(penalty_matrix)) +
+                           torch.min(penalty_matrix)).unsqueeze(1).unsqueeze(1)
+    diverse_potential = baseline_potential + random_perturbations
+    
+    # Normalize the potential matrix to maintain the diversity but ensure non-negativity
+    diversity_normalized = torch.nn.functional.normalize(diverse_potential, p=1, dim=1)
+    
+    # Apply a non-linear transformation to emphasize the diversity over the baseline
+    emphasized_diversity = torch.exp(-torch.abs(diversity_normalized))
+    
+    # Introduce additional constraints by penalizing larger distances
+    additional_penalty = torch.log(distance_matrix + 1e-6)
+    
+    # Combine the heuristics using a weighted sum
+    final_heuristics = 0.4 * emphasized_diversity + 0.6 * additional_penalty
+    
+    return final_heuristics
+```

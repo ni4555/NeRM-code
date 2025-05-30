@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to ensure items are not dominated by high prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate a balance factor considering both sparsity and variance
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    balance_factor = sparsity_factor * inv_variance_factor
+    
+    # Incorporate exploration-exploitation by using an exponential factor
+    exploration_factor = np.exp(np.random.normal(0, 0.05, size=normalized_prize.shape))
+    exploitation_factor = balance_factor
+    balanced_prize = exploration_factor * normalized_prize * exploitation_factor
+    
+    # Promote diversity by adding noise based on item variance
+    noise = np.random.normal(0, 0.01, size=normalized_prize.shape)
+    item_variance = np.var(weight, axis=1)
+    noise *= item_variance
+    noise = np.maximum(noise, 0)  # Ensure non-negative diversity
+    balanced_prize += noise
+    
+    # Adapt thresholds dynamically based on the distribution of prizes
+    sorted_indices = np.argsort(balanced_prize)
+    threshold_indices = np.linspace(0, len(balanced_prize) - 1, 4).astype(int)
+    thresholds = np.interp(threshold_indices, sorted_indices, balanced_prize)
+    heuristics = np.zeros_like(balanced_prize)
+    heuristics[balanced_prize > thresholds[2]] = 1  # 30% best
+    heuristics[balanced_prize < thresholds[0]] = 0  # 70% worst
+    heuristics[(thresholds[0] < balanced_prize) & (balanced_prize <= thresholds[1])] = 0.5  # 15% in between
+    
+    # Iterate to refine the heuristics based on the sparsity of the selected items
+    while np.sum(heuristics) > 0:
+        selected_items = heuristics > 0
+        weight_sum = weight[selected_items].sum(axis=0)
+        heuristics *= (weight_sum < 1).astype(float)
+    
+    return heuristics
+```

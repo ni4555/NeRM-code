@@ -1,0 +1,52 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to reduce the dominance of high-value items
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate a heuristic based on value-to-weight ratio
+    value_to_weight_ratio = normalized_prize / weight.sum(axis=1)
+    
+    # Dynamically set a threshold for the value-to-weight ratio to emphasize sparsity
+    value_to_weight_threshold = np.percentile(value_to_weight_ratio, 80)
+    
+    # Adjust heuristics: items with a low ratio are less likely to be selected
+    adjusted_heuristics = np.where(value_to_weight_ratio < value_to_weight_threshold,
+                                  normalized_prize * 0.8, normalized_prize)
+    
+    # Incorporate exploration by adding random noise to heuristics
+    noise = np.random.normal(0, np.std(prize) * 0.1, size=adjusted_heuristics.shape)
+    exploration_heuristics = np.where(np.random.random(size=adjusted_heuristics.shape) < 0.3,
+                                       adjusted_heuristics + noise,
+                                       adjusted_heuristics)
+    
+    # Iterate the heuristics improvement process
+    for _ in range(5):  # Iterative enhancement loop
+        # Promote diversity with random shuffling and local search
+        random_indices = np.random.permutation(prize.shape[0])
+        shuffled_exploration_heuristics = exploration_heuristics[random_indices]
+        
+        # Local search to refine heuristics by considering nearby items
+        for i in range(prize.shape[0]):
+            # Find the best swap candidate to increase the heuristic value
+            swap_candidate = i
+            while swap_candidate != -1:
+                # Consider swapping with all unvisited items
+                for j in range(prize.shape[0]):
+                    if j != i:
+                        swapped_value = (exploration_heuristics[j] * weight[j].sum() -
+                                         exploration_heuristics[i] * weight[i].sum())
+                        if swapped_value > 0:
+                            swap_candidate = j
+                            break
+                if swap_candidate != -1:
+                    # Swap if it increases the total prize sum
+                    exploration_heuristics[[i, swap_candidate]] = exploration_heuristics[[swap_candidate, i]]
+                    exploration_heuristics[[swap_candidate, i]] /= exploration_heuristics[[swap_candidate, i]].sum()
+    
+    # Normalize the final heuristics
+    heuristic_sum = np.sum(exploration_heuristics)
+    if heuristic_sum > 0:
+        exploration_heuristics /= heuristic_sum
+    
+    return exploration_heuristics
+```

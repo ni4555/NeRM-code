@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize the demands to maintain balance in their influence
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate a demand penalty to discourage overloading vehicles
+    demand_penalty = (1 - demands / demands.max())
+    
+    # Incorporate a balance factor to trade-off between distance and demand
+    balance_factor = torch.clamp(torch.rand(1), min=0.5, max=1.0)  # Ensuring the balance factor is not too aggressive
+    
+    # Use a modified savings algorithm to compute the heuristic matrix
+    savings = distance_matrix - (normalized_demands.unsqueeze(1) * distance_matrix.sum(axis=1, keepdim=True))
+    
+    # Ensure all heuristics are non-negative by adding the smallest value to all
+    min_val = torch.min(savings)
+    savings = savings + min_val.unsqueeze(0).unsqueeze(1)
+    
+    # Introduce a penalty factor to the savings for high demand nodes
+    savings = savings - demand_penalty.unsqueeze(1) * distance_matrix.sum(axis=1, keepdim=True)
+    
+    # Apply the balance factor to the savings
+    savings = savings * balance_factor + (normalized_demands * distance_matrix.sum(axis=1, keepdim=True)) * (1 - balance_factor)
+    
+    return savings
+```

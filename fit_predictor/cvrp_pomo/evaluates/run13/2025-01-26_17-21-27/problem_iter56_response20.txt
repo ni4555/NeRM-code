@@ -1,0 +1,60 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Enhanced distance penalty with adaptive scaling that decreases over time
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_scaling *= (1 + cumulative_demand / total_capacity) * time_factor
+    
+    # Dynamic capacity penalty with adaptive threshold that considers the current load
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + 0.3 * (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic with a balance factor that emphasizes uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Introduce randomness with a balance between exploration and exploitation
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Apply scaling factors to prioritize core objectives
+    scaling_factors = {
+        'distance': 3.0,
+        'capacity': 2.5,
+        'overflow': 2.0,
+        'balance': 1.5
+    }
+    
+    # Combine the weighted penalties
+    combined_penalties = (
+        scaling_factors['distance'] * distance_scaling +
+        scaling_factors['capacity'] * dynamic_capacity_penalty +
+        scaling_factors['overflow'] * overflow_penalty +
+        scaling_factors['balance'] * load_balance_penalty
+    )
+    
+    # Introduce diversity by adding randomness
+    diversity_factor = randomness_factor
+    
+    # Normalize heuristics to ensure they are positive and consistent
+    heuristics = combined_penalties + diversity_factor
+    heuristics /= (heuristics.sum() + 1e-8)
+    
+    # Exclude the depot from itself by applying a penalty
+    depot_penalty = torch.arange(n) == 0
+    heuristics -= depot_penalty.float().unsqueeze(0)
+    
+    return heuristics
+```

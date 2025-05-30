@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    demand_normalized = demands / torch.sum(demands)
+
+    # Demand-based heuristic: Higher demand gets more weight
+    demand_weighted_distance = demand_normalized * inv_distance_matrix
+
+    # Distance-based heuristic: Shorter distance gets more positive value
+    distance_based_heuristic = torch.sum(demand_normalized[:, None] * inv_distance_matrix, dim=0)
+
+    # Capacity-based heuristic: Encourage not exceeding the capacity
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    capacity_based_heuristic = torch.zeros_like(distance_based_heuristic)
+    capacity_based_heuristic[~insufficient_capacity_mask] = -torch.log(1 - insufficient_capacity_mask[~insufficient_capacity_mask])
+
+    # Combine heuristics with a balance of demand and distance
+    combined_heuristic = 0.6 * demand_weighted_distance + 0.4 * distance_based_heuristic
+
+    # Apply capacity penalty
+    combined_heuristic[insufficient_capacity_mask] = -float('inf')
+
+    return combined_heuristic
+```

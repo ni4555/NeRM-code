@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    for start_node in range(n_nodes):
+        # Calculate the distance matrix that only includes the start node
+        local_distance_matrix = distance_matrix[start_node, :]
+        # Get the demands from the start node to all other nodes
+        local_demands = demands[start_node:]
+        # Get the cumulative demand from the start node to all other nodes
+        local_cumulative_demand = cumulative_demand[start_node:]
+        
+        for destination_node in range(n_nodes):
+            if destination_node != start_node:
+                # Calculate the total demand from the start node to the destination node
+                total_demand = local_cumulative_demand[destination_node]
+                # Calculate the distance from the start node to the destination node
+                distance = local_distance_matrix[destination_node]
+                # Calculate the total demand from the start node to the next node
+                if destination_node < n_nodes - 1:
+                    next_node_demand = local_cumulative_demand[destination_node + 1]
+                else:
+                    next_node_demand = 0
+                
+                # Update the heuristic value considering the total demand, distance, and the next node demand
+                heuristics[start_node, destination_node] = -(distance + total_demand + next_node_demand)
+                
+                # If the next node demand is zero, the vehicle returns to the depot
+                if next_node_demand == 0:
+                    heuristics[start_node, 0] = -(distance_matrix[start_node, 0] + total_demand)
+                    break  # No need to continue to other destination nodes
+    return heuristics
+```

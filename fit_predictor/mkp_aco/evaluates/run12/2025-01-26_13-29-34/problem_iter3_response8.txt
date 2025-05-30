@@ -1,0 +1,56 @@
+```python
+import numpy as np
+import random
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    heuristic = np.zeros((prize.shape[0],))
+    # Deep Reinforcement Learning Component (Simulated with random selection)
+    rl_policies = [random.random() for _ in range(prize.shape[0])]
+    # Particle Swarm Optimization Component
+    pso_local_best = np.copy(prize)
+    pso_global_best = np.copy(prize)
+    # Initialize the particles' positions (random selection of items)
+    particle_positions = np.random.randint(0, 2, (prize.shape[0],))
+    velocities = np.zeros_like(particle_positions)
+    # Initialize the swarm intelligence with a simple fitness function
+    fitness = np.sum(prize * particle_positions, axis=1)
+    # Iteratively optimize
+    for _ in range(100):  # Assuming a fixed number of iterations for simplicity
+        # Update velocities and positions
+        velocities = velocities + random.uniform(-1, 1, velocities.shape)
+        particle_positions = np.where(particle_positions < 1, particle_positions + velocities, 1)
+        # Update local and global best
+        for i in range(prize.shape[0]):
+            fitness[i] = np.sum(prize * particle_positions[i])
+            if fitness[i] > fitness[pso_local_best.argmax()]:
+                pso_local_best[i] = particle_positions[i]
+            if fitness[i] > fitness[pso_global_best.argmax()]:
+                pso_global_best[i] = particle_positions[i]
+    
+    # Adaptive Constraint-Driven Filtering
+    feasible_items = []
+    total_weight = np.zeros((prize.shape[0],))
+    for i in range(prize.shape[0]):
+        weight_sum = 0
+        for k in range(m):
+            weight_sum += weight[i][k]
+        if weight_sum <= 1:
+            feasible_items.append(i)
+            total_weight[i] = weight_sum
+    
+    # Combine heuristics from RL, PSO, and feasibility
+    for i in feasible_items:
+        # Apply RL policy
+        heuristic[i] += rl_policies[i] * prize[i]
+        # Apply PSO global best
+        heuristic[i] += pso_global_best[i] * prize[i]
+        # Apply domain-specific heuristic
+        total_prize = np.sum(prize[feasible_items[:feasible_items.index(i)+1]])
+        heuristic[i] += total_prize
+    
+    # Sparsify the heuristics
+    heuristic[heuristic < 0.01] = 0
+    
+    return heuristic
+```

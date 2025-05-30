@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Simplified penalty for dynamic capacity with overflow detection
+    capacity_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector))
+    overflow = (cumulative_demand > total_capacity_vector)[:, None]
+    capacity_penalty *= (1 + (cumulative_demand[:, None] - total_capacity_vector) / total_capacity * 0.2)
+    capacity_penalty *= (1 + overflow)
+    
+    # Distance heuristic with balance factor for load distribution
+    balance_factor = torch.where(
+        cumulative_demand < total_capacity_vector,
+        cumulative_demand,
+        total_capacity_vector
+    )
+    distance_heuristic = -torch.log1p(torch.abs(distance_matrix))
+    distance_heuristic *= (1 + (balance_factor - cumulative_demand) / total_capacity * 0.1)
+    
+    # Randomness for diversity with domain knowledge incorporated
+    diversity = torch.abs(torch.randn_like(demands)) * 0.05
+    diversity *= (1 - cumulative_demand / total_capacity) ** 1.5
+    diversity *= (1 - (demands > 0).float() * 0.2)
+    
+    # Combined heuristic
+    combined_heuristic = capacity_penalty + distance_heuristic + diversity
+    combined_heuristic /= combined_heuristic.sum() + 1e-8  # Normalize
+    
+    # Domain-specific insights: early return penalty and load balancing
+    combined_heuristic *= (1 + overflow)
+    return combined_heuristic
+```

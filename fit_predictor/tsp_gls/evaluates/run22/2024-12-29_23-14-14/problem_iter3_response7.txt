@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    
+    # Contextualize changes by penalizing current route edges more heavily
+    route_indices = np.where(np.eye(distance_matrix.shape[0], dtype=bool))[:, 0]
+    penalty_factor = 1.5
+    current_route_penalty = distance_matrix[route_indices][:, route_indices] * penalty_factor
+    
+    # Encourage diversification by penalizing edges that are not connected to the current route
+    diversification_penalty = np.zeros(distance_matrix.shape)
+    for i in range(distance_matrix.shape[0]):
+        diversification_penalty[i, :i] = 1
+        diversification_penalty[i, i+1:] = 1
+    
+    # Normalize measures by scaling relative distances
+    min_distance = distance_matrix.min()
+    max_distance = distance_matrix.max()
+    scaled_distances = (distance_matrix - min_distance) / (max_distance - min_distance)
+    
+    # Balance exploration and exploitation by considering the interaction of neighbors
+    # and adding a global constraint to avoid having too many edges with high penalties
+    global_constraint = 0.2
+    interaction_penalty = np.zeros(distance_matrix.shape)
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                interaction_penalty[i, j] = scaled_distances[i, j] * (1 - global_constraint)
+    
+    # Combine all the penalties into a single heuristic matrix
+    heuristic_matrix = (current_route_penalty + diversification_penalty +
+                        scaled_distances + interaction_penalty)
+    
+    # Return a matrix where the value indicates how bad it is to include each edge
+    return heuristic_matrix
+```

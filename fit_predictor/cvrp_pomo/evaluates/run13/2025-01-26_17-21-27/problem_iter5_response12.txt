@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands_cumulative = torch.cumsum(demands, dim=0)
+    
+    # Initialize heuristics matrix with large negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # Vectorized cumulative demand check
+    with torch.no_grad():
+        for i in range(n):
+            for j in range(i+1, n):
+                if demands_cumulative[j] - demands_cumulative[i] > total_capacity:
+                    heuristics[i, j] -= 10
+                    heuristics[j, i] -= 10
+                else:
+                    # Normalize and add positive values based on demand-distance interaction
+                    heuristics[i, j] += ((demands_cumulative[j] - demands_cumulative[i]) / total_capacity) * (distance_matrix[i, j] / (distance_matrix[i, j] + 1))
+
+    return heuristics
+```

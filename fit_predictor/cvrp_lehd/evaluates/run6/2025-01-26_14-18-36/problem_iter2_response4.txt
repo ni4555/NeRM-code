@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    
+    # Calculate the sum of demands
+    total_demand = demands.sum()
+    # Calculate the average demand per customer
+    average_demand = total_demand / len(demands)
+    # Calculate the normalized demand
+    normalized_demand = demands / total_demand
+    
+    # Create a heuristic matrix based on the distance to the nearest demand
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Find the minimum distance to a customer node for each node
+    min_distances = torch.min(distance_matrix[:, 1:], dim=1).values
+    
+    # Calculate the global weight as the negative average distance
+    global_weight = -torch.mean(min_distances)
+    
+    # Calculate the edge weight based on the distance to the nearest demand and the demand
+    edge_weight = min_distances * (average_demand - normalized_demand.unsqueeze(1))
+    
+    # Apply the global weight
+    heuristic_matrix[:, 1:] = edge_weight + global_weight
+    
+    return heuristic_matrix
+```

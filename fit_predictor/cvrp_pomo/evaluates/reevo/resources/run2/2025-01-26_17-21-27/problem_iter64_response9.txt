@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Demand-aware heuristic to encourage balanced vehicle usage
+    demand_heuristic = demands / (1 + cumulative_demand / total_capacity)
+    
+    # Distance heuristic with early return avoidance
+    distance_heuristic = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    return_avoidance = torch.where(cumulative_demand > total_capacity, torch.exp(-cumulative_demand), torch.zeros_like(cumulative_demand))
+    distance_heuristic *= return_avoidance
+    
+    # Capacity heuristic to penalize overflows
+    capacity_heuristic = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    overflow_penalty = torch.where(cumulative_demand > total_capacity, capacity_heuristic, torch.zeros_like(cumulative_demand))
+    
+    # Load balance heuristic to encourage equal demand distribution
+    load_balance_heuristic = torch.abs(cumulative_demand - (total_capacity / n))
+    load_balance_penalty = -torch.log1p(load_balance_heuristic - 1e-8)
+    
+    # Randomness factor to introduce variability in solution space
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics with adaptive scaling and prioritize core objectives
+    combined_heuristics = (
+        demand_heuristic +
+        distance_heuristic +
+        capacity_heuristic +
+        load_balance_penalty +
+        randomness_factor
+    )
+    
+    # Time-adaptive diversity factor to encourage exploration
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.15
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Final heuristic value with time-adaptive scaling and diversity
+    final_heuristics = combined_heuristics * (1 - cumulative_demand / total_capacity)
+    final_heuristics += diversity_factor
+    
+    return final_heuristics
+```

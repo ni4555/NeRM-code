@@ -1,0 +1,44 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Dynamic item sorting based on a combination of factors
+    # Use inverse of the weighted prize ratio, weight variance, and sparsity
+    sparsity = 1 - np.mean(weight, axis=1)
+    weighted_ratio = prize / weight.sum(axis=1)
+    variance = np.var(weight, axis=1)
+    combined_sorting = -((1 / variance) * sparsity)
+    sorted_indices = np.argsort(combined_sorting)
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Initialize a cumulative contribution accumulator
+    cumulative_contribution = np.zeros(n)
+
+    # Iterate over the sorted items and assign a heuristic value
+    for i in sorted_indices:
+        # Calculate the normalized contribution for the current item
+        contribution = (1 / variance[i]) * sparsity[i] * weighted_ratio[i]
+        
+        # Normalize contributions based on the cumulative contributions so far
+        normalized_contribution = contribution / (1 + cumulative_contribution[i])
+        
+        # Add the normalized contribution to the cumulative accumulator
+        cumulative_contribution[i] += normalized_contribution
+        
+        # Set the heuristic value for the current item
+        heuristics[i] = normalized_contribution
+
+    # Sparsify the heuristics by setting a threshold below which the value is set to zero
+    threshold = np.percentile(heuristics, 10)  # Setting the threshold to the 10th percentile
+    heuristics[heuristics < threshold] = 0
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

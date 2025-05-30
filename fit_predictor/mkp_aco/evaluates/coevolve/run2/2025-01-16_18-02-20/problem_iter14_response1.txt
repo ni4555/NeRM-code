@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize to make sure it is not biased by the magnitude
+    normalized_prize = prize / np.max(prize)
+    
+    # Diversity is important, so we use the sum of absolute differences with the rest
+    diversity_scores = np.sum(np.abs(prize - np.delete(prize, np.arange(prize.shape[0])[:prize.shape[0] - 1])), axis=0)
+    
+    # Sparsity can be beneficial when there is a risk of overloading one knapsack
+    sparsity_scores = np.mean(weight.sum(axis=1) == 0, axis=0)
+    
+    # High variance in weight could imply a high risk factor
+    weight_variance = np.var(weight, axis=1)
+    
+    # Combine all these factors with different weights, with diversity having the highest importance
+    trade_off_factor_prize = 0.25
+    trade_off_factor_diversity = 0.4
+    trade_off_factor_sparsity = 0.25
+    trade_off_factor_variance = 0.1
+    
+    # Normalize the diversity scores
+    normalized_diversity_scores = diversity_scores / np.max(diversity_scores)
+    
+    # Calculate the heuristic using a weighted sum of factors
+    composite_heuristic = (
+        normalized_prize * trade_off_factor_prize +
+        normalized_diversity_scores * trade_off_factor_diversity +
+        sparsity_scores * trade_off_factor_sparsity +
+        weight_variance * trade_off_factor_variance
+    )
+    
+    # Normalize the heuristic scores
+    normalized_heuristics = composite_heuristic / np.max(composite_heuristic)
+    
+    # Sparsify the heuristics by selecting the top 30% of items
+    num_top_items = int(0.3 * normalized_heuristics.shape[0])
+    heuristics = np.zeros_like(prize)
+    heuristics[np.argsort(normalized_heuristics)[::-1][:num_top_items]] = 1
+    
+    return heuristics
+```

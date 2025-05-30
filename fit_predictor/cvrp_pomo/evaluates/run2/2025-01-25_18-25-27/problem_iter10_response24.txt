@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.mean()
+    demand_variance = torch.var(normalized_demands, unbiased=False)
+    
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    
+    # Introduce a perturbation for exploration based on demand variance
+    perturbation_scale = 0.5  # Example scale, can be adjusted
+    perturbation = (torch.rand(n) * 2 - 1) * perturbation_scale * (demand_variance / normalized_demands)
+    perturbation = torch.clamp(perturbation, min=-perturbation_scale, max=perturbation_scale)
+    
+    # Introduce penalties for infeasibilities and high variance in demand
+    feasibility_mask = (heuristics_matrix > 0).float()
+    infeasibility_penalty = torch.where(feasibility_mask <= 0, -1.0, 0.0)
+    demand_variance_penalty = torch.where(torch.abs(normalized_demands - avg_demand) > demand_variance, -1.0, 0.0)
+    
+    # Combine perturbations, penalties, and the initial heuristics
+    heuristics_matrix += perturbation + infeasibility_penalty * (1 - feasibility_mask) + demand_variance_penalty * (1 - feasibility_mask)
+    
+    # Normalize heuristics to have a meaningful range and scale
+    min_heuristic = heuristics_matrix.min()
+    max_heuristic = heuristics_matrix.max()
+    heuristics_matrix = (heuristics_matrix - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,29 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the difference between each pair of demands and the vehicle capacity
+    demand_diff = torch.abs(demands[:, None] - demands[None, :])
+    
+    # Create a penalty matrix where the penalty is set to the difference if it exceeds the vehicle capacity
+    penalty_matrix = torch.clamp(demand_diff, max=vehicle_capacity)
+    
+    # Use a linear transformation to emphasize larger penalties
+    linear_penalty_matrix = penalty_matrix * 1000  # Scale the penalty matrix as needed
+    
+    # Combine the distance matrix with the scaled penalty matrix
+    potential_matrix = distance_matrix + linear_penalty_matrix
+    
+    # Normalize the potential matrix into a probability distribution
+    # Here, we use exp and log to convert the potential matrix into probabilities
+    exp_matrix = torch.exp(potential_matrix - potential_matrix.max(dim=1, keepdim=True).values)
+    softmax_matrix = exp_matrix / exp_matrix.sum(dim=1, keepdim=True)
+    
+    # Convert the probabilities into heuristics with negative values for undesirable edges
+    heuristics_matrix = -torch.log(1 / (softmax_matrix + 1e-10))
+    
+    return heuristics_matrix
+```

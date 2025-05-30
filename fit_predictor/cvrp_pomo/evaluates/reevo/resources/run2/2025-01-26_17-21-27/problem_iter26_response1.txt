@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate capacity penalty
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity))
+    
+    # Calculate distance penalty
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Calculate the remaining capacity of each vehicle
+    remaining_capacity = total_capacity - cumulative_demand
+    
+    # Dynamic scaling based on the remaining capacity of each vehicle
+    dynamic_scaling = remaining_capacity / (total_capacity - demands)
+    
+    # Normalize penalties by dynamic scaling
+    normalized_capacity_penalty = capacity_penalty * dynamic_scaling
+    normalized_distance_penalty = distance_penalty * (1 - dynamic_scaling)
+    
+    # Combine the normalized penalties
+    combined_penalty = normalized_capacity_penalty + normalized_distance_penalty
+    
+    # Incentivize edges leading to high demand nodes
+    demand_incentive = (demands > 0).float()
+    
+    # Combine all components into the final heuristic
+    heuristics = combined_penalty * demand_incentive
+    
+    return heuristics
+```

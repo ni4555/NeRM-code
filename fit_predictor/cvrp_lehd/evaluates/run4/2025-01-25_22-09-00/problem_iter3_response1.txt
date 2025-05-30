@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Incorporate demand factors: the higher the demand, the more promising the edge
+    demand_factors = 1 / (1 + demands)
+    
+    # Balance local and global: use the average distance to the depot as a global factor
+    depot_distance = torch.sum(distance_matrix[:, 0]) / len(distance_matrix)
+    global_factors = (distance_matrix / depot_distance).pow(-1)
+    
+    # Refine distance scaling: normalize distances by the average distance
+    average_distance = torch.mean(distance_matrix)
+    normalized_distances = distance_matrix / average_distance
+    
+    # Combine factors to create the heuristic
+    heuristic_values = -torch.sum(demand_factors * global_factors * normalized_distances, dim=1)
+    
+    # Ensure the heuristic values are within a specified range (e.g., [-1, 1])
+    min_val, max_val = -1, 1
+    scaled_heuristic_values = (heuristic_values - min_val) / (max_val - min_val)
+    
+    return scaled_heuristic_values
+```

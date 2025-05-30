@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Normalize the prize to account for varying scales
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Calculate the sparsity score for each item
+    sparsity_score = 1 / (1 + np.sum(weight, axis=1))
+    
+    # Calculate the diversity score, avoiding redundancy in the selection
+    diversity_score = np.exp(-np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2)
+    
+    # Normalize the diversity score to balance with the prize
+    normalized_diversity_score = diversity_score / np.sum(diversity_score)
+    
+    # Combine the normalized prize, sparsity, and diversity scores
+    combined_score = normalized_prize * (1 - sparsity_score) + normalized_diversity_score
+    
+    # Apply a penalty for items that are overrepresented in any dimension
+    overrepresentation_penalty = np.where(np.sum(weight, axis=0) > 1, -1, 0)
+    
+    # Adjust the combined score with the penalty
+    adjusted_score = combined_score - overrepresentation_penalty
+    
+    # Normalize the adjusted score to get heuristics
+    normalized_utility = adjusted_score / np.sum(adjusted_score)
+    
+    # Return the heuristics scores
+    return normalized_utility
+```

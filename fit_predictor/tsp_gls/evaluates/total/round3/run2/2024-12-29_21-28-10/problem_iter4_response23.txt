@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = np.zeros_like(distance_matrix)
+
+    # Calculate the degree of each node (number of edges connected to the node)
+    degrees = np.sum(distance_matrix, axis=1)
+
+    # Heuristic based on edge length and node degree
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Edge weight heuristic: higher weight indicates worse edge
+                edge_weight_heuristic = distance_matrix[i, j]
+
+                # Node degree heuristic: it's better to include edges that connect highly connected nodes
+                degree_heuristic = (1 / (degrees[i] + degrees[j]))
+                degree_heuristic *= 0.7  # Weights node degree heuristic more
+
+                # If the edge connects to a node with a very low degree, increase the heuristic value
+                if degrees[i] < 2 or degrees[j] < 2:
+                    edge_weight_heuristic *= 1.5  # Weights low degree edges more
+
+                # If the edge connects to two highly connected nodes, decrease the heuristic value
+                if degrees[i] > 10 and degrees[j] > 10:
+                    edge_weight_heuristic *= 0.5  # Weights high degree edges less
+
+                # Combine the heuristics and apply non-negative constraint
+                heuristic_matrix[i, j] = np.maximum(edge_weight_heuristic * degree_heuristic, 0)
+
+    return heuristic_matrix
+```

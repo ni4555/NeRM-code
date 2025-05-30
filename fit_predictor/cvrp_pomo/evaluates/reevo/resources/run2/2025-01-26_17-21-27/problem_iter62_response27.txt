@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Demand-aware heuristic focused on critical constraints
+    demandAwareHeuristic = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Early overflow detection
+    early_overflow = cumulative_demand > total_capacity_vector
+    
+    # Time-adaptive scaling for distance heuristics
+    distanceScaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    timeFactor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distanceScaling *= timeFactor
+    
+    # Load balance heuristic to optimize diversity
+    loadBalance = torch.abs(cumulative_demand - total_capacity_vector)
+    loadBalancePenalty = -torch.log1p(loadBalance - 1e-8)
+    
+    # Incorporate randomness with controlled randomness factor
+    randomnessFactor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomnessFactor *= (1 - cumulative_demand / total_capacity)
+    
+    # Scaling for core objectives
+    scalingFactor = 2.5
+    coreObjectives = scalingFactor * (distanceScaling + demandAwareHeuristic + loadBalancePenalty)
+    
+    # Introduce time-adaptive diversity to encourage exploration
+    diversityFactor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversityFactor /= (torch.sum(torch.abs(diversityFactor)) + 1e-8)
+    diversityFactor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics with diversity
+    heuristics = coreObjectives + randomnessFactor + diversityFactor
+    
+    # Adjust heuristics based on early overflow and imbalance
+    overflowAdjustment = (1 + early_overflow) * demandAwareHeuristic
+    
+    # Final adjusted heuristics
+    heuristics = heuristics + overflowAdjustment
+    
+    return heuristics
+```

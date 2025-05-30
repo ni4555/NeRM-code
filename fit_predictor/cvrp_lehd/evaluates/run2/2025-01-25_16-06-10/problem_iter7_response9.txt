@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:]  # Exclude the depot node from capacity calculation
+    
+    # Symmetry breaking by iterating only over upper triangle of matrix
+    upper_triangle = torch.triu_indices(n_nodes, n_nodes)
+    
+    for i, j in zip(upper_triangle[0], upper_triangle[1]):
+        if i > 0:  # Skip the depot node
+            total_demand = demand_cumsum[j] - demand_cumsum[i]
+            if total_demand <= remaining_capacity[i]:
+                distance = distance_matrix[i, j]
+                heuristics[i, j] = distance
+                remaining_capacity[i] -= total_demand
+                if remaining_capacity[i] <= 0:
+                    heuristics[i, 0] = distance_matrix[i, 0]
+                    break  # No need to continue to other destination nodes
+    return heuristics
+```

@@ -1,0 +1,52 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate demand balance factor
+    demand_balance_factor = torch.abs(normalized_demands - 0.5)
+    
+    # Demand relaxation based on partitioning
+    partition_threshold = 0.7  # Adaptive threshold for partitioning
+    relaxed_demands = torch.where(normalized_demands > partition_threshold, 
+                                  normalized_demands, 
+                                  0.0)
+    
+    # Weights for distance, demand relaxation, and balance factor
+    weights = torch.rand(1, n) * 2 - 1  # Random weights between -1 and 1
+    
+    # Path decomposition by considering the total demand of neighbors
+    neighbor_demand_sums = torch.zeros(n)
+    for i in range(n):
+        neighbor_indices = distance_matrix[i, :] < max_distance
+        neighbor_demand_sums[i] = demands[neighbor_indices].sum()
+    
+    # Introduce dynamic adjustments
+    # 1. Demand relaxation weighted by the balance factor
+    # 2. Distance weighted by the balance factor
+    # 3. Path decomposition: more weight for nodes with lower neighbor demand sums
+    # 4. Dynamic window approach: more weight for nodes closer to the start of the path
+    potential_values = (weights[0, :] * (normalized_distances * demand_balance_factor +
+                                         relaxed_demands * demand_balance_factor +
+                                         normalized_distances) +
+                        torch.exp(-torch.arange(n).float() / n))
+    
+    # Increase potential for nodes with balanced and low demand, and low neighbor demand
+    balanced_and_low_demand = (demand_balance_factor < 0.1) & (neighbor_demand_sums < 0.5 * max_demand)
+    potential_values[balanced_and_low_demand] += 1
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

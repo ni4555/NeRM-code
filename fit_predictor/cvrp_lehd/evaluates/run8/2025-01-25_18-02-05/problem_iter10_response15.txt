@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the demands and distances to the range [0, 1]
+    demands_max = demands.max()
+    demands_min = demands.min()
+    distances_max = distance_matrix.max()
+    distances_min = distance_matrix.min()
+    
+    normalized_demands = (demands - demands_min) / (demands_max - demands_min)
+    normalized_distances = (distance_matrix - distances_min) / (distances_max - distances_min)
+    
+    # Invert the normalized distances to give a preference to shorter paths
+    inverted_distances = 1 - normalized_distances
+    
+    # Combine demand and distance in a non-linear way
+    combined_weight = torch.pow(normalized_demands * inverted_distances, 2)
+    
+    # Calculate the mean of the combined weight
+    threshold = combined_weight.mean()
+    
+    # Use the threshold to filter the edges, keeping only those with a combined weight greater than the threshold
+    filtered_edges = combined_weight > threshold
+    
+    # Generate the heuristic matrix based on the filtered edges
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    heuristic_matrix[filtered_edges] = combined_weight[filtered_edges]
+    
+    # Scale the heuristic values to be within the range of [-1, 1]
+    min_val = heuristic_matrix.min()
+    max_val = heuristic_matrix.max()
+    heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    # Ensure the heuristic values are within the desired range
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

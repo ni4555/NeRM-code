@@ -1,0 +1,60 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Early overflow detection and penalty
+    early_overflow = (cumulative_demand > total_capacity_vector).float()
+    early_overflow_penalty = early_overflow * (cumulative_demand - total_capacity_vector) / total_capacity * 0.3
+    
+    # Dynamic capacity penalty
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= early_overflow
+    
+    # Time-adaptive distance scaling
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity) * time_factor
+    
+    # Overflow penalty with early return to depot
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Randomness for diversity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Diversity factor based on load imbalance
+    diversity_factor = torch.abs(torch.randn_like(load_balance_penalty)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics with core objectives
+    heuristics = (
+        distance_scaling +
+        dynamic_capacity_penalty +
+        overflow_penalty +
+        load_balance_penalty
+    )
+    heuristics += randomness_factor + diversity_factor
+    
+    # Adjust heuristics based on early overflow to maintain diversity
+    heuristics *= (1 + early_overflow)
+    
+    # Cap the heuristics to maintain stability
+    heuristics = torch.clamp(heuristics, min=-10.0, max=10.0)
+    
+    # Apply a large penalty for the depot to return to itself
+    heuristics[0, 0] = -1e7
+    
+    return heuristics
+```

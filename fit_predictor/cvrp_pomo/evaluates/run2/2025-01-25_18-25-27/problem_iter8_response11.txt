@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Normalize and scale the distance matrix by the average demand per node
+    normalized_edges = distance_matrix / avg_demand
+
+    # Incorporate the demand variability directly into the heuristic
+    demand_variability = torch.abs(normalized_demands - avg_demand)
+    demand_influence = demand_variability * normalized_edges
+
+    # Introduce randomness and adjust for infeasibilities
+    perturbation = torch.rand(n, n) - 0.5
+    perturbation = 2 * perturbation  # Scale to range -1 to 1
+    feasibility_mask = (demand_influence > 0).float()
+
+    # Infeasibility penalty
+    infeasibility_penalty = (1 - feasibility_mask) * -1e6  # Use a large negative value to represent infeasibility
+
+    # Final heuristics computation with randomness and penalties
+    heuristics_matrix = demand_influence + perturbation * feasibility_mask + infeasibility_penalty * (1 - feasibility_mask)
+    return heuristics_matrix
+```

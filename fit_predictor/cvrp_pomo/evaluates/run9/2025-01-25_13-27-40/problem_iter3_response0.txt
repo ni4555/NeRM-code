@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the start node
+    cum_demands = torch.cumsum(demands, dim=0)
+    # Create a binary mask where a 1 indicates the vehicle is still under capacity
+    capacity_mask = cum_demands < demands[0]
+    # Apply a weight factor to the distance based on the capacity utilization
+    capacity_factor = 1 / (1 + cum_demands / demands[0])
+    distance_weighted = distance_matrix * capacity_factor
+    # Increase the heuristic value for edges that lead to high demand nodes
+    high_demand_boost = demands * (1 - capacity_mask)
+    # Combine the weighted distance with the demand boost
+    heuristics = distance_weighted - high_demand_boost
+    return heuristics
+```

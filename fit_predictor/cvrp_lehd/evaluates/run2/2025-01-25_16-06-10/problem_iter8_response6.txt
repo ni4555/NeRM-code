@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    demand_diff = demands - demands[0]
+    total_demand = torch.sum(demands)
+    normalized_demand_diff = demand_diff / total_demand
+    
+    # Symmetry breaking by iterating only over upper triangle of matrix
+    upper_triangle = torch.triu_indices(n_nodes, n_nodes)
+    
+    # Calculate the cost to return to the depot if the demand exceeds the vehicle capacity
+    exceeds_capacity = (demands - demands[0]).abs() > 1
+    return_distances = torch.where(exceeds_capacity, normalized_distance_matrix[:, 0], torch.zeros_like(normalized_distance_matrix[:, 0]))
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the heuristic value based on distance, demand imbalance, and non-linear transformations
+    heuristic_matrix[upper_triangle] = -normalized_distance_matrix[upper_triangle] + return_distances[upper_triangle] + \
+                                        torch.sin(torch.pi * normalized_demand_diff[upper_triangle]) * torch.log(1 + normalized_demand_diff[upper_triangle].abs())
+    
+    # Break symmetry for lower triangle
+    heuristic_matrix += torch.transpose(heuristic_matrix, 0, 1)
+    
+    return heuristic_matrix
+```

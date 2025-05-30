@@ -1,0 +1,38 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate a sparsity factor based on the ratio
+    sparsity_factor = 1 - (value_to_weight_ratio / np.max(value_to_weight_ratio))
+    
+    # Normalize the sparsity factor to ensure it does not exceed 1
+    max_sparsity = np.max(sparsity_factor)
+    if max_sparsity > 1:
+        sparsity_factor /= max_sparsity
+    
+    # Calculate a sum of weights in each dimension
+    weight_sum_per_dimension = weight.sum(axis=1)
+    
+    # Normalize weight sums per dimension to ensure they are non-negative
+    min_weight_sum = np.min(weight_sum_per_dimension)
+    if min_weight_sum <= 0:
+        weight_sum_per_dimension = -weight_sum_per_dimension + 1
+    
+    # Adjust heuristics with normalized dimension-specific weight terms
+    normalized_weight_sum = weight_sum_per_dimension / np.max(weight_sum_per_dimension)
+    heuristic_adjustment = value_to_weight_ratio * sparsity_factor + normalized_weight_sum
+    
+    # Set unpromising elements to zero based on a threshold
+    threshold = np.max(heuristic_adjustment)
+    heuristics = np.where(heuristic_adjustment > threshold, heuristic_adjustment, 0)
+    
+    return heuristics
+```

@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Combine various factors: value-to-weight ratio and its logarithm
+    combined_factor = value_to_weight_ratio + np.log(value_to_weight_ratio + 1e-8)
+    # Normalize for sparsity by dividing by the maximum value
+    normalized_factor = combined_factor / np.max(combined_factor)
+    # Apply domain-specific insights: prioritize items that are not fully weight-constrained
+    domain_specific_insight = np.where(np.any(weight > 1, axis=1), normalized_factor, normalized_factor * 0.5)
+    # Filter based on a threshold
+    threshold = 0.2  # Example threshold
+    sparsified_factor = np.where(domain_specific_insight > threshold, domain_specific_insight, 0)
+    return sparsified_factor
+```

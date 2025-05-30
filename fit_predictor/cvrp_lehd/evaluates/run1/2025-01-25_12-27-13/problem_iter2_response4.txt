@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that incorporates demand and distance interactions using non-linear transformations."""
+    n = distance_matrix.shape[0]
+    demand_diff = demands - demands.mean()
+    distance_penalty = distance_matrix * (1 - torch.exp(-torch.sqrt(demands)))
+    
+    heuristic_matrix = -torch.abs(demand_diff) * torch.log(1 + torch.exp(-distance_penalty))
+    heuristic_matrix[torch.arange(n), torch.arange(n)] += 1  # Adding a bonus to return to the depot
+    
+    # Normalize the heuristic matrix to ensure the sum of heuristic values for any node equals the vehicle capacity
+    max_demand = demands.max()
+    heuristic_matrix /= (max_demand * torch.ones_like(heuristic_matrix))
+    
+    return heuristic_matrix
+```

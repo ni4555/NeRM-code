@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Iterate over all pairs of nodes
+    for i in range(1, n):
+        for j in range(1, n):
+            if demands[j] > 0 and demands[i] > 0:
+                # Calculate the potential heuristics value for this edge
+                edge_heuristic = demands[j] - demands[i]
+                # Scale the heuristic by the inverse of the demand for normalization
+                edge_heuristic /= demands[i]
+                # Adjust the heuristic to account for distance
+                edge_heuristic *= distance_matrix[i][j]
+                # Apply the mask to keep only positive heuristics
+                heuristics[i][j] = torch.clamp(edge_heuristic, min=0)
+                heuristics[j][i] = heuristics[i][j]
+
+    return heuristics
+```

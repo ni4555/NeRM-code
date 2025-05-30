@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that considers node demand relevance and proximity to the depot."""
+    n = distance_matrix.shape[0]
+    demands = demands.to(torch.float32)
+    distance_matrix = distance_matrix.to(torch.float32)
+    
+    # Calculate the distance to the nearest neighbor for each node
+    nearest_neighbor_distance = torch.min(distance_matrix, dim=1, keepdim=True)[0]
+    
+    # Calculate the relevance score for each node, which is the ratio of the node demand to the sum of demands
+    relevance_score = demands / demands.sum()
+    
+    # Calculate the balance score for each node, which is the difference between the maximum and minimum demands
+    demand_balance = torch.max(demands) - torch.min(demands)
+    
+    # Combine the scores to calculate the heuristic value for each edge
+    heuristic_values = (nearest_neighbor_distance - demand_balance) * relevance_score
+    
+    # Normalize the heuristic values to the range [0, 1]
+    heuristic_values = (heuristic_values - heuristic_values.min()) / (heuristic_values.max() - heuristic_values.min())
+    
+    # Add a penalty for edges leading to a node with demand greater than vehicle capacity
+    penalty = (demands > 1.0).float() * 1000.0
+    
+    # Combine the heuristic values with the penalty
+    heuristics = heuristic_values - penalty
+    
+    return heuristics
+```

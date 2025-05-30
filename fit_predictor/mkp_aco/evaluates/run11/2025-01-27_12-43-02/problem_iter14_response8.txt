@@ -1,0 +1,30 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    # Normalize weights and calculate the score for each item
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    
+    # Calculate the weight ratio for each item
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    
+    # Combine score and ratio to get a comprehensive importance measure
+    importance = score * ratio
+    
+    # Normalize the importance scores to ensure they sum to 1
+    importance_normalized = importance / np.sum(importance)
+    
+    # Use a dynamic threshold based on the interquartile range (IQR) for robustness
+    Q1 = np.percentile(importance_normalized, 25)
+    Q3 = np.percentile(importance_normalized, 75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    
+    # Apply thresholding to determine the heuristics
+    heuristics = np.where((importance_normalized >= lower_bound) & (importance_normalized <= upper_bound), 1.0, 0.0)
+    
+    return heuristics
+```

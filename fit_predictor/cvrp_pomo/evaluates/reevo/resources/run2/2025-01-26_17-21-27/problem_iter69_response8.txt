@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Enhanced penalty for edges that cause overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Distance heuristic with time-adaptive scaling
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 3))
+    distance_scaling *= time_factor
+    
+    # Capacity heuristic with dynamic penalty
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / n) - 1e-8)
+    
+    # Load balance heuristic with balanced penalty
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Simplified randomness factor with controlled impact
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics, prioritizing capacity management
+    heuristics = (
+        dynamic_capacity_penalty +
+        overflow_penalty +
+        distance_scaling +
+        load_balance_penalty
+    )
+    
+    # Introduce diversity through a small random factor
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    
+    # Final heuristic calculation
+    heuristics += randomness_factor + diversity_factor
+    
+    return heuristics
+```

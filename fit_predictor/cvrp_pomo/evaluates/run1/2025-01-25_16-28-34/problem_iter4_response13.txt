@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands_expanded = demands[:, None] + demands[None, :]
+    edge_demand_sum = demands_expanded * distance_matrix
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    load_factor = average_demand_per_edge / total_capacity
+    
+    # Vectorized approach to identify undesirable edges
+    undesirable_edges = load_factor > 1.0
+    
+    # Vectorized approach to set the heuristics for undesirable edges
+    heuristics = -torch.ones_like(distance_matrix)
+    heuristics[~undesirable_edges] = (1.0 - load_factor[~undesirable_edges]) / total_capacity[~undesirable_edges]
+    
+    # Set the heuristics to zero for the diagonal (depot to itself) and for edges that cannot be taken
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

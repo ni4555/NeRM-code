@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristics array
+    heuristics = np.zeros_like(prize)
+    
+    # Normalize prizes
+    prize_max = np.max(prize)
+    prize_min = np.min(prize)
+    normalized_prize = (prize - prize_min) / (prize_max - prize_min + 1e-8)
+    
+    # Normalize weights
+    weight_max = np.max(np.sum(weight, axis=1))
+    normalized_weight = np.sum(weight, axis=1) / (weight_max + 1e-8)
+    
+    # Calculate a density-based heuristic
+    density = normalized_prize / normalized_weight
+    
+    # Identify dominated items
+    for i in range(n):
+        dominated = False
+        for j in range(i+1, n):
+            if density[i] < density[j] and prize[j] < prize[i]:
+                dominated = True
+                break
+        if not dominated:
+            heuristics[i] = density[i]
+    
+    # Introduce randomness to explore the space
+    np.random.shuffle(heuristics)
+    
+    # Return heuristics with dominated items set to zero
+    dominated_mask = (np.max(density) - density < 1e-8)
+    heuristics[dominated_mask] = 0
+    
+    return heuristics
+```

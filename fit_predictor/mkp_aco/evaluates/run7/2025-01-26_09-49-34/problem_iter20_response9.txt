@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the inverse of the sum of weights for each item to prioritize lighter items
+    inverse_sum_weight = 1 / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate sparsity factor based on non-zero weights
+    sparsity_factor = (weight != 0).mean(axis=1)
+    
+    # Initialize heuristics based on normalized prize and inverse sum weight
+    heuristics = normalized_prize * inverse_sum_weight
+    
+    # Incorporate variance in weights as a heuristic, favoring low variance items
+    weight_variance = np.sum(weight**2, axis=1) / (np.sum(weight, axis=1)**2)
+    variance_adjustment = 1 / (1 + weight_variance)
+    
+    # Adjust heuristics based on sparsity and variance
+    heuristics *= (1 - sparsity_factor) * variance_adjustment
+    
+    # Normalize heuristics by the maximum value to prevent any single factor from dominating
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Introduce a sparsity-based bonus for items that are more sparse
+    sparsity_bonus = np.exp((1 - sparsity_factor) / (1 - np.min(sparsity_factor) + 1e-8))
+    
+    # Adjust heuristics with a balanced mix of normalization and bonus factors
+    adjusted_heuristics = heuristics * (1 + sparsity_bonus)
+    
+    # Refine heuristics to prevent any factor from dominating by ensuring the sum is close to 1
+    normalized_adjusted_heuristics = adjusted_heuristics / np.sum(adjusted_heuristics)
+    
+    return normalized_adjusted_heuristics
+```

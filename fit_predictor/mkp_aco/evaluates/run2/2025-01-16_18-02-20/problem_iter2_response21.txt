@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate the sparsity of each item (sum of weights across dimensions)
+    sparsity = np.sum(weight, axis=1)
+    
+    # Combine normalized prize and sparsity into a weighted sum
+    weighted_score = (normalized_prize * 0.6) + (sparsity * 0.4)
+    
+    # Rank the items based on the weighted score
+    ranked_indices = np.argsort(weighted_score)[::-1]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    heuristics[ranked_indices] = np.arange(len(ranked_indices))
+    
+    # Set the lower 50% of the heuristics to zero to sparsify the solution
+    heuristics[ranked_indices[int(len(ranked_indices) / 2):]] = 0
+    
+    return heuristics
+```

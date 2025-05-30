@@ -1,0 +1,50 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Dynamic capacity penalty adjusted based on remaining vehicle capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8) * (
+        (1 + (cumulative_demand - demands) / demands) if demands != 0 else torch.zeros_like(demands)
+    )
+    
+    # Distance scaling with respect to cumulative load
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * (cumulative_demand / total_capacity)
+    
+    # Overflow penalty for edges that could potentially lead to overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Diversity heuristic by encouraging paths that have unique distances
+    diversity_penalty = -torch.log1p(torch.abs(distance_matrix - torch.median(distance_matrix, dim=0)[0]) - 1e-8)
+    
+    # Load balancing to ensure the load on each vehicle is approximately equal
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Scaling factors to emphasize certain penalties
+    capacity_scaling = 2.0
+    distance_scaling_factor = 1.5
+    diversity_scaling = 1.0
+    
+    # Calculate heuristics based on scaled penalties
+    heuristics = (
+        capacity_scaling * dynamic_capacity_penalty +
+        distance_scaling_factor * distance_scaling +
+        overflow_penalty +
+        diversity_scaling * diversity_penalty +
+        load_balance_penalty
+    )
+    
+    # Additional penalty for imbalance in vehicle loads
+    imbalance_penalty = -torch.log1p(torch.abs(torch.mean(demands) - total_capacity / n) - 1e-8)
+    
+    # Combine heuristics and imbalance penalty
+    heuristics += imbalance_penalty
+    
+    return heuristics
+```

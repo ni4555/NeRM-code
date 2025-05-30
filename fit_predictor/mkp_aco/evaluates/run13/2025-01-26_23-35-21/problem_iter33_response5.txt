@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize prize to avoid dominance
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Calculate normalized density
+    density = normalized_prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate sparsity
+    sparsity = np.sum(weight, axis=1) / np.sum(weight)  # Using the total sum of weights as the denominator
+    
+    # Penalize outliers in density
+    density_penalty = np.where(density > 1, 1 - (density - 1), 0)
+    
+    # Create a heuristic that encourages diversity
+    diversity_heuristic = density * (1 - sparsity) + density_penalty
+    
+    # Introduce randomness to avoid getting stuck in local optima
+    random_factor = np.random.rand(weight.shape[0])
+    
+    # Create a final heuristic that combines diversity and randomness
+    final_heuristic = diversity_heuristic + random_factor
+    
+    # Normalize the heuristics to ensure no dominance
+    normalized_final_heuristic = final_heuristic / np.sum(final_heuristic)
+    
+    # Ensure no zero values in the heuristics to maintain diversity
+    normalized_final_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return normalized_final_heuristic
+```

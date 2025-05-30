@@ -1,0 +1,70 @@
+{
+  "generation": 3,
+  "description": "The problem is to develop a heuristic algorithm for solving a Mixed Vehicle Routing Problem (MVRP) with time windows and dynamic demand. In this scenario, a fleet of vehicles must deliver goods to a set of customers, each with a specific demand and a time window during which the delivery can occur. Each vehicle has a capacity limit, and the delivery schedule must respect the time windows and vehicle capacities.\n\nThe MVRP with time windows and dynamic demand (MVRP-TWD) involves the following elements:\n\n1. **Nodes**: Represent customers, with each having a demand, a time window, and a service time.\n2. **Vehicles**: Each vehicle has a capacity and a fixed travel time between nodes.\n3. **Dynamic Demand**: Some demands may change during the execution of the algorithm, requiring re-optimization of routes.\n4. **Time Windows**: Each customer has a specific time window during which the delivery must be made, and the vehicle arrival must not exceed this window.\n5. **Capacity Constraints**: The total demand of nodes visited by any vehicle must not exceed its capacity.\n\nThe goal is to design a heuristic that:\n- Determines an initial feasible solution that respects all time windows and capacity constraints.\n- Efficiently incorporates dynamic demand changes into the existing routes.\n- Minimizes the total travel time and maximizes the number of satisfied customer requests.\n- Uses techniques such as the savings algorithm, savings-based insertion, and genetic algorithms to optimize the routes, considering the trade-off between solution quality and computational efficiency.",
+  "solutions": [
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the sum of demands to normalize\n    total_demand = demands.sum()\n    \n    # Normalize demands by the total vehicle capacity\n    normalized_demands = demands / total_demand\n    \n    # Initialize the heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # Calculate the savings for each edge\n    savings = 2 * (distance_matrix ** 2) - (distance_matrix.sum(dim=1) ** 2) - (distance_matrix.sum(dim=0) ** 2)\n    \n    # Incorporate normalized demand into savings\n    savings = savings - normalized_demands.unsqueeze(1) * distance_matrix\n    \n    # Apply a penalty for edges that are part of the same route (self-loops)\n    savings = savings - (distance_matrix < 1e-6) * 1e6\n    \n    # Apply a positive heuristics for edges with savings\n    heuristics = savings * (savings > 0)\n    \n    return heuristics",
+      "fitness": 21.410755157470703,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_0.txt",
+      "code_file": "coevolve\\generation_3\\code_0.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    demand_total = demands.sum()\n    demand_vector = demands / demand_total\n    \n    # Calculate savings for each edge\n    savings_matrix = distance_matrix.clone()\n    savings_matrix[distance_matrix == 0] = float('inf')  # No savings for the depot\n    savings_matrix = savings_matrix ** 2\n    \n    for i in range(n):\n        for j in range(n):\n            if i != j:\n                savings_matrix[i, j] -= 2 * distance_matrix[i, j] * demand_vector[i] * demand_vector[j]\n    \n    # Normalize savings matrix to get heuristics\n    heuristics = savings_matrix / (2 * distance_matrix ** 2)\n    heuristics[distance_matrix == 0] = 0  # No savings from the depot to itself\n    \n    return heuristics",
+      "fitness": 21.410755157470703,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_6.txt",
+      "code_file": "coevolve\\generation_3\\code_6.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Calculate the total demand\n    total_demand = demands.sum()\n    # Normalize the demands by the total vehicle capacity\n    normalized_demands = demands / total_demand\n    \n    # Calculate the savings for each edge\n    savings = 2 * distance_matrix - distance_matrix.sum(dim=1, keepdim=True) - distance_matrix.sum(dim=0, keepdim=True) + n\n    \n    # Calculate the weighted savings by multiplying with normalized demands\n    weighted_savings = savings * normalized_demands\n    \n    # Add a penalty for edges leading to the depot (should be avoided in the heuristic)\n    penalty = torch.zeros_like(weighted_savings)\n    penalty[torch.arange(n), torch.arange(n)] = -1e9  # Penalty for edges to the depot\n    weighted_savings += penalty\n    \n    return weighted_savings",
+      "fitness": 21.495437622070312,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_1.txt",
+      "code_file": "coevolve\\generation_3\\code_1.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Calculate the savings for each edge\n    savings = distance_matrix.clone() - (distance_matrix.min(dim=1, keepdim=True)[0] + distance_matrix.min(dim=0, keepdim=True)[0])\n    savings = savings * demands  # Multiply savings by demand to penalize longer routes\n    \n    # Normalize the savings by the maximum possible savings to create a promising indicator\n    max_savings = savings.max()\n    heuristics = savings / max_savings\n    \n    # Cap the heuristics values to ensure negative values for undesirable edges\n    heuristics = torch.clamp(heuristics, min=-1.0, max=1.0)\n    \n    return heuristics",
+      "fitness": 21.530963897705078,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_9.txt",
+      "code_file": "coevolve\\generation_3\\code_9.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    total_capacity = demands.sum()\n    demand_threshold = total_capacity / n  # Normalize demand threshold by number of nodes\n    \n    # Calculate savings for each edge\n    savings_matrix = torch.clamp(distance_matrix - 2 * demand_threshold, min=0)\n    \n    # Add demand-based savings (heuristic)\n    savings_matrix += (demands[:, None] - demands[None, :])\n    \n    # Normalize the savings matrix to have a range of -1 to 1\n    min_savings, max_savings = savings_matrix.min(), savings_matrix.max()\n    savings_matrix = (savings_matrix - min_savings) / (max_savings - min_savings)\n    \n    # Invert the savings matrix to have negative values for undesirable edges\n    heuristics = 1 - savings_matrix\n    \n    return heuristics",
+      "fitness": 21.63372802734375,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_11.txt",
+      "code_file": "coevolve\\generation_3\\code_11.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Initialize the heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # Calculate the savings for each edge (i, j)\n    savings = 2 * demands * distance_matrix - demands.unsqueeze(1) - demands.unsqueeze(0)\n    \n    # Set the savings to be negative for the diagonal (no savings when visiting the same node)\n    savings.diag().fill_(0)\n    \n    # Set the savings to be negative for edges where the savings are less than 0\n    heuristics = savings - torch.clamp(savings, min=0)\n    \n    return heuristics",
+      "fitness": 22.543581008911133,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_5.txt",
+      "code_file": "coevolve\\generation_3\\code_5.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the savings for each edge (i, j) where i is not the depot\n    # Savings = demand at i + demand at j - vehicle capacity\n    savings_matrix = demands.unsqueeze(1) + demands.unsqueeze(0) - demands[0]\n    \n    # Calculate the edge costs, which are the distances between nodes\n    edge_costs = distance_matrix\n    \n    # Combine savings and edge costs to get the heuristic values\n    # We use the formula: heuristic_value = savings - cost\n    # Negative values indicate undesirable edges, positive values indicate promising edges\n    heuristic_values = savings_matrix - edge_costs\n    \n    # Replace negative values with zeros to avoid considering them in the solution\n    heuristic_values[heuristic_values < 0] = 0\n    \n    return heuristic_values",
+      "fitness": 22.972196578979492,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_2.txt",
+      "code_file": "coevolve\\generation_3\\code_2.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the savings for each edge\n    savings = distance_matrix - (2 * demands.unsqueeze(1) * demands.unsqueeze(0))\n    \n    # Normalize savings by the maximum savings to get the ratio of savings to maximum savings\n    max_savings = savings.max()\n    normalized_savings = savings / max_savings\n    \n    # Apply a penalty to edges with negative savings\n    penalty_threshold = 0.1\n    penalty = torch.where(savings < -penalty_threshold, -max_savings, 0)\n    penalized_savings = normalized_savings + penalty\n    \n    # Apply a discount to the normalized savings to encourage early deliveries\n    discount_factor = 0.5\n    discounted_savings = penalized_savings * discount_factor\n    \n    return discounted_savings",
+      "fitness": 33.16273498535156,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_3\\stdout_4.txt",
+      "code_file": "coevolve\\generation_3\\code_4.py"
+    }
+  ]
+}

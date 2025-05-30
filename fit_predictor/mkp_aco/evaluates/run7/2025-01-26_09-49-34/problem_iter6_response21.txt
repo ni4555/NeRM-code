@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the ratio of prize to total weight per item
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Sparsify by considering the average weight in the other dimensions
+    average_weight = np.mean(weight, axis=1)
+    
+    # Create heuristics by multiplying ratio by a factor of average weight
+    heuristics = ratio * average_weight
+    
+    # Incorporate global insight by penalizing high variance in item weights
+    global_insight = 1 / (1 + np.sqrt(np.sum(weight**2, axis=1)))
+    
+    # Combine heuristics with global insight to get a more informed heuristic value
+    heuristics = heuristics * global_insight
+    
+    # Introduce a local feature by considering the diversity of weights
+    diversity = np.sum(weight**2, axis=1)
+    
+    # Balance local diversity with global insight
+    local_insight = diversity * (1 - global_insight)
+    
+    # Combine local and global insights
+    heuristics = heuristics * local_insight
+    
+    # Apply a sparsification threshold adaptively, using a dynamic factor
+    dynamic_threshold_factor = np.mean(heuristics) * 0.5
+    sparsity_threshold = dynamic_threshold_factor * np.exp(-np.sum(weight, axis=1) / np.sum(weight, axis=1).max())
+    
+    # Apply the threshold to set less promising items to zero
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    return heuristics
+```

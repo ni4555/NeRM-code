@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the demand-based heuristic
+    demand_heuristic = 1 - torch.sqrt(normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0))
+    
+    # Calculate the load-based heuristic
+    load_imbalance_penalty = torch.abs(demands.unsqueeze(1) - demands.unsqueeze(0))
+    load_heuristic = torch.log(1 + load_imbalance_penalty)  # Logarithmic penalty for load imbalances
+    
+    # Calculate the distance-based heuristic
+    distance_heuristic = torch.log(1 + distance_matrix)  # Logarithmic distance heuristic
+    
+    # Combine the heuristics using a weighted sum
+    combined_heuristic = 0.4 * demand_heuristic + 0.4 * load_heuristic + 0.2 * distance_heuristic
+    
+    # Normalize the combined heuristic to ensure non-negative values
+    min_val = combined_heuristic.min()
+    combined_heuristic = combined_heuristic - min_val
+    
+    return combined_heuristic
+```

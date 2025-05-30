@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = demands.unsqueeze(1)  # Ensure demands is a 2D tensor for broadcasting
+    distance_matrix_squared = distance_matrix ** 2
+    min_distance = torch.min(distance_matrix, dim=1)[0] ** 2  # Squared distance to nearest customer
+    max_demand = torch.max(demands, dim=0)[0]  # Maximum demand in the network
+    sum_demand = demands.sum(1)  # Sum of demands of all customers
+    
+    # Calculate a heuristic that considers both distance and demand
+    # We use a linear combination of the squared distance and the maximum demand
+    # Negative values indicate undesirable edges
+    heuristic = -distance_matrix_squared + min_distance * max_demand
+    # We want to promote edges that when traversed, will help in visiting all nodes
+    # without exceeding vehicle capacity, hence we subtract the sum of demands
+    # to penalize the inclusion of edges that would lead to exceeding capacity
+    heuristic -= sum_demand
+    return heuristic
+```

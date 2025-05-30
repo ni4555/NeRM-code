@@ -1,0 +1,48 @@
+import numpy as np
+import random
+
+def heuristics_v2(prize, weight):
+    n, m = prize.shape[0], weight.shape[1]
+    population_size = 100
+    mutation_rate = 0.1
+    generations = 10
+    elite_size = 5
+
+    # Initialize population
+    population = np.random.randint(2, size=(population_size, n))
+
+    # Evaluate fitness
+    def fitness(individual):
+        total_prize = np.dot(individual, prize)
+        total_weight = np.dot(individual, weight)
+        return total_prize / total_weight if total_weight != 0 else 0
+
+    # Genetic operations
+    for _ in range(generations):
+        # Selection
+        fitness_values = np.array([fitness(individual) for individual in population])
+        sorted_indices = np.argsort(fitness_values)[::-1]
+        population = population[sorted_indices]
+
+        # Elite
+        elite = population[:elite_size]
+
+        # Crossover
+        new_population = np.copy(elite)
+        while len(new_population) < population_size:
+            parent1, parent2 = population[np.random.choice(elite_size, 2, replace=False)]
+            crossover_point = np.random.randint(1, n)
+            child = np.concatenate([parent1[:crossover_point], parent2[crossover_point:]])
+            new_population = np.concatenate([new_population, child])
+
+        # Mutation
+        for individual in new_population:
+            for i in range(n):
+                if random.random() < mutation_rate:
+                    individual[i] = 1 - individual[i]
+
+        population = new_population
+
+    # Calculate heuristics
+    heuristics = np.array([fitness(individual) for individual in population]).mean(axis=0)
+    return heuristics_matrix

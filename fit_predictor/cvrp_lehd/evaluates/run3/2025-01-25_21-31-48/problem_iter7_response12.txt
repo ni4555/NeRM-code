@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    balance = torch.abs(demands.sum() - n) / n
+    balance_matrix = torch.full_like(distance_matrix, balance)
+    
+    demand_normalized = demands / demands.sum()
+    demand_diff = demands - demand_normalized
+    demand_diff_matrix = torch.outer(demand_diff, demand_diff)
+    
+    heuristics = -distance_matrix + balance_matrix + (1 - demand_diff_matrix)
+    heuristics[torch.isnan(heuristics)] = 0  # Replace NaNs that can occur due to division by zero
+    heuristics[torch.isinf(heuristics)] = 0  # Replace Infs that can occur due to overflow
+    
+    return heuristics
+```

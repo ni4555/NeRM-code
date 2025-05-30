@@ -1,0 +1,55 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+
+    # Calculate normalized density
+    density = prize / np.sum(weight, axis=1) + 1e-8
+
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1) + 1e-8
+
+    # Calculate the value-to-weight ratio
+    value_to_weight_ratio = prize / np.sum(weight**2, axis=1) + 1e-8
+
+    # Introduce randomness to encourage diversity
+    random_factor = np.random.rand(n) + 1e-8
+
+    # Balance factor 1: Combine density and sparsity
+    balance_factor_1 = (0.5 * density) + (0.5 * (1 - sparsity))
+
+    # Balance factor 2: Value-to-weight ratio
+    balance_factor_2 = 0.3 * value_to_weight_ratio
+
+    # Diversity factor: Encourage diversity by reducing similarity
+    diversity_factor = 0.1 * (1 - np.mean(density)) / (np.max(1 - np.mean(density)) + 1e-8)
+
+    # Heuristic: Sum the balance factors and diversity factor
+    heuristic = balance_factor_1 + balance_factor_2 + diversity_factor
+
+    # Refine heuristic by introducing randomness
+    heuristic += random_factor
+
+    # Normalize the heuristic values
+    max_heuristic = np.max(heuristic)
+    normalized_heuristic = heuristic / (max_heuristic + 1e-8)
+
+    # Sparsity penalty for high sparsity to encourage diversity
+    sparsity_penalty = (1 - sparsity) * 0.2
+    refined_heuristic = normalized_heuristic * (1 - sparsity_penalty)
+
+    # Ensure diversity: if all items are dominated, give a small positive heuristic value
+    if np.all(density == 0):
+        refined_heuristic = np.ones(n) * 1e-8
+
+    # Apply a penalty to highly similar heuristics to ensure diversity
+    similarity_penalty = np.dot(refined_heuristic, refined_heuristic) / (n * (np.max(refined_heuristic) + 1e-8)**2)
+    refined_heuristic -= similarity_penalty
+
+    # Normalize to maintain a range [0, 1]
+    max_refined_heuristic = np.max(refined_heuristic)
+    refined_heuristic /= max_refined_heuristic
+
+    return refined_heuristic
+```

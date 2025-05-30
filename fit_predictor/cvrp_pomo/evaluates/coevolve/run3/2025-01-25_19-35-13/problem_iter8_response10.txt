@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.75
+    distance_weight = 0.25
+
+    # Apply dynamic programming to find a lower bound on the cost
+    n = len(demands)
+    dp = torch.full((n, n), float('inf'))
+    dp[0, :n] = distance_matrix[0]
+    for k in range(1, n):
+        for j in range(n):
+            for i in range(k):
+                if demands[j] + demands[i] <= 1:  # If demand of the customer + demands already on route does not exceed capacity
+                    dp[k, j] = torch.min(dp[k, j], dp[i, k-1] + distance_matrix[i, j])
+
+    # Calculate the potential based on the lower bound and demand
+    epsilon = 1e-8
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+
+    # Introduce adaptive penalties based on thresholds
+    demand_threshold = 1.5
+    distance_threshold = 10
+    edge_potential = edge_potential - (edge_potential * 0.15 * (demands > demand_threshold).float())
+    edge_potential = edge_potential + (edge_potential * 0.1 * (distance_matrix > distance_threshold).float())
+
+    return edge_potential
+```

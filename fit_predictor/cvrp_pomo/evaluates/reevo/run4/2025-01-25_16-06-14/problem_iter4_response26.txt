@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Scale demands to the range [0, 1]
+    scaled_demands = demands / demands.max()
+    # Calculate the demand ratio for each customer
+    demand_ratio = scaled_demands.sum(axis=1)
+    # Combine the distance and demand into a heuristic using weighted sum
+    # Weighing distance higher than demand to prioritize short distances
+    weight_distance = 0.8
+    weight_demand = 0.2
+    combined_heuristic = weight_distance * normalized_distance_matrix - weight_demand * demand_ratio.unsqueeze(1)
+    # Apply a negative penalty to the edges that exceed the vehicle capacity
+    capacity_mask = scaled_demands.sum(axis=1) > 1.0
+    combined_heuristic[capacity_mask] *= -1e6
+    return combined_heuristic
+```

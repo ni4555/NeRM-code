@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Early detection of capacity violations and dynamic penalties
+    capacity_violation = (cumulative_demand > total_capacity).float()
+    capacity_penalty = capacity_violation * -torch.log1p(capacity_violation - 1)
+    
+    # Enhanced distance heuristic with a time factor
+    distance heuristic = torch.exp(-distance_matrix)
+    
+    # Load balance heuristic
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - (total_capacity / n)))
+    
+    # Randomness to maintain diversity
+    random_factor = torch.randn(n) * 0.1 * (1 - cumulative_demand / total_capacity)
+    
+    # Combining the heuristics
+    heuristics = capacity_penalty + distance heuristic + load_balance_penalty + random_factor
+    
+    # Scaling and balancing the importance of different heuristics
+    scaling_factors = torch.tensor([1.5, 1.0, 1.0, 0.1], dtype=torch.float32)
+    balanced_heuristics = torch.sum(heuristics * scaling_factors, dim=1)
+    
+    # Adjust heuristics for diversity
+    diversity_factor = torch.randn(n) * 0.2 / (torch.sum(torch.abs(torch.randn(n))) + 1e-8)
+    heuristics *= (1 - capacity_violation)
+    heuristics += diversity_factor
+    
+    return heuristics
+```

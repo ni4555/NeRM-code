@@ -1,0 +1,35 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the degree of each vertex
+    degree = np.sum(distance_matrix, axis=1) + np.sum(distance_matrix, axis=0) - 2 * np.trace(distance_matrix)
+    
+    # Calculate the shortest path between each pair of vertices
+    num_vertices = distance_matrix.shape[0]
+    all_pairs_shortest_paths = np.array([np.argmin(distance_matrix[i]) for i in range(num_vertices)])
+    
+    # Define a penalty for high degree vertices
+    degree_penalty = (degree - 2) ** 2
+    
+    # Define a reward for using the shortest path
+    shortest_path_reward = np.zeros_like(distance_matrix)
+    for i in range(num_vertices):
+        shortest_path_reward[i, all_pairs_shortest_paths] = -1
+    
+    # Combine penalties and rewards
+    combined_heuristic = degree_penalty + shortest_path_reward
+    
+    # Normalize the heuristic values
+    min_combined_heuristic = np.min(combined_heuristic)
+    max_combined_heuristic = np.max(combined_heuristic)
+    normalized_combined_heuristic = (combined_heuristic - min_combined_heuristic) / (max_combined_heuristic - min_combined_heuristic)
+    
+    # Adjust the distance matrix based on the normalized heuristic values
+    adjusted_distances = distance_matrix + normalized_combined_heuristic
+    
+    # Ensure that the adjusted distances are not negative
+    adjusted_distances = np.maximum(adjusted_distances, 0)
+    
+    return adjusted_distances
+```

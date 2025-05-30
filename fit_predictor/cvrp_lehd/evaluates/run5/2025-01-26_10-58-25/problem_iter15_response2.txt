@@ -1,0 +1,29 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the demand penalties using a non-linear transformation
+    demand_penalty_matrix = -torch.pow(torch.abs(demands - demands.mean()), 2)
+    
+    # Normalize the distance penalties to be within the range of demand penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6) / demands.mean()
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Apply log-softmax normalization to ensure non-negativity and balance
+    log_softmax_matrix = F.log_softmax(potential_matrix, dim=1)
+    
+    # Convert log-softmax to a probability matrix
+    probability_matrix = torch.exp(log_softmax_matrix)
+    
+    # Normalize within vehicle capacity to balance heuristic values
+    vehicle_capacity = demands.sum() / demands.numel()
+    probability_matrix = probability_matrix / vehicle_capacity
+    
+    # Convert probability matrix to a heuristics matrix with negative and positive values
+    heuristics_matrix = -probability_matrix
+    
+    return heuristics_matrix
+```

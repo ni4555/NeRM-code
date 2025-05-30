@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize values
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Calculate the sum of weights for each item
+    total_weight_per_item = np.sum(weight, axis=1)
+    
+    # Non-linear transformation on normalized prize
+    non_linear_prize = np.log1p(normalized_prize)  # log1p is more stable for small numbers
+    
+    # Emphasize high values by scaling the non-linear prize with a factor
+    emphasized_prize = non_linear_prize * 10
+    
+    # Incorporate diversity by penalizing items that have high weight-to-prize ratio
+    weight_to_prize_ratio = total_weight_per_item / emphasized_prize
+    diversity_factor = np.exp(-weight_to_prize_ratio)
+    
+    # Combine all factors to get a final heuristic
+    combined_heuristic = emphasized_prize * diversity_factor
+    
+    # Sparsify the heuristics by setting values below a threshold to zero
+    sparsified_heuristic = np.where(combined_heuristic > 1, combined_heuristic, 0)
+    
+    return sparsified_heuristic
+```

@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    capacity = demands.sum()
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    heuristics = -torch.ones_like(distance_matrix)
+
+    # For each edge, if the destination node demand is within the capacity of the vehicle,
+    # and if the cumulative demand at the destination is greater than at the current node,
+    # set the heuristic value to the distance if it's positive. Otherwise, set it to zero.
+    for i in range(n_nodes):
+        for j in range(n_nodes):
+            if i != j and demand_cumsum[j] <= capacity and demand_cumsum[i] < demand_cumsum[j]:
+                heuristics[i, j] = torch.clamp(distance_matrix[i, j], min=0)
+            # If the edge goes back to the depot, ensure it's non-negative
+            if j == 0:
+                heuristics[i, 0] = torch.clamp(distance_matrix[i, 0], min=0)
+
+    return heuristics
+```

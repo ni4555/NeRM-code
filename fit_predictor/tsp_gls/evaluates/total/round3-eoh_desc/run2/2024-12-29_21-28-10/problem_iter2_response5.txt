@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    # Incorporate diversity by considering the distance to the nearest and second-nearest neighbors
+    # Use thresholds to avoid very long edges
+    # Normalize to avoid bias
+    
+    num_vertices = distance_matrix.shape[0]
+    heuristics_matrix = np.zeros_like(distance_matrix)
+    
+    # Iterate over each vertex
+    for i in range(num_vertices):
+        # Set the distance to self-loops to a large value
+        self_loop_value = np.inf
+        
+        # Find the minimum distance to a neighboring vertex (first-nearest neighbor)
+        min_distance = np.min(distance_matrix[i, :]) if np.any(distance_matrix[i, :]) != self_loop_value else self_loop_value
+        
+        # Find the second minimum distance (second-nearest neighbor)
+        second_min_distance = np.min(distance_matrix[i, :])
+        second_min_distance_indices = np.where(distance_matrix[i, :] == second_min_distance)
+        if len(second_min_distance_indices[0]) > 1:
+            # If there are multiple edges with the same second minimum distance,
+            # find the actual edge that is different from the first nearest neighbor
+            second_min_distance = distance_matrix[i, :][second_min_distance_indices[0][0]]
+        
+        # Use a threshold to determine "badness" for an edge
+        threshold = min_distance * 1.5
+        
+        # For each edge, determine if it's "bad" or not
+        for j in range(num_vertices):
+            if j != i and distance_matrix[i, j] <= threshold:
+                # If the edge is within the threshold, we consider it good and give it a lower weight
+                heuristics_matrix[i, j] = 1
+            else:
+                # If the edge is considered "bad", give it a higher weight
+                heuristics_matrix[i, j] = 2 * (self_loop_value - distance_matrix[i, j])
+        
+        # Normalize the heuristics matrix to ensure values are between 0 and 1
+        max_value = np.max(heuristics_matrix)
+        if max_value > 0:
+            heuristics_matrix /= max_value
+    
+    return heuristics_matrix
+```

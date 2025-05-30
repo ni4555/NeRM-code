@@ -1,0 +1,62 @@
+{
+  "generation": 10,
+  "description": "The goal is to develop a refined heuristic for the hybrid Capacitated Vehicle Routing Problem (hCVRP) that efficiently optimizes logistics routes while strictly adhering to vehicle capacity constraints. The heuristic should integrate the following key components:\n\n1. Precise Demand Handling:\n   - Implement a demand normalization algorithm to accurately reflect the total demand of nodes on potential routes.\n   - Develop a cumulative demand mask that dynamically assesses the total demand along potential routes, ensuring load balancing.\n\n2. Capacity Constraint Prioritization:\n   - Create an edge feasibility mask to rigorously evaluate the impact of adding an edge on a vehicle's capacity before incorporating it into a route.\n   - Enforce capacity-based prioritization by considering the load distribution and vehicle capacity when selecting edges.\n\n3. Clear Edge Evaluation:\n   - Define a clear and objective evaluation method for edges, ensuring that the chosen paths contribute to efficient and feasible routes.\n   - Utilize this evaluation to determine the optimal sequence of nodes for each vehicle.\n\n4. Optimization Strategies:\n   - Adopt direct optimization techniques for route feasibility without compromising solution quality.\n   - Prioritize simplicity and clarity in demand and capacity management, avoiding ambiguity and complexity.\n\nThe resulting heuristic should be designed to navigate the complexities of hCVRP by utilizing the cumulative demand for route prioritization and focusing on computational efficiency, ensuring robust and effective routing plans for fleet operations.",
+  "solutions": [
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    \n    # 1. Precise Demand Handling\n    # Demand normalization\n    total_demand = demands.sum()\n    normalized_demands = demands / total_demand\n    \n    # Cumulative demand mask\n    cumulative_demand = torch.cumsum(normalized_demands, dim=0)\n    \n    # 2. Capacity Constraint Prioritization\n    # Edge feasibility mask\n    edge_capacity_impact = distance_matrix * cumulative_demand\n    \n    # 3. Clear Edge Evaluation\n    # Define a clear and objective evaluation method for edges\n    # Here we use the cumulative demand as the evaluation criterion\n    edge_evaluation = edge_capacity_impact\n    \n    # 4. Optimization Strategies\n    # Prioritize simplicity and clarity in demand and capacity management\n    # We use a simple threshold to determine if an edge is promising or not\n    # Negative values for undesirable edges, positive for promising ones\n    threshold = 0.5  # This threshold can be adjusted based on the problem specifics\n    edge_promise = torch.where(edge_evaluation < threshold, -1.0, 1.0)\n    \n    return edge_promise",
+      "fitness": 21.38175392150879,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_10\\stdout_10.txt",
+      "code_file": "coevolve\\generation_10\\code_10.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Step 1: Normalize demands to reflect total demand per node\n    total_demand = demands.sum()\n    normalized_demands = demands / total_demand\n\n    # Step 2: Create a cumulative demand mask for load balancing\n    cumulative_demand_mask = torch.cumsum(normalized_demands, dim=0)\n\n    # Step 3: Create an edge feasibility mask for capacity constraint\n    vehicle_capacity = demands[0]  # Assuming the depot's demand represents vehicle capacity\n    edge_capacity_mask = distance_matrix < vehicle_capacity\n\n    # Step 4: Evaluate edges based on demand and capacity\n    # Combine the cumulative demand with edge capacity to evaluate edges\n    edge_evaluation = (cumulative_demand_mask * edge_capacity_mask) * (distance_matrix != 0)\n\n    # Step 5: Prioritize edges by their evaluation\n    # Higher positive values indicate more promising edges\n    # We use negative values to indicate undesirable edges\n    # We can set a threshold to differentiate between promising and undesirable edges\n    threshold = -0.5  # This threshold can be adjusted based on problem specifics\n    promising_edges = edge_evaluation - threshold\n    undesirable_edges = edge_evaluation + threshold\n\n    # Replace undesirable edges with very negative values to ensure they are not chosen\n    edge_priors = torch.where(undesirable_edges > 0, undesirable_edges, promising_edges)\n\n    return edge_priors",
+      "fitness": 21.410755157470703,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_10\\stdout_6.txt",
+      "code_file": "coevolve\\generation_10\\code_6.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    vehicle_capacity = demands.sum()\n    \n    # 1. Precise Demand Handling\n    # Normalize demand to reflect the total demand of nodes on potential routes\n    normalized_demands = demands / vehicle_capacity\n    \n    # 2. Capacity Constraint Prioritization\n    # Create an edge feasibility mask\n    edge_capacity_mask = torch.zeros_like(distance_matrix)\n    for i in range(1, n):\n        edge_capacity_mask[i, i] = demands[i]  # Edge to itself\n    edge_capacity_mask[0, 1:] = demands[1:]  # Edges from depot to customers\n    edge_capacity_mask[1:, 0] = demands[1:]  # Edges from customers to depot\n    \n    # 3. Clear Edge Evaluation\n    # Define an evaluation method for edges\n    edge_evaluation = -normalized_demands * distance_matrix\n    \n    # 4. Optimization Strategies\n    # Prioritize edges based on their evaluation and capacity constraints\n    edge_priority = edge_evaluation + edge_capacity_mask\n    \n    # Ensure the heuristic values are within the specified range\n    edge_priority = torch.clamp(edge_priority, min=-1.0, max=1.0)\n    \n    return edge_priority",
+      "fitness": 21.410755157470703,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_10\\stdout_9.txt",
+      "code_file": "coevolve\\generation_10\\code_9.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    vehicle_capacity = demands.sum()\n    \n    # 1. Precise Demand Handling\n    # Normalize demands\n    normalized_demands = demands / vehicle_capacity\n    \n    # Calculate cumulative demand for each edge\n    cumulative_demand = torch.cumsum(normalized_demands, dim=0)\n    \n    # 2. Capacity Constraint Prioritization\n    # Create an edge feasibility mask\n    edge_capacity_mask = distance_matrix < vehicle_capacity\n    \n    # 3. Clear Edge Evaluation\n    # Evaluate edges based on distance and cumulative demand\n    edge_evaluation = -distance_matrix + cumulative_demand\n    \n    # Apply edge feasibility mask\n    edge_evaluation = edge_evaluation * edge_capacity_mask\n    \n    return edge_evaluation",
+      "fitness": 21.424697875976562,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_10\\stdout_4.txt",
+      "code_file": "coevolve\\generation_10\\code_4.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    total_capacity = demands.sum()\n    demands_normalized = demands / total_capacity\n\n    # 1. Precise Demand Handling\n    # Calculate cumulative demand for each potential route\n    cumulative_demand = torch.cumsum(demands_normalized, dim=0)\n\n    # 2. Capacity Constraint Prioritization\n    # Create edge feasibility mask based on vehicle capacity\n    edge_capacity_mask = distance_matrix < total_capacity\n\n    # 3. Clear Edge Evaluation\n    # Define edge evaluation method based on distance and cumulative demand\n    edge_evaluation = distance_matrix - cumulative_demand\n\n    # Prioritize edges with positive evaluation values\n    positive_evaluation_mask = edge_evaluation > 0\n\n    # Combine all criteria into a single heuristic\n    heuristic_matrix = edge_capacity_mask * positive_evaluation_mask * edge_evaluation\n\n    return heuristic_matrix",
+      "fitness": 21.443607330322266,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_10\\stdout_1.txt",
+      "code_file": "coevolve\\generation_10\\code_1.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    total_capacity = demands.sum()\n    demand_mask = torch.zeros_like(distance_matrix)\n    capacity_mask = torch.zeros_like(distance_matrix)\n\n    # Demand Normalization\n    demand_normalized = demands / total_capacity\n\n    # Cumulative Demand Mask\n    for i in range(n):\n        for j in range(n):\n            if i != j:\n                cumulative_demand = demand_normalized[i].sum() + demand_normalized[j]\n                demand_mask[i, j] = cumulative_demand\n\n    # Edge Feasibility Mask\n    for i in range(n):\n        for j in range(n):\n            if i != j:\n                edge_demand = demand_normalized[i].sum() + demand_normalized[j]\n                if edge_demand <= 1.0:  # Assuming vehicle capacity is 1 for simplicity\n                    capacity_mask[i, j] = 1.0\n\n    # Clear Edge Evaluation\n    edge_value = -distance_matrix * capacity_mask\n\n    # Optimization Strategies\n    # Here we simply return the negative of the distance matrix multiplied by the capacity mask\n    # This prioritizes edges with lower distances and higher capacity feasibility\n    return edge_value",
+      "fitness": 21.58147621154785,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_10\\stdout_0.txt",
+      "code_file": "coevolve\\generation_10\\code_0.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    total_capacity = demands.sum()\n    \n    # Precise Demand Handling\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    \n    # Capacity Constraint Prioritization\n    edge_capacity_mask = (distance_matrix != 0) * (cumulative_demand[:, None] + demands[None, :] <= total_capacity)\n    \n    # Clear Edge Evaluation\n    edge_evaluation = -distance_matrix  # Negative distance as a heuristic value for edge evaluation\n    \n    # Optimization Strategies\n    # Combine the capacity mask and the edge evaluation to get the final heuristic values\n    heuristic_values = edge_capacity_mask * edge_evaluation\n    \n    return heuristic_values",
+      "fitness": 21.58147621154785,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_10\\stdout_11.txt",
+      "code_file": "coevolve\\generation_10\\code_11.py"
+    }
+  ]
+}

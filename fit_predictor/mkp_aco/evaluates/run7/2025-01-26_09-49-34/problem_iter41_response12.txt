@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a random diversity factor
+    diversity = np.random.normal(0, 0.01, size=prize.shape)
+    
+    # Normalize prize to reduce the impact of high prize values
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate the heuristic based on the normalized prize and diversity
+    heuristics = normalized_prize + diversity
+    
+    # Introduce sparsity by setting a fraction of heuristics to zero
+    sparsity_fraction = 0.3
+    sparsity_count = int(sparsity_fraction * heuristics.shape[0])
+    indices_to_zero = np.random.choice(heuristics.shape[0], sparsity_count, replace=False)
+    heuristics[indices_to_zero] = 0
+    
+    # Encourage exploration by increasing the diversity of unpromising items
+    unpromising_indices = heuristics < heuristics.mean()
+    heuristics[unpromising_indices] += diversity[unpromising_indices] * 0.1
+    
+    # Amplify heuristics based on their balance between prize value and weight sparsity
+    balance_factor = heuristics / np.sum(weight, axis=1)
+    heuristics *= (balance_factor + np.random.normal(0, 0.02, size=prize.shape))
+    
+    # Refine heuristics by iteratively amplifying non-dominated items
+    for _ in range(3):
+        for i in range(heuristics.shape[0]):
+            if not np.any(heuristics > heuristics[i]):
+                heuristics[i] *= 1.1
+    
+    # Adjust the heuristics to maintain diversity and prevent overlap
+    heuristic_mean = heuristics.mean()
+    heuristics[heuristics > heuristic_mean] = heuristic_mean + np.random.normal(0, 0.02, size=np.sum(heuristics > heuristic_mean))
+    
+    # Normalize the heuristics to maintain a consistent scale
+    heuristic_sum = np.sum(heuristics)
+    heuristics /= heuristic_sum
+    
+    return heuristics
+```

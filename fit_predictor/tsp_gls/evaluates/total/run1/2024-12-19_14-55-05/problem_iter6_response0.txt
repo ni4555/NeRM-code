@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Direct distance penalty
+                direct_penalty = distance_matrix[i, j]
+                
+                # Loop diversity heuristic
+                loop_diversity = abs(distance_matrix[j, (i + 1) % num_nodes] - distance_matrix[(i + 1) % num_nodes, j])
+                
+                # Common structure penalty
+                common_structure_penalty = 0
+                for k in range(num_nodes):
+                    if k != i and k != j and distance_matrix[i, k] + distance_matrix[k, j] <= distance_matrix[i, j]:
+                        common_structure_penalty += 1
+                
+                # Global diversity heuristic
+                diversity_penalty = np.sum(distance_matrix[i] * distance_matrix[:, j]) / (num_nodes ** 2)
+                
+                # Combine penalties
+                heuristics[i, j] = direct_penalty + loop_diversity + common_structure_penalty + diversity_penalty
+
+    return heuristics
+```

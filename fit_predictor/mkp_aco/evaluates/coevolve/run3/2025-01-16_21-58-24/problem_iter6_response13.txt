@@ -1,0 +1,40 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape
+    
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Factor 1: Value-to-weight ratio
+    ratio_factor = value_to_weight_ratio
+    
+    # Factor 2: Sum of the weights (to avoid overly heavy items)
+    weight_factor = weight.sum(axis=1)
+    
+    # Factor 3: The number of non-zero weights (to avoid items with too many dimensions)
+    dimension_factor = (weight != 0).sum(axis=1)
+    
+    # Factor 4: A penalty for dimensionality to avoid over-reliance on one dimension
+    dimension_penalty = np.exp(-dimension_factor)
+    
+    # Combine factors using a weighted sum that penalizes poor candidates
+    combined_heuristic = ratio_factor * (1 / (weight_factor + 1)) * (1 / (dimension_factor + 1)) * dimension_penalty
+    
+    # Sparsify the heuristic by using a percentile threshold to penalize poor candidates
+    sparsity_threshold = np.percentile(combined_heuristic, 20)
+    heuristic = np.where(combined_heuristic > sparsity_threshold, combined_heuristic, 0)
+    
+    # Introduce diversity by mutating the heuristic slightly
+    mutation_rate = 0.1
+    random_indices = np.random.choice(n, int(n * mutation_rate), replace=False)
+    heuristic[random_indices] = np.random.rand(len(random_indices))
+    
+    return heuristic
+```

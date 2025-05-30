@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = demands.sum()
+
+    # Initialize the heuristic matrix with negative infinity for all edges
+    heuristic_matrix.fill_(-torch.inf)
+
+    # Set the heuristic for the depot to its first customer
+    heuristic_matrix[0, 1:] = distance_matrix[0, 1:] * demands[1:]
+
+    # Calculate the heuristic for other edges
+    for i in range(1, n):
+        for j in range(i + 1, n):
+            # Sum of demands from customer i to customer j
+            partial_demand_sum = demands[i:j].sum()
+            # Remaining capacity if we visit customer j before any other customer from i onwards
+            remaining_capacity = demands[:i].sum() + total_demand - partial_demand_sum
+            # Calculate the heuristic if we visit customer j before exceeding the capacity
+            if partial_demand_sum <= remaining_capacity:
+                heuristic_matrix[i, j] = (remaining_capacity - partial_demand_sum) * distance_matrix[i, j]
+                heuristic_matrix[j, i] = (remaining_capacity - partial_demand_sum) * distance_matrix[j, i]
+
+    # Convert the negative infinity to a small negative value for undesirable edges
+    heuristic_matrix = torch.where(heuristic_matrix == -torch.inf, -1e8, heuristic_matrix)
+
+    return heuristic_matrix
+```

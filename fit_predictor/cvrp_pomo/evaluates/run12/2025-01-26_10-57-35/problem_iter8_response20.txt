@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate demand variance
+    demand_variance = torch.var(demands, dim=0)
+    
+    # Calculate the cumulative demand matrix, considering symmetry
+    cumulative_demand_matrix = torch.cumsum(demands[:, None] * demands, dim=1)
+    cumulative_demand_matrix /= cumulative_demand_matrix[:, -1][:, None]
+    
+    # Calculate the capacity constraint matrix
+    capacity_constraint_matrix = (cumulative_demand_matrix <= 1.0)
+    
+    # Calculate the weighted distance matrix based on demand
+    weighted_distance_matrix = distance_matrix * (demands[:, None] * demands)
+    
+    # Normalize the weighted distance matrix
+    normalized_weighted_distance_matrix = weighted_distance_matrix / weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine heuristics using demand variance, distance correlation, and capacity constraint
+    heuristics = (capacity_constraint_matrix * normalized_weighted_distance_matrix) + demand_variance
+    
+    # Adaptive adjustment based on the current state of the solution
+    adaptive_heuristics = heuristics * capacity_constraint_matrix
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(adaptive_heuristics, min=0)
+    
+    return heuristics
+```

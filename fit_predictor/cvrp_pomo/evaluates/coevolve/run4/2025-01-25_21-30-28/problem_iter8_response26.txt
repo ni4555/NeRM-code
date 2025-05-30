@@ -1,0 +1,64 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Dynamic weights based on problem specifics
+    weight_inverse_distance = 0.5
+    weight_demand_weight = 0.3
+    weight_heuristic_range = 0.2
+    weight_load_balance = 0.4
+
+    # Combine heuristics using domain knowledge and weights
+    combined_heuristic = (inverse_distance * weight_inverse_distance +
+                          demand_weight * weight_demand_weight +
+                          heuristic_range * weight_heuristic_range +
+                          load_balance * weight_load_balance)
+
+    # Mutation: introduce a slight random perturbation to the heuristic values
+    mutation_factor = 0.1
+    random_perturbation = torch.randn_like(combined_heuristic) * mutation_factor
+    mutated_combined_heuristic = combined_heuristic + random_perturbation
+
+    # Adapt weights dynamically based on performance
+    performance = combined_heuristic.sum()  # Placeholder for performance metric
+    weight_inverse_distance *= performance
+    weight_demand_weight *= performance
+    weight_heuristic_range *= performance
+    weight_load_balance *= performance
+
+    # Normalize weights to maintain their relative importance
+    total_weight = weight_inverse_distance + weight_demand_weight + weight_heuristic_range + weight_load_balance
+    weight_inverse_distance /= total_weight
+    weight_demand_weight /= total_weight
+    weight_heuristic_range /= total_weight
+    weight_load_balance /= total_weight
+
+    # Recombine heuristics with updated weights
+    combined_heuristic = (inverse_distance * weight_inverse_distance +
+                          demand_weight * weight_demand_weight +
+                          heuristic_range * weight_heuristic_range +
+                          load_balance * weight_load_balance)
+
+    # Clamp the values to avoid extreme values
+    combined_heuristic = torch.clamp(combined_heuristic, min=-10.0, max=10.0)
+
+    return combined_heuristic
+```

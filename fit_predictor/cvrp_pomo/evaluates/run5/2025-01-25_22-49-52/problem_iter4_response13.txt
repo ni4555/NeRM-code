@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge
+    # Use a heuristic that focuses on edges with high demand relative to their distance
+    potential_values = normalized_distances - normalized_demands
+    
+    # Apply a non-linear transformation to promote local clustering of nodes with similar demand
+    potential_values = torch.tanh(potential_values)
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Introduce a weight to balance demand and distance
+    demand_balance_factor = 0.2
+    distance_weight_factor = 0.8
+    potential_values = (potential_values * demand_balance_factor +
+                        normalized_distances * distance_weight_factor)
+    
+    return potential_values
+```

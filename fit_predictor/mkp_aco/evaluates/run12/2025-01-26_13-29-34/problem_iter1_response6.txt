@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape
+    heuristic = np.zeros((n,))
+    deep_q_values = np.random.rand(n)  # Placeholder for deep reinforcement learning values
+    adaptive_threshold = np.zeros((m,))
+
+    # Simulate adaptive constraint-driven filtering
+    for i in range(m):
+        adaptive_threshold[i] = np.mean(weight[:, i])
+
+    # Simulate particle swarm optimization
+    best_position = np.argmax(prize)
+    best_fitness = np.sum(prize[best_position])
+
+    for _ in range(100):  # Number of iterations for PSO
+        for i in range(n):
+            if np.random.rand() < 0.5:  # Simple PSO rule to update positions
+                heuristic[i] = prize[i] - weight[i].sum() * (1 - adaptive_threshold)
+            else:
+                heuristic[i] = prize[i] + deep_q_values[i] * (1 - adaptive_threshold)
+
+        current_best_fitness = np.max(heuristic)
+        if current_best_fitness > best_fitness:
+            best_fitness = current_best_fitness
+            best_position = np.argmax(heuristic)
+
+    # Sparsify the heuristic by setting unpromising elements to zero
+    heuristic[heuristic < best_fitness] = 0
+
+    return heuristic
+```

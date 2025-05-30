@@ -1,0 +1,26 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Heuristic that introduces domain-specific penalties for both the distance and the structure of the tour
+    
+    # Calculate the total distance of all possible tours
+    total_distance = np.sum(distance_matrix)
+    
+    # Calculate the sum of distances for each possible starting node
+    starting_node_distances = np.sum(distance_matrix, axis=1)
+    
+    # Introduce a penalty based on the longest path in the graph
+    longest_path = np.max(np.triu(distance_matrix, k=1) + np.tril(distance_matrix, k=-1))
+    
+    # Introduce a random penalty for each edge, with a probability that increases with the edge's distance
+    random_penalty = np.random.binomial(1, 0.5, size=distance_matrix.shape) * (distance_matrix / np.mean(distance_matrix))
+    
+    # Create the heuristic matrix by combining the penalties
+    heuristic_matrix = (distance_matrix / total_distance) + (starting_node_distances / total_distance) * longest_path + random_penalty
+    
+    # Cap the values to ensure they are non-negative
+    heuristic_matrix = np.clip(heuristic_matrix, 0, 1)
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize and weight to have a common scale
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    normalized_weight = (weight - np.min(weight, axis=1, keepdims=True)) / (np.max(weight, axis=1, keepdims=True) - np.min(weight, axis=1, keepdims=True))
+    
+    # Calculate value-to-weight ratio after normalization
+    value_to_weight_ratio = normalized_prize / np.sum(normalized_weight, axis=1)
+    
+    # Use a combination of sparsity and variance for selecting items
+    variance_weight = np.var(weight, axis=1)
+    combined_sparsity_variance = np.where(value_to_weight_ratio > 0.5, variance_weight, 0)
+    
+    # Introduce a non-linear transformation and apply a threshold
+    non_linear_combined_sparsity_variance = (combined_sparsity_variance ** 2) * (combined_sparsity_variance > 0.1)
+    
+    # Dynamically adapt the sparsity control by setting values below a certain threshold to zero
+    heuristics = np.where(non_linear_combined_sparsity_variance > 0.2, non_linear_combined_sparsity_variance, 0)
+    
+    return heuristics
+```

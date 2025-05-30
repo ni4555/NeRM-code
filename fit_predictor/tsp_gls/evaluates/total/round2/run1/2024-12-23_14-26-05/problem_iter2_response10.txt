@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Introduce a penalty for edge usage and reward for higher average distance in used edges
+    edge_usage = np.zeros_like(distance_matrix)
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                edge_usage[i][j] = np.exp(-np.mean(distance_matrix[i][j]))  # Edge usage penalty
+
+    # Calculate the average usage of all edges and use it as a scaling factor for the bonus
+    avg_usage = np.mean(edge_usage)
+    # Calculate the bonus based on the average distance of the used edges
+    bonus = np.sum(distance_matrix[np.triu_indices_from(edge_usage, k=1)]) / (len(edge_usage) - 1)
+    
+    # Normalize the edge usage by the average usage
+    normalized_usage = edge_usage / avg_usage
+
+    # Calculate a diversity factor by considering the sum of all normalized edge usages
+    diversity_factor = np.sum(normalized_usage)
+    # Inverse the diversity factor to encourage diversity in edge selection
+    diversity_factor = 1 / diversity_factor
+
+    # Combine penalties and bonuses into a heuristic with a diversity factor
+    heuristic_matrix = (normalized_usage * bonus + (1 - normalized_usage) * (1 - bonus)) * diversity_factor
+
+    return heuristic_matrix
+```

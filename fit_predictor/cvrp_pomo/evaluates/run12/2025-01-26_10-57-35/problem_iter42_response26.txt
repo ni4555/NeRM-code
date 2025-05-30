@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison and normalize
+    demand_matrix = (demands[:, None] * demands - torch.diag(demands)) / demands.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix and normalize by summing each row
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    row_sums = weighted_distance_matrix.sum(dim=1, keepdim=True)
+    row_sums[row_sums == 0] = 1
+    weighted_distance_matrix /= row_sums
+    
+    # Integrate capacity constraint by using the inverse of demand
+    capacity_factor = 1 / (demands + 1e-8)
+    
+    # Combine normalized weighted distance and demand
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Enhance promising edges by considering both distance and demand
+    heuristics *= (1 + demands)
+    
+    # Prioritize outgoing edges from and incoming edges to the depot
+    heuristics[:, 0] *= 2
+    heuristics[0, :] *= 2
+    
+    # Ensure no edge is overly dominated and no heuristic is negative
+    dominated_edges = heuristics.unsqueeze(1) + heuristics.unsqueeze(0) - heuristics.unsqueeze(2)
+    dominated_edges[dominated_edges > 0] = 0
+    min_dominated = dominated_edges.max(dim=2)[0]
+    heuristics = torch.max(heuristics, min_dominated)
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    # Minimize loops by reducing the heuristic values of edges that form a loop
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics += loop_heuristics
+    
+    return heuristics
+```

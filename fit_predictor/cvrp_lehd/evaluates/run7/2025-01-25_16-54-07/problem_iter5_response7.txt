@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    
+    # 1. Precise Demand Handling
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Cumulative demand mask
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    
+    # 2. Capacity Constraint Prioritization
+    # Edge feasibility mask
+    edge_capacity_impact = distance_matrix * cumulative_demand
+    
+    # 3. Clear Edge Evaluation
+    # Use a combination of distance and demand impact with a penalty for high cumulative demand
+    edge_evaluation = distance_matrix + (edge_capacity_impact / (1 + edge_capacity_impact))
+    edge_evaluation = torch.where(edge_capacity_impact > 1, edge_evaluation * 0.9, edge_evaluation)
+    
+    # 4. Optimization Strategies
+    # Dynamic threshold based on edge evaluation to prioritize
+    dynamic_threshold = edge_evaluation.mean()
+    edge_promise = torch.where(edge_evaluation < dynamic_threshold, -1.0, 1.0)
+    
+    # Reflecting on the prior reflections:
+    # - We will introduce a dynamic threshold that adapts to the quality of the edges.
+    # - We will apply a simpler metric that balances demand and capacity, using a linear combination.
+    # - We will adjust the penalty for high cumulative demand more directly.
+    
+    # Adjust the penalty factor to be more intuitive and less complex
+    penalty_factor = torch.where(edge_capacity_impact > 1, -0.1, 0.0)
+    adjusted_edge_evaluation = edge_evaluation + penalty_factor
+    
+    # Use a linear combination of distance and adjusted demand impact to simplify the metric
+    edge_promise_linear = adjusted_edge_evaluation * 0.5 + distance_matrix * 0.5
+    
+    # Update the edge promise based on the simplified metric
+    edge_promise = torch.where(edge_promise_linear < dynamic_threshold, -1.0, 1.0)
+    
+    return edge_promise
+```

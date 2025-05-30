@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize an empty array for the heuristics
+    heuristics = np.zeros_like(prize)
+    
+    # Normalize the prize and weight for each dimension
+    normalized_prize = prize / np.max(prize)
+    normalized_weight = weight / np.sum(weight, axis=1)[:, np.newaxis]
+    
+    # Calculate the potential of each item considering the normalized prize and weight
+    potential = normalized_prize * normalized_weight
+    
+    # Identify dominated items (items with higher prize but higher weight than others)
+    dominance_matrix = np.copy(potential)
+    for i in range(len(potential)):
+        dominance_matrix[i] = np.max(dominance_matrix) / potential[i]
+    dominated_items = np.where(dominance_matrix < 1)[0]
+    heuristics[dominated_items] = 0
+    
+    # Calculate a randomness factor to blend exploration
+    random_factor = np.random.rand(len(potential))
+    
+    # Combine the potential with the randomness to create the heuristic
+    heuristics = potential + random_factor
+    
+    # Normalize the heuristic values
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

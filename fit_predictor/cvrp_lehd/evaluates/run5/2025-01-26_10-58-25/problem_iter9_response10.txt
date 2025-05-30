@@ -1,0 +1,38 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Apply non-linear transformation to distance matrix (e.g., inverse square root)
+    distance_non_linear_matrix = 1 / torch.sqrt(distance_matrix + 1e-6)  # Adding a small constant to avoid sqrt(0)
+    
+    # Normalize the distance transformation to keep the scale similar to demand penalties
+    distance_normalized_matrix = distance_non_linear_matrix / torch.sqrt(penalty_matrix.abs().sum())
+    
+    # Combine demand and non-linear transformed distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_normalized_matrix
+    
+    # Apply softmax to normalize and transform the potential matrix
+    softmax_matrix = F.softmax(potential_matrix, dim=1)
+    
+    # Emphasize feasible and low-cost edges by increasing the influence of feasible nodes
+    # Increase the probability for edges connecting nodes that satisfy demand constraint
+    feasible_penalty_matrix = penalty_matrix * (demands <= vehicle_capacity).float()
+    softmax_matrix += feasible_penalty_matrix
+    
+    # Adjust the softmax matrix to ensure that the values are not too close to zero
+    adjusted_softmax_matrix = softmax_matrix - torch.min(softmax_matrix)
+    
+    # Transform the adjusted softmax matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -adjusted_softmax_matrix
+    
+    return heuristics_matrix
+```

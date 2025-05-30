@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    max_demand = demands.max()
+    demand_penalty = 1 / (demands / max_demand)
+    
+    # Calculate cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Capacity-aware penalties: penalize edges leading to exceeding capacity
+    capacity_exceeded = cumulative_demand > total_capacity
+    capacity_penalty = torch.where(capacity_exceeded, torch.ones_like(capacity_exceeded) * 100, torch.zeros_like(capacity_exceeded))
+    
+    # Demand-distance interaction: weigh edges by the interaction between demand and distance
+    demand_distance_interaction = torch.exp(-0.5 * (distance_matrix * demand_penalty).square())
+    
+    # Combine heuristics
+    heuristic_values = (capacity_penalty * demand_distance_interaction) * distance_matrix
+    return heuristic_values
+```

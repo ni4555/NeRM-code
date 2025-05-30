@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Initialize the heuristic array with the same size as the prize array
+    heuristic = np.zeros_like(prize)
+    
+    # For each item, calculate a heuristic score based on a combination of metrics
+    for i in range(prize.size):
+        # Calculate the density and sparsity for the current item
+        item_density = prize[i] / (np.sum(weight[i]) + 1e-8)
+        item_sparsity = np.sum(weight[i]) / (np.max(weight[i]) + 1e-8)
+        
+        # Introduce randomness to avoid getting stuck in local optima
+        randomness = np.random.rand()
+        
+        # Combine the metrics and randomness into a heuristic score
+        heuristic[i] = item_density * (1 - item_sparsity) + randomness
+    
+    # Prune dominated solutions by setting their heuristic scores to zero
+    dominated_indices = np.where((heuristic > 0) & (prize < np.sum(prize) / prize.size))[0]
+    heuristic[dominated_indices] = 0
+    
+    # Normalize the heuristic scores to maintain scale consistency
+    heuristic = heuristic / np.sum(heuristic)
+    
+    return heuristic
+```

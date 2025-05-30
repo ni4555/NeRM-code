@@ -1,0 +1,40 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+    
+    # Calculate the density of each item per dimension
+    density = prize / np.sum(weight, axis=1)[:, np.newaxis]
+    
+    # Calculate the sparsity of each item per dimension
+    sparsity = np.sum(weight, axis=1)[:, np.newaxis] / np.max(weight, axis=1)[:, np.newaxis]
+    
+    # Calculate a diversity factor based on the standard deviation of density per item
+    diversity_factor = np.std(density, axis=1)
+    
+    # Define a balance heuristic that combines density and sparsity
+    balance_heuristic = (density + sparsity) / (np.abs(density - sparsity) + 1e-8)
+    
+    # Normalize balance heuristic for each item
+    balance_heuristic = balance_heuristic / np.sum(balance_heuristic, axis=1)[:, np.newaxis]
+    
+    # Adjust density based on sparsity and total weight
+    adjusted_density = density * (1 - sparsity) / (np.sum(weight, axis=1)[:, np.newaxis] + 1e-8)
+    
+    # Introduce a diversity heuristic based on the standard deviation of density
+    diversity_heuristic = np.mean(diversity_factor)
+    
+    # Combine heuristics using a weighted sum
+    combined_heuristic = balance_heuristic * 0.6 + adjusted_density * 0.4 + diversity_heuristic * 0.1
+    
+    # Normalize the combined heuristics to a bounded range
+    min_val = np.min(combined_heuristic)
+    max_val = np.max(combined_heuristic)
+    combined_heuristic = (combined_heuristic - min_val) / (max_val - min_val)
+    
+    # Ensure that the heuristics are positive and comparable
+    combined_heuristic = np.clip(combined_heuristic, 1e-8, 1)
+    
+    return combined_heuristic
+```

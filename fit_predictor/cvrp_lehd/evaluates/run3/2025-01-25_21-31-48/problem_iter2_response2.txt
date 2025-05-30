@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic that uses vectorized operations and demand-to-capacity ratio."""
+    # Calculate the sum of demands
+    total_demand = demands.sum()
+    
+    # Calculate the maximum number of customers a vehicle can visit
+    max_customers = (total_demand / demands).to(torch.int)
+    
+    # Calculate the remaining capacity for each node
+    remaining_capacity = max_customers - demands
+    
+    # Calculate the number of customers that can be added to an edge
+    potential_customers = torch.clamp(remaining_capacity, min=0)
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the heuristic values for each edge based on distance and potential customers
+    # We use a vectorized approach to compute the sum of potential customers across all nodes
+    # that can reach the current node
+    for i in range(len(demands)):
+        heuristic_matrix[i] -= distance_matrix[i].unsqueeze(0) * potential_customers
+    
+    return heuristic_matrix
+```

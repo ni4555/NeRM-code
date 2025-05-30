@@ -1,0 +1,13 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic for CVRP that considers local demand, distance, capacity constraints,
+    and neighborhood demand."""
+    vehicle_capacity = demands.sum()
+    demand_diff = -torch.abs(2 * (vehicle_capacity - demands))  # Negative weights for high demand difference
+    distance_weight = -0.5 * distance_matrix  # Negative weights for high distances
+    local_demand_weight = demands * (1 + torch.exp(-demands))  # Promote local demand
+    neighbor_demand_weight = (demands + torch.sum(demands[:-1], dim=0)) * (1 + torch.exp(-demands))  # Promote neighborhood demand
+    capacity_weight = 1 / (1 + torch.exp(-demands))  # Promote lower demand edges for capacity constraints
+
+    return demand_diff + distance_weight + local_demand_weight + neighbor_demand_weight + capacity_weight
+```

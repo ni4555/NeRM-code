@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Demand-based heuristic: High demand is penalized
+    demand_heuristic = -normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0)
+    
+    # Distance-based heuristic: Shorter distances are more promising
+    distance_heuristic = 1 / (distance_matrix + 1e-6)
+    
+    # Load-based heuristic: Lower loads are more promising
+    load_heuristic = 1 / (demands.unsqueeze(1) * demands.unsqueeze(0) + 1e-6)
+    
+    # Dynamic routing heuristic: Current load on the vehicle affects the heuristics
+    current_load_penalty = 1 - demands.unsqueeze(1) * demands.unsqueeze(0)
+    dynamic_routing_heuristic = current_load_penalty
+    
+    # Combine all heuristics to create the final heuristic matrix
+    combined_heuristic = demand_heuristic + distance_heuristic + load_heuristic + dynamic_routing_heuristic
+    
+    # Scale the combined heuristic values to ensure they are of a meaningful range
+    max_value = combined_heuristic.max()
+    min_value = combined_heuristic.min()
+    heuristic_matrix = 2 * (combined_heuristic - min_value) / (max_value - min_value) - 1
+    
+    return heuristic_matrix
+```

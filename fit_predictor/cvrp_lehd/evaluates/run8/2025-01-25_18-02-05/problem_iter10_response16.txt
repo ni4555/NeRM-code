@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Normalize the ratio by the total vehicle capacity to avoid overfitting
+    total_capacity = demands.sum()
+    normalized_demand_to_distance = demand_to_distance_ratio / total_capacity
+    
+    # Apply a non-linear transformation (e.g., exponential) to emphasize longer distances
+    # and to reduce the impact of very small ratios
+    transformed_ratio = torch.exp(-2 * normalized_demand_to_distance)
+    
+    # Invert the transformed ratio to prioritize sparsity
+    inverted_transformed_ratio = 1 / (transformed_ratio + 1e-10)  # Add a small constant to avoid division by zero
+    
+    # Calculate the heuristic values by combining the inverse transformed ratio with the original demands
+    heuristic_matrix = demands * inverted_transformed_ratio
+    
+    # Apply a thresholding operation to create a binary heuristic matrix
+    threshold = 0.5
+    heuristics_thresholded = torch.where(heuristic_matrix > threshold, 1, -1)
+    
+    return heuristics_thresholded
+```

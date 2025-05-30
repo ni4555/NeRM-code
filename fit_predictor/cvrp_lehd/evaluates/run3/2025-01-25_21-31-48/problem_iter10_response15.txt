@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    
+    # Normalize distances by total demand to ensure they are on the same scale as demands
+    normalized_distances = distance_matrix / total_demand
+    
+    # Calculate the balance of demands by dividing by the total demand
+    demand_balance = demands / total_demand
+    
+    # Invert the balance to encourage balanced node selection
+    balanced_demand_penalty = (1 - demand_balance) * (1 / (1 - demand_balance))
+    
+    # Combine normalized distances and demand balance to form a heuristic
+    combined_heuristic = normalized_distances * balanced_demand_penalty
+    
+    # Cap the heuristics to avoid negative values and to normalize them
+    combined_heuristic = torch.clamp(combined_heuristic, min=0)
+    
+    return combined_heuristic
+```

@@ -1,0 +1,58 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Sort the demands in descending order to prioritize high-demand nodes
+    sorted_indices = torch.argsort(-normalized_demands)
+
+    # Initialize the heuristic matrix with high initial penalty for all edges
+    heuristic_matrix = torch.full_like(distance_matrix, fill_value=-1000.0)
+    
+    # Initialize variables
+    visited = torch.zeros(n, dtype=torch.bool)
+    visited[0] = True
+    current_demand = demands[0]
+    
+    # Iterate over the sorted demands
+    for i in sorted_indices[1:]:
+        if visited[i]:
+            continue
+        
+        # Find the nearest unvisited node
+        nearest_unvisited = distance_matrix[~visited].min(dim=0).indices
+        
+        # Calculate the edge index
+        edge_index = (nearest_unvisited, i)
+        
+        # Update the heuristic for the selected edge
+        heuristic_matrix[edge_index[0], edge_index[1]] = distance_matrix[edge_index[0], edge_index[1]]
+        
+        # Update the visited and demand
+        visited[i] = True
+        current_demand += demands[i]
+        
+        # Add a penalty if the current node demand is too high
+        if demands[i] > 1.0:
+            heuristic_matrix[edge_index[0], edge_index[1]] -= 1000.0
+        
+        # Check if we need to return to the depot
+        if current_demand >= 1.0:
+            return_to_depot_index = (i, 0)
+            heuristic_matrix[return_to_depot_index[0], return_to_depot_index[1]] = distance_matrix[return_to_depot_index[0], return_to_depot_index[1]]
+            break  # All nodes have been visited or the vehicle is full
+    
+    # Normalize the heuristic values
+    max_heuristic = heuristic_matrix.max()
+    min_heuristic = heuristic_matrix.min()
+    if max_heuristic != min_heuristic:
+        heuristic_matrix = (heuristic_matrix - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        # Avoid division by zero
+        heuristic_matrix = torch.ones_like(heuristic_matrix)
+    
+    return heuristic_matrix
+```

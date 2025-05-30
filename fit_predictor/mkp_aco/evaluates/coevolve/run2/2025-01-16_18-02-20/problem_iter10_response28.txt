@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate diversity score as the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - normalized_prize.reshape(-1, 1)), axis=0)
+    
+    # Combine normalized prize and diversity score to form a composite heuristic
+    composite_heuristic = normalized_prize * diversity_scores
+    
+    # Normalize the composite heuristic to ensure all values are between 0 and 1
+    max_composite = np.max(composite_heuristic)
+    min_composite = np.min(composite_heuristic)
+    if max_composite != min_composite:
+        normalized_composite = (composite_heuristic - min_composite) / (max_composite - min_composite)
+    else:
+        normalized_composite = np.zeros_like(composite_heuristic)
+    
+    # Rank the items based on their normalized composite heuristic
+    ranked_indices = np.argsort(normalized_composite)[::-1]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    # Sparsify the heuristics by setting the top 50% of promising elements to 1
+    heuristics[ranked_indices[:len(ranked_indices)//2]] = 1
+    
+    return heuristics
+```

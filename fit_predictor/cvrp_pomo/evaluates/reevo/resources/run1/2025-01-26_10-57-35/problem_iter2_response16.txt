@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the initial distances from the depot to all other nodes
+    initial_distances = distance_matrix[depot]
+    
+    # Initialize a visited array to keep track of visited nodes
+    visited = torch.zeros(n, dtype=torch.bool)
+    
+    # Calculate the demand-based heuristic
+    demand_heuristic = demands - demands[depot]
+    
+    # Calculate cumulative distances and demands
+    cumulative_distances = torch.cumsum(distance_matrix[:, 0], dim=0)
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Vectorized nearest neighbor heuristic
+    unvisited_indices = ~visited
+    while unvisited_indices.any():
+        # Find the nearest unvisited node
+        nearest_node = torch.argmin(initial_distances[unvisited_indices])
+        heuristics[depot, unvisited_indices[nearest_node]] = distance_matrix[depot, unvisited_indices[nearest_node]]
+        heuristics[unvisited_indices[nearest_node], depot] = distance_matrix[unvisited_indices[nearest_node], depot]
+        
+        # Update the distances to the nearest unvisited node
+        initial_distances[unvisited_indices] = distance_matrix[unvisited_indices, unvisited_indices[nearest_node]]
+        
+        # Update the visited array
+        visited[unvisited_indices[nearest_node]] = True
+        
+        # Update cumulative distances and demands
+        cumulative_distances[unvisited_indices] = cumulative_distances[unvisited_indices[nearest_node]]
+        cumulative_demands[unvisited_indices] = cumulative_demands[unvisited_indices[nearest_node]]
+        
+        # Update the unvisited indices
+        unvisited_indices = ~visited
+    
+    # Apply the demand-based heuristic
+    heuristics += (cumulative_distances.unsqueeze(1) - cumulative_distances.unsqueeze(0)) * demand_heuristic.unsqueeze(0)
+    heuristics += (cumulative_distances.unsqueeze(1) - cumulative_distances.unsqueeze(0)) * demand_heuristic.unsqueeze(1)
+    
+    return heuristics
+```

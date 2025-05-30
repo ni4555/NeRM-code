@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    edge_mask = demands[:, None] + demands.T <= total_demand
+    return_to_depot_mask = demands[:, None] > total_demand - demands.T
+
+    # Calculate edge-based heuristic values
+    heuristic_values = distance_matrix - demand_cumsum
+
+    # Apply return-to-depot heuristic
+    return_values = distance_matrix * return_to_depot_mask
+    heuristic_values += return_values - (demand_cumsum[:, None] - demand_cumsum.T) * return_to_depot_mask
+
+    # Set negative infinite for infeasible edges
+    heuristic_values[~edge_mask] = -float('inf')
+
+    return heuristic_values
+```

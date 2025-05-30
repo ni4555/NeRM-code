@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic capacity penalty with stronger scaling
+    dynamic_capacity_penalty = -torch.log(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= torch.pow(1 + (total_capacity - cumulative_demand) / total_capacity, 2)
+    
+    # Enhanced distance penalty with cumulative load scaling
+    distance_scaling = -torch.log(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= torch.pow(1 + cumulative_demand / total_capacity, 1.5)
+    
+    # Overflow penalty with early return to depot
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log(torch.abs((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8)),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic to encourage uniform distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log(torch.abs(load_balance - 1e-8))
+    
+    # Introduce randomness to foster diversity
+    randomness = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Apply strong scaling factor to prioritize core objectives
+    scaling_factor = 4.0
+    heuristics = scaling_factor * (distance_scaling + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty)
+    
+    # Foster diversity by adding randomness to heuristics
+    heuristics += randomness
+    
+    # Adaptively scale heuristics for early overflow and imbalance
+    early_overflow = torch.where(cumulative_demand > total_capacity_vector, torch.ones_like(cumulative_demand), torch.zeros_like(cumulative_demand))
+    heuristics *= early_overflow
+    
+    # Cap the heuristics to avoid excessive randomness
+    heuristics = torch.clamp(heuristics, min=-20.0, max=20.0)
+    
+    return heuristics
+```

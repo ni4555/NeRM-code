@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = demands.unsqueeze(1)  # Ensure demands is a 2D tensor for broadcasting
+    
+    # Normalize the distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands / demands.sum()
+    
+    # Introduce a logarithmic load factor to balance heavily loaded nodes
+    log_loads = torch.log1p(-node_loads)
+    
+    # Introduce a random perturbation to encourage exploration of different paths
+    random_perturbation = torch.randn_like(norm_distances) * 0.1
+    
+    # Combine normalized distances, load factor, and random perturbation to calculate the heuristics
+    # Incorporate an exploration vs. exploitation trade-off using a decay factor
+    decay_factor = 0.9
+    heuristics = decay_factor * norm_distances - (log_loads * norm_distances).sum(-1) + random_perturbation
+    
+    # Ensure heuristics have both positive and negative values to facilitate selection
+    heuristics = torch.clamp(heuristics, min=-1.0, max=1.0)
+    
+    return heuristics
+```

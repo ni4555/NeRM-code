@@ -1,0 +1,51 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = np.dot(prize[i], weight[i]) / weight[i].sum()
+        # Normalize by weight and adjust for high-weight
+        heuristic[i] = total_prize / (1 + weight[i].sum())
+    
+    # Introduce redundancy minimization by considering diversity
+    # Calculate diversity by looking at the difference in weight distribution
+    for i in range(n):
+        weight_diff = weight[i].max() - weight[i].min()
+        heuristic[i] *= 1 - (weight_diff / weight[i].sum())
+    
+    # Normalize factors for consistent comparison
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    heuristic *= normalized_prize
+    
+    # Mutate heuristics with randomness to avoid local optima
+    mutation_rate = 0.1
+    heuristic = np.where(np.random.rand(n) < mutation_rate, 
+                         heuristic * np.random.rand(n), 
+                         heuristic)
+    
+    # Apply penalties for low-value to weight ratio and weight sparsity
+    for i in range(n):
+        value_to_weight_ratio = prize[i] / weight[i].sum()
+        weight_sparsity = 1 - (weight[i].sum() / m)
+        penalty_factor = (value_to_weight_ratio < 0.1) * weight_sparsity
+        heuristic[i] *= 1 - penalty_factor
+    
+    # Enhance diversity by prioritizing items with distinct weights
+    distinct_weights = (np.count_nonzero(np.unique(weight, axis=1), axis=1) / m)
+    heuristic *= distinct_weights
+    
+    # Introduce exploration and exploitation balance
+    exploration_factor = np.random.rand(n)
+    exploitation_factor = (prize / np.maximum(weight.sum(axis=1), 1e-10))
+    heuristic *= (exploration_factor + exploitation_factor)
+    
+    # Apply consistent mutation and granular penalties
+    granular_penalty = np.maximum((weight.sum(axis=1) / m - 0.5), 0)
+    heuristic *= 1 - granular_penalty
+    
+    return heuristic
+```

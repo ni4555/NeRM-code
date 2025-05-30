@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic matrix with high values
+    heuristic_matrix = np.full(distance_matrix.shape, np.inf)
+    
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=1)
+    
+    # Calculate the usage of each edge
+    edge_usage = np.count_nonzero(distance_matrix, axis=0)
+    
+    # Adjust the heuristic values based on the degree of the node and edge usage
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Calculate the heuristic factor based on the relative degree difference
+                degree_difference = abs(degrees[i] - degrees[j])
+                degree_factor = degree_difference / (max(degrees[i], degrees[j]) if max(degrees[i], degrees[j]) > 0 else 1)
+                
+                # Calculate the relative edge usage difference
+                usage_difference = abs(edge_usage[i] - edge_usage[j])
+                usage_factor = usage_difference / (max(edge_usage[i], edge_usage[j]) if max(edge_usage[i], edge_usage[j]) > 0 else 1)
+                
+                # Adjust based on edge usage: less used edges are favored
+                if edge_usage[i] < edge_usage[j]:
+                    usage_factor *= 0.9
+                elif edge_usage[i] > edge_usage[j]:
+                    usage_factor *= 1.1
+                
+                # Apply the heuristic factors to the distance
+                heuristic_matrix[i][j] = distance_matrix[i][j] * (1 + 0.1 * degree_factor + 0.1 * usage_factor)
+    
+    # Ensure that no self-loops have a non-zero heuristic
+    np.fill_diagonal(heuristic_matrix, np.inf)
+    
+    return heuristic_matrix
+```

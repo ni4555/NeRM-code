@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    n = distance_matrix.shape[0]
+    # Calculate demand gradients
+    demand_gradients = torch.diff(demands) / torch.abs(torch.diff(demands)) + 1
+    demand_gradients = torch.cat([torch.zeros_like(demand_gradients), demand_gradients], dim=0)
+    # Incorporate non-linear demand factors into the heuristic
+    demand_factor = (1 - demand_gradients) * (demands / demands.sum())
+    # Calculate distance scaling
+    distance_scaling = 1 / (distance_matrix + 1e-6)
+    # Combine demand factors and distance scaling to form the heuristic
+    heuristic = demand_factor * distance_scaling
+    # Balance local and global factors with exponential decay
+    global_factor = 1 / (1 + torch.exp(0.1 * torch.arange(n) - 5))
+    final_heuristic = heuristic * global_factor
+    return final_heuristic
+```

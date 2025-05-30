@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the demands
+    normalized_demands = demands / demands.sum()
+
+    # Define a weighted penalty for high demand edges
+    demand_penalty = -normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0)
+
+    # Define the distance heuristic
+    distance_heuristic = 1 / (distance_matrix + 1e-6)
+
+    # Incorporate load balancing by considering the difference in demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+
+    # Use a dynamic routing factor that considers time of day and expected traffic
+    time_of_day = torch.rand(distance_matrix.shape[0]) * 24
+    traffic_factor = torch.rand(distance_matrix.shape[0]) * 2 - 1
+    dynamic_routing_factor = (1 / (1 + time_of_day.unsqueeze(1) * time_of_day.unsqueeze(0) + traffic_factor))
+
+    # Combine the heuristics with a balancing weight
+    combined_heuristic = 0.4 * demand_penalty + 0.3 * distance_heuristic + 0.2 * load_balance + 0.1 * dynamic_routing_factor
+
+    # Introduce randomness to escape local optima, while ensuring the diversity is controlled
+    random_factor = torch.rand(distance_matrix.shape) * 0.05 - 0.025
+    combined_heuristic += random_factor
+
+    # Apply a non-linear transformation to emphasize larger differences
+    heuristics_non_linear = torch.sigmoid(combined_heuristic)
+
+    return heuristics_non_linear
+```

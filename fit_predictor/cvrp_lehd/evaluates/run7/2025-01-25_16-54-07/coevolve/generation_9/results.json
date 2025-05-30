@@ -1,0 +1,54 @@
+{
+  "generation": 9,
+  "description": "New Problem Description:\n\nThe Dynamic Load Balancing Vehicle Routing Problem (DLVRP) is a specialized optimization challenge that aims to optimize delivery routes for a fleet of vehicles under strict capacity constraints. The DLVRP involves selecting the most efficient paths for vehicles to deliver goods to a set of customers while ensuring that the cumulative load on each vehicle does not exceed its carrying capacity.\n\nThe problem is defined as follows:\n\nObjective:\nMinimize the total distance traveled by all vehicles while satisfying the demand constraints of each customer.\n\nConstraints:\n1. Each vehicle has a maximum capacity that must not be exceeded.\n2. Each customer must be visited exactly once by a single vehicle.\n3. The total demand for any vehicle's route must not exceed its capacity, allowing for return trips to the depot if necessary.\n\nOptimization Strategies:\n1. A cumulative demand analysis will be conducted to dynamically assess the total demand along potential routes, ensuring balanced vehicle loads.\n2. A demand normalization strategy will be implemented to differentiate between cumulative and normalized demands, providing a clear reflection of load distribution.\n3. A capacity-based prioritization will be enforced through an edge feasibility mask, rigorously evaluating the impact of adding an edge on a vehicle's capacity before incorporating it into a route.\n4. The algorithm will prioritize simplicity and clarity in demand and capacity management, avoiding ambiguity and complexity.\n5. The cumulative demand will be directly utilized for route prioritization, coupled with optimization techniques that emphasize computational efficiency without compromising solution quality.\n\nThe successful implementation of the DLVRP will yield robust and effective routing plans that enhance operational efficiency and customer satisfaction, navigating the complexities of fleet logistics with precision and reliability.",
+  "solutions": [
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the cumulative demand for each node considering the depot\n    cumulative_demand = demands + demands[0]\n    \n    # Normalize the cumulative demand by the total vehicle capacity\n    normalized_demand = cumulative_demand / demands.sum()\n    \n    # Calculate the heuristic values based on normalized demand and distance\n    # Negative values for undesirable edges (high demand or high distance)\n    # Positive values for promising edges (low demand or low distance)\n    heuristic_values = -normalized_demand * distance_matrix\n    \n    return heuristic_values",
+      "fitness": 21.410755157470703,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_3.txt",
+      "code_file": "coevolve\\generation_9\\code_3.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the cumulative demand along each edge\n    cumulative_demand = demands.unsqueeze(1) + demands.unsqueeze(0)\n    \n    # Normalize the cumulative demand by the total vehicle capacity\n    normalized_demand = cumulative_demand / demands.sum()\n    \n    # Calculate the heuristic as the negative of the normalized demand\n    # Negative values indicate undesirable edges, positive values indicate promising ones\n    heuristics = -normalized_demand\n    \n    return heuristics",
+      "fitness": 21.465118408203125,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_7.txt",
+      "code_file": "coevolve\\generation_9\\code_7.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the normalized demands\n    normalized_demands = demands / demands.sum()\n    \n    # Calculate the cumulative demand at each node considering the distance to the next node\n    cumulative_demand = torch.cumsum(distance_matrix * normalized_demands, dim=1)\n    \n    # Subtract the demand of the current node from the cumulative demand to get the additional demand\n    additional_demand = cumulative_demand - demands.unsqueeze(1)\n    \n    # Create a mask to ensure that additional demand does not exceed vehicle capacity\n    capacity_mask = (additional_demand < 1.0).float()  # Assuming vehicle capacity is 1 for normalization\n    \n    # Calculate the heuristics as a combination of negative distance (to encourage shorter paths) and capacity-based prioritization\n    heuristics = -distance_matrix + capacity_mask\n    \n    return heuristics",
+      "fitness": 21.58147621154785,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_9.txt",
+      "code_file": "coevolve\\generation_9\\code_9.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the cumulative demand along each edge\n    cumulative_demand = (demands[:, None] + demands[None, :]) / 2\n    \n    # Calculate the heuristics as the negative of the cumulative demand\n    heuristics = -cumulative_demand\n    \n    # Normalize the heuristics by the maximum possible demand on a vehicle\n    max_demand = torch.max(demands)\n    heuristics /= max_demand\n    \n    # Subtract the distance matrix to get negative values for undesirable edges\n    heuristics -= distance_matrix\n    \n    return heuristics",
+      "fitness": 21.666851043701172,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_2.txt",
+      "code_file": "coevolve\\generation_9\\code_2.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the cumulative demand along each edge\n    cumulative_demand = (demands.unsqueeze(1) + demands.unsqueeze(0)) / 2\n    \n    # Calculate the heuristic values based on the distance and cumulative demand\n    # Promising edges will have lower values (negative or zero), undesirable edges will have higher values\n    heuristics = distance_matrix + cumulative_demand\n    \n    # Normalize the heuristics to ensure they are within the specified range\n    max_value = heuristics.max()\n    min_value = heuristics.min()\n    normalized_heuristics = (heuristics - min_value) / (max_value - min_value)\n    \n    return normalized_heuristics",
+      "fitness": 21.673686981201172,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_5.txt",
+      "code_file": "coevolve\\generation_9\\code_5.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Normalize distance matrix to make distances relative to the max distance in the matrix\n    max_distance = torch.max(distance_matrix)\n    normalized_distances = distance_matrix / max_distance\n\n    # Calculate the cumulative demand along the diagonal, where each diagonal element represents\n    # the total demand to visit the customer at that index\n    cumulative_demand = demands\n\n    # Combine normalized distance with cumulative demand to get heuristic values\n    # This heuristic assumes that closer customers are more promising (negative value) and\n    # that higher demands are less promising (negative value)\n    heuristics = normalized_distances - cumulative_demand\n\n    return heuristics",
+      "fitness": 22.86265754699707,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_8.txt",
+      "code_file": "coevolve\\generation_9\\code_8.py"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot demand
+
+    # Scale demand based on average demand
+    demand_scale = (demands / average_demand).unsqueeze(1)
+
+    # Scale distance based on the maximum distance in the matrix
+    distance_scale = distance_matrix / distance_matrix.max()
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Calculate the heuristic based on scaled demand and distance
+    heuristic_matrix = -distance_scale * demand_scale * distance_matrix
+
+    # Apply penalties for infeasibility and high distance to depot
+    infeasibility_penalty = torch.clamp(demands / average_demand - 1, min=0)
+    infeasibility_penalty = infeasibility_penalty.unsqueeze(1) * 1000
+    depot_penalty = distance_scale * 100
+    penalties = torch.max(infeasibility_penalty, depot_penalty)
+
+    # Apply penalties to the heuristic matrix
+    heuristic_matrix = torch.where(penalties > 0, penalties, heuristic_matrix)
+
+    # Normalize the heuristic matrix to the range [0, 1]
+    max_heuristic = heuristic_matrix.max()
+    min_heuristic = heuristic_matrix.min()
+    if max_heuristic != min_heuristic:
+        heuristic_matrix = (heuristic_matrix - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        # Avoid division by zero
+        heuristic_matrix = torch.ones_like(heuristic_matrix)
+
+    return heuristic_matrix
+```

@@ -1,0 +1,52 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning for real-time decision-making
+    rl_model = np.random.rand(n)
+    for episode in range(1000):
+        for i in range(n):
+            action = np.random.choice([0, 1], p=[1 - rl_model[i], rl_model[i]])
+            if action == 1:
+                rl_model[i] = (1 - 0.001) * rl_model[i] + 0.001 * (1 if np.all(weight[i] <= 1) else 0)
+            heuristic[i] = np.sum(prize[i]) if np.all(weight[i] <= 1) else 0
+
+    # Adaptive constraint-driven filtering to maintain multi-dimensional feasibility
+    alpha = 0.1  # Learning rate for adaptive filtering
+    threshold = 1.0  # Threshold for feasibility
+    for episode in range(1000):
+        for i in range(n):
+            if np.any(weight[i] > threshold):
+                heuristic[i] = 0
+            else:
+                heuristic[i] *= (1 - alpha) + alpha * np.sum(prize[i])
+
+    # Particle swarm optimization for evolutionary swarm intelligence
+    particles = np.random.rand(n, n)
+    velocities = np.random.rand(n, n)
+    best_position = particles
+    best_fitness = heuristic
+    w = 0.5  # Inertia weight
+    c1, c2 = 1.5, 1.5  # Cognitive and social coefficients
+    for iteration in range(100):
+        for i in range(n):
+            for j in range(n):
+                velocities[i][j] = w * velocities[i][j] + c1 * np.random.rand() * (best_position[i][j] - particles[i][j]) + c2 * np.random.rand() * (best_position[j][i] - particles[i][j])
+                particles[i][j] += velocities[i][j]
+            if heuristic[i] > best_fitness[i]:
+                best_position[i] = particles[i]
+                best_fitness[i] = heuristic[i]
+
+    # Regularize heuristics based on historical performance and constraints
+    for i in range(n):
+        if np.any(weight[i] > 1):
+            heuristic[i] = 0
+        else:
+            heuristic[i] = (1 - alpha) * heuristic[i] + alpha * best_fitness[i]
+
+    return heuristic
+```

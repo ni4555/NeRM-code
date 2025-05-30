@@ -1,0 +1,70 @@
+{
+  "generation": 3,
+  "description": "Enhancing MDKP resolution through a hybrid approach that combines adaptive stochastic sampling with an advanced Genetic Algorithm (GA), featuring a dynamic sorting mechanism based on a multi-dimensional weighted ratio metric, and leveraging cumulative sum analysis for precise item contribution assessment to optimize prize collection while rigorously adhering to intricate weight and capacity constraints.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Initialize the multi-dimensional weighted ratio metric\n    multi_dim_ratio = np.dot(prize, weight) / weight.sum(axis=1, keepdims=True)\n    \n    # Apply cumulative sum analysis to assess the item contribution\n    # Since the weight constraint is fixed to 1 for each dimension, the sum will be the weight of each item\n    # We will use the cumulative sum as the contribution metric\n    cumulative_contribution = np.cumsum(multi_dim_ratio, axis=1)\n    \n    # Dynamic sorting mechanism based on the multi-dimensional weighted ratio metric\n    # We will sort the items based on the cumulative contribution (which is the heuristic)\n    sorted_indices = np.argsort(-cumulative_contribution, axis=1)\n    \n    # Return the sorted indices as the heuristic for each item\n    return sorted_indices\n\n# Example usage:\n# Assume we have 5 items and each item has 3 weights\nn = 5\nm = 3\nprize = np.array([100, 200, 300, 400, 500])\nweight = np.array([\n    [1, 0, 0],\n    [0, 1, 0],\n    [0, 0, 1],\n    [1, 1, 0],\n    [0, 1, 1]\n])\n\n# Get the heuristics for each item\nheuristic_scores = heuristics_v2(prize, weight)\nprint(heuristic_scores)",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 24, in solve\n    assert heu.shape == (n,)\n           ^^^^^^^^^^^^^^^^^\nAssertionError\n",
+      "stdout_file": "coevolve/generation_3/stdout_0.txt",
+      "code_file": "coevolve/generation_3/code_0.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the multi-dimensional weighted ratio metric for each item\n    weighted_ratio = np.sum(prize * weight, axis=1)\n    \n    # Normalize the weighted ratio to ensure the sum of all heuristics is 1\n    heuristic_sum = np.sum(weighted_ratio)\n    heuristics = weighted_ratio / heuristic_sum\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    weighted_ratio = np.sum(prize * weight, axis=1)\n                            ~~~~~~^~~~~~~~\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_3/stdout_1.txt",
+      "code_file": "coevolve/generation_3/code_1.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the multi-dimensional weighted ratio metric\n    weighted_ratio = np.sum(prize * weight, axis=1)\n    \n    # Normalize the weighted ratio by the sum of weights for each item\n    normalized_weighted_ratio = weighted_ratio / np.sum(weight, axis=1)\n    \n    # Use cumulative sum analysis to assess item contribution\n    cumulative_sum = np.cumsum(normalized_weighted_ratio)\n    \n    # Dynamic sorting mechanism based on the multi-dimensional weighted ratio metric\n    sorted_indices = np.argsort(-cumulative_sum)\n    \n    # Create the heuristics array based on the sorted indices\n    heuristics = np.zeros_like(prize)\n    heuristics[sorted_indices] = cumulative_sum[sorted_indices]\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    heuristics = np.zeros_like(prize)\n                            ^^^^^^^^^^\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_3/stdout_2.txt",
+      "code_file": "coevolve/generation_3/code_2.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the multi-dimensional weighted ratio metric for each item\n    weighted_ratio = np.prod(weight, axis=1) / prize\n    \n    # Apply a dynamic sorting mechanism based on the weighted ratio\n    # The sorting key is a tuple where the first element is the negative of the weighted ratio\n    # (we use negative because we want the maximum ratio first) and the second element is the index\n    # This ensures that the sorting is stable and index information is preserved\n    sorted_indices = np.argsort((-weighted_ratio, np.arange(prize.size)))\n    \n    # Use cumulative sum analysis to assess item contribution\n    # We assume the contribution of an item is inversely proportional to the weighted ratio\n    cumulative_contribution = np.cumsum(1.0 / weighted_ratio)\n    \n    # Create a heuristics array where each element indicates how promising it is to include item i\n    # We use a simple inverse proportional heuristic (i.e., the more promising an item is, the higher its score)\n    heuristics = 1.0 / weighted_ratio[sorted_indices] * cumulative_contribution[sorted_indices]\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 24, in solve\n    assert heu.shape == (n,)\n           ^^^^^^^^^^^^^^^^^\nAssertionError\n",
+      "stdout_file": "coevolve/generation_3/stdout_4.txt",
+      "code_file": "coevolve/generation_3/code_4.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the multi-dimensional weighted ratio metric\n    weighted_prize = np.sum(prize * weight, axis=1)\n    total_weight = np.sum(weight, axis=1)\n    \n    # Apply the dynamic sorting mechanism based on the multi-dimensional weighted ratio metric\n    # and leverage cumulative sum analysis for precise item contribution assessment\n    sorted_indices = np.argsort(weighted_prize)[::-1]\n    cumulative_weight = np.cumsum(total_weight[sorted_indices])\n    \n    # Calculate heuristics as a weighted sum of the cumulative weight\n    # Each item's heuristics is inversely proportional to its cumulative weight\n    heuristics = 1 / cumulative_weight\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    # Since constraint of each dimension is fixed to 1, the metric is simply the ratio of prize to weight\n                            ^^^^^^^^^^^^^^\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_3/stdout_5.txt",
+      "code_file": "coevolve/generation_3/code_5.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the multi-dimensional weighted ratio metric\n    # Since constraint of each dimension is fixed to 1, the metric is simply the ratio of prize to weight\n    weighted_ratio = prize / weight\n    \n    # Dynamic sorting mechanism based on the multi-dimensional weighted ratio metric\n    # We use the cumulative sum of the sorted indices to achieve the dynamic sorting\n    sorted_indices = np.argsort(weighted_ratio)\n    cumulative_sum = np.cumsum(np.ones(len(sorted_indices)))\n    \n    # Calculate the heuristic for each item based on the cumulative sum\n    heuristics = np.array([cumulative_sum[idx] for idx in sorted_indices])\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 7, in heuristics_v2\n    \nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_3/stdout_6.txt",
+      "code_file": "coevolve/generation_3/code_6.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the multi-dimensional weighted ratio metric\n    weighted_prize = np.sum(prize * weight, axis=1)\n    # Apply cumulative sum analysis for precise item contribution assessment\n    cumulative_sum = np.cumsum(weight, axis=1)\n    # Combine the weighted prize with the cumulative sum for a multi-dimensional weighted ratio\n    heuristics = weighted_prize / cumulative_sum\n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    weighted_ratio = np.prod(weight, axis=1) / np.sum(weight, axis=1)\n                            ^^^^^^^^^^^^^^\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_3/stdout_9.txt",
+      "code_file": "coevolve/generation_3/code_9.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Calculate the multi-dimensional weighted ratio for each item\n    weighted_prize = np.sum(prize * weight, axis=1)\n    total_weight = np.sum(weight, axis=1)\n    \n    # Ensure that the total weight of each item is 1 by normalizing\n    normalized_weighted_prize = weighted_prize / total_weight\n    \n    # Use cumulative sum analysis to assess the contribution of each item\n    cumulative_sum = np.cumsum(normalized_weighted_prize)\n    \n    # Calculate the multi-dimensional weighted ratio metric\n    multi_dimensional_weighted_ratio = cumulative_sum / np.arange(1, len(cumulative_sum) + 1)\n    \n    # Dynamic sorting mechanism based on the multi-dimensional weighted ratio metric\n    sorted_indices = np.argsort(multi_dimensional_weighted_ratio)\n    \n    # Apply the sorting indices to the prize array to create the heuristics\n    heuristics = np.zeros_like(prize)\n    heuristics[sorted_indices] = multi_dimensional_weighted_ratio[sorted_indices]\n    \n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/lars/workspace/COP/reevo_2/problems/mkp_aco/gpt.py\", line 6, in heuristics_v2\n    weighted_prize = np.sum(prize * weight, axis=1)\n                            ~~~~~~^~~~~~~~\nValueError: operands could not be broadcast together with shapes (100,) (100,5) \n",
+      "stdout_file": "coevolve/generation_3/stdout_11.txt",
+      "code_file": "coevolve/generation_3/code_11.py"
+    }
+  ]
+}

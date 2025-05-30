@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demands = demands / total_demand  # Normalize demands
+
+    # Initialize the heuristic matrix with negative infinity for all edges
+    heuristic_matrix = torch.full(distance_matrix.shape, -torch.inf)
+
+    # Set the heuristic for the depot to its first customer
+    heuristic_matrix[0, 1:] = distance_matrix[0, 1:] * demands[1:]
+
+    # Calculate the heuristic for other edges
+    for i in range(1, n):
+        for j in range(i + 1, n):
+            # Calculate the cumulative demand for all nodes between i and j
+            cumulative_demand = torch.cat([demands[:i], demands[i:j], demands[j:]])
+            # Calculate the capacity left if we visit customer j
+            remaining_capacity = cumulative_demand[:i].sum() + total_demand - cumulative_demand[i].sum()
+            # Calculate the heuristic if we visit customer j before exceeding the capacity
+            if cumulative_demand[i].sum() <= remaining_capacity:
+                heuristic_matrix[i, j] = (remaining_capacity - cumulative_demand[i].sum()) * distance_matrix[i, j]
+                heuristic_matrix[j, i] = (remaining_capacity - cumulative_demand[i].sum()) * distance_matrix[j, i]
+
+    # Convert the negative infinity to a small negative value for undesirable edges
+    heuristic_matrix = torch.where(heuristic_matrix == -torch.inf, -1e8, heuristic_matrix)
+
+    return heuristic_matrix
+```

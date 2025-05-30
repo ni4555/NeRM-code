@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate the heuristics value for each edge based on scaled demand and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Introduce dampened penalties for demand and distance
+    demand_penalty = (scaled_demands > 1.0).float() * 1000.0
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+
+    # Calculate the weighted metric
+    weighted_metric = (heuristics * 0.8 + demand_penalty * 0.2 + distance_penalty * 0.1)
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_weighted_metric = weighted_metric.max()
+    min_weighted_metric = weighted_metric.min()
+    if max_weighted_metric != min_weighted_metric:
+        weighted_metric = (weighted_metric - min_weighted_metric) / (max_weighted_metric - min_weighted_metric)
+    else:
+        # Avoid division by zero
+        weighted_metric = torch.ones_like(weighted_metric)
+
+    return weighted_metric
+```

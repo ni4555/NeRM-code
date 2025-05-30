@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Demand-based partitioning: create a matrix of distances between all nodes
+    distance_matrix = normalized_distances
+    
+    # Cluster analysis for edge evaluation
+    # Here we use a simple form of cluster analysis: demand relaxation
+    # Nodes are more likely to be in the same cluster if they have similar demands
+    # Relax demands slightly to encourage more clustering
+    relaxed_demands = demands * 0.95
+    
+    # Calculate the potential value for each edge
+    # We combine the relaxed demand with the normalized distance
+    potential_values = distance_matrix - relaxed_demands
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

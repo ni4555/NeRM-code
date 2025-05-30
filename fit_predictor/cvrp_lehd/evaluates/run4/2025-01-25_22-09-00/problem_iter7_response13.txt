@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Demand factor: emphasize high demand
+    demand_factor = 1 - demands / total_capacity
+    
+    # Local balance factor: prioritize edges that are not too short and not too long
+    local_balance_factor = torch.where(
+        torch.abs(distance_matrix) < torch.mean(torch.abs(distance_matrix)),
+        0.5 * (1 - demands / total_capacity),
+        -0.5 * (1 - demands / total_capacity)
+    )
+    
+    # Global balance factor: penalize edges in longer paths
+    global_balance_factor = (demands / total_capacity) * (torch.abs(distance_matrix) / torch.mean(torch.abs(distance_matrix)))
+    
+    # Non-linear distance transformation: use a sigmoid function to penalize distant edges more
+    distance_transform = 1 / (1 + torch.exp(distance_matrix / torch.mean(torch.abs(distance_matrix))))
+    
+    # Combine the factors into the heuristics matrix
+    heuristic_matrix = demand_factor + local_balance_factor + global_balance_factor + distance_transform
+    
+    # Adjust the heuristics for the depot to all other nodes
+    # This heuristic promotes the inclusion of edges leading from the depot to customers with high demand
+    depot_distance = distance_matrix[:, 0]
+    for i in range(1, n):
+        # Calculate the remaining capacity of the route
+        remaining_capacity = total_capacity - demands[i]
+        # If the customer is feasible within the route, set the heuristic high; otherwise, set it low
+        feasible = demands[i] <= remaining_capacity
+        heuristic_matrix[0, i] = torch.where(
+            feasible,
+            -demands[i] * depot_distance[i],
+            torch.tensor(-1e8, dtype=heuristic_matrix.dtype)
+        )
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    return heuristic_matrix
+```

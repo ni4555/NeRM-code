@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce penalties for imbalanced load distribution and long routes
+    imbalance_penalty = torch.abs(average_demand_per_edge - total_capacity / (n - 1))
+    long_route_penalty = distance_matrix ** 2
+    
+    # Combine penalties to form the heuristic
+    heuristics = -torch.log1p(imbalance_penalty + long_route_penalty)
+    
+    # Normalize the heuristics to ensure they are non-negative
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    # Apply penalties to make long routes and imbalanced loads more undesirable
+    heuristics[distance_matrix == 0] = 0
+    heuristics[long_route_penalty >= 0] = -heuristics[long_route_penalty >= 0]
+    heuristics[imbalance_penalty >= 0] = -heuristics[imbalance_penalty >= 0]
+    
+    return heuristics
+```

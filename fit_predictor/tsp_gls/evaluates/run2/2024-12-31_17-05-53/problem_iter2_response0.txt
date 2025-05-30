@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the sum of distances from each node to all others
+    node_distances = np.sum(distance_matrix, axis=1)
+    
+    # Calculate the mean distance of all edges
+    total_edge_distance = np.sum(distance_matrix)
+    mean_distance = total_edge_distance / (distance_matrix.shape[0] * (distance_matrix.shape[0] - 1))
+    
+    # Initialize the heuristic matrix
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # For each node, compute the heuristic value by considering the total distance
+    # and subtracting the contribution of each edge based on its distance and the mean
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[0]):
+            if i != j:
+                heuristic_value = node_distances[i] - distance_matrix[i, j] - distance_matrix[j, i]
+                # Normalize the heuristic value using the mean distance
+                if mean_distance != 0:
+                    heuristic_matrix[i, j] = (heuristic_value / mean_distance) if mean_distance != 0 else 0
+    
+    # Normalize the heuristic matrix to avoid negative values and to provide a relative scale
+    row_sums = np.sum(heuristic_matrix, axis=1)
+    epsilon = 1e-10
+    normalized_heuristic_matrix = (heuristic_matrix / (row_sums[:, np.newaxis] + epsilon))
+    
+    return normalized_heuristic_matrix
+```

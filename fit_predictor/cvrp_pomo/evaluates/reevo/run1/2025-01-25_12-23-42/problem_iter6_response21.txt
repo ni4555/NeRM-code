@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Normalize the distances to account for varying scales
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Normalize the demands to get the fractional load per customer
+    fractional_loads = demands / total_demand
+    
+    # Calculate the cumulative sum of fractional loads to get the load at each node
+    cumulative_loads = torch.cumsum(fractional_loads, dim=0)
+    
+    # Encourage visiting customers with higher loads first
+    load_heuristics = -cumulative_loads.unsqueeze(-1) * norm_distances
+    
+    # Encourage diversity by penalizing consecutive visits to the same node
+    consecutive_penalty = (cumulative_loads[:, None] == cumulative_loads.unsqueeze(0)).float()
+    diversity_heuristics = -consecutive_penalty * norm_distances
+    
+    # Combine both heuristics to get the final heuristic values
+    heuristics = load_heuristics + diversity_heuristics
+    
+    # Clamp the values to ensure all are non-negative
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

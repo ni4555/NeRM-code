@@ -1,0 +1,53 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Normalize demand differences to encourage diversity
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Normalize the remaining capacity for better scaling
+    normalized_capacity = remaining_capacity / remaining_capacity.max()
+
+    # Calculate heuristic value using normalized demand differences and remaining capacity
+    heuristics = demand_diff * normalized_capacity
+
+    # Introduce randomness to explore diverse solutions
+    exploration_noise = torch.randn_like(heuristics) * 0.02
+    heuristics += exploration_noise
+
+    # Introduce a penalty for edges leading back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty
+
+    # Introduce a non-linear penalty for capacity violation, but keep it mild to prevent excessive damping
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 100.0, min=0.0)
+    heuristics -= capacity_penalty * 0.2
+
+    # Dampen the impact of distance-based preferences to encourage balance
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 5
+    heuristics += torch.clamp(distance_penalty, min=0.0) * 0.1
+
+    # Apply a dampening function to all penalties to maintain stability
+    dampening_factor = torch.sigmoid(heuristics)
+
+    # Introduce a preference for diversity by balancing exploration and exploitation
+    diversity_bonus = (torch.rand_like(heuristics) - 0.5) * 2
+    diversity_bonus = torch.clamp(diversity_bonus, min=-0.1, max=0.1)
+    heuristics += diversity_bonus * dampening_factor
+
+    # Clamp the heuristic values to ensure a balanced heuristic distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

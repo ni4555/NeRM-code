@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the demand vector to the capacity
+    normalized_demands = demands / total_demand
+    # Initialize the heuristic matrix
+    heuristics = torch.zeros_like(distance_matrix)
+    # Create a mask for all edges
+    mask = torch.triu(torch.ones_like(distance_matrix), diagonal=1)
+    # Calculate the sum of demands for each edge
+    edge_demand_sum = torch.dot(normalized_demands.unsqueeze(1), normalized_demands.unsqueeze(0)).T * mask
+    # Calculate the cost of each edge
+    edge_costs = distance_matrix * edge_demand_sum
+    # Use a modified minimum spanning tree algorithm to determine the cost of including each edge
+    edge_costs[mask] = edge_costs[mask] / edge_costs[mask].max()
+    # Normalize the costs to make them negative for undesirable edges
+    heuristics[mask] = -edge_costs[mask]
+    return heuristics
+```

@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the minimum distance to the nearest neighbor for each edge
+    min_distance_to_neighbor = np.min(distance_matrix, axis=1)
+    
+    # Calculate the average distance to all neighbors for each edge
+    average_distance_to_neighbors = np.mean(distance_matrix, axis=1)
+    
+    # Combine the edge length with the nearest neighbor distance
+    combined_weight = distance_matrix + (min_distance_to_neighbor / np.max(min_distance_to_neighbor))
+    
+    # Adjust the weight by reducing the contribution of edges with a high average distance to neighbors
+    adjusted_weight = combined_weight * (1 - (average_distance_to_neighbors / np.max(average_distance_to_neighbors)))
+    
+    # Normalize the adjusted weight to maintain the same scale as the original matrix
+    max_adjusted_weight = np.max(adjusted_weight)
+    normalized_weight = adjusted_weight / max_adjusted_weight
+    
+    # Incorporate diversity by adding a random noise to the weights
+    random_noise = np.random.normal(0, 0.1, size=adjusted_weight.shape)
+    final_weights = normalized_weight + random_noise
+    
+    # Return the matrix with values indicating how bad it is to include each edge
+    return final_weights
+```

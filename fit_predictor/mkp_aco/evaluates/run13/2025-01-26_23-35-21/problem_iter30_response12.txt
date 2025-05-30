@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic array with zeros
+    heuristic = np.zeros_like(prize)
+    
+    # Randomly select a diverse set of items to initialize the heuristic values
+    num_initial_items = int(0.1 * len(prize))
+    initial_indices = np.random.choice(range(len(prize)), size=num_initial_items, replace=False)
+    heuristic[initial_indices] = 1
+    
+    # Calculate additional metrics for each item
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    weight_sum = np.sum(weight, axis=1)
+    variance = np.var(weight, axis=1)
+    
+    # Introduce a diversity factor based on the initial item selection
+    diversity_factor = 1 / (num_initial_items + 1)
+    
+    # Define weights for each metric
+    density_weight = 0.4
+    sparsity_weight = 0.3
+    weight_sum_weight = 0.2
+    variance_weight = 0.1
+    
+    # Update the heuristic values based on the additional metrics
+    for i in range(len(prize)):
+        # Skip items with zero weight
+        if weight_sum[i] < 1e-8:
+            continue
+        # Combine the metrics using a weighted sum
+        metric = density_weight * density[i] + sparsity_weight * sparsity[i] + weight_sum_weight * weight_sum[i] + variance_weight * variance[i]
+        # Update the heuristic value
+        heuristic[i] = metric * diversity_factor
+    
+    # Normalize the heuristic values to ensure the sum is 1
+    heuristic /= np.sum(heuristic)
+    
+    return heuristic
+```

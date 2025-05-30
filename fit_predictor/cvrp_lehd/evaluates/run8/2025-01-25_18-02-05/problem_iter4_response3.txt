@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand along each path
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative distance along each path
+    cumulative_distance = torch.cumsum(distance_matrix, dim=0)
+    
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = cumulative_demand / cumulative_distance
+    
+    # Normalize the ratio by the sum of all cumulative ratios to avoid overfitting
+    normalized_ratio = demand_to_distance_ratio / (cumulative_demand.sum() / cumulative_demand)
+    
+    # Invert the normalized ratio to use as a heuristic
+    heuristic_matrix = -torch.log(1 + normalized_ratio)
+    
+    # Calculate the variance of the normalized ratio
+    ratio_variance = torch.var(normalized_ratio)
+    
+    # Normalize the variance by the total vehicle capacity
+    normalized_variance = ratio_variance / demands.sum()
+    
+    # Combine the heuristic with the demand variance-based heuristic
+    combined_heuristic = heuristic_matrix + normalized_variance
+    
+    # Apply a non-linear transformation to emphasize longer distances
+    heuristic_matrix = torch.exp(-combined_heuristic)
+    
+    # Set a threshold based on the minimum value of the heuristic matrix
+    threshold = torch.min(heuristic_matrix)
+    
+    # Apply the threshold to ensure all undesirable edges have negative values
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, heuristic_matrix, 0)
+    
+    return heuristic_matrix
+```

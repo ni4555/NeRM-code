@@ -1,0 +1,77 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning component with diverse reward functions
+    model_scores = np.random.rand(n)
+    reward_functions = [
+        lambda x: np.sum(x * np.log(1 + x)),
+        lambda x: np.sum(x * np.sqrt(1 + x)),
+        lambda x: np.sum(x / (1 + x))
+    ]
+    model_rewards = [np.mean([reward(model_scores) for reward in reward_functions])]
+
+    # Adaptive constraint-driven filtering to maintain multi-dimensional feasibility
+    constraint_violation = np.sum(weight, axis=1) > 1
+    feasible_items = ~constraint_violation
+
+    # Particle swarm optimization with adaptive velocity and sparsity thresholding
+    pso_position = np.copy(model_scores)
+    pso_velocity = np.zeros(n)
+    pso_personal_best = np.copy(model_scores)
+    pso_global_best = np.copy(model_scores)
+
+    # Initialize PSO positions randomly within the range [0, 1]
+    pso_position = np.random.rand(n)
+
+    for _ in range(10):  # Using a small number of iterations for demonstration
+        for i in range(n):
+            # Update the velocity with adaptive parameters
+            pso_velocity[i] = 0.5 * pso_velocity[i] + 0.5 * (np.random.rand() - 0.5)
+            # Update the position based on the velocity
+            pso_position[i] += pso_velocity[i]
+            # Ensure the position does not exceed 1
+            pso_position[i] = np.clip(pso_position[i], 0, 1)
+            # Update the personal best if the current position is better
+            pso_personal_best[i] = np.maximum(pso_position[i], pso_personal_best[i])
+            # Update the global best if the personal best is better
+            pso_global_best[i] = np.maximum(pso_personal_best[i], pso_global_best[i])
+        # Update global best index
+        global_best_index = np.argmax(pso_global_best)
+
+        # Update rewards for PSO using the mean of diverse reward functions
+        pso_rewards = [np.mean([reward(pso_position) for reward in reward_functions])]
+        model_rewards.append(pso_rewards[-1])
+
+    # Update heuristics based on the weighted average of RL and PSO rewards, considering feasibility
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            avg_reward = np.mean(model_rewards)
+            heuristic[i] = (avg_reward * (prize[i] / (prize[global_best_index] + 1e-6))) + \
+                           (pso_global_best[i] * (1 - avg_reward))
+
+    # Incorporate domain constraints early by considering the sum of weights
+    total_weight = np.sum(weight, axis=1)
+    weight_contribution = np.maximum(1 - total_weight, 0)
+
+    # Integrate model/PSO outputs with a balance between exploration and exploitation
+    exploration = np.random.rand(n)
+    exploitation = (heuristic / np.sum(heuristic))
+    weighted_heuristic = (exploration * exploitation) * (heuristic * weight_contribution)
+
+    # Sparsify heuristics by setting less promising elements to zero using a dynamic threshold
+    sparsity_threshold = np.percentile(weighted_heuristic[feasible_items], 25)  # Dynamic threshold
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    # Adapt PSO parameters based on the performance of the heuristic
+    pso_velocity = pso_velocity * 0.9 + np.random.rand(n) * 0.1  # Adaptive velocity update
+    pso_position = np.clip(pso_position + pso_velocity, 0, 1)  # Ensure positions are within bounds
+
+    return heuristic
+```

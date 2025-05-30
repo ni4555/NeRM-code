@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate a penalty for each edge based on distance
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Calculate a penalty for each node's demand
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Normalize the demand penalties to ensure scale consistency
+    demand_penalty_matrix = demand_penalty_matrix / demand_penalty_matrix.max()
+    
+    # Combine demand and distance penalties with a weighted factor to balance them
+    combined_penalty_matrix = demand_penalty_matrix + 0.8 * distance_penalty_matrix
+    
+    # Introduce diversity by considering the inverse of the distance as a bonus
+    distance_bonus_matrix = (1 / (distance_matrix + 1e-6)) * demand_penalty_matrix
+    
+    # Normalize the distance bonus matrix to maintain scale consistency
+    distance_bonus_matrix = distance_bonus_matrix / distance_bonus_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine the combined penalty and distance bonus matrices
+    combined_matrix = combined_penalty_matrix + distance_bonus_matrix
+    
+    # Apply a non-linear transformation to the combined matrix
+    heuristics_matrix = torch.log(combined_matrix + 1e-6)
+    
+    return heuristics_matrix
+```

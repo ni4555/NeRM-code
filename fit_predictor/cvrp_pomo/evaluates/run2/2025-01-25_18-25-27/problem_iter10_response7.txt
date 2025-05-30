@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Vectorized initial heuristic calculation with penalties for infeasibilities
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    heuristics_matrix += infeasibility_penalty
+
+    # Vectorized mutation process to introduce randomness and refine heuristics
+    mutation_factor = torch.rand(n)
+    max_gain = distance_matrix.max() - distance_matrix
+    potential_gain = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    potential_gain = torch.where(potential_gain > 0, potential_gain, torch.zeros_like(potential_gain))
+    mutated_heuristics_matrix = heuristics_matrix + mutation_factor * max_gain
+
+    # Ensure that all heuristics are positive
+    heuristics_matrix = torch.clamp(mutated_heuristics_matrix, min=0)
+
+    # Introduce randomness
+    random_factor = (torch.rand(n) * 2 - 1) * (heuristics_matrix > 0).float()
+    heuristics_matrix += random_factor
+
+    # Ensure that all heuristics are positive after introducing randomness
+    heuristics_matrix = torch.clamp(heuristics_matrix, min=0)
+
+    return heuristics_matrix
+```

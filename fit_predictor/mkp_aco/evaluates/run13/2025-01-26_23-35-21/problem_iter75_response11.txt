@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate normalized density
+    density = prize / np.sum(weight, axis=1, keepdims=True)
+    
+    # Calculate the normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items by comparing density to the average
+    dominated_mask = density < np.mean(density)
+    non_dominated_density = np.where(dominated_mask, 0, density)
+    
+    # Introduce a diversity factor based on the standard deviation of the density
+    std_density = np.std(density)
+    diversity_factor = non_dominated_density / (std_density + 1e-8)
+    
+    # Create a weighted heuristic value by balancing density and sparsity
+    heuristic_value = density * (1 - sparsity) + diversity_factor
+    
+    # Introduce randomness to ensure diverse solution exploration
+    random_factor = np.random.rand(len(density))
+    
+    # Combine heuristics using a weighted sum and normalize
+    combined_heuristic = 0.7 * heuristic_value + 0.3 * random_factor
+    normalized_heuristic = combined_heuristic / (np.max(combined_heuristic) + 1e-8)
+    
+    # Prune dominated items by setting their heuristics to zero
+    heuristics = np.where(dominated_mask, 0, normalized_heuristic)
+    
+    # Ensure diversity by setting heuristics of items with weight less than a threshold to a small value
+    weight_threshold = np.max(weight, axis=1) * 0.1
+    heuristics[weight < weight_threshold] = 1e-8
+    
+    return heuristics
+```

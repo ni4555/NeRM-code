@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    cum_demands = torch.cumsum(demands, dim=0)
+    capacity_mask = cum_demands < demands[0]
+    
+    # Normalize the distance matrix to a 0-1 scale to make comparisons meaningful
+    normalized_distances = (distance_matrix - torch.min(distance_matrix)) / (torch.max(distance_matrix) - torch.min(distance_matrix))
+    
+    # Apply a logarithmic transformation to the distances to penalize longer distances
+    log_distances = torch.log1p(normalized_distances)
+    
+    # Apply a penalty for high demands by scaling demands logarithmically and then exponentiating
+    scaled_demands = torch.log1p(demands)
+    
+    # Calculate the cumulative scaled demands and apply the penalty for overcapacity
+    cum_scaled_demands = torch.cumsum(scaled_demands, dim=0)
+    over_capacity_penalty = torch.where(capacity_mask, torch.zeros_like(cum_scaled_demands), cum_scaled_demands - scaled_demands[0])
+    
+    # Combine the log distance and the demand penalty
+    heuristics = log_distances - over_capacity_penalty
+    
+    # Normalize the heuristics to ensure all values are within the range [-1, 1]
+    max_val = torch.max(torch.abs(heuristics))
+    heuristics /= max_val
+    heuristics = torch.clamp(heuristics, min=-1, max=1)
+    
+    # Ensure the depot to itself has a heuristic of 0
+    heuristics[0, 1] = 0
+    heuristics[1, 0] = 0
+    
+    return heuristics
+```

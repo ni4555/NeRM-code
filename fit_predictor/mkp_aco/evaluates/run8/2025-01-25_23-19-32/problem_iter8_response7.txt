@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized prize to weight ratio
+    ratio = prize / np.sum(weight, axis=1)
+    # Introduce a sparsity factor based on the normalized prize to weight ratio
+    sparsity_factor = np.max(ratio)
+    # Create a sparsity term based on the ratio of the maximum ratio to the average ratio
+    sparsity_term = sparsity_factor / np.mean(ratio)
+    # Calculate item importance considering the sum of weights and normalized prize
+    item_importance = np.sum(weight, axis=1) * ratio
+    # Calculate importance sparsity based on the squared weights and normalized weight sum
+    importance_sparsity = 1 - (np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2)
+    # Calculate the sparsity based on the distribution of the normalized weight sum
+    normalized_weight_sum = np.sum(weight, axis=1)
+    sparsity = 1 / (np.mean(normalized_weight_sum) + 1e-5)  # Adding a small constant to avoid division by zero
+    # Combine the importance and sparsity terms with the domain-specific sparsity factor
+    combined_heuristics = item_importance * importance_sparsity * sparsity_term * sparsity
+    # Normalize the heuristics to sum to 1
+    combined_heuristics /= np.sum(combined_heuristics)
+    return combined_heuristics
+```

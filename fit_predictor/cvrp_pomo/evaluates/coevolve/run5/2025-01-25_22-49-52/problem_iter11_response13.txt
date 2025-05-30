@@ -1,0 +1,53 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate potential value for each edge
+    distance_weight = 0.5
+    demand_weight = 2.0
+    penalty_threshold = 0.8
+    average_demand = normalized_demands.mean()
+    
+    # Sigmoid function to smooth the transition between high and low demand
+    def sigmoid(x, L=1, k=0.01):
+        y = L / (1 + torch.exp(-k * x))
+        return y
+    
+    # Adjust demands using sigmoid to reduce impact of outliers
+    normalized_demands = sigmoid(normalized_demands)
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                torch.ones_like(normalized_demands) * (1 - sigmoid(penalty_threshold)),
+                                torch.zeros_like(normalized_demands))
+    
+    # Node partitioning approach
+    partitioning = torch.where(normalized_demands > average_demand, 
+                                normalized_demands, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Adjust potential values based on partitioning
+    potential_values = (normalized_distances * (1 - partitioning) +
+                        distance_weight * normalized_distances +
+                        demand_weight * normalized_demands - 
+                        penalty_term * partitioning).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Dynamic window approach to adapt weights based on real-time vehicle capacity
+    vehicle_capacity = demands.sum().item() / n
+    dynamic_weight = 1.0 / (1.0 + torch.exp(-vehicle_capacity))
+    potential_values *= dynamic_weight
+    
+    return potential_values
+```

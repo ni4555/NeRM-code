@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the sum of demands for each vehicle to limit the number of edges
+    sum_of_demands = demands.cumsum()
+    
+    # Calculate the cumulative distance from the depot to each node
+    cumulative_distance = distance_matrix[:, 0].cumsum(0)
+    
+    # Calculate the potential utility of each edge by combining distance and demand
+    # This is a simple heuristic that tries to balance distance and demand
+    utility = (1 / (1 + distance_matrix)) * (1 - sum_of_demands)
+    
+    # Normalize the utility matrix to have a range that fits the problem scale
+    utility_normalized = utility / (torch.max(utility) + 1e-10)
+    
+    # Adjust the utility matrix based on the cumulative demand to favor edges that
+    # lead to a complete load before reaching the vehicle capacity
+    utility_adjusted = utility_normalized * (1 - sum_of_demands / demands)
+    
+    return utility_adjusted
+```

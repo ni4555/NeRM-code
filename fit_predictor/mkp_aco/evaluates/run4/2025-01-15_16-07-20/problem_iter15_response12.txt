@@ -1,0 +1,40 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Normalize prizes based on max prize
+    normalized_prize = prize / max_prize
+    
+    # Normalize weights and apply a sparsity factor
+    sparsity_factor = 1 / (np.mean(weight, axis=1) + 1e-6)  # Avoid division by zero
+    normalized_weight = weight / np.mean(weight, axis=1)
+    
+    # Calculate a diversity score to favor more diverse items
+    diversity_score = normalized_prize * sparsity_factor
+    
+    # Calculate density based on prize
+    density = normalized_prize
+    
+    # Calculate constraint balance using a non-linear factor
+    constraint_balance = (np.sum(weight, axis=1)**-1) * np.sum(weight**2, axis=1)
+    
+    # Calculate utility as the product of diversity, density, and constraint balance
+    utility = diversity_score * density * constraint_balance
+    
+    # Normalize utility to get heuristics
+    normalized_utility = utility / np.sum(utility)
+    
+    # Introduce a penalty for items that have excessive weight in any dimension
+    excessive_weight_penalty = np.where(np.sum(weight, axis=1) > 1)[0]
+    penalty = np.ones(n) * (1 / n)  # Uniform base penalty
+    penalty[excessive_weight_penalty] += 1  # Increase penalty for excessive items
+    
+    # Apply penalty to normalized utility
+    adjusted_utility = normalized_utility * penalty
+    
+    # Return the adjusted heuristics scores
+    return adjusted_utility
+```

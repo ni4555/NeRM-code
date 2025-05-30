@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic considering demand-based attractiveness, interaction between nodes, and balancing reward and punishment."""
+    total_demand = demands.sum()
+    # Normalize demands by total demand
+    normalized_demands = demands / total_demand
+    # Calculate the potential contribution of each edge
+    potential = -distance_matrix * normalized_demands
+    # Introduce an interaction term to consider the combined attractiveness of connecting two nodes
+    interaction = normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0)
+    # Introduce a dampening factor to penalize longer distances
+    dampen = torch.exp(-distance_matrix / 10)
+    # Introduce a term that rewards connections between nodes with similar demands
+    demand_similarity = demands.unsqueeze(1) * demands.unsqueeze(0)
+    # Combine potential, interaction, dampening, and demand similarity
+    heuristics = potential + interaction + dampen - demand_similarity
+    # Normalize the heuristics to have a range between -1 and 1
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    return heuristics
+```

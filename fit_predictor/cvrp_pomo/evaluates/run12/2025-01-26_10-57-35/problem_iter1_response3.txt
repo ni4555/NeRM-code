@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """
+    An enhanced heuristic that assigns a score to each edge based on the potential savings
+    from avoiding the use of extra vehicles or the need to return early to the depot.
+    """
+    total_demand = demands.sum()
+    edge_scores = torch.zeros_like(distance_matrix)
+    demands_expanded = demands.expand(-1, demands.size(0))
+    edge_costs = (distance_matrix * demands_expanded * (demands_expanded - 1) / (total_demand * total_demand))
+    
+    edge_costs = torch.max(edge_costs, edge_costs.transpose(0, 1))  # Use min distance between any 2 customers
+    
+    # Negative cost if edge avoids a new vehicle
+    edge_scores += torch.min(edge_costs, -distance_matrix)
+    
+    # Add extra positive scores based on high customer density or critical nodes
+    edge_scores += torch.max(demands * distance_matrix, torch.zeros_like(distance_matrix))
+    
+    return edge_scores
+```

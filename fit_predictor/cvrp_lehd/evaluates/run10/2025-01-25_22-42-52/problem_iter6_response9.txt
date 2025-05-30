@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize a matrix with high negative values for undesirable edges
+    heuristics_matrix = -torch.ones_like(distance_matrix)
+    
+    # Initialize an auxiliary matrix to keep track of the best cumulative demand for each vehicle
+    best_cumulative_demand = torch.zeros_like(demands)
+    
+    # Loop through all nodes (except the depot)
+    for i in range(1, n):
+        # Loop through all other nodes (except the depot)
+        for j in range(1, n):
+            # Update the best cumulative demand for the current vehicle if this edge is selected
+            best_cumulative_demand[j] = torch.min(best_cumulative_demand[j], cumulative_demand[i-1] + demands[j])
+            
+            # Check if the current edge is feasible (demand does not exceed vehicle capacity)
+            if best_cumulative_demand[j] <= demands[i]:
+                # Calculate the load balance factor, encouraging routes that balance the vehicle load
+                load_balance_factor = (demands[i] + demands[j]) / demands[i]
+                # Assign a heuristic value based on the distance and load balance factor
+                heuristics_matrix[i, j] = -distance_matrix[i, j] + load_balance_factor
+                
+                # Penalize overcapacity by subtracting the excess demand from the heuristic
+                if best_cumulative_demand[j] > demands[i]:
+                    heuristics_matrix[i, j] -= (best_cumulative_demand[j] - demands[i])
+    
+    return heuristics_matrix
+```

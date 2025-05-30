@@ -1,0 +1,54 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic matrix with high values
+    heuristic_matrix = np.full(distance_matrix.shape, np.inf)
+    
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=1)
+    
+    # Calculate the usage of each edge
+    edge_usage = np.count_nonzero(distance_matrix, axis=0)
+    
+    # Calculate the mean and standard deviation of the distance matrix
+    mean_distance = np.mean(distance_matrix)
+    std_distance = np.std(distance_matrix)
+    
+    # Normalize node degrees to avoid dominance
+    normalized_degrees = (degrees - np.min(degrees)) / (np.max(degrees) - np.min(degrees))
+    
+    # Normalize edge usage to avoid dominance
+    normalized_usage = (edge_usage - np.min(edge_usage)) / (np.max(edge_usage) - np.min(edge_usage))
+    
+    # Apply a non-linear scaling to the adjustments
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Normalize the distance adjustments
+                distance_adjustment = -np.exp(-(distance_matrix[i][j] - mean_distance) ** 2 / (2 * std_distance ** 2))
+                distance_adjustment = np.clip(distance_adjustment, 0, 1)
+                
+                # Introduce noise for exploration to escape local minima
+                noise = np.random.normal(0, 0.01)
+                
+                # Adjust based on normalized node degree
+                adjustment = normalized_degrees[i] - normalized_degrees[j]
+                adjustment = np.clip(adjustment, -1, 1)
+                
+                # Adjust based on normalized edge usage
+                usage_penalty = -normalized_usage[i] * normalized_usage[j]
+                usage_penalty = np.clip(usage_penalty, -1, 0)
+                
+                # Introduce a balance between global and local adjustments
+                global_adjustment = -np.exp(-(np.abs(adjustment) - 0.5) ** 2)
+                local_adjustment = adjustment
+                
+                # Combine the adjustments with noise
+                heuristic_matrix[i][j] = distance_matrix[i][j] * (1 + global_adjustment + local_adjustment + usage_penalty + distance_adjustment + noise)
+    
+    # Ensure that no self-loops have a non-zero heuristic
+    np.fill_diagonal(heuristic_matrix, np.inf)
+    
+    return heuristic_matrix
+```

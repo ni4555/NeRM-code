@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize by total demand to balance the influence of high demand nodes
+    normalized_demand = demands / total_demand
+
+    # Introduce dynamic weights to balance demand and distance
+    dynamic_weights = (1 / (distance_matrix + 1e-8)) * normalized_demand
+
+    # Integrate diversity by ensuring a spread of the heuristics values
+    diversity_spread = 1 / (torch.sqrt(torch.sum(distance_matrix ** 2, axis=1) + 1e-8))
+
+    # Apply domain-specific knowledge: reduce penalty for high capacity utilization
+    high_capacity_bonus = 1 - (demands / torch.max(demands))
+    high_capacity_bonus[high_capacity_bonus < 0.5] = 0
+
+    # Combine heuristics with the considerations above
+    combined_heuristic = dynamic_weights * (diversity_spread + high_capacity_bonus)
+
+    # Ensure that edges with insufficient capacity are penalized
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    return combined_heuristic
+```

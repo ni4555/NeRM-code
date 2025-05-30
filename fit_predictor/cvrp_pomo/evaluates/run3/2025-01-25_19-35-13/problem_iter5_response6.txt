@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Introduce dynamic weights that adapt to the cumulative demand
+    dynamic_demand_weight = 0.8 - (0.8 * (normalized_demands.sum() / demands.max()))
+    dynamic_distance_weight = 0.2 + (0.2 * (normalized_demands.sum() / demands.max()))
+    
+    # Use a modified version of the Nearest Neighbor heuristic to generate a base solution
+    n = len(demands)
+    edge_counts = torch.zeros_like(distance_matrix)
+    for i in range(n):
+        edge_counts[i, distance_matrix[i] != float('inf')] += 1
+    base_route_indices = torch.argsort(edge_counts, descending=True)
+    base_solution_potential = (1 / (distance_matrix + 1e-8)) * torch.pow(normalized_demands, dynamic_demand_weight)
+    
+    # Apply the base solution potential
+    edge_potential = base_solution_potential[base_route_indices]
+    
+    # Introduce a penalty for high density edges and a bonus for low density edges
+    high_density_penalty = (edge_counts > 5).float() * (-0.5)
+    low_density_bonus = (edge_counts < 2).float() * 0.5
+    
+    # Introduce a penalty for high demand and a bonus for low demand
+    high_demand_penalty = (demands > 1.5).float() * (-0.5)
+    low_demand_bonus = (demands < 1.0).float() * 0.5
+    
+    # Combine the weights into the final potential
+    edge_potential = edge_potential + dynamic_demand_weight * high_demand_penalty + low_demand_bonus
+    edge_potential = edge_potential + dynamic_distance_weight * high_density_penalty + low_density_bonus
+    
+    return edge_potential
+```

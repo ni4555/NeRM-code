@@ -1,0 +1,49 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Initialize the potential value matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Use a dynamic window approach to identify initial vehicle routes
+    vehicle_capacity = demands.sum()  # Assuming total vehicle capacity is the sum of demands
+    routes = {0}  # Start with the depot as the only node in the first route
+    
+    while any(demands):
+        new_routes = {}
+        for start_node, route in routes.items():
+            for end_node in range(n):
+                if end_node not in route and demands[end_node] > 0:
+                    demand_remaining = demands[end_node]
+                    route_demand = demands[route] + demand_remaining
+                    if route_demand <= vehicle_capacity:
+                        new_routes[(start_node, end_node)] = route | {end_node}
+                        demands[end_node] = 0  # Demand has been satisfied
+        routes.update(new_routes)
+    
+    # Assign potential values based on whether two nodes are part of the same route
+    for start_node, end_node in routes.items():
+        if len(start_node) > 1:  # Ensure we have a route with more than the depot
+            route_nodes = torch.tensor(start_node)
+            for i in range(len(route_nodes)):
+                for j in range(i + 1, len(route_nodes)):
+                    edge_index = torch.tensor([route_nodes[i], route_nodes[j]])
+                    potential_values[edge_index[0], edge_index[1]] += torch.clamp(-torch.sum(normalized_demands[route_nodes]), min=0)
+                    potential_values[edge_index[1], edge_index[0]] = potential_values[edge_index[0], edge_index[1]]  # Symmetric potential
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix and demands
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate demand relaxation factor
+    relaxation_factor = torch.relu(normalized_demands - 1)
+    
+    # Define a function to calculate a weighted sum of distance, demand relaxation, and balance metrics
+    def weighted_potential(dist, demand, alpha=0.5, beta=0.5, gamma=0.1):
+        return dist - alpha * demand - beta * torch.log(1 + demand) - gamma * relaxation_factor
+    
+    # Calculate the potential value for each edge using a more sophisticated heuristic
+    weights = torch.rand(1, n) * 2 - 1  # Random weights between -1 and 1
+    potential_values = torch.zeros_like(normalized_distances)
+    potential_values = potential_values.scatter_add(1, torch.arange(n).unsqueeze(0), weighted_potential(normalized_distances, normalized_demands).unsqueeze(0))
+    
+    # Introduce node partitioning based on demand distribution
+    demand_sorted_indices = torch.argsort(normalized_demands, dim=1, descending=True)
+    partition_indices = torch.topk(normalized_demands, 2, dim=1).indices
+    partition_factor = torch.where(torch.arange(n)[:, None] in partition_indices, -1.0, 0.0)
+    
+    # Adjust potential values for partitioning
+    potential_values = potential_values.scatter_add(0, demand_sorted_indices[:, :1], partition_factor.unsqueeze(0))
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Dynamic window approach: Adjust potential values based on the average demand relaxation
+    average_relaxation = relaxation_factor.mean()
+    dynamic_adjustment = (relaxation_factor - average_relaxation) * (torch.rand(1, n) > 0.5)
+    potential_values += dynamic_adjustment
+    
+    return potential_values
+```

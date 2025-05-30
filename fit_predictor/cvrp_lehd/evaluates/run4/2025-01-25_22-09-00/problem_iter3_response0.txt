@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_factor = demands / demands.sum()
+    demand_scaled = demand_factor * demands
+
+    # Compute a scaled distance matrix based on demands
+    distance_scaled = distance_matrix * demand_scaled
+
+    # Calculate a global heuristic based on the average distance per demand
+    global_heuristic = (distance_scaled.sum() / demands.sum()).unsqueeze(1)
+
+    # Compute local heuristic using nearest neighbor approach
+    local_heuristic = torch.cdist(torch.arange(n), torch.arange(n)) - torch.eye(n)
+    local_heuristic = local_heuristic / local_heuristic.max()
+
+    # Combine global and local heuristics
+    combined_heuristic = global_heuristic - local_heuristic
+
+    # Refine the heuristic to encourage paths with less overall demand
+    refined_heuristic = combined_heuristic - demands.unsqueeze(1)
+
+    return refined_heuristic
+```

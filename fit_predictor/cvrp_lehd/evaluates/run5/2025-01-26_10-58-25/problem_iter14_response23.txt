@@ -1,0 +1,46 @@
+```python
+import torch
+from torch import nn
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the penalty for exceeding vehicle capacity
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Add a small constant to the distance matrix to avoid log(0)
+    distance_matrix = distance_matrix + 1e-6
+    
+    # Calculate the log of the distance matrix as a penalty
+    log_distance_penalty_matrix = -torch.log(distance_matrix)
+    
+    # Combine demand and distance penalties
+    combined_penalty_matrix = penalty_matrix + log_distance_penalty_matrix
+    
+    # Apply an exponential transformation to emphasize feasible and low-cost edges
+    transformed_matrix = torch.exp(combined_penalty_matrix)
+    
+    # Normalize the transformed matrix
+    min_value = torch.min(transformed_matrix)
+    max_value = torch.max(transformed_matrix)
+    normalized_matrix = (transformed_matrix - min_value) / (max_value - min_value)
+    
+    # Introduce a weight based on the inverse of the vehicle capacity to balance demand and distance
+    weight = 1 / (vehicle_capacity / demands.sum())
+    weighted_normalized_matrix = normalized_matrix * weight
+    
+    # Cap the weights to a reasonable upper bound
+    cap_upper_bound = 2
+    capped_normalized_matrix = torch.clamp(weighted_normalized_matrix, min=0, max=cap_upper_bound)
+    
+    # Create a matrix with negative values for undesirable edges and positive values for promising ones
+    heuristics_matrix = -capped_normalized_matrix
+    
+    # Adjust heuristics for the depot node (index 0) by considering only outward edges
+    outward_edges = torch.diag(normalized_matrix)
+    heuristics_matrix[:, 0] = outward_edges - 1
+    heuristics_matrix[0, :] = outward_edges - 1
+    
+    return heuristics_matrix
+```

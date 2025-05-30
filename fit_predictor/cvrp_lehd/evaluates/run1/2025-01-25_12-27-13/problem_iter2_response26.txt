@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic for the CVRP that integrates diverse criteria and leverages domain knowledge."""
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    # Demand-aware heuristic: higher demand nodes are considered more promising
+    demand_heuristic = normalized_demands[:, None] * normalized_demands[None, :]
+    # Distance-based heuristic: shorter distances are more promising
+    distance_heuristic = -distance_matrix
+    # Weight the heuristics, favoring high demand and low distance
+    demand_weight = 0.5
+    distance_weight = 0.5
+    # Combine heuristics
+    heuristic_matrix = demand_weight * demand_heuristic + distance_weight * distance_heuristic
+    # Adjust heuristics to ensure a mix of positive and negative values
+    min_val = heuristic_matrix.min()
+    heuristic_matrix[heuristic_matrix < 0] += abs(min_val)
+    return heuristic_matrix
+```

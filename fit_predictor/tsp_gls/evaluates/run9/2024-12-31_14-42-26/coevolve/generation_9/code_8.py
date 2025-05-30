@@ -1,0 +1,15 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Implement the logic to compute the heuristic values
+    # Here we assume a simple heuristic: the higher the distance, the worse the edge
+    # This is a placeholder for the actual heuristic logic
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            heuristics[i, j] = distance_matrix[i, j] ** 0.5  # Example heuristic: square root of distance
+    
+    return heuristics

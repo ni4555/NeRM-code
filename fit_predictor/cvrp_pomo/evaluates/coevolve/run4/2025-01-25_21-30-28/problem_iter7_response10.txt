@@ -1,0 +1,62 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Dynamic adjustment of heuristics based on previous performance
+    decay_factor = 0.9
+    inverse_distance *= decay_factor
+    demand_weight *= decay_factor
+    heuristic_range *= decay_factor
+    load_balance *= decay_factor
+
+    # Adjust weights dynamically for stability and to prioritize constraints
+    weight_inverse_distance = torch.clamp(decay_factor, 0.1, 0.9)
+    weight_demand_weight = torch.clamp(1 - weight_inverse_distance, 0.1, 0.9)
+    weight_heuristic_range = 0.1
+    weight_load_balance = 0.1
+
+    # Integrate heuristics with weights
+    combined_heuristic = (inverse_distance * weight_inverse_distance +
+                          demand_weight * weight_demand_weight +
+                          heuristic_range * weight_heuristic_range +
+                          load_balance * weight_load_balance)
+
+    # Use a random perturbation to introduce diversity in the heuristic values
+    random_perturbation = torch.randn_like(combined_heuristic) * 0.01
+    combined_heuristic += random_perturbation
+
+    # Introduce a bonus for improvement in the heuristic
+    improvement_bonus = combined_heuristic.clamp(min=0) * 10
+
+    # Normalize the combined heuristic to avoid extreme values
+    max_value = combined_heuristic.max()
+    min_value = combined_heuristic.min()
+    normalized_heuristic = (combined_heuristic - min_value) / (max_value - min_value)
+
+    # Mutation: Apply small random changes to explore new solutions
+    mutation_factor = torch.rand_like(normalized_heuristic) * 0.1 - 0.05
+    mutated_heuristic = normalized_heuristic + mutation_factor
+
+    # Ensure the mutated heuristic remains within bounds after mutation
+    mutated_heuristic = torch.clamp(mutated_heuristic, min=0, max=1)
+
+    return mutated_heuristic
+```

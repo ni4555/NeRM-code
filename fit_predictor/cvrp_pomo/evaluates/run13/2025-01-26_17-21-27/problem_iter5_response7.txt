@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands_cumulative = torch.cumsum(demands, dim=0)
+    
+    # Initialize heuristics matrix with large negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # Use vectorized operations to add positive values for edges that are within the first half of the cumulative demand
+    heuristics[torch.arange(n), 1:] += (demands_cumulative[:n-1] / total_capacity) * 2
+    
+    # Vectorized capacity-aware penalties for edges that exceed the vehicle capacity
+    capacity_excess_mask = demands_cumulative[1:] - demands_cumulative[:-1] > total_capacity
+    capacity_excess_mask = capacity_excess_mask.unsqueeze(1) | capacity_excess_mask.unsqueeze(0)
+    heuristics[capacity_excess_mask] -= 10
+    
+    # Nuanced demand-distance interaction: reduce heuristic values for edges with high demand
+    demand_weighted_distances = demands.unsqueeze(1) * distance_matrix
+    demand_interactions = torch.min(demand_weighted_distances, torch.max(demands_cumulative.unsqueeze(1) - demands_cumulative[:-1], dim=0)[0])
+    heuristics += demand_interactions / total_capacity
+    
+    return heuristics
+```

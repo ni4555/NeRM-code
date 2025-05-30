@@ -1,0 +1,48 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand sum
+    total_demand = demands.sum()
+    
+    # Calculate the cumulative demand from the depot to each customer
+    cumulative_demand = torch.cumsum(torch.cat((torch.zeros(1), demands)), dim=0)
+    
+    # Calculate the cumulative demand from each customer to the depot
+    cumulative_demand_from = torch.cumsum(torch.cat((demands[::-1], torch.zeros(1))), dim=0)[::-1]
+    
+    # Calculate the total distance if a vehicle starts at the depot, visits all customers, and returns to the depot
+    total_distance = (distance_matrix[0, 1:].sum() + distance_matrix[1:, 0].sum() + (len(demands) - 1) * total_demand)
+    
+    # Create a matrix with negative infinity for edges where demand is greater than vehicle capacity
+    demand_excess = cumulative_demand > vehicle_capacity
+    
+    # Calculate the minimum distance from the depot to each customer
+    min_distance_to_customer = torch.min(distance_matrix[0, 1:], dim=0).values
+    
+    # Calculate the minimum distance from each customer to the depot
+    min_distance_from_customer = torch.min(distance_matrix[1:, 0], dim=0).values
+    
+    # Calculate the heuristics values for the edges from the depot to customers
+    heuristics[0, 1:] = total_distance - min_distance_to_customer - cumulative_demand[0, 1:]
+    
+    # Calculate the heuristics values for the edges from customers to the depot
+    heuristics[1:, 0] = total_distance - min_distance_from_customer - cumulative_demand_from[1:, 0]
+    
+    # Calculate the heuristics values for the edges between customers
+    heuristics[1:, 1:] = heuristics[1:, 0] - distance_matrix[1:, 1:]
+    
+    # Normalize the heuristics values
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    
+    # Mark edges with demand exceeding vehicle capacity as undesirable by setting them to negative infinity
+    heuristics[demand_excess] = float('-inf')
+    
+    return heuristics
+```

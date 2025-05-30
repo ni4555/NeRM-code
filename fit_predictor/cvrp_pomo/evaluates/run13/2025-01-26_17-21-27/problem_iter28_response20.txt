@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Calculate cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Apply exponential decay to cumulative demand
+    cumulative_demand_decay = torch.exp(-0.1 * cumulative_demand)
+    
+    # Scale distances with exponential decay based on cumulative demand
+    distance_scaling = torch.log1p(distance_matrix - 1e-8) * cumulative_demand_decay
+    
+    # Detect capacity overflow with exponential scaling and apply penalty
+    overflow_penalty = torch.log1p(torch.abs(cumulative_demand + demands - total_capacity) - 1e-8)
+    overflow_penalty *= cumulative_demand_decay
+    
+    # Introduce a balance heuristic that encourages demand distribution
+    balance_heuristic = (cumulative_demand - total_capacity / n) ** 2
+    balance_penalty = torch.log1p(balance_heuristic - 1e-8) * cumulative_demand_decay
+    
+    # Weigh the penalties based on the problem's context
+    distance_weight = 2.0
+    capacity_weight = 3.0
+    balance_weight = 1.0
+    
+    # Combine the heuristics components
+    heuristics = (
+        distance_weight * distance_scaling +
+        capacity_weight * overflow_penalty +
+        balance_weight * balance_penalty
+    )
+    
+    # Ensure non-negative values for the heuristics
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

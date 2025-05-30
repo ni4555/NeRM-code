@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic capacity penalty with diminishing returns
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (torch.abs(demands - total_capacity_vector) / demands))
+    
+    # Prioritize core objective with distance scaling adjusted for cumulative demand
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity_vector)
+    
+    # Encourage uniform load distribution by minimizing load imbalance
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Implement a dynamic diversity heuristic by adjusting penalties adaptively
+    diversity_penalty = torch.zeros_like(cumulative_demand)
+    for i in range(n):
+        diversity_penalty[i] = (torch.where(demands[i] > total_capacity_vector, 
+                                           -torch.log1p((demands[i] - total_capacity_vector) / demands[i]) + 
+                                           torch.log1p((demands[i] - total_capacity_vector + total_capacity_vector / n) / demands[i]), 
+                                           torch.zeros_like(demands[i])))
+    
+    # Combine all heuristics with adaptive scaling
+    heuristics = (distance_scaling + dynamic_capacity_penalty + 
+                  load_balance_penalty + diversity_penalty) / 2.0  # Adjust the combination weights as needed
+    
+    return heuristics
+```

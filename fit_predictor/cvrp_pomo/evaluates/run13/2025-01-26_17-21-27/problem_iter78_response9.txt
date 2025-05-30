@@ -1,0 +1,55 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Scale distances and demands to maintain consistency in the scaling factor
+    scaled_distances = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    scaled_demands = (demands - 1e-8) / (total_capacity + 1e-8)
+    
+    # Dynamic capacity penalty with early overflow detection
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(scaled_demands - 1) - 1e-8)
+    early_overflow = cumulative_demand > 1
+    dynamic_capacity_penalty *= (1 + 0.3 * (1 - cumulative_demand) * early_overflow)
+    
+    # Enhanced distance penalty with time-adaptive scaling
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_penalty = scaled_distances * (1 + scaled_demands) * time_factor
+    
+    # Overflow penalty with early return
+    overflow_penalty = -torch.log1p((cumulative_demand + demands) - 1 - 1e-8)
+    overflow_penalty *= (1 + early_overflow)
+    
+    # Load balance penalty
+    load_balance = torch.abs(cumulative_demand - 1)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Combine penalties and scale the core objectives to be the primary focus
+    core_objectives = 2.5 * (
+        distance_penalty +
+        dynamic_capacity_penalty +
+        overflow_penalty +
+        load_balance_penalty
+    )
+    
+    # Introduce randomness factor with controlled impact
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine core objectives with randomness
+    heuristics = core_objectives + randomness_factor
+    
+    # Introduce diversity factor
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Adjust heuristics based on early overflow and imbalance
+    heuristics *= (1 + early_overflow)
+    heuristics += diversity_factor
+    
+    return heuristics
+```

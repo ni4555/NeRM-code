@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a matrix for the heuristic values
+    heuristic_matrix = np.zeros_like(weight)
+    
+    # Iterate over each dimension
+    for i in range(weight.shape[1]):
+        # Calculate the density for the current dimension
+        density = prize / (np.sum(weight[:, i], axis=0) + 1e-8)
+        
+        # Calculate the sparsity for the current dimension
+        sparsity = np.sum(weight[:, i], axis=0) / (np.max(weight[:, i], axis=0) + 1e-8)
+        
+        # Calculate the balance between high density and low sparsity
+        balance = (density - sparsity) / (density + sparsity + 1e-8)
+        
+        # Add the balance to the heuristic matrix for the current dimension
+        heuristic_matrix[:, i] = balance
+    
+    # Prune dominated items by keeping only the highest heuristic value per item
+    unique_items, indices = np.unique(heuristic_matrix, axis=1, return_inverse=True)
+    max_values = np.max(unique_items, axis=0)
+    heuristic_matrix = np.take_along_axis(heuristic_matrix, indices[:, None], axis=1).max(axis=1)
+    
+    # Normalize the heuristic values by dividing by the maximum value found
+    heuristic_matrix /= max_values
+    
+    # Introduce randomness to ensure diversity
+    np.random.shuffle(heuristic_matrix)
+    
+    return heuristic_matrix
+```

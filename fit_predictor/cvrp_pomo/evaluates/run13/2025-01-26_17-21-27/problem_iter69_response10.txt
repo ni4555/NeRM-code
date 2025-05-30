@@ -1,0 +1,43 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Normalization factors for balancing objectives and managing penalties
+    capacity_balance_factor = (torch.max(cumulative_demand) - torch.min(cumulative_demand)) / total_capacity
+    distance_balance_factor = torch.log(torch.max(torch.abs(distance_matrix))) / torch.log(torch.max(torch.abs(distance_matrix)) + 1e-8)
+    
+    # Core objective heuristics - combined balance and capacity
+    core_objective = (
+        capacity_balance_factor * torch.abs(demands) +
+        distance_balance_factor * torch.abs(distance_matrix)
+    )
+    
+    # Simplified penalties for dynamic capacity and overflow conditions
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands) - 1e-8)
+    overflow_penalty = torch.where(
+        cumulative_demand + demands > total_capacity,
+        -torch.log1p(cumulative_demand + demands - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Introduce controlled randomness with diversity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics with controlled scaling
+    scaling_factor = 2.0
+    heuristics = scaling_factor * (
+        core_objective +
+        dynamic_capacity_penalty +
+        overflow_penalty
+    ) + randomness_factor
+    
+    # Normalize heuristics for exploration
+    max_heuristic = torch.max(torch.abs(heuristics))
+    heuristics /= (max_heuristic + 1e-8)
+    
+    return heuristics
+```

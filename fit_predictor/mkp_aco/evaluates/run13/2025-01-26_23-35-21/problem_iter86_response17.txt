@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+
+    # Normalize the prize per unit weight
+    normalized_prize = prize / np.sum(weight, axis=1)
+
+    # Introduce sparsity penalty to encourage diversity
+    sparsity_penalty = np.log1p(np.sum(weight, axis=1)) / (np.max(np.sum(weight, axis=1)) + 1e-8)
+
+    # Normalize weight by the product of dimensions
+    normalized_weight = np.prod(weight, axis=1)
+
+    # Adjust sparsity penalty to account for the normalization
+    adjusted_sparsity_penalty = sparsity_penalty / (np.max(sparsity_penalty) + 1e-8)
+
+    # Combine normalized prize and adjusted sparsity penalty
+    heuristic = normalized_prize - adjusted_sparsity_penalty
+
+    # Normalize heuristic values to ensure they are comparable
+    max_heuristic = np.max(heuristic)
+    min_heuristic = np.min(heuristic)
+    normalized_heuristic = (heuristic - min_heuristic) / (max_heuristic - min_heuristic + 1e-8)
+
+    # Adjust for dominance by setting minimum non-zero heuristic value
+    min_value = np.min(normalized_heuristic)
+    min_value_mask = normalized_heuristic == min_value
+    normalized_heuristic[min_value_mask] = 1e-8
+
+    # Add randomness to promote diversity
+    np.random.shuffle(normalized_heuristic)
+
+    return normalized_heuristic
+```

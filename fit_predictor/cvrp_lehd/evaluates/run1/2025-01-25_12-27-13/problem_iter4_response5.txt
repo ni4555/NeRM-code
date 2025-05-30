@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the mean demand for normalization
+    mean_demand = demands.mean()
+
+    # Iterate over all pairs of nodes
+    for i in range(1, n):
+        for j in range(1, n):
+            # Calculate the heuristic value considering demand and distance
+            edge_heuristic = (demands[j] - demands[i]) / (mean_demand + 1e-6) * distance_matrix[i][j]
+            # Apply the heuristic only if both nodes have positive demand
+            if demands[i] > 0 and demands[j] > 0:
+                heuristics[i][j] = edge_heuristic
+                heuristics[j][i] = edge_heuristic
+
+    # Add a bonus for returning to the depot
+    heuristics[torch.arange(n), 0] += 1
+    heuristics[0, torch.arange(n)] += 1
+
+    return heuristics
+```

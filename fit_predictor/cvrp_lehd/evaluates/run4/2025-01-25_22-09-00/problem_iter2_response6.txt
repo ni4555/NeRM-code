@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, vehicle_capacity: float) -> torch.Tensor:
+    """An improved heuristic considering demand diversity, distance to depot, vehicle capacity, and neighborhood-based attractiveness."""
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Calculate the normalized distance to the depot
+    distance_to_depot = distance_matrix[:, 0]
+
+    # Normalize the distance matrix to depot to a range [0, 1]
+    normalized_distance_to_depot = (distance_to_depot - distance_to_depot.min()) / (distance_to_depot.max() - distance_to_depot.min())
+
+    # Calculate the demand-based attractiveness
+    demand_based_attractiveness = -normalized_demands
+
+    # Calculate the penalty for being far from the depot
+    depot_penalty = distance_matrix / (distance_to_depot + 1e-6)
+
+    # Calculate the attractiveness considering vehicle capacity
+    capacity_penalty = (demands > vehicle_capacity).float() * -100
+
+    # Combine all factors
+    heuristics = demand_based_attractiveness + normalized_distance_to_depot + depot_penalty + capacity_penalty
+
+    # Normalize the heuristics to have a range between -1 and 1
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    return heuristics
+```

@@ -1,0 +1,33 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the density of each item (prize/weight)
+    density = prize / np.sum(weight, axis=1)
+    
+    # Calculate the diversity of each item (1 / sum of each dimension's weight)
+    diversity = 1 / np.sum(weight, axis=1)
+    
+    # Calculate the sparsity factor as the sum of weights
+    sparsity_factor = np.sum(weight, axis=1)
+    
+    # Calculate the balance between high density and low sparsity
+    balance = (density / sparsity_factor) * (sparsity_factor / density)
+    
+    # Incorporate item characteristics by averaging them
+    combined_characteristics = (density + diversity + balance) / 3
+    
+    # Normalize by the maximum value to avoid dominance by one characteristic
+    normalized_combined = combined_characteristics / (np.max(combined_characteristics) + 1e-8)
+    
+    # Calculate the average value across all dimensions to use as a global measure
+    global_measure = np.mean(normalized_combined)
+    
+    # Determine the adaptive threshold by considering the global measure
+    threshold = global_measure * 0.8
+    
+    # Create heuristics array, favoring items above the threshold
+    heuristics = np.where(normalized_combined >= threshold, 1, 0)
+    
+    return heuristics
+```

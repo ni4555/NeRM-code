@@ -1,0 +1,55 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Dynamically adjust heuristics based on performance: use a decay to simulate learning
+    decay_factor = 0.95  # A lower decay factor will allow the heuristics to retain their impact over iterations
+    inverse_distance *= decay_factor
+    demand_weight *= decay_factor
+    heuristic_range *= decay_factor
+    load_balance *= decay_factor
+
+    # Weight adjustments based on empirical analysis and problem specifics
+    weight_inverse_distance = 0.5
+    weight_demand_weight = 0.3
+    weight_heuristic_range = 0.2
+    weight_load_balance = 0.4
+
+    # Adjust weights based on the problem scale and characteristics
+    problem_scale = torch.sqrt(torch.mean(distance_matrix**2))
+    weight_heuristic_range *= (problem_scale / mean_distance)
+
+    # Integrate heuristics with dynamic weight adjustments and domain-specific scaling
+    combined_heuristic = (inverse_distance * weight_inverse_distance +
+                          demand_weight * weight_demand_weight +
+                          heuristic_range * weight_heuristic_range +
+                          load_balance * weight_load_balance)
+
+    # Apply a performance-based learning rate to further refine heuristics
+    learning_rate = 0.1
+    performance = combined_heuristic.sum()
+    combined_heuristic *= (1 - learning_rate * performance)
+
+    # Clamp values to a reasonable range to avoid extreme values
+    combined_heuristic = torch.clamp(combined_heuristic, min=-10.0, max=10.0)
+
+    return combined_heuristic
+```

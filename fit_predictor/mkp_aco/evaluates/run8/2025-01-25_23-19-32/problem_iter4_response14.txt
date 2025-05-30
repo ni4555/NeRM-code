@@ -1,0 +1,26 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize to a range between 0 and 1
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    # Calculate the weighted normalized prize to weight ratio for each item
+    ratio = np.sum(weight * normalized_prize, axis=1) / np.sum(weight, axis=1)
+    # Use a non-linear transformation (e.g., a logarithmic transformation) to amplify
+    # the differences in ratio
+    transformed_ratio = np.log1p(ratio)
+    # Calculate the standard deviation to encourage diversity
+    sparsity_factor = np.std(ratio)
+    # Introduce a penalty for high concentration of weight
+    penalty = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    # Combine the transformed ratio with a penalty term
+    heuristics = transformed_ratio * (1 - penalty)
+    # Apply a sparsity threshold to encourage diversity in the solution
+    sparsity_threshold = sparsity_factor * 2  # Adjust this threshold as needed
+    # Set a minimum value for heuristics to ensure items with zero ratio are included
+    min_heuristic = 1e-10
+    heuristics = np.maximum(min_heuristic, heuristics)
+    # Further encourage diversity by capping the heuristics at a certain sparsity level
+    heuristics[transformed_ratio < sparsity_threshold] = 0
+    return heuristics
+```

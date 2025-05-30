@@ -1,0 +1,76 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep Reinforcement Learning (DRL) model for real-time decision-making
+    def reward_function(x):
+        penalty = -np.sum(x * np.log(1 + x))
+        return penalty if np.all(x <= 1) else float('-inf')
+
+    # Particle Swarm Optimization (PSO) for evolutionary swarm intelligence
+    def update_pso_position(pso_position, pso_velocity, c1, c2):
+        for i in range(n):
+            r1, r2 = np.random.rand(), np.random.rand()
+            pso_velocity[i] = c1 * r1 * (pso_personal_best[i] - pso_position[i]) + \
+                               c2 * r2 * (pso_global_best[i] - pso_position[i])
+            pso_position[i] += pso_velocity[i]
+            pso_position[i] = np.clip(pso_position[i], 0, 1)
+
+    # Initialize DRL and PSO
+    model_scores = np.random.rand(n)
+    feasible_items = np.sum(weight, axis=1) <= 1
+    pso_position = np.random.rand(n)
+    pso_velocity = np.zeros(n)
+    pso_personal_best = np.copy(pso_position)
+    pso_global_best = np.copy(pso_position)
+    pso_personal_best_scores = np.copy(model_scores)
+    pso_global_best_scores = np.copy(model_scores)
+
+    # Ensure the PSO global best is feasible
+    pso_global_best_scores[~feasible_items] = float('-inf')
+    pso_global_best = pso_position[feasible_items]
+
+    # Parameters for PSO
+    c1, c2 = 2.0, 2.0
+    inertia_weight = 0.7
+    learning_rate = 0.01
+    n_iterations = 10
+
+    # PSO optimization loop
+    for _ in range(n_iterations):
+        # Update PSO position and velocity
+        update_pso_position(pso_position, pso_velocity, c1, c2)
+        
+        # Update personal best
+        for i in range(n):
+            if feasible_items[i]:
+                pso_current_score = reward_function(pso_position[i])
+                if pso_current_score > pso_personal_best_scores[i]:
+                    pso_personal_best_scores[i] = pso_current_score
+                    pso_personal_best[i] = pso_position[i]
+
+        # Update global best
+        pso_current_score = np.max(pso_personal_best_scores)
+        if pso_current_score > pso_global_best_scores[global_best_index]:
+            pso_global_best_scores[:] = pso_personal_best_scores
+            pso_global_best[:] = pso_personal_best
+
+        # Update DRL scores based on PSO global best
+        model_scores = np.exp(reward_function(pso_global_best))
+        model_scores /= np.sum(model_scores)
+
+    # Sparsify heuristics
+    heuristic[feasible_items] = np.copy(model_scores)
+
+    # Refine rewards by considering item diversity and balancing between reward and cost
+    diversity = np.std(model_scores[feasible_items])
+    refinement_factor = (prize[feasible_items] * model_scores[feasible_items] +
+                         0.1 * (1 - model_scores[feasible_items]))
+    heuristic *= (1 - inertia_weight) + inertia_weight * (refinement_factor / diversity)
+
+    return heuristic
+```

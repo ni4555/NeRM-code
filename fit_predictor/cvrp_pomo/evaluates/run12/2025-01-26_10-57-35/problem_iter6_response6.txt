@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the cumulative demand matrix
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative distance matrix
+    cumulative_distance = torch.cumsum(distance_matrix, dim=0)
+    
+    # Calculate the potential cost of visiting nodes in sequence
+    potential_costs = cumulative_demand * cumulative_distance
+    
+    # Subtract the potential cost from the cumulative distance matrix to get the cumulative heuristics
+    cumulative_heuristics = cumulative_distance - potential_costs
+    
+    # Calculate the heuristics matrix by taking the difference between the distance matrix and the cumulative heuristics
+    heuristics = distance_matrix - cumulative_heuristics
+    
+    # Add small positive values to ensure that all edges have positive heuristics
+    heuristics = torch.clamp(heuristics, min=1e-10)
+    
+    # Normalize the heuristics by the demand to account for vehicle capacity
+    heuristics /= demands[:, None]
+    
+    # Subtract the demand of the last node from the others to get the correct heuristic values
+    demand_last_node = demands[-1:]
+    heuristics = heuristics - demand_last_node[:, None]
+    
+    return heuristics
+```

@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum().item()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    max_demand_index = torch.argmax(cumulative_demand)
+    max_demand = cumulative_demand[max_demand_index]
+    
+    # Calculate the demand factor for each node
+    demand_factor = (1 - (cumulative_demand / max_demand) * (distance_matrix / distance_matrix.max())) * (1 - (demands / total_capacity))
+    
+    # Normalize the demand factor to ensure non-negative values
+    max_demand_factor = demand_factor.max()
+    min_demand_factor = demand_factor.min()
+    demand_factor = (demand_factor - min_demand_factor) / (max_demand_factor - min_demand_factor)
+    
+    # Create the heuristics matrix
+    heuristics = torch.full_like(demand_factor, fill_value=demand_factor.min())
+    
+    # Fill in the heuristics matrix based on the demand factor
+    torch.triu_(heuristics, diagonal=1)
+    
+    return heuristics
+```

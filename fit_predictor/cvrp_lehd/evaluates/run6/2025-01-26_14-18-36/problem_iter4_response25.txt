@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands = demands.to(torch.float32)
+    distance_matrix = distance_matrix.to(torch.float32)
+
+    # Calculate the nearest neighbor distances using a single matrix operation
+    nearest_neighbor_distances, _ = torch.topk(distance_matrix[1:], k=2, dim=1, largest=False)
+    nearest_neighbor_distance = torch.cat([torch.zeros_like(nearest_neighbor_distances[:, :1]), nearest_neighbor_distances[:, :1]], dim=1).min(dim=1)[0]
+
+    # Calculate the balance score for each node
+    demand_balance = torch.max(demands) - torch.min(demands)
+
+    # Calculate the demand-to-capacity ratio for each node
+    demand_to_capacity_ratio = demands / 1.0  # Assuming vehicle capacity is 1.0 for normalization
+
+    # Calculate the heuristic values for each edge
+    heuristic_values = nearest_neighbor_distance - demand_balance - demand_to_capacity_ratio
+
+    # Add a penalty for edges leading to a node with demand greater than vehicle capacity
+    penalty = (demands > 1.0).float() * 1000.0
+
+    # Combine the heuristic values with the penalty
+    heuristics = heuristic_values - penalty
+
+    # Set the diagonal to -infinity as the node cannot be visited twice
+    torch.fill_diagonal_(heuristics, -torch.inf)
+
+    return heuristics
+```

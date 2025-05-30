@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize a matrix of zeros with the same shape as the distance matrix
+    edge_potential = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Calculate the distance-based heuristic using a modified gravity model
+    # The potential is inversely proportional to the distance squared (to penalize long distances)
+    # and proportional to the demand.
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    distance_potential = 1 / (distance_matrix ** 2 + epsilon)
+    
+    # Calculate the demand-based heuristic
+    demand_potential = normalized_demands
+    
+    # Introduce a penalty for diversity by adding the difference between the maximum and minimum demand
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    demand_diff = max_demand - min_demand
+    diversity_penalty = torch.clamp(-torch.abs(demand_diff) / (distance_matrix + epsilon), min=-1.0, max=0.0)
+    
+    # Adapt penalties for short distances and long distances
+    short_distance_penalty = torch.where(distance_matrix < 1.5, distance_matrix - 1, torch.zeros_like(distance_matrix))
+    long_distance_penalty = torch.where(distance_matrix > 2.5, distance_matrix - 2.5, torch.zeros_like(distance_matrix))
+    
+    # Combine the heuristics with penalties and diversity
+    edge_potential = distance_potential * demand_potential + diversity_penalty + short_distance_penalty + long_distance_penalty
+    
+    # Ensure that the potential is within a certain range
+    edge_potential = torch.clamp(edge_potential, min=-10.0, max=10.0)
+    
+    return edge_potential
+```

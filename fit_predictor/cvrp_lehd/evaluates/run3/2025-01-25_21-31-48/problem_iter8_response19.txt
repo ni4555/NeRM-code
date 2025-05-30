@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Invert distances to give higher priority to shorter paths
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)
+    
+    # Weight demands higher to emphasize higher demand nodes
+    demand_weight = demands / (demands + 1e-10)
+    
+    # Calculate the distance from each node to the depot and invert it
+    depot_distance_inv = 1 / (distance_matrix[:, 0] + 1e-10)
+    
+    # Combine the weighted distances, demand weights, and proximity bonuses
+    combined_heuristic = distance_matrix_inv * demand_weight + depot_distance_inv
+    
+    # Normalize the heuristic values to have a range between 0 and 1
+    max_value = combined_heuristic.max()
+    min_value = combined_heuristic.min()
+    normalized_heuristic = (combined_heuristic - min_value) / (max_value - min_value)
+    
+    # Apply penalties for edges with zero demand and for capacity constraint violations
+    zero_demand_penalty = -1e10 * (demands == 0)
+    capacity_violation_penalty = -1e10 * (demands > 1)
+    penalties = zero_demand_penalty + capacity_violation_penalty
+    
+    # Subtract the penalties from the heuristic values
+    normalized_heuristic = normalized_heuristic - penalties
+    
+    return normalized_heuristic
+```

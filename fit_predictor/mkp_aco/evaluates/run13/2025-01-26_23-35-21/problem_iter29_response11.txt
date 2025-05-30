@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the value-to-weight ratio
+    value_to_weight_ratio = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Normalize the ratio to penalize heavy items
+    normalized_ratio = value_to_weight_ratio / (np.max(value_to_weight_ratio) + 1e-8)
+    
+    # Calculate the sparsity metric, ensuring all items are not zero weight
+    sparsity = np.sum(weight, axis=1) / (np.sum(weight != 0, axis=1) + 1e-8)
+    
+    # Calculate the diversity factor based on sparsity
+    diversity_factor = sparsity / (np.mean(sparsity) + 1e-8)
+    
+    # Use a simple heuristic combining the normalized ratio and diversity
+    heuristic = normalized_ratio * diversity_factor
+    
+    # Introduce a penalty for outliers based on sparsity
+    outliers_penalty = np.where(sparsity < 0.5, 1, 0.5)
+    
+    # Introduce a randomness factor to encourage diversity
+    randomness_factor = np.random.rand(len(prize))
+    
+    # Final heuristic incorporating all factors
+    final_heuristic = heuristic * outliers_penalty * randomness_factor
+    
+    # Ensure no item is considered too sparse
+    final_heuristic[sparsity < 1e-8] = 1e-8
+    
+    return final_heuristic
+```

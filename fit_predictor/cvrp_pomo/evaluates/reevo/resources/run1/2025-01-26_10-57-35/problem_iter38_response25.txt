@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    weighted_distance_matrix /= weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by using the inverse of demand (addition to heuristic)
+    capacity_factor = (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Calculate heuristic by combining normalized weighted distance and demand
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Enhance promising edges by considering both distance and demand, and balance with capacity
+    heuristics = heuristics * (1 + demands)
+    
+    # Introduce a decay function for distant nodes
+    decay_factor = torch.exp(-weighted_distance_matrix)
+    
+    # Apply decay to distant nodes to de-emphasize their contribution
+    heuristics = heuristics * decay_factor
+    
+    # Ensure that the heuristic for the depot is always the highest to encourage visiting it
+    heuristics[:, 0] = 1.0
+    heuristics[0, :] = 1.0
+    
+    # Normalize heuristics to have a common scale
+    total_heuristic = heuristics.sum(dim=1)
+    heuristics = heuristics / total_heuristic[:, None]
+    
+    # Introduce a penalty for overcapacity edges
+    overcapacity_penalty = (demands > 1).float() * -10  # Large negative value for overcapacity
+    heuristics = heuristics + overcapacity_penalty
+    
+    return heuristics
+```

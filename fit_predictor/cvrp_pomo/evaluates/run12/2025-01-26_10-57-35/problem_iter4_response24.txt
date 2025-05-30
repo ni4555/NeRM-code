@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Normalize demands to account for vehicle capacity
+    normalized_demands = demands / total_demand
+
+    # Calculate heuristic for edges leaving the depot
+    heuristic_matrix[depot, 1:] = normalized_demands[1:] * distance_matrix[depot, 1:]
+
+    # Calculate heuristic for edges entering the depot
+    for i in range(1, n):
+        if demands[i] > 0:
+            # Calculate the remaining capacity if the vehicle visits node i
+            remaining_capacity = total_demand - demands[:i].sum()
+            # Calculate the potential cost if node i is visited last before the capacity is exceeded
+            heuristic_matrix[i, depot] = remaining_capacity * distance_matrix[i, depot]
+
+    # Normalize the heuristic matrix to ensure non-negative values
+    heuristic_matrix /= (heuristic_matrix.max() + 1e-8)
+    return heuristic_matrix
+```

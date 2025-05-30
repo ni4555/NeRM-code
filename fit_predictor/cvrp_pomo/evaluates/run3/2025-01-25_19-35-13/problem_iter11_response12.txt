@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Define dynamic weights based on the vehicle's load factor
+    load_factor = demands[1:].sum() / total_demand
+    demand_weight = max(0.7, 1 - load_factor)
+    distance_weight = 1 - demand_weight
+
+    # Vectorized dynamic programming to find a lower bound on the cost
+    dp = torch.zeros((len(demands), len(demands)))
+    dp[:, 1:] = distance_matrix.cumsum(1)
+    dp[:, :-1] -= dp[:, 1:]
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+
+    # Apply the potential function directly to the matrix
+    epsilon = 1e-8
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+
+    # Vectorized penalty function for high demand and long distances
+    high_demand_penalty = (demands > 1.5).float() * 0.1
+    long_distance_penalty = (distance_matrix < 10).float() * 0.05
+
+    edge_potential -= (edge_potential * high_demand_penalty)
+    edge_potential += (edge_potential * long_distance_penalty)
+
+    # Ensure that the depot has the highest priority
+    edge_potential[0, :] += 1.0
+    edge_potential[:, 0] += 1.0
+
+    return edge_potential
+```

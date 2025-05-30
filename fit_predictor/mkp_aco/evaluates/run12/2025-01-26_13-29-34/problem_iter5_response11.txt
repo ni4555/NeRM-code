@@ -1,0 +1,48 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning component
+    model_scores = np.random.rand(n)
+
+    # Adaptive constraint-driven filtering
+    weight_threshold = np.ones(m)  # Each dimension has a fixed constraint of 1
+    feasible_items = np.all(weight <= weight_threshold, axis=1)
+
+    # Particle swarm optimization
+    num_particles = 10
+    positions = np.random.rand(num_particles, n)
+    velocities = np.random.rand(num_particles, n)
+    best_positions = positions.copy()
+    best_scores = np.zeros(num_particles)
+    
+    for _ in range(100):  # Simplified PSO with 100 iterations
+        for i in range(num_particles):
+            fitness = -np.sum((model_scores - positions[i])**2)
+            if fitness > best_scores[i]:
+                best_scores[i] = fitness
+                best_positions[i] = positions[i]
+        
+        # Update velocities and positions
+        velocities = 0.5 * velocities + 0.5 * np.random.rand(num_particles, n)
+        positions += velocities
+        positions = np.clip(positions, 0, 1)  # Keep positions within the feasible space
+
+    # Update heuristics
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            item_score = model_scores[i]
+            pso_score = -np.sum((best_positions - np.ones(num_particles) * i)**2)
+            heuristic[i] = item_score + pso_score
+
+    # Sparsify the heuristics
+    heuristic[heuristic < 0.1] = 0
+
+    return heuristic
+```

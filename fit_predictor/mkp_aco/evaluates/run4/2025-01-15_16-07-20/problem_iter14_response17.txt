@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the score based on the prize per unit weight
+    score = prize / np.sum(weight, axis=1)
+    
+    # Normalize the scores to ensure they are on a comparable scale
+    normalized_score = score / np.sum(score)
+    
+    # Calculate the z-score of each score to identify outliers
+    z_scores = (normalized_score - np.mean(normalized_score)) / np.std(normalized_score)
+    
+    # Emphasize scores with a positive z-score to favor items with higher potential
+    positive_z_score_mask = z_scores > 0
+    emphasized_score = normalized_score * positive_z_score_mask
+    
+    # Refine the scores by emphasizing higher scores above the 75th percentile
+    percentile_75th = np.percentile(emphasized_score, 75)
+    refined_score = emphasized_score * (emphasized_score > percentile_75th)
+    
+    # Return the final heuristics
+    return refined_score
+```

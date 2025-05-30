@@ -1,0 +1,38 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items by keeping only the ones with the highest normalized density
+    sorted_density_indices = np.argsort(-density)
+    non_dominated_items = sorted_density_indices[:np.sum(density > 0)]
+    dominated_items = np.setdiff1d(np.arange(n), non_dominated_items)
+    for i in dominated_items:
+        density[i] = 0
+    
+    # Introduce randomness to encourage diversity
+    random_factor = np.random.rand(n) + 1e-8
+    
+    # Integrate additional metrics such as the sum of weights
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Combine density, randomness, and weight sum to create a heuristic
+    heuristic = density * random_factor + weight_sum
+    
+    # Normalize the heuristic values to ensure all values are non-negative
+    max_heuristic = np.max(heuristic)
+    heuristic = heuristic / max_heuristic
+    
+    # Introduce a balance factor to ensure diversity and to prevent premature convergence
+    balance_factor = np.exp(-np.mean(np.abs(np.diff(np.argsort(-heuristic))))) / max_heuristic
+    heuristic *= balance_factor
+    
+    # Ensure that all heuristics are non-negative
+    heuristic = np.clip(heuristic, 0, None)
+    
+    return heuristic
+```

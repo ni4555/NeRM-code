@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate a penalty factor for outliers based on the percentile of the ratio
+    penalty_factor = np.abs(value_to_weight_ratio - np.percentile(value_to_weight_ratio, 75))
+    
+    # Normalize the penalty factor
+    max_penalty = np.max(penalty_factor)
+    penalty_factor = penalty_factor / max_penalty
+    
+    # Calculate a density factor based on the ratio
+    density_factor = value_to_weight_ratio / np.mean(value_to_weight_ratio)
+    
+    # Combine the normalized ratio with the penalty and density factors
+    combined_heuristics = value_to_weight_ratio * (1 - penalty_factor + density_factor)
+    
+    # Introduce sparsity to encourage exploration
+    sparsity_factor = np.random.rand(*combined_heuristics.shape)
+    sparsified_heuristics = np.where(combined_heuristics > sparsity_factor, combined_heuristics, 0)
+    
+    # Introduce randomness with a controlled factor for diversity
+    random_noise = np.random.normal(0, 0.1, size=sparsified_heuristics.shape)
+    final_heuristics = sparsified_heuristics + random_noise
+    
+    # Normalize the final heuristics to ensure they are between 0 and 1
+    max_heuristic = np.max(final_heuristics)
+    final_heuristics = final_heuristics / max_heuristic
+    
+    # Apply thresholding to simplify decision-making
+    threshold = 0.5
+    heuristics = np.where(final_heuristics > threshold, final_heuristics, 0)
+    
+    return heuristics
+```

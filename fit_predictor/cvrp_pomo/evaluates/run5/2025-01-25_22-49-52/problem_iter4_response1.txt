@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Define a function to calculate a weighted sum of distance, demand relaxation, and balance metrics
+    def weighted_potential(dist, demand, alpha=0.5, beta=0.5, gamma=0.1):
+        return dist - alpha * demand - beta * torch.log(1 + demand) - gamma * torch.abs(torch.relu(demand - 1))
+    
+    # Calculate the potential value for each edge using a more sophisticated heuristic
+    # Incorporate node partitioning, demand relaxation, and path decomposition
+    partition_threshold = 0.5  # Example threshold for partitioning
+    relaxed_demands = torch.where(normalized_demands > partition_threshold, 
+                                  normalized_demands, 
+                                  0.0)
+    
+    # Use a vectorized approach to calculate potential values for all edges
+    weights = torch.rand(1, n) * 2 - 1  # Random weights between -1 and 1
+    potential_values = torch.zeros_like(normalized_distances)
+    for i in range(n):
+        for j in range(n):
+            potential_values[i, j] = weighted_potential(normalized_distances[i, j], relaxed_demands[i])
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Introduce dynamic window approach by adjusting potential values based on real-time demand changes
+    # This is a simple example where we adjust the potential values of high demand nodes
+    dynamic_adjustment = torch.where(normalized_demands > 1.2,  # Nodes with more than 120% of the average demand
+                                    torch.ones_like(normalized_demands) * -1,
+                                    torch.zeros_like(normalized_demands))
+    potential_values += dynamic_adjustment
+    
+    return potential_values
+```

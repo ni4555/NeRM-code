@@ -1,0 +1,56 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Problem-specific Local Search
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                load = demands[i] + demands[j]
+                if load > 1.0:
+                    heuristics[i, j] = -1  # Undesirable edge due to overcapacity
+                else:
+                    heuristics[i, j] = (1.0 - load) / 1.0
+    
+    # Adaptive PSO with Adaptive Population Management
+    # Placeholder for PSO-related calculations
+    # Here, we simulate PSO's effect on the heuristics matrix
+    velocities = torch.rand_like(heuristics)
+    positions = heuristics
+    best_solution = torch.clone(positions)
+    for _ in range(100):  # Iterations for PSO
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    new_position = positions[i, j] + velocities[i, j]
+                    new_load = demands[i] + demands[j]
+                    if new_load <= 1.0:
+                        positions[i, j] = new_position
+                        if torch.any(best_solution < positions):
+                            best_solution = torch.clone(positions)
+    
+    heuristics = best_solution.clone()
+    
+    # Dynamic Tabu Search with Adaptive Cost Function
+    # Placeholder for Tabu Search-related calculations
+    # Here, we simulate Tabu Search's effect on the heuristics matrix
+    tabu_list = set()
+    for i in range(n):
+        for j in range(n):
+            if (i, j) not in tabu_list:
+                new_load = demands[i] + demands[j]
+                if new_load <= 1.0 and heuristics[i, j] > 0:
+                    heuristics[i, j] *= 0.95
+                    tabu_list.add((i, j))
+                    if heuristics[i, j] < 0:
+                        heuristics[i, j] = 0
+    
+    # Adjust the heuristics to ensure they are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0  # Avoid division by zero
+    heuristics[heuristics >= 0] = 0  # Set non-negative values to zero
+    
+    return heuristics
+```

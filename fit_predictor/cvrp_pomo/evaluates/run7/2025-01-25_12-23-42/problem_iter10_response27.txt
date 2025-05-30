@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Encourage exploration over exploitation by adding diversity to the heuristic
+    diversity_heuristics = -torch.abs(node_loads * norm_distances - (1 - node_loads).unsqueeze(-1) * norm_distances).mean(dim=0)
+    
+    # Incorporate exploitation by considering the current load
+    current_loads = torch.cumsum(node_loads, dim=0)
+    exploit_heuristics = -current_loads.unsqueeze(-1) * norm_distances
+    
+    # Consider cumulative load insight
+    cumulative_load_insight = demands.cumsum(dim=0) - demands.cumsum(dim=0).unsqueeze(-1) * demands.cumsum(dim=0)
+    
+    # Combine heuristics for exploration, exploitation, diversity, and cumulative load
+    heuristics = diversity_heuristics + exploit_heuristics + cumulative_load_insight
+    
+    # Limit the heuristics to ensure they are within a reasonable range
+    heuristics = torch.clamp(heuristics, min=-2.0, max=2.0)
+    
+    return heuristics
+```

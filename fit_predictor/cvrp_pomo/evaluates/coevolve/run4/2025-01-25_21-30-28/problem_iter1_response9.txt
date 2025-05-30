@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: adjust weights based on the distance from the depot
+    depot_distance = torch.diag(distance_matrix)
+    range_adjustment = 1.0 / (depot_distance + 1e-8)
+
+    # Load balancing strategy: balance the allocation of customer demands to each vehicle
+    # This is a simplified approach, in reality, more complex strategies would be needed
+    load_balance = torch.abs(normalized_demands - 0.5) * 2.0
+
+    # Combine heuristics with the above factors
+    combined_heuristic = inverse_distance + demand_weight + range_adjustment + load_balance
+
+    return combined_heuristic
+```

@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand to be visited
+    total_demand = demands.sum()
+    
+    # Calculate the minimum distance from each node to the next node in the sorted order of demands
+    sorted_indices = torch.argsort(demands)
+    sorted_distance_matrix = distance_matrix[sorted_indices[:, None], sorted_indices]
+    
+    # Calculate the cumulative sum of distances for each path length
+    cumulative_distances = torch.cumsum(sorted_distance_matrix, dim=1)
+    
+    # Calculate the maximum path length that does not exceed the vehicle capacity
+    max_path_length = torch.clamp(total_demand / demands, max=1) * sorted_distance_matrix
+    
+    # Calculate the heuristics value by comparing the cumulative distance with the maximum path length
+    heuristics = cumulative_distances - max_path_length
+    
+    # Ensure the heuristics are negative for undesirable edges and positive for promising ones
+    heuristics[heuristics >= 0] = 0
+    
+    return heuristics
+```

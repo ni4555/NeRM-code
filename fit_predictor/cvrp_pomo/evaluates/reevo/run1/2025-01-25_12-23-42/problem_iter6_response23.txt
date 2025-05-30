@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Create a mask where each cell is True if the cumulative demand at that node exceeds the total demand
+    demand_exceeds_total = (cumulative_demand > total_demand).bool()
+    
+    # Initialize the potential with the negative of the normalized distance matrix
+    norm_distances = distance_matrix / distance_matrix.max()
+    potential = -norm_distances
+    
+    # Adjust potential based on node loads
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    potential -= (node_loads * norm_distances).sum(-1)
+    
+    # Penalize heavily loaded nodes further
+    potential += torch.abs(node_loads).sum(-1)
+    
+    # Add randomness for exploration
+    noise = torch.rand_like(potential)
+    potential += noise * 0.1  # Random noise scaling factor
+    
+    # Ensure no edges are considered negative by adding the minimum value to all
+    potential = potential + potential.min()
+    
+    # Normalize potential to ensure all values are within the range [0, 1]
+    max_potential = torch.max(potential[potential != 0])
+    if max_potential == 0:
+        # Avoid division by zero if there are no edges to consider
+        return torch.zeros_like(potential)
+    
+    return torch.clamp(potential / max_potential, min=0, max=1)
+```

@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Core heuristic: inverse of distance
+    core_heuristic = 1.0 / (distance_matrix + 1e-8)
+    
+    # Demand-aware heuristic: balance demand across nodes
+    demand_balance = torch.abs(cumulative_demand - total_capacity / n)
+    demand_balance_penalty = -torch.log1p(demand_balance - 1e-8)
+    
+    # Early return heuristic: return to depot if exceeding capacity
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Dynamic capacity adjustment: adjust penalty as capacity is utilized
+    dynamic_capacity_adjustment = (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Adaptive scaling: balance the importance of core heuristic and demand-aware heuristic
+    adaptive_scaling = 1.0 + (total_capacity - cumulative_demand) / total_capacity
+    
+    # Final heuristic calculation
+    heuristics = core_heuristic * adaptive_scaling * (1 + demand_balance_penalty + overflow_penalty * dynamic_capacity_adjustment)
+    
+    return heuristics
+```

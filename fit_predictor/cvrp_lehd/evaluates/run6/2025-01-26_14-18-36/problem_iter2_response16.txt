@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the sum of demands
+    total_demand = demands.sum()
+    # Calculate the average demand per customer
+    average_demand = total_demand / len(demands)
+    # Calculate the penalty for nodes with demand above the average
+    penalty = (demands > average_demand).float() * -1000
+    # Calculate the weight of each edge based on the distance to the nearest demand
+    min_distances = torch.min(distance_matrix[:, 1:], dim=1).values.unsqueeze(1)
+    heuristic_values = (average_demand - demands.unsqueeze(1)) * min_distances
+    # Combine the penalties and heuristic values
+    heuristics = penalty + heuristic_values
+    return heuristics
+```

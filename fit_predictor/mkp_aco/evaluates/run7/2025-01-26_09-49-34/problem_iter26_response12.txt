@@ -1,0 +1,44 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the sum of normalized weights across dimensions for each item
+    diversity_factor = np.sum(weight, axis=1)
+    
+    # Calculate the variance of weights for each item across all dimensions
+    weight_variance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)
+    
+    # Calculate the normalized weight variance to adjust diversity
+    normalized_variance = 1 / (1 + weight_variance)
+    
+    # Adjust the diversity factor based on the normalized variance
+    adjusted_diversity = diversity_factor * normalized_variance
+    
+    # Calculate the initial heuristics based on normalized prize and adjusted diversity
+    heuristics = normalized_prize * adjusted_diversity
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Calculate a dynamic threshold based on the average normalized prize and weight variance
+    dynamic_threshold = np.mean(normalized_prize) * np.mean(normalized_variance)
+    
+    # Apply the threshold to promote items with high normalized prize and low variance
+    heuristics[heuristics > dynamic_threshold] = 1
+    
+    # Adjust heuristics based on the original normalized prize to balance rewards
+    heuristics *= normalized_prize
+    
+    # Apply a penalty to heuristics with high variance to maintain diversity
+    heuristics *= (1 + np.exp(-weight_variance))
+    
+    # Normalize heuristics again to ensure they sum to 1
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

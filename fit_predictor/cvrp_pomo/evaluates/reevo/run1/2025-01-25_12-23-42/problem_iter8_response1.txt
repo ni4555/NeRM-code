@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Amplify the effect of the distance by the load factor
+    # This encourages exploration of less loaded nodes
+    weighted_distances = norm_distances * (1 + node_loads)
+    
+    # Weaken the effect of heavily loaded nodes by subtracting a multiplicative factor
+    # This discourages visiting heavily loaded nodes
+    heuristics = weighted_distances - torch.exp(-weighted_distances)
+    
+    # Ensure that the values are non-negative
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

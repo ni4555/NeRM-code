@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Normalize demands and calculate the normalized demands
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    # Compute the heuristics matrix considering the average demand per node
+    avg_demand = normalized_demands.sum() / n
+    # Introduce penalties for edges that violate the capacity constraints
+    penalty = (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    # Vectorize the infeasibility detection and apply penalties for infeasibilities
+    infeasibilities = (normalized_demands > 1.0) | (normalized_demands < 0.0)
+    penalty *= infeasibilities.float()
+    # Add the penalties to the heuristics matrix
+    heuristics_matrix = distance_matrix - penalty
+    return heuristics_matrix
+```

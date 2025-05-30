@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Normalize demands and calculate the normalized demands
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    # Normalize the distance matrix to account for different scales
+    normalized_distance_matrix = distance_matrix / distance_matrix.max()
+    # Calculate the heuristics considering both the demand and distance normalization
+    heuristics_matrix = normalized_distance_matrix - (normalized_demands * normalized_distance_matrix.sum(axis=1, keepdim=True) + 0.5 * normalized_distance_matrix.sum(axis=0, keepdim=True))
+    # Penalize infeasibilities by adding large negative values for edges with demand higher than capacity
+    infeasibilities = normalized_demands > 1.0
+    heuristics_matrix[infeasibilities] -= 10000
+    return heuristics_matrix
+```

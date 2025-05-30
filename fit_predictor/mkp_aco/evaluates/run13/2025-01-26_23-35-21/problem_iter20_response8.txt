@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+
+    # Calculate utility as prize per unit weight
+    utility = prize / np.sum(weight, axis=1)
+
+    # Calculate sparsity based on the sum of weights
+    sparsity = np.sum(weight, axis=1) / (n * m)
+
+    # Calculate diversity as the variance of the weight across dimensions
+    diversity = np.var(weight, axis=1)
+
+    # Calculate balance as the average between utility and sparsity
+    balance = (utility + sparsity) / 2
+
+    # Calculate the standard deviation of utility to promote exploration
+    std_utility = np.std(utility)
+
+    # Combine utility, sparsity, diversity, and balance into a single heuristic value
+    heuristic_value = utility * (1 - sparsity) * diversity * (1 / (std_utility + 1e-8))
+
+    # Normalize the heuristic values to ensure they are comparable across different problems
+    min_heuristic = np.min(heuristic_value)
+    max_heuristic = np.max(heuristic_value)
+
+    # Use linear scaling to map the heuristic values to the range [0, 1]
+    normalized_heuristic = (heuristic_value - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Cap the normalized heuristic values to avoid dominance by outliers
+    capped_heuristics = np.clip(normalized_heuristic, 0, 1)
+
+    return capped_heuristics
+```

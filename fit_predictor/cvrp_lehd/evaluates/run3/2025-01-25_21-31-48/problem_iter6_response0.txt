@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    # Exclude the depot node from the demand
+    demand_excluding_depot = demands[1:]
+    # Calculate the maximum normalized demand excluding the depot
+    max_normalized_demand = demand_excluding_depot.max()
+    # Calculate the normalized demand for all nodes
+    normalized_demand = demand_excluding_depot / max_normalized_demand
+    # Use exponential decay for distance
+    proximity = 1 - torch.exp(-distance_matrix)
+    # Create a penalty for exceeding the normalized demand threshold
+    penalty_threshold = torch.abs(torch.relu(1 - normalized_demand))
+    # Calculate the heuristic based on the deviation from the maximum demand
+    heuristic_value = (1 - normalized_demand) * proximity
+    # Combine the heuristic value with the penalty for capacity violation
+    heuristics = heuristic_value + penalty_threshold
+    # Scale the heuristics by the maximum normalized demand to adjust the influence of large demands
+    heuristics *= max_normalized_demand
+    return heuristics
+```

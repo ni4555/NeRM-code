@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    import torch
+    import numpy as np
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize the distance matrix to have unit distances
+    distance_matrix /= distance_matrix.max().item()
+
+    # Calculate the maximum distance for comparison
+    max_distance = distance_matrix.max().item()
+
+    # Create a mask for nodes with positive demand
+    demand_mask = (demands > 0).float()
+
+    # Calculate the relative distance between each pair of nodes
+    relative_distances = distance_matrix / (max_distance + 1e-10)
+
+    # Calculate the heuristic for each edge
+    for i in range(1, n):
+        for j in range(1, n):
+            if demand_mask[i] > 0 and demand_mask[j] > 0:
+                edge_heuristic = (demands[i] + demands[j]) / 2 * relative_distances[i][j]
+                # Apply the heuristic based on balance between the demand and the distance
+                heuristics[i][j] = heuristics[j][i] = edge_heuristic
+            else:
+                # Assign a very negative heuristic to non-demand edges
+                heuristics[i][j] = heuristics[j][i] = -torch.inf
+
+    return heuristics
+```

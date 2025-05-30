@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the distance from the depot to all other nodes
+    depot_distance = distance_matrix[:, 0]
+    
+    # Normalize the demand vector to a sum of 1
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the demand for each possible route from the depot to a node and back
+    for i in range(1, n):
+        route_demand = demands[i] + (1 - demands[i])
+        # Calculate the heuristics value as the negative of the distance multiplied by the demand
+        heuristics[0, i] = -route_demand * depot_distance[i]
+        heuristics[i, 0] = heuristics[0, i]
+    
+    # Normalize the heuristics matrix to ensure non-negative values and avoid excessive dampening
+    heuristics = heuristics.clamp(min=0)
+    
+    # Scale the heuristics with the inverse of the normalized demand to balance the consideration
+    heuristics = heuristics * (1 / (normalized_demands + 1e-8))  # Adding a small constant to avoid division by zero
+    
+    return heuristics
+```

@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Heuristic that assumes shorter edges are generally better
+    # but also considers the connectivity of edges to avoid isolation
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = -distance_matrix.copy()
+
+    # Calculate the average distance from each node to all other nodes
+    avg_distances = np.mean(distance_matrix, axis=1)
+
+    # Adjust the heuristic based on the average distance
+    # Lower the value of the edge if it's significantly longer than the average distance
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if distance_matrix[i, j] > avg_distances[i] * 1.5:
+                heuristic_matrix[i, j] *= 1.2  # Increase the "badness" of this edge
+
+    # Also consider the number of neighbors to avoid isolating nodes
+    for i in range(num_nodes):
+        num_neighbors = np.sum(distance_matrix[i, :]) != 0
+        if num_neighbors < 2:
+            # If a node has very few neighbors, decrease the heuristic value of its edges
+            heuristic_matrix[i, :] *= 0.8
+
+    return heuristic_matrix
+```

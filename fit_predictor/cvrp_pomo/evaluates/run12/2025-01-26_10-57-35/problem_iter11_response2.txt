@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix = demand_matrix / demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    normalized_distance_matrix = weighted_distance_matrix / weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate the inverse demand matrix
+    capacity_factor = (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Combine normalized distance and inverse demand
+    combined_factor = normalized_distance_matrix + capacity_factor
+    
+    # Minimize loops by penalizing highly repetitive paths (e.g., large values in the distance matrix)
+    loop_penalty = torch.clamp(torch.abs(torch.diag(combined_factor)), min=0)
+    loop_penalty = loop_penalty.sum(dim=1)  # Summing loop penalties for each node
+    
+    # Calculate final heuristic
+    heuristics = combined_factor - loop_penalty
+    
+    # Clip negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

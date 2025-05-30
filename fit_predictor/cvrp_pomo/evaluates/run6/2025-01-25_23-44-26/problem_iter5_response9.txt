@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the negative of the demand for each edge to penalize high demand edges
+    demand_penalty = -normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0)
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Add a load balancing factor by considering the difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Introduce a diversity factor to avoid suboptimal solutions that are too similar
+    diversity_factor = (torch.rand(distance_matrix.shape[0]) - 0.5) * 2
+    
+    # Integrate dynamic factors by using a dynamic time factor that changes with time
+    time_constant = torch.sin(torch.arange(distance_matrix.shape[0]) * torch.pi / 2)
+    time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0)))
+    
+    # Combine the heuristics with penalties for high diversity and low load balance
+    combined_heuristic = demand_penalty + distance_heuristic + load_balance * time_heuristic - diversity_factor
+    combined_heuristic = torch.clamp(combined_heuristic, min=-1e4, max=1e4)  # Clamping to avoid negative infinity
+    
+    return combined_heuristic
+```

@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Initialize a random number generator for randomness
+    rng = np.random.default_rng()
+    
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Define a function to prune dominated items
+    def prune_dominated(items):
+        dominated = np.zeros_like(items)
+        for i in range(items.shape[0]):
+            for j in range(items.shape[0]):
+                if i != j and np.all(items[i] >= items[j]) and not np.any(items[i] > items[j]):
+                    dominated[j] = 1
+        return dominated
+    
+    # Prune dominated items
+    density_dominated = prune_dominated(density)
+    sparsity_dominated = prune_dominated(sparsity)
+    
+    # Combine pruned metrics with non-dominant items
+    heuristic_value = density * (1 - sparsity) * (1 - density_dominated) * (1 - sparsity_dominated)
+    
+    # Introduce a balance factor to encourage diversity
+    balance_factor = rng.uniform(size=density.shape) / (np.max(density) + 1e-8)
+    
+    # Introduce randomness to explore different regions of the solution space
+    random_explore = rng.uniform(size=density.shape)
+    
+    # Calculate a composite heuristic with the balance factor and random exploration
+    combined_heuristic = heuristic_value * balance_factor + random_explore
+    
+    # Normalize the combined heuristic
+    normalized_combined_heuristic = combined_heuristic / (np.max(combined_heuristic) + 1e-8)
+    
+    # Set dominated and zero weight items to a very small value
+    dominated_or_zero_weight = density_dominated + (weight_sum < 1e-8)
+    normalized_combined_heuristic[dominated_or_zero_weight] = 1e-8
+    
+    return normalized_combined_heuristic
+```

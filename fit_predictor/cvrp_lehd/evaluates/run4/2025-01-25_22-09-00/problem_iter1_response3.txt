@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    
+    # Calculate the total demand to each node from the depot
+    demand_from_depot = torch.cumsum(torch.cat([torch.zeros_like(demands), demands]), dim=0)
+    
+    # Calculate the total demand at each node (including the depot demand)
+    demand_at_node = torch.cumsum(torch.cat([torch.zeros(1), demands]), dim=0)
+    
+    # Calculate the cumulative distance from the depot to each node
+    distance_from_depot = torch.cumsum(distance_matrix[:, 1:], dim=1)[:, :-1]
+    
+    # Create a mask to identify nodes that are fully visited
+    visited_mask = torch.eq(demand_from_depot[:-1], demand_at_node[:-1]).float()
+    
+    # Create a heuristic based on the distance to the nearest fully visited node
+    heuristic = -distance_from_depot * (1 - visited_mask)
+    
+    # Ensure that the heuristic is not negative by clamping it at 0
+    heuristic = torch.clamp_min(heuristic, min=0)
+    
+    return heuristic
+```

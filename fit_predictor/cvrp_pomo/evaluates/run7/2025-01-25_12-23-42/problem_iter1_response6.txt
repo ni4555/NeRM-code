@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improve upon the trivial implementation by considering demand satisfaction and distance."""
+    n = distance_matrix.shape[0]
+    # Calculate the sum of demands
+    total_demand = demands.sum()
+    # Calculate the cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Calculate the potential of each edge
+    potential = -distance_matrix * (cumulative_demand > total_demand).float()
+    # Subtract the distance for edges with non-zero potential to avoid revisiting
+    potential += distance_matrix * (cumulative_demand > total_demand).float()
+    # Normalize the potential to ensure all values are within the range [0, 1]
+    potential = torch.clamp(potential, min=0, max=1)
+    return potential
+```

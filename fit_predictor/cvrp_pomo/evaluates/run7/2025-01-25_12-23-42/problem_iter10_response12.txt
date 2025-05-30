@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / total_demand
+    
+    # Calculate the cumulative loads for each node
+    cumulative_loads = torch.cumsum(node_loads, dim=0)
+    
+    # Encourage exploration by adding a noise term
+    noise = torch.randn_like(norm_distances) * 0.1
+    exploration_heuristics = -torch.sum(node_loads * (norm_distances + noise), dim=0)
+    
+    # Incorporate exploitation by considering the current load
+    exploitation_heuristics = -torch.sum(node_loads * norm_distances, dim=0)
+    
+    # Weigh demand diversity
+    diversity_heuristics = -torch.sum(node_loads * norm_distances, dim=0)
+    
+    # Penalize clustering by penalizing consecutive visits to the same node
+    consecutive_penalty = (cumulative_loads[:, None] == cumulative_loads.unsqueeze(0)).float()
+    clustering_penalty = -consecutive_penalty * norm_distances
+    
+    # Combine heuristics for exploration, exploitation, diversity, and clustering
+    heuristics = (exploration_heuristics + exploitation_heuristics + diversity_heuristics + clustering_penalty)
+    
+    # Adjust heuristics dynamically based on the cumulative load
+    dynamic_adjustment = cumulative_loads / (cumulative_loads + 1)
+    heuristics *= dynamic_adjustment.unsqueeze(-1)
+    
+    # Ensure non-negative heuristics by clamping
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

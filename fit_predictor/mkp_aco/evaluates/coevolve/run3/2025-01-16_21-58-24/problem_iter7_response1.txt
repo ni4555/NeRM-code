@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate a density factor based on the ratio
+    density_factor = value_to_weight_ratio / np.mean(value_to_weight_ratio)
+    
+    # Apply a penalty to the ratio to balance between exploitation and exploration
+    # Using the difference between the current item ratio and the global maximum
+    global_max_ratio = np.max(value_to_weight_ratio)
+    penalty_factor = (global_max_ratio - value_to_weight_ratio) / global_max_ratio
+    
+    # Combine the density and penalty factors to get a balanced heuristic
+    combined_heuristics = density_factor * (1 - penalty_factor)
+    
+    # Apply a threshold to the heuristics and sparsify
+    threshold = 0.5
+    sparsified_heuristics = np.where(combined_heuristics > threshold, combined_heuristics, 0)
+    
+    # Introduce some randomness to maintain heuristic diversity
+    np.random.seed(0)  # Ensure reproducibility
+    random_noise = np.random.normal(0, 0.1, size=sparsified_heuristics.shape)
+    final_heuristics = sparsified_heuristics + random_noise
+    
+    return final_heuristics
+```

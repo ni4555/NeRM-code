@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand matrix
+    cumulative_demand = torch.cumsum(demands[:, None], dim=1).T
+    
+    # Initialize the heuristic matrix with negative infinity
+    heuristic_matrix = torch.full_like(distance_matrix, float('-inf'))
+    
+    # Incorporate the distance and demand constraints
+    # Negative values for edges that would cause a vehicle to exceed its capacity
+    heuristic_matrix[distance_matrix > 0] = -torch.abs(demands[:, None] - cumulative_demand[distance_matrix > 0])
+    
+    # Balance global and local with a simple heuristic: prioritize closer nodes
+    heuristic_matrix[distance_matrix > 0] = torch.clamp(heuristic_matrix[distance_matrix > 0], min=-1, max=1)
+    
+    # Use vectorized operations to ensure efficiency
+    return heuristic_matrix
+```

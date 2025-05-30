@@ -1,0 +1,59 @@
+Fitness: inf
+
+Description:
+Develop an advanced optimization algorithm tailored for the Multi-dimensional Knapsack Problem (MKP), aiming to maximize cumulative rewards under stringent weight limitations. This algorithm will incorporate a sophisticated dynamic allocation strategy to strategically distribute items among knapsacks, ensuring optimal load balancing. It will also utilize a hybrid metaheuristic approach, integrating elements of Genetic Algorithms and Simulated Annealing, to efficiently traverse the solution space. The focus will be on balancing exploration and exploitation through adaptive mutation rates and temperature schedules, enhancing both the diversity and quality of solutions. Furthermore, the algorithm will employ advanced normalization methods to manage the complexity of weight distribution, guaranteeing an equitable and efficient partitioning. Our goal is to achieve an MKP solution that not only maximizes prize collection but also avoids common pitfalls like convergence to suboptimal solutions or inefficient use of capacity, ultimately leading to a highly efficient and robust solution strategy.
+
+Code:
+import numpy as np
+import numpy as np
+import random
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    population_size = 100
+    generations = 50
+    mutation_rate = 0.01
+    initial_temperature = 1000
+    cooling_rate = 0.99
+    best_solution = np.zeros(n)
+    best_score = 0
+
+    def fitness(solution):
+        total_weight = np.sum(solution * weight, axis=1)
+        total_prize = np.sum(solution * prize, axis=1)
+        return np.max(total_prize), total_weight
+
+    def mutate(solution):
+        index = random.randint(0, n - 1)
+        solution[index] = 1 - solution[index]
+        return solution
+
+    def simulated_annealing(solution):
+        temperature = initial_temperature
+        while temperature > 1:
+            new_solution = mutate(solution)
+            new_score, new_weight = fitness(new_solution)
+            delta_score = new_score - solution_score
+            if delta_score > 0 or np.exp(-delta_score / temperature) > random.random():
+                solution = new_solution
+                solution_score = new_score
+            temperature *= cooling_rate
+        return solution
+
+    for _ in range(generations):
+        population = [np.random.choice([0, 1], n) for _ in range(population_size)]
+        for i in range(population_size):
+            population[i] = simulated_annealing(population[i])
+        scores = np.array([fitness(individual)[0] for individual in population])
+        best_index = np.argmax(scores)
+        if scores[best_index] > best_score:
+            best_score = scores[best_index]
+            best_solution = population[best_index]
+
+    normalized_prize = prize / np.sum(prize)
+    normalized_weight = weight / np.sum(weight, axis=1)[:, np.newaxis]
+    normalized_score = np.dot(best_solution, normalized_prize)
+    normalized_weight_distribution = np.dot(best_solution, normalized_weight)
+    heuristics = normalized_score / normalized_weight_distribution
+
+    return heuristics

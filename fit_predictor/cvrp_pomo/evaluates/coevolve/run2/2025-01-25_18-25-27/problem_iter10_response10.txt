@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+
+    # Introduce randomness and a penalty for infeasibilities
+    penalty = torch.rand(n)
+    feasible_edges = (heuristics_matrix > 0).float()
+    random_factor = (torch.rand(n) * 2 - 1) * feasible_edges
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    heuristics_matrix += random_factor + infeasibility_penalty * (1 - feasible_edges)
+
+    # Mutation: Add a small perturbation to the heuristics matrix
+    mutation_rate = 0.01
+    mutation_factor = torch.rand(n) * 2 - 1
+    mutation = mutation_factor * (mutation_rate * heuristics_matrix)
+    mutated_heuristics_matrix = heuristics_matrix + mutation
+
+    # Incorporate penalties for demand deviation from average and symmetry deviation
+    demand_deviation_penalty = ((normalized_demands - avg_demand) ** 2).sum() / n
+    symmetry_deviation_penalty = ((distance_matrix - distance_matrix.t()) ** 2).sum() / (n * (n - 1))
+    adjusted_penalty = demand_deviation_penalty + symmetry_deviation_penalty
+
+    # Introduce a synergy factor to balance the penalties
+    synergy_factor = torch.rand(1) * 0.1
+    adjusted_penalty *= synergy_factor
+
+    # Add penalties to the heuristics matrix
+    final_heuristics_matrix = mutated_heuristics_matrix - adjusted_penalty
+
+    # Ensure that the final matrix still respects the capacity constraint
+    final_heuristics_matrix = torch.clamp(final_heuristics_matrix, min=-1.0, max=0.0)
+    
+    return final_heuristics_matrix
+```

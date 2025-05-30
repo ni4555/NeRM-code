@@ -1,0 +1,32 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Non-linear transformation for demand penalties using a sigmoid function
+    demand_penalty_matrix = torch.sigmoid(-torch.abs(demands - vehicle_capacity))
+    
+    # Non-linear transformation for distance penalties using a logarithmic function
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Normalize within vehicle capacity for balanced heuristic values
+    normalized_potential_matrix = potential_matrix / (potential_matrix.sum(dim=1, keepdim=True) + 1e-6)
+    
+    # Apply log-softmax normalization for non-negativity and scale balance
+    log_softmax_matrix = F.log_softmax(normalized_potential_matrix, dim=1)
+    
+    # Minimize redundant computations by avoiding unnecessary operations
+    # This is achieved by keeping the matrix in a log space and using it directly for further computations
+    
+    # Transform the log-softmax matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -torch.exp(log_softmax_matrix)  # Using exp to transform from log space
+    
+    return heuristics_matrix
+```

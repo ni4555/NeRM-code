@@ -1,0 +1,52 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Compute the heuristic values using a combination of methods
+    # This includes a dynamic fusion of heuristics:
+    # 1. Adaptive neighborhood strategies
+    # 2. Guided local search enhancements
+    # 3. Real-time fitness landscape adaptation
+    # 4. Minimum pairwise distances heuristic
+    
+    # Step 1: Adaptive neighborhood strategies
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                neighbors = np.argsort(distance_matrix[i, :])  # Find nearest neighbors
+                heuristic_value = np.mean(distance_matrix[i, neighbors[1:5]])  # Use the mean of top 4 neighbors
+                heuristics[i, j] += heuristic_value
+    
+    # Step 2: Guided local search enhancements
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Simulated annealing-like approach for guided local search
+                temperature = 1.0
+                while temperature > 0.01:
+                    # Random walk in the neighborhood
+                    new_index = np.random.randint(distance_matrix.shape[1])
+                    if new_index != i:
+                        delta = distance_matrix[i, j] - distance_matrix[i, new_index]
+                        if delta < 0:
+                            j = new_index
+                            heuristics[i, j] -= delta
+                    temperature *= 0.99
+    
+    # Step 3: Real-time fitness landscape adaptation
+    # Adapt heuristics based on the fitness landscape
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Adapt based on the minimum pairwise distance
+                min_pairwise_distance = np.min(distance_matrix[i, :])
+                heuristics[i, j] += (min_pairwise_distance - distance_matrix[i, j]) * 0.1
+    
+    # Normalize the heuristics to ensure all values are within a reasonable range
+    heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+    
+    return heuristics
+```

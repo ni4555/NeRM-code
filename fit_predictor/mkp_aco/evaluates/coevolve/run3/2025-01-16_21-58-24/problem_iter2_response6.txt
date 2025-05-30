@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Combine value-to-weight ratio with additional factors
+    # Here we use the sum of weights (as a proxy for difficulty to select)
+    # and the negative sum of prizes (to penalize items with lower value)
+    difficulty = weight.sum(axis=1)
+    penalty = -np.sum(prize)
+    combined_heuristic = value_to_weight_ratio * (difficulty + penalty)
+    
+    # Normalize the combined heuristic to a range of [0, 1]
+    max_heuristic = np.max(combined_heuristic)
+    min_heuristic = np.min(combined_heuristic)
+    normalized_heuristic = (combined_heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # Sparsify the heuristic by setting a threshold based on the 5th percentile
+    sparsity_threshold = np.percentile(normalized_heuristic, 5)
+    sparsified_heuristics = np.where(normalized_heuristic > sparsity_threshold, normalized_heuristic, 0)
+    
+    return sparsified_heuristics
+```

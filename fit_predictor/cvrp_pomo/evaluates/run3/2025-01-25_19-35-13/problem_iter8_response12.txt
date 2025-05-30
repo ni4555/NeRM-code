@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Initialize dynamic programming table with infinity and 0 for diagonal
+    n = len(demands)
+    dp = torch.full((n, n), float('inf'))
+    dp.fill_diagonal_(0)
+
+    # Update dp with the minimum cost of visiting any node k for each i
+    for i in range(1, n):
+        for j in range(n):
+            if dp[i, j] > dp[0, j] + distance_matrix[j, i]:
+                dp[i, j] = dp[0, j] + distance_matrix[j, i]
+
+    # Get the lower bound for the cost by taking the minimum from the dp table
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+
+    # Compute the potential based on lower bound and demand
+    epsilon = 1e-8
+    demand_weight = 0.7
+    distance_weight = 0.3
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential += (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+
+    # Integrate diversity by rewarding edges that serve a diverse set of demands
+    diversity = (torch.abs(normalized_demands - normalized_demands.mean()) * 0.2)
+    edge_potential += diversity * (1 / (distance_matrix + epsilon))
+
+    # Adjust weights for balance and apply penalties for undesirable attributes
+    edge_potential -= (edge_potential * 0.15 * (demands > 1.5).float())
+    edge_potential += (edge_potential * 0.05 * (distance_matrix < 5).float())
+
+    # Normalize the potential to ensure a balance between distance and demand
+    edge_potential /= (torch.exp(edge_potential).sum(dim=1, keepdim=True) + epsilon)
+
+    # Set the potential of the diagonal (depot node) to zero
+    edge_potential.diag().fill_(0)
+
+    return edge_potential
+```

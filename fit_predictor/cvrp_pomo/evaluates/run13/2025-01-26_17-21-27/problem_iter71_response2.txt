@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_per_node = total_capacity / n
+
+    # Calculate the load balance for each node, rewarding nodes closer to balanced capacity
+    load_balance = (cumulative_demand - capacity_per_node).abs()
+
+    # Adjust penalties dynamically to balance exploration and exploitation
+    dynamic_scale = torch.log1p(cumulative_demand)
+    exploration_factor = 0.5  # Balance between exploitation and exploration
+    early_return_factor = torch.where(cumulative_demand > capacity_per_node, 2, 1)
+    capacity_excess = torch.max((cumulative_demand - capacity_per_node).abs(), dim=0).values
+
+    # Distance penalty weighted by current load balance
+    distance_penalty = torch.log1p(distance_matrix)
+    distance_penalty *= load_balance * (1 - early_return_factor) * exploration_factor
+
+    # Dynamic capacity penalty for overloading
+    capacity_penalty = torch.log1p(capacity_excess)
+    capacity_penalty *= exploration_factor
+
+    # Heuristic that promotes diversity by slightly altering the penalty
+    diversity = torch.abs(torch.randn_like(capacity_excess)) * 0.05
+    diversity = diversity * (1 - (capacity_excess > 0).float())  # Reduce diversity if over capacity
+    diversity_penalty = torch.log1p(diversity)
+
+    # Final heuristic that balances core objectives
+    heuristics = capacity_penalty * (1 + dynamic_scale) + distance_penalty - diversity_penalty
+
+    return heuristics
+```

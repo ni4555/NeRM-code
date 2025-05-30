@@ -1,0 +1,53 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_cities = distance_matrix.shape[0]
+    
+    # Initialize the heuristic matrix with the same values as the distance matrix
+    heuristic_matrix = np.copy(distance_matrix)
+    
+    # Initialize a matrix to keep track of the usage of each edge
+    usage_matrix = np.zeros_like(distance_matrix)
+    
+    # Initialize a matrix to keep track of the degree of each node
+    degree_matrix = np.zeros_like(distance_matrix)
+    
+    # Define a parameter to control the influence of local vs global context
+    local_influence = 0.5
+    
+    # Iterate over each city to update the heuristic values
+    for city in range(num_cities):
+        for next_city in range(num_cities):
+            if city != next_city:
+                # Increment the usage and degree of the edge between the current city and the next city
+                usage_matrix[city, next_city] += 1
+                degree_matrix[city] += 1
+                degree_matrix[next_city] += 1
+                
+                # Calculate the heuristic value based on the usage and degree of the edge
+                adjustment_usage = -np.log(usage_matrix[city, next_city] + 1) / 10
+                adjustment_degree = (degree_matrix[city] - degree_matrix[next_city]) / 10
+                adjustment_distance = (1 if distance_matrix[city, next_city] > np.mean(distance_matrix) else -1) / 10
+                
+                # Apply the heuristic adjustments
+                heuristic_value = distance_matrix[city, next_city] * (1 + adjustment_usage + adjustment_degree + adjustment_distance)
+                
+                # Introduce a dynamic element that reduces the heuristic value for highly used edges with high degree
+                if degree_matrix[city] > degree_matrix[next_city] and usage_matrix[city, next_city] > usage_matrix[next_city, city]:
+                    heuristic_value *= 0.8
+                
+                # Update the heuristic value in the matrix
+                heuristic_matrix[city, next_city] = heuristic_value
+                
+                # Introduce a local context adjustment
+                local_context = np.mean(heuristic_matrix[city, max(0, next_city-1):min(num_cities, next_city+2)])
+                heuristic_matrix[city, next_city] = (1 - local_influence) * heuristic_matrix[city, next_city] + local_influence * local_context
+    
+    # Normalize the heuristic values based on the sum of all heuristic values
+    # to give a relative importance to each edge
+    total_heuristic = np.sum(heuristic_matrix)
+    normalized_heuristic_matrix = heuristic_matrix / total_heuristic
+    
+    return normalized_heuristic_matrix
+```

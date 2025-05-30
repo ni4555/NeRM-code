@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    balance_factor = 1.0 / (cumulative_demand + 1e-8)
+    
+    # Simplified distance heuristic with early return encouragement
+    distance_heuristic = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_heuristic *= balance_factor
+    
+    # Demand heuristic with dynamic penalties for overcapacity and undercapacity
+    demand_heuristic = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    demand_heuristic *= (1 + balance_factor)
+    
+    # Early overflow detection with overflow penalty
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic with balanced factor
+    load_balance = torch.abs(cumulative_demand - total_capacity * balance_factor)
+    load_balance_heuristic = -torch.log1p(load_balance - 1e-8)
+    
+    # Randomness factor for diversity, with reduced impact on higher cumulative demand
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= balance_factor
+    
+    # Combine heuristics with scaling and capped diversity factor
+    combined_heuristics = distance_heuristic + demand_heuristic + overflow_penalty + load_balance_heuristic + randomness_factor
+    scaling_factor = 2.0
+    capped_diversity_factor = torch.clamp(torch.abs(torch.randn_like(demands)) * 0.2, max=1.0)
+    capped_diversity_factor *= balance_factor
+    
+    # Final heuristic value with early overflow detection and diversity
+    final_heuristics = scaling_factor * combined_heuristics + capped_diversity_factor
+    final_heuristics *= (1 + torch.any(cumulative_demand > total_capacity))
+    
+    return final_heuristics
+```

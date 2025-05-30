@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Use non-linear scaling to enhance the impact of edge demands
+    non_linear_demand = torch.log1p(average_demand_per_edge)
+    
+    # Introduce a penalty for high average demand per edge, capped by vehicle capacity
+    load_penalty = torch.min(non_linear_demand / total_capacity, torch.tensor(1.0)) * -1
+    
+    # Integrate multiple penalty factors for overloading and underloading
+    overload_penalty = torch.clamp(load_penalty, max=0) ** 2
+    underload_bonus = torch.clamp(1 - non_linear_demand, min=0) ** 2
+    
+    # Weighted combination of overloading and underloading penalties
+    penalty = 0.5 * (overload_penalty + underload_bonus)
+    
+    # Introduce a diversity factor that encourages exploration of the solution space
+    diversity_factor = torch.log(1 + distance_matrix) / (n - 2)
+    diversity_factor = torch.clamp(diversity_factor, min=1e-6)
+    
+    # Encourage exploration by adding a noise factor
+    noise_factor = torch.rand_like(heuristics) * 0.1
+    
+    # Integrate the penalties and diversity factor into the heuristics
+    heuristics -= (penalty + noise_factor)
+    
+    # Normalize heuristics to ensure they are negative for undesirable edges
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    n = prize.shape[0]
+    m = weight.shape[1]
+    
+    # Normalize prize using min-max scaling to prevent dominance by high prizes
+    min_prize = np.min(prize)
+    max_prize = np.max(prize)
+    normalized_prize = (prize - min_prize) / (max_prize - min_prize)
+    
+    # Calculate the diversity factor with noise for exploration
+    diversity = np.random.normal(0, 0.01, size=n)
+    
+    # Calculate a density factor to exploit dense items
+    density_factor = weight.sum(axis=1)
+    
+    # Calculate an exploitation factor using sparsity and inverse variance
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    sparsity_factor = (density_factor > 0).astype(float)
+    exploitation_factor = sparsity_factor * inv_variance_factor
+    
+    # Combine the prize, exploitation, and diversity to create the heuristics
+    heuristics = normalized_prize * exploitation_factor + diversity
+    
+    # Adjust the heuristics for balance and control the distribution
+    heuristics[heuristics < 0.1] = 0.1
+    heuristics[heuristics > 1.9] = 1.9
+    
+    # Apply a penalty for items that do not add value in terms of sparsity
+    penalty = sparsity_factor < 0.2
+    heuristics[penalty] *= 0.8
+    
+    # Normalize the heuristics to ensure sum equals to 1 for easy selection
+    heuristics /= heuristics.sum()
+    
+    return heuristics
+```

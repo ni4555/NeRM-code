@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a weighted balance heuristic
+    distance_weight = 0.75
+    demand_weight = 1.5
+    penalty_threshold = 0.8  # Nodes with demand greater than 0.8 times the average demand are penalized
+    average_demand = normalized_demands.mean()
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                (normalized_demands - average_demand) * 5, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Use a sigmoid function to adjust the weight based on the demand
+    demand_adjustment = torch.sigmoid(normalized_demands / penalty_threshold)
+    adjusted_demand_weight = demand_weight * (1 - demand_adjustment)
+    
+    # Combine potential values with a dampening factor for high demands
+    potential_values = (normalized_distances * (1 - normalized_demands) +
+                        distance_weight * normalized_distances +
+                        adjusted_demand_weight * normalized_demands - 
+                        penalty_term).abs()
+    
+    # Apply a dampening factor to the potential values to smooth out transitions
+    dampening_factor = torch.sigmoid(torch.relu(2 * (potential_values - 0.5)))
+    potential_values *= dampening_factor
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

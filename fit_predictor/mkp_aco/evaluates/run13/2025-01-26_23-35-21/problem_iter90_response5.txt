@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+
+    # Calculate sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+
+    # Combine density and sparsity using a weighted sum to balance selection criteria
+    combined_score = 0.7 * density + 0.3 * sparsity
+
+    # Introduce randomness to avoid local optima and maintain diversity
+    random_factor = np.random.rand(n)
+    heuristic = combined_score + random_factor
+
+    # Normalize heuristics to ensure a consistent scale
+    max_heuristic = np.max(heuristic)
+    if max_heuristic > 0:
+        heuristic /= max_heuristic
+    else:
+        heuristic += 1e-8  # Avoid division by zero
+
+    # Ensure that the heuristic does not sum to zero to avoid all items being ignored
+    heuristic += 1e-8 * np.random.rand(n)
+
+    return heuristic
+```

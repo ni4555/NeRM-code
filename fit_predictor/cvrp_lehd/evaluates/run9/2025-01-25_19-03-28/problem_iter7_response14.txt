@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Weigh factors to balance demand and distance, and use a cap on demand difference
+    demand_diff_cap = torch.min(1.0, demands.max() - demands.min())
+    demand_weight = normalized_demands * demand_diff_cap
+
+    # Normalize distances for better scalability and then square to penalize longer distances
+    normalized_distances = torch.min(distance_matrix / distance_matrix.mean(), torch.tensor(1.0))
+    distance_weight = normalized_distances ** 2
+
+    # Combine weights to form the heuristic matrix
+    heuristic_matrix = -torch.mul(demand_weight, distance_weight)
+
+    # Dynamically adjust weights to enforce stability and avoid overfitting
+    stability_weight = 0.5  # Example stability factor
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1.0, max=1.0)  # Example clamping range
+
+    # Apply load balancing by ensuring a minimum difference between heuristics
+    min_heuristic_diff = 0.1  # Example minimum heuristic difference
+    for i in range(heuristic_matrix.shape[0]):
+        for j in range(heuristic_matrix.shape[1]):
+            if heuristic_matrix[i, j] == 0:
+                heuristic_matrix[i, j] = -min_heuristic_diff
+
+    return heuristic_matrix
+```

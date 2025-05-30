@@ -1,0 +1,54 @@
+Fitness: 23.265913009643555
+
+Description:
+Develop a novel optimization heuristic for the Capacitated Vehicle Routing Problem (CVRP) that integrates a tailored local search with a hybrid evolutionary algorithm. The heuristic shall incorporate the following specific and adaptive components to ensure a focused, dynamic, and effective solution strategy:
+
+1. **Problem-Specific Local Search (PSLS)**: Implement a local search method optimized for CVRP, focusing on neighborhood exploration that respects vehicle capacities and customer demands, aiming to achieve balanced load distribution.
+
+2. **Adaptive Particle Swarm Optimization (APSO)**: Utilize APSO to drive exploration and convergence by dynamically adjusting velocity and position update mechanisms. The adaptive population management strategy will maintain diversity and ensure convergence towards optimal route assignments.
+
+3. **Dynamic Tabu Search with Problem-Specific Cost Function (DTSCF)**: Integrate tabu search with a cost function that dynamically evaluates load balance and distance traveled. This will allow efficient navigation of the solution space, circumventing previously visited suboptimal solutions while actively exploring new regions.
+
+The proposed heuristic will be designed to ensure the following:
+
+- **Component Distinctiveness**: Each heuristic component will have a clear and unique role in the optimization process, contributing specifically to the resolution of CVRP challenges.
+  
+- **Adaptability and Dynamics**: The heuristics will adapt their behavior based on the problem's current state, allowing for continuous improvement of the search process.
+  
+- **Problem-Specific Details**: The heuristic will address the constraints and characteristics of the CVRP, ensuring that the solution meets the problem's requirements.
+  
+- **Avoid Overgeneralization**: The heuristic will avoid broad, non-specific approaches, focusing on the intricacies of the CVRP to deliver a tailored optimization solution.
+
+The overall aim is to create a heuristic that achieves optimal load distribution, minimizes routing costs, and provides a clear demonstration of the combined effect of each individual heuristic's contribution to the final solution.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure distance_matrix and demands are on the same device and type
+    distance_matrix = distance_matrix.to(demands.device).type_as(demands)
+    
+    # Calculate the total vehicle capacity
+    total_capacity = demands.sum()
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Iterate over all pairs of nodes (i, j)
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Calculate the cost of traveling from node i to node j
+                edge_cost = distance_matrix[i, j]
+                
+                # Calculate the load change if this edge is taken
+                load_change = demands[j] - demands[i]
+                
+                # Normalize the load change by the total capacity
+                normalized_load_change = load_change / total_capacity
+                
+                # Update the heuristics matrix
+                heuristics_matrix[i, j] = edge_cost - normalized_load_change
+    
+    return heuristics_matrix

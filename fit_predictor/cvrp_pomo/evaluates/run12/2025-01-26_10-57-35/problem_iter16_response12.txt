@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Create a matrix where each edge has a base cost of the distance, negative for non-diagonal
+    cost_matrix = torch.where(torch.eye(n, dtype=distance_matrix.dtype) == 1, -distance_matrix, distance_matrix)
+    
+    # Normalize demands for each node by dividing by the total demand to balance them
+    demand_normalized = demands / demands.sum()
+    
+    # Create a matrix for loop redundancy, where loops are penalized with large negative values
+    loop_penalty = -1e8 * torch.eye(n, dtype=cost_matrix.dtype)
+    
+    # Combine all factors into a single cost matrix
+    cost_matrix = cost_matrix + demand_normalized[None, :] * cost_matrix + demand_normalized[:, None] * cost_matrix + loop_penalty
+    
+    # Normalize the cost matrix to get the heuristic values
+    with torch.no_grad():
+        row_sums = cost_matrix.sum(dim=1, keepdim=True)
+        row_sums[row_sums == 0] = 1  # Avoid division by zero
+        heuristics = cost_matrix / row_sums
+    
+    # Incorporate capacity constraint by adding a dynamic penalty to high demand edges
+    capacity_factor = 1 / (demands + 1e-8)
+    heuristics = heuristics * capacity_factor
+    
+    return heuristics
+```

@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Compute the average edge demand as a local criterion
+    edge_demands = distance_matrix.sum(axis=1) / (distance_matrix.sum() / n)
+
+    # Compute the heuristics matrix
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) +
+                                          avg_demand * distance_matrix.sum(axis=0, keepdim=True)) - (edge_demands - avg_demand)
+
+    # Introduce a penalty for edges that do not meet the demand threshold
+    demand_threshold = 0.5
+    penalty = torch.where(heuristics_matrix <= demand_threshold, -1.0, 0.0)
+
+    # Adjust heuristics matrix with penalty
+    heuristics_matrix += penalty
+
+    return heuristics_matrix
+```

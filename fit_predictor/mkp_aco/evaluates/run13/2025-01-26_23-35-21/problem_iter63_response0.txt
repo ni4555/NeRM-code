@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized prize-to-weight ratio for each item
+    normalized_prize_weight_ratio = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate sparsity for each item
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Identify dominated items (where any other item has better normalized prize-to-weight ratio)
+    dominated_items = np.any(normalized_prize_weight_ratio < normalized_prize_weight_ratio, axis=0)
+    
+    # Exclude dominated items
+    non_dominated_items = np.where(~dominated_items)[0]
+    
+    # Normalize remaining heuristic values to keep them in the range [0, 1]
+    normalized_heuristics = normalized_prize_weight_ratio[non_dominated_items] / np.sum(normalized_prize_weight_ratio[non_dominated_items])
+    
+    # Add controlled randomness for diversity
+    randomness_factor = np.random.rand(len(non_dominated_items)) + 1e-8
+    heuristic_with_randomness = normalized_heuristics * randomness_factor
+    
+    # Introduce a diversity factor to promote diversity in the selection process
+    diversity_factor = heuristic_with_randomness / np.mean(heuristic_with_randomness)
+    
+    # Create a balanced heuristic value by combining sparsity and prize-to-weight ratio
+    sparsity_balance = (1 - sparsity) / (1 + sparsity)
+    
+    # Combine all factors using a weighted sum
+    combined_heuristic = (0.7 * diversity_factor + 0.3 * sparsity_balance) * np.max(heuristic_with_randomness)
+    
+    # Scale the heuristics to be within [0, 1]
+    scaled_combined_heuristic = combined_heuristic / (np.max(combined_heuristic) + 1e-8)
+    
+    # Fill in the heuristics for dominated items with a small value
+    scaled_combined_heuristic = np.where(dominated_items[:, None], 1e-8, scaled_combined_heuristic)
+    
+    return scaled_combined_heuristic
+```

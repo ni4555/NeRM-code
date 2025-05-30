@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adjust the average demand per edge to be relative to the total capacity
+    adjusted_average_demand = average_demand_per_edge / total_capacity
+    
+    # Introduce a penalty for high average demand per edge to encourage exploration
+    exploration_penalty = torch.clamp(adjusted_average_demand, max=1) ** 2
+    
+    # Introduce a bonus for edges with lower average demand per edge to encourage exploitation
+    exploitation_bonus = torch.clamp(1 - adjusted_average_demand, min=0) ** 2
+    
+    # Combine penalties and bonuses into the heuristics matrix
+    heuristics = exploration_penalty - exploitation_bonus
+    
+    # Ensure all heuristics are negative
+    heuristics = -torch.abs(heuristics)
+    
+    # Apply a dynamic adjustment to the heuristics based on their values
+    dynamic_adjustment = heuristics * torch.where(heuristics > 0, heuristics, 1)
+    
+    # Set the penalty to be negative to ensure all penalties are negative
+    heuristics = dynamic_adjustment * heuristics
+    
+    # Return the heuristics matrix with edges with zero distance set to zero
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_threshold = demands / total_capacity
+    demand_accumulated = torch.cumsum(demands, dim=0)
+    accumulated_cost = torch.sum(distance_matrix * demand_accumulated, dim=1)
+    
+    # Promote edges based on the demand threshold and cumulative cost
+    priority_matrix = -((1 - demand_threshold) * distance_matrix + accumulated_cost)
+    
+    # Apply a simple heuristic that gives priority to edges with lower cost
+    priority_matrix = torch.clamp(priority_matrix, min=-1e6, max=1e6)
+    return priority_matrix
+```

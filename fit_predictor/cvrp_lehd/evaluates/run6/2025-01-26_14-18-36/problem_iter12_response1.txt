@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot demand
+    total_capacity = demands.sum()  # Including the depot which has zero demand
+    demand_scale = (demands / total_capacity).unsqueeze(1)
+    distance_scale = distance_matrix / distance_matrix.max()
+
+    # Initialize the heuristic matrix with the product of demand and distance scales
+    heuristic_matrix = demand_scale * distance_scale
+
+    # Add penalties for returning to the depot and for edges with demand greater than average
+    penalty_for_return = average_demand - demands[0]
+    penalty_for_excess_demand = average_demand - demands.unsqueeze(1)
+    penalty_matrix = torch.clamp(penalty_for_return + penalty_for_excess_demand, min=0)
+
+    # Apply penalties to the heuristic matrix
+    heuristic_matrix = heuristic_matrix - penalty_matrix
+
+    # Ensure non-negative values and scale to [0, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=0) / heuristic_matrix.max()
+    
+    return heuristic_matrix
+```

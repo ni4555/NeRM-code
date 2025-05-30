@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    
+    # Vectorized computation for heuristic values
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Use broadcast to calculate the weighted demands for each node
+    demand_weights = demands / total_demand
+    
+    # Create a mask to filter out invalid edges
+    valid_edges = (torch.eye(num_nodes) != 1) & (torch.ones_like(torch.eye(num_nodes)) != 1) & (torch.ones_like(torch.eye(num_nodes)) != 0)
+    
+    # Calculate heuristic for each edge, prioritizing longer distances with higher demand
+    heuristic_matrix[valid_edges] = (distance_matrix[valid_edges] * demand_weights)
+    
+    return heuristic_matrix
+```

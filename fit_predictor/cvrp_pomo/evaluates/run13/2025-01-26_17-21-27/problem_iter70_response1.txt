@@ -1,0 +1,61 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+
+    def dynamic_capacity_penalty(demands, total_capacity, cumulative_demand):
+        penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+        factor = (1 + 0.3 * (total_capacity - cumulative_demand) / total_capacity) * \
+                 (1 + (cumulative_demand > total_capacity_vector).float())
+        return penalty * factor
+
+    def distance_scaling(distance_matrix, cumulative_demand, total_capacity):
+        scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+        factor = (1 + cumulative_demand / total_capacity) * \
+                 torch.exp(-cumulative_demand / (total_capacity * 5))
+        return scaling * factor
+
+    def load_balance_penalty(cumulative_demand, total_capacity_vector):
+        return -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector) - 1e-8)
+
+    def randomness_factor(demands, cumulative_demand, total_capacity):
+        return torch.abs(torch.randn_like(demands)) * 0.1 * \
+               (1 - cumulative_demand / total_capacity)
+
+    def diversity_factor(demands, cumulative_demand, total_capacity):
+        diversity = torch.abs(torch.randn_like(demands)) * 0.2
+        norm = torch.sum(torch.abs(diversity)) + 1e-8
+        return diversity / norm * (1 - cumulative_demand / total_capacity)
+
+    def apply_time_adaptive_penalty(value, factor):
+        return value * torch.exp(-cumulative_demand / (total_capacity * factor))
+
+    dynamic_capacity_penalty = dynamic_capacity_penalty(demands, total_capacity, cumulative_demand)
+    distance_scaling = distance_scaling(distance_matrix, cumulative_demand, total_capacity)
+    load_balance_penalty = load_balance_penalty(cumulative_demand, total_capacity_vector)
+    randomness_factor = randomness_factor(demands, cumulative_demand, total_capacity)
+    diversity_factor = diversity_factor(demands, cumulative_demand, total_capacity)
+
+    heuristics = (
+        2.5 * (
+            distance_scaling +
+            dynamic_capacity_penalty +
+            load_balance_penalty
+        ) +
+        randomness_factor +
+        diversity_factor
+    )
+
+    heuristics *= (1 + (cumulative_demand > total_capacity_vector).float())
+
+    depot_penalty = torch.arange(n) == 0
+    heuristics = heuristics - depot_penalty.float().unsqueeze(0)
+
+    heuristics = apply_time_adaptive_penalty(heuristics, 2)
+
+    heuristics = torch.clamp(heuristics, min=-10.0, max=10.0)
+
+    return heuristics
+```

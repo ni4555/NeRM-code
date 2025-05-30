@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Calculate a feature that combines the ratio of prize to the maximum weight
+    # and the standard deviation of weights in each dimension to account for sparsity
+    feature = prize / np.maximum(weight, 1) / np.std(weight, axis=1)
+    
+    # Integrate domain insights: use a penalty for items with low average prize
+    # per weight dimension to discourage the selection of less valuable items
+    penalty = np.sum(np.mean(prize, axis=1) < np.mean(prize) / 2)
+    
+    # Integrate non-linear transformation by applying a logarithm to the feature
+    transformed_feature = np.log1p(feature)
+    
+    # Normalize the transformed feature and apply the penalty
+    normalized_transformed_feature = transformed_feature / np.sum(transformed_feature)
+    normalized_transformed_feature -= penalty
+    
+    # Apply a sparsity heuristic by setting low values to zero
+    sparsity_heuristic = np.where(normalized_transformed_feature > 0, 
+                                   normalized_transformed_feature, 0)
+    
+    # Normalize the sparsity heuristic scores
+    normalized_sparsity_heuristic = sparsity_heuristic / np.sum(sparsity_heuristic)
+    
+    # Return the heuristics scores
+    return normalized_sparsity_heuristic
+```

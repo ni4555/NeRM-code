@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize the heuristic matrix
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Directly compare scaled demands and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Apply a single penalty for exceeding capacity and being too close to the depot
+    heuristics -= torch.clamp((scaled_demands > 1.0).float() * 1000.0 + (distance_matrix[:, 0] < distance_matrix[:, 0].mean()) * 30, min=0.0)
+
+    # Apply non-linear transformation
+    heuristics = torch.tanh(heuristics)
+
+    # Introduce random perturbations for diversity
+    random_perturbation = torch.randn_like(heuristics) * 0.01
+    heuristics += random_perturbation
+
+    # Normalize heuristics to maintain balance
+    heuristics /= heuristics.sum()
+
+    return heuristics
+```

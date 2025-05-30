@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the negative distance heuristic
+    negative_distance = -distance_matrix
+    
+    # Calculate the demand heuristic, adding demand of the depot node to each customer demand
+    demand_with_depot = demands.clone()
+    demand_with_depot[1:] += demands[0]
+    
+    # Calculate the combined heuristic
+    combined_heuristic = negative_distance + demand_with_depot
+    
+    # Normalize the combined heuristic by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_heuristics = combined_heuristic / total_capacity
+    
+    # Adjust the normalization to have negative values for undesirable edges
+    # The normalization is inverted here to penalize longer routes and overflows
+    normalized_heuristics = (1 - normalized_heuristics) * (total_capacity - 1)
+    
+    return normalized_heuristics
+```

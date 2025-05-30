@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Heuristic based on the demand difference and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Dampen the capacity penalty
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * 0.5
+
+    # Dampen the penalty for returning to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * 0.5
+
+    # Normalize the heuristic values using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Add a penalty for edges far from the depot
+    distance_penalty = distance_matrix - distance_matrix[:, 0].unsqueeze(1)
+    heuristics += torch.clamp(torch.relu(distance_penalty) * -10, min=0.0) * 0.5
+
+    # Introduce a small random perturbation for exploration
+    random_perturbation = torch.randn_like(heuristics) * 0.05
+    heuristics += random_perturbation
+
+    # Clamp the heuristic values to ensure a balanced distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

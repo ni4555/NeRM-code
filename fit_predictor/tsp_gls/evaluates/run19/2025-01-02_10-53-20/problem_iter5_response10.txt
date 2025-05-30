@@ -1,0 +1,37 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    edge_usage = np.zeros_like(distance_matrix)
+    for i in range(n):
+        for j in range(i + 1, n):
+            edge_usage[i, j] += 1
+            edge_usage[j, i] += 1
+
+    # Normalize usage data
+    max_usage = np.max(edge_usage)
+    min_usage = np.min(edge_usage)
+    normalized_usage = (edge_usage - min_usage) / (max_usage - min_usage)
+
+    # Calculate edge length variability
+    length_variation = np.std(distance_matrix)
+
+    # Refine penalties based on usage and length variability
+    refined_penalties = (normalized_usage + 0.1 * length_variation) * distance_matrix
+
+    # Introduce a non-linear scaling factor
+    scaling_factor = np.exp(-refined_penalties / 100)
+
+    # Apply controlled perturbations
+    perturbation = np.random.normal(size=(n, n)) * 0.05
+    adjusted_distances = scaling_factor * distance_matrix + perturbation
+
+    # Normalize for invariance
+    adjusted_distances = adjusted_distances / np.linalg.norm(adjusted_distances, axis=0, keepdims=True)
+
+    # Ensure non-negativity
+    adjusted_distances = np.clip(adjusted_distances, 0, np.inf)
+
+    return adjusted_distances
+```

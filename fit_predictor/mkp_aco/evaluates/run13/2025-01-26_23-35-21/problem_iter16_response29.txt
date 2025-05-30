@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Integrate additional metrics such as the sum of weights
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Create a balanced heuristic value by blending metrics
+    heuristic_value = density * (1 - sparsity) - weight_sum
+    
+    # Introduce a diversity factor based on the average density
+    average_density = np.mean(density)
+    diversity_factor = density / (average_density + 1e-8)
+    
+    # Create a final heuristic by combining the diversity factor with the heuristic value
+    heuristic = heuristic_value * diversity_factor
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Normalize early to maintain the scale of the heuristic
+    normalized_density = density / (np.max(density) + 1e-8)
+    
+    # Incorporate sparsity and penalize uniformity by reducing the value of high sparsity
+    sparsity_factor = 1 - sparsity
+    sparsity_factor[sparsity_factor > 0.5] = 0.5
+    
+    # Adjust the heuristic by the sparsity factor to penalize uniformity
+    adjusted_heuristic = normalized_heuristic * sparsity_factor
+    
+    # Ensure the heuristic is positive by clamping negative values to zero
+    adjusted_heuristic = np.clip(adjusted_heuristic, 0, None)
+    
+    return adjusted_heuristic
+```

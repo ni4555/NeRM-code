@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Normalize demand differences to encourage diversity
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Introduce exploration by adding a dampened version of the demand differences
+    exploration = demand_diff * remaining_capacity * torch.tanh(0.1 * demand_diff)
+
+    # Encourage exploitation by prioritizing edges with remaining capacity
+    exploitation = remaining_capacity * torch.exp(-torch.sqrt(remaining_capacity))
+
+    # Introduce penalties for unscaled demand exceeding capacity and edges to the depot
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    unscaled_demand_penalty = torch.clamp((scaled_demands > 1.0).float(), min=0.0)
+
+    # Combine exploration, exploitation, and penalties to create heuristic values
+    heuristics = exploration + exploitation - capacity_penalty - depot_penalty - unscaled_demand_penalty
+
+    # Introduce randomness to explore diverse solutions
+    exploration_noise = torch.randn_like(heuristics) * 0.01
+    heuristics += exploration_noise
+
+    # Normalize heuristic values to encourage exploration and balance
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

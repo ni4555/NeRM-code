@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations using linear penalties
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Normalize the penalty and distance penalty matrices to ensure non-negativity
+    normalized_penalty_matrix = torch.relu(penalty_matrix)
+    normalized_distance_matrix = torch.relu(distance_penalty_matrix)
+    
+    # Sigmoidally transform the normalized matrices to emphasize constraints
+    emphasized_penalty_matrix = torch.sigmoid(normalized_penalty_matrix)
+    emphasized_distance_matrix = torch.sigmoid(normalized_distance_matrix)
+    
+    # Normalize both matrices to have the same scale
+    normalized_emphasized_penalty_matrix = emphasized_penalty_matrix / emphasized_penalty_matrix.sum(dim=1, keepdim=True)
+    normalized_emphasized_distance_matrix = emphasized_distance_matrix / emphasized_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine the normalized matrices using a weighted sum to create a combined heuristics matrix
+    combined_matrix = (0.6 * normalized_emphasized_penalty_matrix) + (0.4 * normalized_emphasized_distance_matrix)
+    
+    # Ensure the combined matrix is normalized across each row
+    combined_matrix /= combined_matrix.sum(dim=1, keepdim=True)
+    
+    # The combined matrix represents the potential heuristics, normalize it to ensure it sums to 1 over each row
+    heuristics_matrix = combined_matrix
+    
+    return heuristics_matrix
+```

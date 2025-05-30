@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Adjust the distance penalty by the inverse of the capacity used so far
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8) / (1 + cumulative_demand / total_capacity)
+    
+    # Introduce a capacity-based penalty for each edge to discourage loading vehicles to more than a certain threshold
+    capacity_penalty = (demands[:, None] + demands[None, :]) > (0.8 * total_capacity) * (cumulative_demand / total_capacity)
+    capacity_penalty = torch.where(capacity_penalty, -torch.log1p(torch.abs((demands[:, None] + demands[None, :]) - (0.8 * total_capacity) * (cumulative_demand / total_capacity)) - 1e-8), torch.zeros_like(capacity_penalty))
+    
+    # Implement a load balance penalty that discourages vehicles that are too loaded compared to others
+    load_balance = torch.abs(cumulative_demand / (total_capacity - demands) - 1)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Use a scaled heuristic to encourage the inclusion of edges that contribute to the overall balance
+    heuristics = distance_penalty - capacity_penalty + load_balance_penalty
+    
+    # Vectorized diversity heuristic to encourage a wider distribution of choices, preventing local optima
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Combine all factors and scale to avoid dominance of one over the others
+    heuristics = heuristics + diversity_factor
+    return heuristics
+```

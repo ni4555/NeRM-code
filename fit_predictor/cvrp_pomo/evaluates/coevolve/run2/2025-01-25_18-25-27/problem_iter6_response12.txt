@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    # Calculate normalized demands using a more numerically stable approach
+    normalized_demands = demands / total_demand
+    # Avoid the potential overflow caused by the large sum by scaling the matrix and then unsqueezing
+    scaled_distance_matrix = distance_matrix * (1 / normalized_demands.unsqueeze(1))
+    # Calculate the savings for each edge by subtracting the scaled distance from the original distance
+    savings_matrix = distance_matrix - scaled_distance_matrix
+    # Clip the savings to ensure they are non-negative, as negative savings are not meaningful
+    savings_matrix = torch.clamp(savings_matrix, min=0)
+    return savings_matrix
+```

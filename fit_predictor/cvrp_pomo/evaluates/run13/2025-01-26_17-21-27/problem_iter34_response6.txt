@@ -1,0 +1,54 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Scaled capacity penalty
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Dynamic penalty based on cumulative demand
+    dynamic_penalty = (1 + cumulative_demand / total_capacity) * (
+        torch.where(
+            (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+            -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+            torch.zeros_like(cumulative_demand)
+        ) * 3.0  # Aggressive scaling for overflow
+    )
+    
+    # Enhanced distance penalty to account for cumulative load
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Introduce diversity heuristic to avoid similar edge selections
+    diversity_penalty = torch.sum(torch.abs(distance_matrix - distance_matrix.mean()), dim=0)
+    
+    # Balance load heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Apply strong scaling factors to core objectives
+    scaling_factors = {
+        'distance': 1.5,
+        'capacity': 2.0,
+        'overflow': 3.0,
+        'load_balance': 2.0
+    }
+    
+    heuristics = scaling_factors['distance'] * distance_scaling + \
+                 scaling_factors['capacity'] * capacity_penalty + \
+                 scaling_factors['overflow'] * dynamic_penalty + \
+                 scaling_factors['load_balance'] * load_balance_penalty - \
+                 scaling_factors['diversity'] * diversity_penalty
+    
+    # Normalize the heuristics to sum to 1 for each edge
+    heuristics /= heuristics.sum(dim=1, keepdim=True) + 1e-8
+    
+    # Include a penalty for the depot node
+    depot_mask = (torch.arange(n) == 0).float()
+    heuristics = heuristics + depot_mask.unsqueeze(0) * cumulative_demand.unsqueeze(0)
+    
+    return heuristics
+```

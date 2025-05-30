@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands[1:].sum()
+    vehicle_capacity = 1.0 / (1.0 / total_demand + 1.0 / demands[depot])
+
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Vectorized calculation of potential loads for forward paths
+    forward_potential_loads = vehicle_capacity - (demands[1:] / demands[depot]) * vehicle_capacity
+
+    # Vectorized calculation of potential loads for return paths
+    return_potential_loads = vehicle_capacity + demands[1:]
+
+    # Vectorized assignment of heuristics for forward paths
+    forward_edges = (demands[1:] > 0) & (forward_potential_loads >= demands[1:])
+    heuristics[1:, 1:] = distance_matrix[1:, 1:] * (forward_edges.float() * (forward_potential_loads / demands[1:]).unsqueeze(1))
+
+    # Vectorized assignment of heuristics for return paths
+    return_edges = (demands[1:] > 0) & (return_potential_loads <= vehicle_capacity)
+    heuristics[1:, depot] = distance_matrix[1:, depot] * (return_edges.float() * (vehicle_capacity / return_potential_loads).unsqueeze(1))
+
+    # Set heuristics for the depot to 0 since it is the starting point
+    heuristics[depot, :] = 0
+    heuristics[:, depot] = 0
+
+    return heuristics
+```

@@ -1,0 +1,51 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize the heuristic matrix
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Add a weight to promote close-to-depot nodes initially (local search bias)
+    initial_bias = 1.5
+    heuristics[torch.arange(n), 0] += initial_bias - initial_bias * distance_matrix[:, 0] / distance_matrix[:, 0].max()
+
+    # Add a heuristic for nodes that can potentially be picked based on remaining capacity
+    heuristics[torch.arange(n)[remaining_capacity >= scaled_demands.unsqueeze(0)], torch.arange(n)] += \
+        initial_bias - initial_bias * torch.abs(scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0))
+
+    # Apply dampening factor to reduce the impact of high penalties
+    dampening_factor = 0.3
+
+    # Add a dampened penalty for edges leading back to the depot (index 0)
+    heuristics[torch.arange(n), 0] -= dampening_factor
+
+    # Apply a penalty for nodes with excess demand that cannot be met with the remaining capacity
+    capacity_penalty = torch.clamp((scaled_demands > remaining_capacity.unsqueeze(0)).float(), min=0.0) * 500.0
+    heuristics -= capacity_penalty * dampening_factor
+
+    # Apply a penalty for edges that lead to nodes with high distance from the depot
+    distance_penalty = distance_matrix[:, 0] * 50
+    heuristics -= torch.clamp(distance_penalty, min=0.0) * dampening_factor
+
+    # Balance the heuristic with distance, promoting a diverse and realistic approach
+    heuristics += distance_matrix / distance_matrix[:, 0].unsqueeze(1)
+
+    # Normalize the heuristic values to the range [0, 1] using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Ensure that the heuristic values are within the [0, 1] range after adjustments
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

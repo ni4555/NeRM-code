@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the penalty for exceeding the vehicle capacity
+    demand_penalty = torch.abs(demands - vehicle_capacity)
+    
+    # Normalize the demand penalty by the total demand
+    normalized_demand_penalty = demand_penalty / demands.sum()
+    
+    # Calculate the distance penalty
+    distance_penalty = -torch.log(distance_matrix + 1e-6)
+    
+    # Normalize the distance penalty to balance it with the demand penalty
+    normalized_distance_penalty = distance_penalty / distance_penalty.sum()
+    
+    # Combine the normalized penalties into a potential matrix
+    potential_matrix = normalized_demand_penalty + normalized_distance_penalty
+    
+    # Introduce randomness with Gaussian noise
+    noise_matrix = torch.randn_like(potential_matrix) * 1e-2
+    
+    # Combine the original potential matrix with noise
+    combined_potential_matrix = potential_matrix + noise_matrix
+    
+    # Non-linearly transform the combined potential matrix to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(combined_potential_matrix))
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine the normalized emphasized matrix with the normalized distance penalty matrix
+    combined_matrix = normalized_emphasized_matrix + normalized_distance_penalty
+    
+    # Introduce a small random perturbation for further randomness
+    perturbation_matrix = torch.randn_like(combined_matrix) * 1e-3
+    
+    # Apply mutation by adding the perturbation to the combined matrix
+    mutated_combined_matrix = combined_matrix + perturbation_matrix
+    
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -mutated_combined_matrix
+    
+    return heuristics_matrix
+```

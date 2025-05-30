@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    # Initialize the heuristic matrix with high values
+    heuristic_matrix = np.full(distance_matrix.shape, np.inf)
+    
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=1)
+    
+    # Calculate the usage of each edge
+    edge_usage = np.count_nonzero(distance_matrix, axis=0)
+    
+    # Calculate the mean and standard deviation of the distance matrix
+    mean_distance = np.mean(distance_matrix)
+    std_distance = np.std(distance_matrix)
+    
+    # Adjust the heuristic values based on the node degree, edge usage, and distance
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Adjust based on node degree
+                adjustment_degree = (degrees[i] - degrees[j]) / 10
+                
+                # Adjust based on edge usage
+                usage_penalty = (edge_usage[i] * edge_usage[j]) ** 0.5
+                
+                # Adjust based on distance, favoring edges that are longer than the mean
+                distance_adjustment = (distance_matrix[i][j] - mean_distance) / std_distance
+                
+                # Combine the adjustments, introducing randomness to escape local minima
+                heuristic_matrix[i][j] = distance_matrix[i][j] * (1 + adjustment_degree + usage_penalty + distance_adjustment)
+                heuristic_matrix[i][j] *= (1 + np.random.normal(0, 0.1))
+    
+    # Ensure that no self-loops have a non-zero heuristic
+    np.fill_diagonal(heuristic_matrix, np.inf)
+    
+    return heuristic_matrix
+```

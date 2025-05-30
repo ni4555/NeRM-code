@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= torch.diag(demand_matrix)
+    demand_matrix /= torch.sum(demand_matrix, dim=1, keepdim=True)
+    
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    demand_normalized = demand_matrix / torch.sum(demand_matrix, dim=1, keepdim=True)
+    
+    heuristics = weighted_distance_matrix + demand_normalized
+    
+    capacity_factor = (1 / (demands + 1e-8))
+    heuristics *= capacity_factor
+    
+    cumulative_distance_matrix = distance_matrix.cumsum(dim=1)
+    normalized_cumulative_distance_matrix = cumulative_distance_matrix / cumulative_distance_matrix.sum(dim=1, keepdim=True)
+    
+    heuristics += normalized_cumulative_distance_matrix * (-1)
+    
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

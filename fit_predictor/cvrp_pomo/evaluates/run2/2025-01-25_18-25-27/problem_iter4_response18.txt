@@ -1,0 +1,15 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands_sum = demands.sum()
+    normalized_demands = demands / demands_sum
+    # Apply a non-linear transformation to the distance matrix
+    non_linear_distances = torch.log(distance_matrix + 1)  # Adding 1 to avoid log(0)
+    # Calculate the weighted non-linear distances
+    weighted_non_linear_distances = non_linear_distances * (1 - torch.exp(-non_linear_distances))
+    # Apply the demand normalization and sum over the demand dimension
+    normalized_weighted_non_linear_distances = weighted_non_linear_distances - (normalized_demands[:, None] * weighted_non_linear_distances.sum(axis=1, keepdim=True))
+    return normalized_weighted_non_linear_distances
+```

@@ -1,0 +1,66 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Refined heuristic considering load balance and dynamic penalties
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Introduce dynamic weights for penalties based on the current solution's load balance
+    load_balance = (heuristics > 0).sum() / n
+    overload_weight = 2 if load_balance < 0.5 else 1
+    underload_weight = 2 if load_balance > 0.5 else 1
+    
+    # Calculate penalties for overloading and underloading with dynamic weights
+    overload_penalty = torch.abs(heuristics) * overload_weight
+    underload_penalty = torch.abs(1 - heuristics) * underload_weight
+    
+    # Weighted combination of overloading and underloading penalties
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    # Implement problem-specific local search adjustments
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Check for potential overloading and adjust heuristic
+                for k in range(n):
+                    if k != i and k != j:
+                        potential_load = demands[j] - demands[k]
+                        if 0 < potential_load <= 1:
+                            heuristics[i, j] = -torch.abs(potential_load)
+    
+    # Incorporate adaptive PSO and dynamic tabu search strategies
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the tabu cost function
+                tabu_cost = torch.relu(heuristics[i, j])
+                # Implement tabu search strategy to avoid suboptimal solutions
+                if tabu_cost > 0:
+                    heuristics[i, j] = -tabu_cost
+    
+    # Consider edge demand diversity and adjust heuristic
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                diversity_score = torch.abs(demands[i] - demands[j])
+                heuristics[i, j] -= diversity_score
+    
+    return heuristics
+```

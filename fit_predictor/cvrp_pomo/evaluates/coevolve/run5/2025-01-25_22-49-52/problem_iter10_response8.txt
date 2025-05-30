@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Demand relaxation for high-demand nodes
+    high_demand_threshold = 0.8
+    relaxed_demands = torch.where(normalized_demands > high_demand_threshold,
+                                  max_demand * 0.5,
+                                  normalized_demands)
+    
+    # Node partitioning based on demand relaxation
+    partitioned_nodes = torch.where(normalized_demands > high_demand_threshold,
+                                    torch.ones_like(normalized_demands),
+                                    torch.zeros_like(normalized_demands))
+    
+    # Calculate potential values based on normalized distances, relaxed demands, and partitioning
+    potential_values = normalized_distances * (1 + partitioned_nodes) + relaxed_demands
+    
+    # Dampen penalties for high demand nodes
+    penalty_factor = torch.sqrt(normalized_distances)
+    high_demand_penalty = (normalized_demands - high_demand_threshold) * penalty_factor
+    potential_values -= high_demand_penalty
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prizes
+    max_prize = np.max(prize)
+    normalized_prize = prize / max_prize
+    
+    # Normalize weights
+    max_weight = np.max(np.sum(weight, axis=1))
+    normalized_weight = np.sum(weight, axis=1) / max_weight
+    
+    # Calculate density as normalized prize to normalized weight ratio
+    density = normalized_prize / normalized_weight
+    
+    # Calculate dimension-specific factors as average normalized weights
+    dimension_factors = np.mean(normalized_weight, axis=1)
+    
+    # Avoid overfitting by using a regularization term
+    regularization = normalized_prize * np.sum(normalized_weight, axis=1) / np.sum(normalized_prize)
+    
+    # Calculate heuristic values combining density, dimension factors, and regularization
+    heuristic_values = density * dimension_factors - regularization
+    
+    # Sparsify heuristics by setting values below a threshold to zero
+    threshold = np.max(heuristic_values)
+    sparsity_mask = heuristic_values > threshold
+    heuristics = np.where(sparsity_mask, heuristic_values, 0)
+    
+    # Balance the heuristics by scaling them to the range [0, 1]
+    heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+    
+    return heuristics
+```

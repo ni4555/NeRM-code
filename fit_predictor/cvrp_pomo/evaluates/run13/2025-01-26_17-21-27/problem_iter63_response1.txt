@@ -1,0 +1,52 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Early overflow detection to identify and penalize suboptimal paths
+    early_overflow = cumulative_demand > (total_capacity / n)
+    
+    # Modularize demand-aware feature to improve precision
+    demand_feature = demands / total_capacity
+    
+    # Combine dynamic capacity penalty with a balance factor
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    balance_factor = torch.abs(cumulative_demand - (total_capacity / n))
+    dynamic_penalty = (capacity_penalty + 0.5 * balance_factor) * (1 + early_overflow)
+    
+    # Enhanced distance penalty with a time-adaptive scaling factor
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 2))
+    distance_penalty *= time_factor
+    
+    # Randomness factor for exploration, controlled by the demand feature
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= demand_feature
+    
+    # Apply a scaling factor to prioritize core objectives
+    scaling_factor = 2.0
+    heuristics = (
+        scaling_factor * (
+            distance_penalty + dynamic_penalty
+        ) +
+        randomness_factor
+    )
+    
+    # Modularize overflow penalty and integrate it
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    heuristics += overflow_penalty
+    
+    # Introduce time-adaptive diversity factor to encourage exploration
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    heuristics += diversity_factor
+    
+    return heuristics
+```

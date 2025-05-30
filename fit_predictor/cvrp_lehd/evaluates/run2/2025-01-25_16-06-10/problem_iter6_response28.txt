@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    return_distance = distance_matrix[:, 0]
+    heuristics = -torch.ones_like(distance_matrix)
+
+    # Calculate cumulative demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Compute heuristics for all possible paths
+    for i in range(n_nodes):
+        for j in range(n_nodes):
+            if i != j:
+                demand_diff = demand_cumsum[j] - demand_cumsum[i]
+                # Use element-wise subtraction to handle negative indices properly
+                heuristics[i, j] = -(distance_matrix[i, j] + 0.5 * demand_diff)
+    
+    # Add return to depot heuristic values
+    heuristics = torch.cat([heuristics, return_distance[:, None]], dim=1)
+    return heuristics
+```

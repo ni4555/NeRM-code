@@ -1,0 +1,54 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Introduce a dynamic capacity penalty that adapts to the vehicle's current state
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + 0.3 * (demands / total_capacity - 1))
+    
+    # Implement a distance penalty that is time-adaptive and considers the load balance
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    load_balance_factor = torch.abs(cumulative_demand - total_capacity_vector)
+    distance_scaling *= (1 + load_balance_factor / total_capacity) * time_factor
+    
+    # Apply an overflow penalty that encourages early returns to the depot
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Integrate a load balance heuristic that promotes more even distribution of demands
+    load_balance_penalty = -torch.log1p(load_balance_factor - 1e-8)
+    
+    # Add a controlled randomness factor that decreases with the increase in cumulative demand
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Scale the heuristics to prioritize core objectives
+    scaling_factor = 2.5
+    heuristics = (
+        scaling_factor * (
+            distance_scaling +
+            dynamic_capacity_penalty +
+            overflow_penalty +
+            load_balance_penalty
+        ) +
+        randomness_factor
+    )
+    
+    # Encourage diversity by introducing a diversity factor that is adjusted dynamically
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Adjust the heuristics based on the current state of the vehicle
+    heuristics *= (1 + torch.where(cumulative_demand > total_capacity_vector, 1, 0))
+    heuristics += diversity_factor
+    
+    return heuristics
+```

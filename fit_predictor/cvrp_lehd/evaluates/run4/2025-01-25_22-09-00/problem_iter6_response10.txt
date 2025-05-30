@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Normalize demand factors for global perspective
+    demand_factor = demands / total_capacity
+    
+    # Use non-linear scaling for distance
+    distance_factor = 1 / (1 + torch.exp(-distance_matrix / torch.mean(torch.abs(distance_matrix))))
+    
+    # Integrate diverse factors with balanced weights
+    local_balance_factor = -torch.abs(distance_matrix) * demand_factor / torch.mean(torch.abs(distance_matrix))
+    global_balance_factor = demand_factor.unsqueeze(1) * demand_factor.unsqueeze(0) * distance_matrix
+    
+    # Ensure non-negative incentives with proper clamping
+    heuristic_matrix = torch.cat([
+        torch.cat([torch.zeros((1, 1)), local_balance_factor[1:, 1:]]),
+        torch.cat([local_balance_factor[:-1, :-1], torch.zeros((n-1, 1))])
+    ], dim=1)
+    
+    # Adjusting for distances to and from the depot
+    for i in range(1, n):
+        route_demand = demands[i] + (total_capacity - demands[i])
+        heuristic_matrix[0, i] = -route_demand * distance_factor[0, i]
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    return heuristic_matrix
+```

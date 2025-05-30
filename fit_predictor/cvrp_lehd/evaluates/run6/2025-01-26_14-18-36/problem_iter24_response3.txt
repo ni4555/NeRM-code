@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+
+    # Add a positive heuristic for edges that have a lower cumulative demand
+    heuristics += (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Adjust the heuristic value by the remaining capacity at the destination node
+    heuristics *= remaining_capacity.unsqueeze(0)
+
+    # Dampen the effect of edges with high distance from the depot
+    distance_dampening = 1 - torch.exp(-distance_matrix[:, 0] / distance_matrix[:, 0].mean())
+    heuristics *= distance_dampening.unsqueeze(1)
+
+    # Introduce a local preference for edges that contribute to a balanced load
+    balanced_load = torch.abs(torch.diff(remaining_capacity))
+    local_preference = torch.clamp(balanced_load.mean() / total_capacity, min=0.0)
+    heuristics += local_preference
+
+    # Avoid nodes with demand exceeding vehicle capacity by introducing a high penalty
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty
+
+    # Avoid returning to the depot by adding a penalty
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(distance_matrix.shape[0]), 0] = -1
+    heuristics += depot_penalty
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    return heuristics
+```

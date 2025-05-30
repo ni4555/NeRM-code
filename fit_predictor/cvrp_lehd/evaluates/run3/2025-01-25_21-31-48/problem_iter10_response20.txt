@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_sum = torch.sum(demands)
+    demand_mean = demand_sum / n
+    demand_balance = (demands - demand_mean).abs()
+    demand_balance = demand_balance / demand_sum
+    demand_balance = 1 - demand_balance
+    
+    distance_heuristic = distance_matrix / (torch.max(distance_matrix) + 1e-8)
+    
+    combined_heuristic = demand_balance * distance_heuristic
+    
+    load_factor = demands / demand_sum
+    dynamic_factor = 1 - load_factor
+    combined_heuristic *= dynamic_factor
+    
+    penalty_mask = demands > 1
+    if torch.any(penalty_mask):
+        penalty = -torch.max(combined_heuristic[penalty_mask]) * penalty_mask
+        combined_heuristic -= penalty
+    
+    cap = torch.max(combined_heuristic)
+    combined_heuristic = torch.clamp(combined_heuristic, min=0, max=cap)
+    
+    return combined_heuristic
+```

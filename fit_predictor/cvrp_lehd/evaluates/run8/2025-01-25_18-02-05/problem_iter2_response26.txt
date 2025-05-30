@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the variance of the demand
+    demand_variance = torch.var(demands)
+    
+    # Normalize the variance by the total vehicle capacity to get a demand variance-based heuristic
+    normalized_demand_variance = demand_variance / demands.sum()
+    
+    # Calculate the difference between the maximum and minimum demand
+    demand_range = torch.max(demands) - torch.min(demands)
+    
+    # Create a matrix of the same shape as the distance matrix with the demand range
+    demand_range_matrix = torch.full_like(distance_matrix, demand_range)
+    
+    # Combine the demand range and normalized demand variance into a single heuristic
+    combined_heuristic = demand_range_matrix - distance_matrix + normalized_demand_variance
+    
+    # Normalize the combined heuristic by the sum of demands to ensure it's on a comparable scale
+    # and to give more weight to edges with higher demands
+    demand_sum = torch.sum(demands)
+    normalized_combined_heuristic = combined_heuristic / demand_sum
+    
+    # Use the maximum value of the normalized combined heuristic as the threshold
+    threshold = torch.max(normalized_combined_heuristic)
+    
+    # Apply the threshold to ensure all undesirable edges have negative values
+    heuristic_matrix = torch.where(normalized_combined_heuristic < threshold, normalized_combined_heuristic, 0)
+    
+    # Apply a non-linear transformation to emphasize longer distances
+    heuristic_matrix = torch.exp(-heuristic_matrix)
+    
+    return heuristic_matrix
+```

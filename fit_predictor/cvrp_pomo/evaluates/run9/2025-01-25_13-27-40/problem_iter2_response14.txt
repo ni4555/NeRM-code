@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the start node
+    cum_demands = torch.cumsum(demands, dim=0)
+    # Create a binary mask where a 1 indicates the vehicle is still under capacity
+    capacity_mask = cum_demands < demands[0]
+    # Initialize a potential tensor with all ones, to be modified
+    potential = torch.ones_like(distance_matrix)
+    # Apply a non-linear transformation to the distance matrix (e.g., exponential decay)
+    potential = torch.exp(-distance_matrix * 0.1)
+    # Combine potential and the binary mask to create a weight matrix
+    weighted_potential = potential * capacity_mask.float()
+    # Calculate demand penalties and only for nodes with non-zero demand
+    high_demand_penalty = (demands - demands[0]) * torch.clamp((demands - cum_demands) / (demands[0] - demands[1]), 0, 1)
+    # Adjust the weighted potential to account for demand penalties
+    adjusted_potential = weighted_potential - high_demand_penalty
+    # The heuristic for the depot to the first node is set to zero since it's the starting point
+    adjusted_potential[0, 1] = 0
+    adjusted_potential[1, 0] = 0
+    return adjusted_potential
+```

@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    import numpy as np
+
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = np.zeros_like(distance_matrix, dtype=np.float64)
+
+    # Compute the relative distance to the nearest neighbor for each edge
+    relative_distances = distance_matrix.copy()
+    for i in range(num_nodes):
+        # Set the distance to self-loops to a large value
+        relative_distances[i, i] = np.inf
+        # Compute the minimum distance to a neighboring vertex
+        min_distance = np.min(relative_distances[i, :])
+        # Subtract the minimum distance from all distances to this vertex
+        relative_distances[i, :] = np.maximum(0, relative_distances[i, :] - min_distance)
+    # Normalize by the average distance to get the relative distance
+    avg_relative_distance = np.mean(relative_distances)
+    relative_distances /= avg_relative_distance
+
+    # Adjust the heuristic matrix based on relative distances
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:  # Avoid self-loops
+                heuristic_matrix[i, j] = 1 - relative_distances[i, j]
+
+    # Consider node connectivity by penalizing high-degree nodes
+    degree_penalty = np.zeros_like(distance_matrix)
+    for i in range(num_nodes):
+        degree = np.sum(distance_matrix[i, :]) - num_nodes  # Exclude self-loop
+        if degree > 0:
+            degree_penalty[i, :] = 1 / (degree + 1)  # Avoid division by zero
+    heuristic_matrix *= degree_penalty
+
+    return heuristic_matrix
+```

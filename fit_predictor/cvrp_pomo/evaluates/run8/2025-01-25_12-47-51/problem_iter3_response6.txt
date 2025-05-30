@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+
+    # Calculate the inverse of distance matrix
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+
+    # Apply a demand-based heuristic
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = inv_distance_matrix * demand_normalized
+
+    # Integrate capacity constraints by prioritizing nodes with higher demand
+    # Create a matrix where each row is a customer's demand normalized by the vehicle capacity
+    demand_normalized_matrix = demands / torch.sum(demands)
+    # Sort nodes by demand in descending order
+    sorted_indices = torch.argsort(-demand_normalized_matrix, dim=1)
+    # Calculate the cumulative demand as we visit nodes in the sorted order
+    cumulative_demand = torch.cumsum(demand_normalized_matrix[:, sorted_indices], dim=1)
+    # Calculate the distance to the next node in the sorted order considering the cumulative demand
+    next_node_distance = inv_distance_matrix[:, sorted_indices[1:]] * (1 - cumulative_demand[:, :-1])
+
+    # Combine demand-based heuristic with the next node distance
+    combined_heuristic = demand_weighted_distance + next_node_distance
+
+    # Apply a nearest-neighbor heuristic by considering the shortest distance to an unvisited node
+    nearest_neighbor_distance = inv_distance_matrix[:, 1:]  # Exclude the depot node
+    nearest_neighbor_mask = cumulative_demand[:, 1:] < 1  # Only consider nodes that can be visited
+    nearest_neighbor_distance[~nearest_neighbor_mask] = torch.inf  # Set infinite for unvisitable nodes
+
+    # Incorporate the nearest-neighbor heuristic
+    combined_heuristic += nearest_neighbor_distance
+
+    # Ensure that edges with insufficient capacity are penalized
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    return combined_heuristic
+```

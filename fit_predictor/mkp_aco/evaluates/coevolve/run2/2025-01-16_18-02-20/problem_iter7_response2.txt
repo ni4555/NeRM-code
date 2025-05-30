@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate diversity score as the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - normalized_prize.reshape(-1, 1)), axis=0)
+    
+    # Calculate a sparsity score based on the percentage of dimensions where the weight is zero
+    sparsity_scores = np.mean(weight == 0, axis=1)
+    
+    # Combine the normalized prize value, diversity score, and sparsity score to get a total score
+    total_score = normalized_prize + diversity_scores - sparsity_scores
+    
+    # Use a threshold to balance quality and diversity
+    threshold = np.percentile(total_score, 75)  # Adjust the percentile as needed
+    
+    # Rank the items based on their total score and threshold
+    ranked_indices = np.argsort(total_score)[::-1]
+    promising_indices = ranked_indices[np.where(total_score >= threshold)[0]]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    # Sparsify the heuristics by setting the top 50% of promising elements to 1
+    heuristics[promising_indices[:len(promising_indices)//2]] = 1
+    
+    return heuristics
+```

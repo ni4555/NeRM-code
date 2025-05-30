@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    max_demand = demands.max()
+    # Normalize features and use distance inverses
+    distance_matrix_normalized = 1 / (distance_matrix + 1e-10)  # Adding a small epsilon to avoid division by zero
+    demand_normalized = (demands / total_demand) ** 2  # Squaring demand to emphasize larger demands
+    
+    # Combine distance inverse and demand, weighted by total demand and max demand
+    combined = (distance_matrix_normalized * 0.5) + (demand_normalized * 0.5)
+    
+    # Create a mask to indicate edges that would cause a capacity violation
+    demand_exceeds_capacity = (demands > 1).to(torch.float)
+    
+    # Add negative penalty for undesirable edges
+    penalty = -demand_exceeds_capacity * max_demand
+    combined = combined + penalty
+    
+    return combined
+```

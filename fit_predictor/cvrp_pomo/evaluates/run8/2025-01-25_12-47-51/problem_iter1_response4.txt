@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    
+    # Calculate the maximum possible load for each vehicle
+    max_load = (distance_matrix * demands.unsqueeze(1)).sum(axis=0)
+    
+    # Calculate the potential load for each edge
+    potential_load = distance_matrix * demands.unsqueeze(1)
+    
+    # Calculate the difference between the potential load and the maximum load
+    load_difference = potential_load - max_load.unsqueeze(1)
+    
+    # Calculate the heuristic value for each edge
+    heuristic_values = load_difference * (1 - (potential_load > total_demand).float())
+    
+    # Add a penalty for edges that would cause the load to exceed the total demand
+    heuristic_values[distance_matrix == 0] = -float('inf')  # Exclude the depot edge
+    
+    return heuristic_values
+```

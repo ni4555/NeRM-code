@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Core focus: Use a demand-based distance heuristic
+    distance_heuristic = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Adaptive penalties: Introduce dynamic capacity and overflow penalties
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / n) - 1e-8)
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Randomness for diversity: Add a random factor to promote exploration
+    random_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Balance: Use load balance heuristic with refined balance factor
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Dynamic scaling and time-adaptive diversity
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics with scaling and diversity adjustments
+    heuristics = (
+        distance_heuristic +
+        capacity_penalty +
+        overflow_penalty +
+        random_factor +
+        load_balance_penalty
+    ) * time_factor
+    
+    # Introduce time-adaptive diversity factor
+    heuristics += diversity_factor
+    
+    # Adjust heuristics based on early overflow and imbalance
+    heuristics *= (1 + (cumulative_demand > total_capacity_vector))
+    
+    return heuristics
+```

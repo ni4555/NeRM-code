@@ -1,0 +1,49 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Dynamic penalties based on remaining and total capacity
+    remaining_capacity_penalty = -torch.log1p(torch.abs(total_capacity - cumulative_demand) - 1e-8)
+    total_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Distance heuristic with capacity consideration
+    distance_heuristic = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_heuristic *= (1 + cumulative_demand / total_capacity)
+    
+    # Overflow heuristic that penalizes heavily if the cumulative demand is above capacity
+    overflow_heuristic = torch.where(
+        cumulative_demand > total_capacity,
+        torch.zeros_like(cumulative_demand),
+        -torch.log1p(cumulative_demand - total_capacity - 1e-8)
+    )
+    
+    # Load balance heuristic
+    load_balance_heuristic = -torch.log1p(torch.abs(cumulative_demand - (total_capacity / n)))
+    
+    # Blend heuristics for balance
+    blended_heuristics = 0.5 * distance_heuristic + 0.25 * remaining_capacity_penalty + 0.1 * overflow_heuristic + 0.15 * load_balance_heuristic
+    
+    # Randomness heuristic to escape local optima
+    randomness_heuristic = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Scale heuristics for better balance and to minimize dominance of any one heuristic
+    heuristic_scale = 3.0
+    scaled_heuristics = heuristic_scale * blended_heuristics + randomness_heuristic
+    
+    # Encourage diversity by introducing additional randomness
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    
+    # Early overflow detection
+    early_overflow = (cumulative_demand > (total_capacity / n))
+    scaled_heuristics *= torch.where(early_overflow, torch.zeros_like(early_overflow), torch.ones_like(early_overflow))
+    
+    # Apply diversity factor
+    scaled_heuristics += diversity_factor
+    
+    # Normalize the heuristics for consistency
+    scaled_heuristics = scaled_heuristics / scaled_heuristics.sum()
+    
+    return scaled_heuristics
+```

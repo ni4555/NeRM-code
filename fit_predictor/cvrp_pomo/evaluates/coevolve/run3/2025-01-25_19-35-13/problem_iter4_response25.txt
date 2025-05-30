@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    epsilon = 1e-8
+
+    # Distance-based potential: inverse of distance, capped to encourage shorter paths
+    distance_potential = 1 / torch.clamp(distance_matrix, min=epsilon)
+
+    # Demand-based potential: normalized demand weighted by inverse distance
+    demand_potential = normalized_demands / torch.clamp(distance_matrix, min=epsilon)
+
+    # Diversity factor: penalize nodes with similar demand
+    diversity_factor = 1 / (torch.abs(normalized_demands - normalized_demands.mean()) + epsilon)
+
+    # Combine the potential and diversity factor with a proper weight for each
+    edge_potential = (weight_distance * distance_potential +
+                       weight_demand * demand_potential +
+                       weight_diversity * diversity_factor)
+
+    # Normalize the potential to encourage a mix of edge qualities
+    edge_potential = torch.clamp(edge_potential, min=-1.0, max=1.0)
+    
+    return edge_potential
+```

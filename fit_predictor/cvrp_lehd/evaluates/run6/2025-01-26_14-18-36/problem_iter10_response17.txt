@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Demand-driven sorting: Prioritize edges with high local demand
+    heuristics = scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)
+
+    # Calculate remaining capacity at each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Apply penalties for capacity overflows
+    capacity_overflow_penalty = (scaled_demands > 1.0).float() * 1000.0
+    heuristics += capacity_overflow_penalty
+
+    # Dampen global preference with local distance to the depot
+    distance_to_depot = distance_matrix[:, 0]
+    local_demand_penalty = distance_to_depot.unsqueeze(1) - distance_to_depot.unsqueeze(0)
+    heuristics -= local_demand_penalty * 10.0  # Exponential dampening
+
+    # Normalize and dampen heuristics to maintain balance and stability
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    heuristics = heuristics * (1.0 - 0.1 * (1.0 - heuristics))  # Dampening factor
+
+    return heuristics
+```

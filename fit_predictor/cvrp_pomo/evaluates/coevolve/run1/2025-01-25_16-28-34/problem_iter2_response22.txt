@@ -1,0 +1,76 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Problem-specific Local Search
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                load = demands[i] + demands[j]
+                if load > 1.0:
+                    heuristics[i, j] = -1  # Undesirable edge due to overcapacity
+                else:
+                    heuristics[i, j] = (1.0 - load) / 1.0
+    
+    # Adaptive PSO with Adaptive Population Management
+    # Initialize population
+    population_size = 10
+    population = torch.rand(population_size, n, n)
+    velocities = torch.zeros_like(population)
+    best_individuals = population.clone()
+    best_cost = torch.full((population_size,), float('inf'))
+    
+    # PSO loop
+    for iteration in range(100):
+        # Update velocities and positions
+        velocities *= 0.7  # Inertia weight
+        velocities += 0.3 * (best_individuals - population)  # Cognitive component
+        velocities += 0.3 * (torch.rand_like(population) - 0.5)  # Social component
+        population += velocities
+        
+        # Evaluate individuals
+        costs = torch.sum(population * distance_matrix, dim=(1, 2))
+        for i in range(population_size):
+            if costs[i] < best_cost[i]:
+                best_cost[i] = costs[i]
+                best_individuals[i] = population[i]
+        
+        # Adaptive population management
+        # Keep the top 50% of individuals
+        top_individuals = best_individuals[torch.argsort(costs)[:population_size // 2]]
+        best_individuals = top_individuals.clone()
+    
+    # Update heuristics with the best individual from PSO
+    best_individual = best_individuals[0]
+    heuristics = torch.where(best_individual == 1, torch.ones_like(best_individual), heuristics)
+    
+    # Dynamic Tabu Search with Adaptive Cost Function
+    tabu_list = torch.zeros(n)
+    tabu_duration = 10  # Tabu duration
+    
+    # Tabu search loop
+    for iteration in range(100):
+        best_edge = torch.argmin(heuristics)
+        if tabu_list[best_edge] > 0:
+            continue
+        
+        # Move the edge
+        heuristics[best_edge] = -1
+        tabu_list[best_edge] = tabu_duration
+        
+        # Update tabu list
+        for i in range(n):
+            tabu_list[i] -= 1
+            if tabu_list[i] < 0:
+                tabu_list[i] = 0
+        
+        # Update heuristics based on new load distribution
+        # Placeholder for dynamic cost function calculation
+        # For demonstration, let's assume the cost does not change the heuristics
+        pass
+    
+    return heuristics
+```

@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    # Calculate the shortest path to all other nodes for each node using the Floyd-Warshall algorithm
+    # which is a common method for finding shortest paths in a weighted graph
+    num_nodes = distance_matrix.shape[0]
+    distance_matrix_floyd = distance_matrix.copy()
+    np.fill_diagonal(distance_matrix_floyd, np.inf)
+    np.linalg.solve(distance_matrix_floyd, distance_matrix_floyd)
+    
+    # Calculate the variance of the shortest path distances to all other nodes for each node
+    distance_variances = np.var(distance_matrix_floyd, axis=1)
+    
+    # Introduce a heuristic that combines the edge length, its distance from the median shortest path,
+    # and its contribution to the variance of the shortest path distances
+    median_distance = np.median(distance_matrix_floyd)
+    median_variance = np.median(distance_variances)
+    heuristic_values = (
+        distance_matrix +
+        np.abs(distance_matrix - median_distance) +
+        distance_variances - median_variance
+    )
+    return heuristic_values
+```

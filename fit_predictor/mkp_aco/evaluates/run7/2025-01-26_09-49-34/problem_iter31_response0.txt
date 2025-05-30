@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the sparsity factor based on the number of non-zero weight dimensions
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Calculate the inverse variance factor
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    
+    # Calculate the initial heuristics based on the product of normalized prize and sparsity factor
+    heuristics = normalized_prize * sparsity_factor * inv_variance_factor
+    
+    # Balance exploration and exploitation by incorporating diversity
+    diversity_factor = np.random.random(len(heuristics)) * 0.5  # Random factor for diversity
+    
+    # Incorporate adaptive dynamic threshold based on the 95th percentile of the normalized weight
+    dynamic_threshold = np.percentile(weight.sum(axis=1), 95)
+    heuristics *= (weight.sum(axis=1) > dynamic_threshold)
+    
+    # Adjust heuristics to encourage items with lower variance and high diversity
+    heuristics *= (inv_variance_factor * diversity_factor)
+    
+    # Normalize heuristics by dividing by the sum of heuristics to maintain fairness
+    heuristics /= np.sum(heuristics)
+    
+    # Sparsify the heuristics by zeroing out the least promising items based on diversity
+    num_to_zero = int(len(heuristics) * 0.1)  # Zero out 10% of the least promising items
+    diversity_normalized = heuristics / np.sum(heuristics)
+    indices_to_zero = np.argsort(diversity_normalized)[:num_to_zero]
+    heuristics[indices_to_zero] = 0
+    
+    return heuristics
+```

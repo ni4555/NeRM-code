@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic for the CVRP."""
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_diff = demands[1:] - demands[:-1]
+    distance_diff = distance_matrix[1:] - distance_matrix[:-1]
+    
+    # Calculate the potential cost difference if a node is skipped
+    potential_cost_diff = (distance_diff * demand_diff).unsqueeze(1)
+    
+    # Calculate the cumulative demand along the path
+    cumulative_demand = torch.cumsum(demands[1:], dim=0)
+    
+    # Calculate the potential savings if a node is skipped based on the remaining capacity
+    potential_savings = (cumulative_demand * distance_diff) / total_capacity
+    
+    # Combine the factors to get a heuristic value for each edge
+    heuristic_values = potential_cost_diff - potential_savings
+    
+    # Add a small constant to avoid zero heuristic values for edges with no demand
+    heuristic_values = torch.clamp(heuristic_values, min=-1e-5)
+    
+    return heuristic_values
+```

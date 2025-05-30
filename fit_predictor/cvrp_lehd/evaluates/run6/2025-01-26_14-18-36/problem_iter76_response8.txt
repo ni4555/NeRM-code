@@ -1,0 +1,49 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def sigmoid(x: torch.Tensor) -> torch.Tensor:
+    return 1 / (1 + torch.exp(-x))
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate heuristic based on distance, demand, and remaining capacity
+    distance_weighted_demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * distance_matrix
+
+    # Apply remaining capacity as a positive heuristic for selecting edges
+    positive_heuristic = remaining_capacity - distance_weighted_demand_diff
+
+    # Exploration noise
+    exploration_noise = torch.randn_like(positive_heuristic) * 0.01
+
+    # Combine positive heuristic with noise for exploration
+    heuristic_with_noise = positive_heuristic + exploration_noise
+
+    # Apply sigmoid for non-linear transformation and balance exploration and exploitation
+    heuristics = F.sigmoid(heuristic_with_noise)
+
+    # Penalty for edges where capacity is exceeded
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * 0.5
+
+    # Penalty for edges that go back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * 0.5
+
+    # Bias for edges closer to the depot
+    distance_to_depot = distance_matrix[:, 0].unsqueeze(1)
+    distance_bonus = distance_to_depot * 0.01
+    heuristics += torch.clamp(distance_bonus, min=0.0) * 0.5
+
+    # Ensure all heuristics are in a range [0, 1] for proper selection
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

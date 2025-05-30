@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Precompute and normalize the inverse distance matrix
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Normalize demands and calculate weighted distances
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = inv_distance_matrix * demand_normalized
+
+    # Calculate remaining capacity for each node
+    remaining_capacity = 1 - demands
+
+    # Calculate weighted distances based on remaining capacity
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Compute the nearest-neighbor heuristic
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # Combine the heuristics using a weighted sum
+    combined_heuristic = 0.5 * demand_weighted_distance + 0.3 * capacity_weighted_distance + 0.2 * nearest_neighbor
+
+    # Apply penalties for infeasible edges
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    return combined_heuristic
+```

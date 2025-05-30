@@ -1,0 +1,17 @@
+import numpy as np
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+    
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Use the triangle inequality to compute a heuristic
+                # This heuristic is based on the assumption that
+                # the sum of the shortest paths to two nodes from any
+                # node is less than or equal to the distance between those nodes.
+                heuristics[i, j] = max(distance_matrix[i, j] - 
+                                        np.min(distance_matrix[i, :]) - 
+                                        np.min(distance_matrix[:, j]), 
+                                        0)
+    return heuristics

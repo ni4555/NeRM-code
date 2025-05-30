@@ -1,0 +1,45 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristic array with zeros
+    heuristic = np.zeros_like(prize)
+    
+    # Define parameters for random selection
+    n, m = prize.shape
+    random_probability = 0.2  # 20% chance to randomly select items
+    dominated_items = np.where(np.any(weight < 1e-8, axis=1))[0]  # Items with zero weight
+    
+    # Calculate normalized density
+    density = prize / np.sum(weight, axis=1)[:, None]
+    
+    # Calculate additional metrics
+    weight_sum = np.sum(weight, axis=1)
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1)[:, None]
+    
+    # Balance density and sparsity to create a heuristic
+    balance_factor = 0.5  # Weight for balancing density and sparsity
+    balance_heuristic = balance_factor * density - (1 - balance_factor) * sparsity
+    
+    # Introduce randomness for diversity
+    random_heuristic = np.random.rand(n)
+    
+    # Select items for the heuristic
+    for i in range(n):
+        if i not in dominated_items:
+            # Check if random selection is favored
+            if np.random.rand() < random_probability:
+                heuristic[i] = random_heuristic[i]
+            else:
+                # Calculate the total score
+                score = balance_heuristic[i]
+                # Add diversity factor based on the average score
+                average_score = np.mean(balance_heuristic)
+                diversity_factor = score / (average_score + 1e-8)
+                heuristic[i] = diversity_factor
+    
+    # Normalize the heuristic values
+    heuristic /= np.max(heuristic)
+    
+    return heuristic
+```

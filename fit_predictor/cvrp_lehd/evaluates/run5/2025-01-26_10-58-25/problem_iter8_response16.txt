@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Create a penalty matrix for infeasibility
+    penalty_matrix = torch.clamp(-torch.cumsum(demands, dim=0) / vehicle_capacity, min=float('-inf'))
+    
+    # Normalize distances to create a preference for closer nodes
+    normalized_distances = distance_matrix / (distance_matrix + 1)
+    
+    # Combine normalized distances and penalty matrix with a weighted sum
+    weight_normalized_distances = 0.6
+    weight_penalty = 0.4
+    combined_matrix = (normalized_distances * weight_normalized_distances +
+                       penalty_matrix * weight_penalty)
+    
+    # Apply a non-linear transformation to amplify the effect of good and bad edges
+    heuristics_matrix = torch.relu(combined_matrix)
+    
+    # Normalize the heuristics matrix to maintain a consistent scale
+    max_heuristic = heuristics_matrix.max()
+    min_heuristic = heuristics_matrix.min()
+    heuristics_matrix = (heuristics_matrix - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # To encourage visiting all customers, add a penalty for not visiting each customer
+    not_visited_penalty = -demands
+    heuristics_matrix += not_visited_penalty
+    
+    # Incorporate capacity constraints with a penalty for exceeding capacity
+    capacity_penalty = 10  # Hyperparameter for the penalty
+    penalty_matrix = torch.clamp(capacity_penalty * (demands > 1.0), max=0)
+    heuristics_matrix += penalty_matrix
+    
+    return heuristics_matrix
+```

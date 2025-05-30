@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Calculate the distance to the nearest neighbor for both nodes
+                min_dist_i = np.min(distance_matrix[i, :])
+                min_dist_j = np.min(distance_matrix[j, :])
+                
+                # Subtract the minimum distance from the current edge's distance
+                edge_dist_diff = distance_matrix[i, j] - (min_dist_i + min_dist_j)
+                
+                # Determine the local optimal route penalty
+                if distance_matrix[i, j] == min_dist_i + min_dist_j:
+                    local_optimal_penalty = 1  # Apply penalty if edge is already part of the local optimal route
+                else:
+                    local_optimal_penalty = 0
+                
+                # Leverage the nearest neighbor distances as a heuristic
+                nearest_neighbor_dist = np.min([min_dist_i, min_dist_j])
+                
+                # Adjust the heuristic value based on the local and nearest neighbor distances
+                heuristics[i, j] = nearest_neighbor_dist - edge_dist_diff - 0.5 * local_optimal_penalty
+                
+                # Limit the heuristic value to a positive range
+                heuristics[i, j] = max(heuristics[i, j], 0)
+
+    return heuristics
+```

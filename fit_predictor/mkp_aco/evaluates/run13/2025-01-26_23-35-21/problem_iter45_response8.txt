@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Normalize the prize values
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the normalized weight for each item
+    normalized_weight = weight / np.sum(weight, axis=1)[:, np.newaxis]
+    
+    # Calculate the density for each item
+    density = normalized_prize / (1 + np.sum(normalized_weight, axis=1))
+    
+    # Introduce a diversity factor based on the deviation from the average density
+    average_density = np.mean(density)
+    diversity_factor = (density - average_density) / (np.max(density) - average_density + 1e-8)
+    
+    # Calculate a balance metric between density and sparsity
+    balance_metric = (density - 1 / (np.sum(normalized_weight, axis=1) + 1e-8)) / (density + 1 / (np.sum(normalized_weight, axis=1) + 1e-8))
+    
+    # Combine density, diversity, and balance into a single heuristic value
+    heuristic_value = density * diversity_factor * balance_metric
+    
+    # Introduce randomness by adding a small uniform noise
+    randomness = np.random.rand(len(prize))
+    
+    # Combine the heuristic value with randomness to avoid local optima
+    combined_heuristic = heuristic_value + randomness * (np.max(heuristic_value) - np.min(heuristic_value))
+    
+    # Normalize the combined heuristic to ensure they sum to one
+    combined_heuristic /= np.sum(combined_heuristic)
+    
+    # Prune dominated solutions by setting their heuristics to zero
+    dominated_indices = np.where(combined_heuristic < np.min(combined_heuristic / (1 - combined_heuristic)))
+    combined_heuristic[dominated_indices] = 0
+    
+    return combined_heuristic
+```

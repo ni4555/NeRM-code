@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Calculate the distance to the nearest customer with a positive demand that can be served
+    nearest_customer = torch.argmin(torch.abs(cumulative_demand - cumulative_capacity[:, None]), dim=1)
+    
+    # Calculate the demand difference for each edge
+    demand_diff = (cumulative_demand - cumulative_capacity[nearest_customer[:, None]])[torch.arange(distance_matrix.shape[0]), nearest_customer]
+    
+    # Initialize the heuristics matrix with distance penalties
+    heuristics_matrix = -distance_matrix
+    
+    # Calculate overcapacity penalties
+    overcapacity_penalty = (cumulative_demand[None, :] > cumulative_capacity[:, None]).float() * distance_matrix
+    
+    # Apply overcapacity penalties only where there is an overcapacity
+    heuristics_matrix[torch.arange(distance_matrix.shape[0]), nearest_customer] += overcapacity_penalty[torch.arange(distance_matrix.shape[0]), nearest_customer]
+    
+    # Adjust heuristics for load balance
+    load_balance_factor = (cumulative_demand[nearest_customer[:, None]] - cumulative_capacity[:, None]) / cumulative_demand[nearest_customer[:, None]]
+    heuristics_matrix += load_balance_factor * distance_matrix
+    
+    return heuristics_matrix
+```

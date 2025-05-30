@@ -1,0 +1,46 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on value-to-weight ratio and diversity
+    for i in range(n):
+        total_prize = np.sum(prize[i] * weight[i])
+        total_weight = np.sum(weight[i])
+        value_to_weight_ratio = total_prize / total_weight
+        diversity_factor = np.sum(weight[i] < np.max(weight[i])) / m
+        heuristic[i] = value_to_weight_ratio * diversity_factor
+    
+    # Introduce an adaptive exploration strategy that balances exploration and exploitation
+    exploration_exploitation_factor = 1 / (1 + np.exp(-heuristic))
+    heuristic *= exploration_exploitation_factor
+    
+    # Incorporate sparsity by penalizing low-value or high-weight items
+    sparsity_penalty = 1 - (np.sum(weight, axis=1) / m)
+    heuristic *= sparsity_penalty
+    
+    # Manage thresholds to ensure items with high total weight are not overly favored
+    weight_threshold = 0.8
+    weight_factor = 1 / (1 + (np.sum(weight, axis=1) - m * weight_threshold) / (m * weight_threshold))
+    heuristic *= weight_factor
+    
+    # Further refine the heuristic to favor diversity in selected items
+    for i in range(n):
+        diversity_factor = 1
+        for j in range(m):
+            if weight[i, j] < weight[i].max():
+                diversity_factor += 1
+        heuristic[i] *= diversity_factor
+    
+    # Introduce mutation for diversity
+    mutation_rate = 0.1
+    mutation = np.random.rand(n) < mutation_rate
+    heuristic[mutation] = np.random.rand(np.sum(mutation))
+    
+    # Normalize the heuristics to ensure they sum to 1
+    heuristic /= np.sum(heuristic)
+    
+    return heuristic
+```

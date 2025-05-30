@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray, removed_edges: list, removal_history: list) -> np.ndarray:
+    penalty_factor = 2
+    removal_reward_factor = 0.5
+    history_length = 5  # Define the length of the removal history to consider
+    
+    # Initialize the heuristic matrix with the same size as the distance matrix
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Loop through the matrix to calculate the heuristics
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Calculate the heuristic based on the edge length
+                heuristic_matrix[i, j] = distance_matrix[i, j] * penalty_factor
+                
+                # Check if the edge has been removed in the last iterations
+                edge_removed = (i, j) in removed_edges or (j, i) in removed_edges
+                if edge_removed:
+                    # Calculate the distance since last removal
+                    time_since_removal = removal_history.count((i, j)) if (i, j) in removal_history else float('inf')
+                    # Reward the edge if it has been removed recently
+                    reward = removal_reward_factor * (1 / (1 + time_since_removal))
+                    heuristic_matrix[i, j] += reward
+
+    return heuristic_matrix
+```

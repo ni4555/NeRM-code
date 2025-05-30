@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Vectorized operations
+    current_demand = torch.clamp(demands.cumsum(0) + demands[1:], max=total_demand)
+    
+    # Initialize the first customer as promising
+    heuristic_matrix[0, 1:] = -distance_matrix[0, 1:]
+    heuristic_matrix[0, 0] = -float('inf')  # depot to itself is not promising
+    
+    # Calculate heuristics for all pairs of nodes
+    for i in range(1, current_demand.shape[0]):
+        heuristic_matrix[i, 1:] = -(distance_matrix[i, 1:] + distance_matrix[i, 0] + distance_matrix[0, 1:])
+        heuristic_matrix[i, i] = -float('inf')  # same node is not promising
+    
+    # Ensure that no customer is added if its demand exceeds capacity
+    (heuristic_matrix[current_demand > total_demand] = -float('inf'))
+    
+    return heuristic_matrix
+```

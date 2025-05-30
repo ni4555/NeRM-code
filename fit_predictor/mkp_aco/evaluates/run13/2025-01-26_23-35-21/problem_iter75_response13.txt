@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items by keeping the maximum prize for items with the same density
+    max_density_indices = np.argmax(density, axis=0)
+    pruned_density = np.copy(density)
+    for i in range(pruned_density.shape[0]):
+        pruned_density[i] = np.where(density == density[max_density_indices[i]], density[i], 0)
+    
+    # Introduce randomness for diverse solution exploration
+    random_factor = np.random.rand(*pruned_density.shape)
+    
+    # Create a heuristic combining density, sparsity, and randomness
+    heuristic = pruned_density * (1 - sparsity) + random_factor
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Introduce a balance factor between high density and low sparsity
+    balance_factor = (density - sparsity) / (density + sparsity + 1e-8)
+    
+    # Combine the heuristics using a weighted sum
+    combined_heuristic = 0.6 * normalized_heuristic + 0.4 * balance_factor
+    
+    # Set zero weights to a small value to maintain diversity
+    combined_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return combined_heuristic
+```

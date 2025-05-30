@@ -1,0 +1,20 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the prize-to-weight ratio for each item
+    ratio = prize / np.sum(weight, axis=1)
+    # Calculate the average weight for each item
+    avg_weight = np.mean(weight, axis=1)
+    # Incorporate sparsity by penalizing items with high average weight
+    sparsity = 1 / (1 + np.exp((avg_weight - 0.5) * 10))
+    # Calculate diversity based on the standard deviation of weights
+    diversity = np.std(weight, axis=1)
+    # Normalize diversity to ensure it's on the same scale as the other factors
+    normalized_diversity = (diversity - np.min(diversity)) / (np.max(diversity) - np.min(diversity))
+    # Combine factors with different weights, focusing on relative metrics and normalization
+    heuristics = ratio * 0.7 + sparsity * 0.2 + normalized_diversity * 0.1
+    # Normalize the heuristics to ensure all values are non-negative and not too large
+    heuristics = np.clip(heuristics, 0, 1)
+    return heuristics
+```

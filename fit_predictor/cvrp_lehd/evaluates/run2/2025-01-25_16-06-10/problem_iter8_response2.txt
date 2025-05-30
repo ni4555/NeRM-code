@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # Calculate the cumulative sum of demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    
+    # Find the first and last indices where the demand exceeds the capacity
+    first_excess = (demand_cumsum > demands).nonzero(as_tuple=False).min()
+    last_excess = (demand_cumsum > demands).nonzero(as_tuple=False).max()
+    
+    # Create a mask where demand does not exceed capacity
+    feasible_mask = torch.zeros_like(demand_cumsum)
+    feasible_mask[:first_excess+1] = 1
+    feasible_mask[last_excess+1:] = 1
+    
+    # Calculate distances and update heuristics
+    heuristics = (1 - distance_matrix) * feasible_mask.float()
+    
+    # Normalize the distance matrix to ensure the scale of distance and demand are comparable
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    heuristics *= normalized_distance_matrix
+    
+    # Symmetry breaking by setting the diagonal to zero and the lower triangle to the negative of the upper triangle
+    heuristics.tril_(0)
+    heuristics += heuristics.triu_(0).¸ººÅ_
+    
+    return heuristics
+```

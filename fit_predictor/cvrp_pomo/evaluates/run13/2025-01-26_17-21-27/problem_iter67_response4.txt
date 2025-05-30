@@ -1,0 +1,50 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Modularized penalties for dynamic capacity, distance, and overflow
+    def dynamic_capacity_penalty(demands, total_capacity):
+        return -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    def distance_penalty(distance_matrix):
+        return -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    def overflow_penalty(cumulative_demand, demands, total_capacity):
+        return torch.where(
+            (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+            -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+            torch.zeros_like(cumulative_demand)
+        )
+    
+    # Apply modularized penalties
+    dynamic_penalty = dynamic_capacity_penalty(demands, total_capacity)
+    distance_penalty_val = distance_penalty(distance_matrix)
+    overflow_penalty_val = overflow_penalty(cumulative_demand, demands, total_capacity)
+    
+    # Balancing exploration and exploitation with load balance heuristic
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Efficiently vectorized randomness factor with controlled impact
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Scaling factors for prioritization and diversity
+    scaling_factor = 2.5
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics with scaling and diversity
+    heuristics = scaling_factor * (
+        distance_penalty_val +
+        dynamic_penalty +
+        overflow_penalty_val +
+        load_balance_penalty
+    ) + randomness_factor + diversity_factor
+    
+    return heuristics
+```

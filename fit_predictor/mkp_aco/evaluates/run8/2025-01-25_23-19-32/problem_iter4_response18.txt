@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize and weight by dividing by the max prize for comparison
+    normalized_prize = prize / np.max(prize)
+    normalized_weight = weight / np.max(weight)
+    
+    # Calculate the prize to weight ratio
+    ratio = normalized_prize / normalized_weight
+    
+    # Use a logarithmic transformation to reduce the impact of large ratios
+    transformed_ratio = np.log(ratio + 1)
+    
+    # Emphasize high prize items by applying an exponential term
+    emphasis_factor = np.exp(-prize / np.max(prize))
+    
+    # Handle sparsity by setting a threshold for the ratio
+    sparsity_threshold = 0.1
+    transformed_ratio[transformed_ratio < sparsity_threshold] = 0
+    
+    # Combine factors to form the heuristics
+    heuristics = transformed_ratio * emphasis_factor
+    
+    # Normalize heuristics to sum to 1 for stochastic selection
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

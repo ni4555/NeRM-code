@@ -1,0 +1,35 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    
+    # Initialize heuristics with zeros
+    heuristic = np.zeros_like(prize)
+    
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate diversity based on the distribution of value-to-weight ratios
+    diversity = np.exp(-np.sum((value_to_weight_ratio - np.mean(value_to_weight_ratio))**2, axis=1))
+    
+    # Calculate density as the sum of individual value-to-weight ratios
+    density = np.sum(value_to_weight_ratio, axis=1)
+    
+    # Calculate sparsity as the number of non-zero weights
+    sparsity = np.sum(weight != 0, axis=1) / m
+    
+    # Combine the metrics using a weighted sum
+    heuristic = 0.6 * density + 0.3 * diversity + 0.1 * (1 - sparsity)
+    
+    # Introduce randomness to avoid getting stuck in local optima
+    rng = np.random.default_rng(seed=42)
+    random_factor = rng.uniform(low=0, high=heuristic.max(), size=n)
+    heuristic += random_factor - random_factor.mean()
+    
+    # Normalize the heuristic values to sum to 1
+    heuristic /= np.sum(heuristic)
+    
+    return heuristic
+```

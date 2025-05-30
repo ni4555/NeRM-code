@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    import numpy as np
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the demand to distance ratio for all edges
+    demand_to_distance_ratio = demands / distance_matrix
+
+    # Non-linear transformation to enhance the impact of higher demands
+    demand_to_distance_ratio = torch.log1p(demand_to_distance_ratio)
+
+    # Incorporate distance as a negative weight
+    distance_weight = -torch.log(distance_matrix)
+
+    # Combine the demand-to-distance ratio and distance weight
+    heuristics = demand_to_distance_ratio + distance_weight
+
+    # Ensure the heuristics are positive
+    heuristics = torch.clamp(heuristics, min=0)
+
+    return heuristics
+```

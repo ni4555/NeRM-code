@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    heuristics_matrix = np.zeros_like(distance_matrix)
+
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Use a mix of Manhattan distance and Euclidean distance for penalty
+                manhattan_distance = np.abs(i - j)
+                euclidean_distance = np.sqrt((i - j) ** 2)
+                average_distance = (manhattan_distance + euclidean_distance) / 2
+                
+                # Incorporate local structure by considering the minimum distance to a neighboring node
+                local_structure = np.min(distance_matrix[i, ~np.isin(np.arange(n), [i])]) + \
+                                  np.min(distance_matrix[j, ~np.isin(np.arange(n), [j])])
+                
+                # Apply domain knowledge: edges to nearby nodes are less penalized
+                if np.any(distance_matrix[i, :] < 10) or np.any(distance_matrix[j, :] < 10):
+                    edge_penalty = average_distance + 0.5 * local_structure
+                else:
+                    edge_penalty = average_distance + local_structure
+                
+                heuristics_matrix[i, j] = edge_penalty
+            else:
+                heuristics_matrix[i, j] = float('inf')
+
+    return heuristics_matrix
+```

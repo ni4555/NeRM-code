@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Normalized weighted ratio analysis
+    normalized_weights = weight / weight.sum(axis=1)[:, np.newaxis]
+    weighted_ratio = prize / normalized_weights.sum(axis=1)
+
+    # Sparsity calculation
+    sparsity = np.count_nonzero(weight, axis=1) / n
+
+    # Calculate combined scores
+    combined_scores = weighted_ratio - sparsity - normalized_weights.sum(axis=1)
+
+    # Stochastic sampling based on logarithmic sparsity
+    log_sparsity = np.log1p(sparsity)
+    sampling_probabilities = np.exp(log_sparsity - log_sparsity.max())
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Iterate over the items and calculate the heuristic
+    for i in range(n):
+        heuristics[i] = sampling_probabilities[i] * combined_scores[i]
+
+    # Normalize the heuristics
+    heuristics /= heuristics.sum()
+
+    return heuristics
+```

@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Introduce a dynamic demand penalty that increases with overflow and proximity to capacity
+    dynamic_demand_penalty = torch.clamp(10 * (cumulative_demand - total_capacity) / total_capacity, 0, 100)
+    
+    # Enhanced distance penalty with time-adaptive scaling
+    distance_scaling = torch.log1p(distance_matrix)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_scaling *= time_factor
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic with refined balance factor
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = torch.log1p(load_balance - 1e-8)
+    
+    # Introduce randomness with decreasing probability as the solution becomes more balanced
+    randomness_factor = (torch.rand_like(demands) - 0.5) * 0.5 * (1 - load_balance)
+    
+    # Apply scaling factors to prioritize penalties
+    demand_penalty_scaling = 0.8
+    distance_scaling_scaling = 0.1
+    overflow_penalty_scaling = 1.0
+    load_balance_penalty_scaling = 0.1
+    randomness_factor_scaling = 0.1
+    
+    # Combine all factors into the heuristic function
+    heuristics = (
+        demand_penalty_scaling * dynamic_demand_penalty +
+        distance_scaling_scaling * distance_scaling +
+        overflow_penalty_scaling * overflow_penalty +
+        load_balance_penalty_scaling * load_balance_penalty +
+        randomness_factor_scaling * randomness_factor
+    )
+    
+    return heuristics
+```

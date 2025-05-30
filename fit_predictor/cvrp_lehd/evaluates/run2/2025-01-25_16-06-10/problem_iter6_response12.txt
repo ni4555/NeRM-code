@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for CVRP considering demand contribution, distance, and feasibility checks."""
+    total_capacity = demands.sum()
+    demand_ratio = demands / total_capacity
+    cost = -demand_ratio * distance_matrix
+
+    # Calculate the cumulative sum of the demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+
+    # Calculate the cumulative cost with return-to-depot
+    return_cost = torch.cat([cost[0].unsqueeze(0), cost[1:] + cost[:-1]], dim=0)
+    return_cost = (return_cost * (demands[:, None] > total_capacity - demands.T)).type_as(distance_matrix)
+
+    # Create a mask for edges that are feasible given the vehicle capacity
+    edge_mask = demands[:, None] + demands.T <= total_capacity
+
+    # Apply the cumulative cost only to feasible edges
+    cost_with_feasibility = torch.where(edge_mask, cost, torch.zeros_like(cost))
+    cost_with_feasibility = torch.where(edge_mask, return_cost, cost_with_feasibility)
+
+    return cost_with_feasibility
+```

@@ -1,0 +1,13 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the shortest path from each node to every other node
+    n = distance_matrix.shape[0]
+    min_distances = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            min_distances[i, j] = np.min(distance_matrix[i, :]) + np.min(distance_matrix[:, j])
+    
+    # It's bad to include long edges that are not the shortest path
+    return distance_matrix - min_distances

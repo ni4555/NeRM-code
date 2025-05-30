@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize values to prevent dominant prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate the density which balances the value and weight
+    density = normalized_prize / np.sum(weight, axis=1)
+    
+    # Normalize the weight sum to a range between 0 and 1
+    weight_sum_normalized = weight.sum(axis=1) / np.sum(weight)
+    
+    # Calculate the sparsity to balance the packedness of the knapsack
+    sparsity = 1 - weight_sum_normalized
+    
+    # Integrate the density and sparsity with a balancing factor
+    heuristic = density * (1 - sparsity)
+    
+    # Introduce a diversity factor based on the standard deviation of density
+    diversity_factor = np.std(density)
+    
+    # Adjust heuristic by diversity factor to maintain diversity
+    heuristic = heuristic * diversity_factor
+    
+    # Normalize the heuristic values to ensure a proper scale
+    normalized_heuristic = heuristic / np.max(heuristic)
+    
+    # Ensure the heuristic values are within a range to avoid overflow issues
+    normalized_heuristic = np.clip(normalized_heuristic, 0, 1)
+    
+    return normalized_heuristic
+```

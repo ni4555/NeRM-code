@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize values
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Calculate the average density for each item
+    density = normalized_prize / np.mean(weight, axis=1)
+    
+    # Incorporate domain-specific insights by emphasizing high-value and low-weight items
+    domain_influence = density * normalized_prize
+    
+    # Calculate the sparsity score, rewarding items with at least one dimension with zero weight
+    sparsity_score = np.where(np.sum(weight, axis=1) == 0, 0, 1)
+    
+    # Calculate a balance score that reflects the variance within each dimension
+    balance_score = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Combine scores with penalties for overrepresentation and normalize
+    penalty = np.where(np.sum(weight, axis=0) > 1, 1, 0)
+    total_score = domain_influence * sparsity_score * balance_score * (1 - penalty)
+    
+    # Normalize the scores to ensure they sum to 1
+    normalized_score = total_score / np.sum(total_score)
+    
+    return normalized_score
+```

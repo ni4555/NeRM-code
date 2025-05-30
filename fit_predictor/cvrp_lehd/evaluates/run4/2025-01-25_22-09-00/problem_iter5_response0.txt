@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    total_demand = demands.sum()
+    
+    # Demand factor: increase the value of edges leading to high demand nodes
+    demand_factor = 1 - demands / total_capacity
+    
+    # Distance normalization: focus on relative distances
+    distance_normalized = distance_matrix / torch.mean(torch.abs(distance_matrix))
+    
+    # Integrate diverse demand factors: combine with distance normalization
+    integrated_demand = demand_factor * distance_normalized
+    
+    # Local dampening factor: reduce the effect of nearby low-demand nodes
+    local_dampening_factor = torch.exp(-distance_matrix / torch.mean(torch.abs(distance_matrix)))
+    
+    # Global dampening factor: reduce the effect of distant nodes, considering total capacity
+    global_dampening_factor = 1 / (1 + demands / total_capacity)
+    
+    # Avoid loops: add a loop avoidance factor
+    loop_avoidance_factor = torch.where(torch.abs(distance_matrix) < 1, -1, 0)
+    
+    # Combine all factors into the heuristics matrix
+    heuristic_matrix = integrated_demand * (local_dampening_factor * global_dampening_factor + loop_avoidance_factor)
+    
+    # Normalize the heuristics matrix to ensure non-negative values
+    heuristic_matrix = heuristic_matrix.clamp(min=0)
+    
+    # Adjust the heuristics for the depot to all other nodes
+    for i in range(1, n):
+        route_demand = demands[i] + (total_demand - demands[i])
+        heuristic_matrix[0, i] = -route_demand * (distance_matrix[0, i] * global_dampening_factor)
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    return heuristic_matrix
+```

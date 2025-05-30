@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse demand to account for popularity
+    inverse_demand = 1.0 / (demands[1:] + 1e-10)  # Avoid division by zero by adding a small value
+    
+    # Use a weighted sum of distance and inverse demand as the heuristic
+    # where the weight for demand is inversely proportional to the demand itself
+    weights = demands / demands.sum()
+    weighted_distance = distance_matrix * weights[:, None]
+    
+    # Combine the weighted distances with the inverse demand
+    heuristics = weighted_distance + inverse_demand[1:]
+    
+    # For the depot to customer edges, add a positive value to encourage them
+    heuristics[:, 0] += 10.0
+    heuristics[0, 1:] += 10.0
+    
+    return heuristics
+```

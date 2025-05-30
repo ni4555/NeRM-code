@@ -1,0 +1,17 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix using a modified version of the savings algorithm
+    heuristics_matrix = distance_matrix - (normalized_demands.unsqueeze(1) * distance_matrix.sum(axis=1, keepdim=True))
+    # Introduce a penalty for edges to the depot
+    heuristics_matrix[:, 0] = torch.zeros_like(heuristics_matrix[:, 0])
+    heuristics_matrix[0, :] = torch.zeros_like(heuristics_matrix[0, :])
+    # Adjust for negative values by adding the maximum value to all elements
+    max_val = torch.max(heuristics_matrix)
+    heuristics_matrix = heuristics_matrix + max_val
+    return heuristics_matrix
+```

@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+
+    # Use a dynamic scaling to prioritize the main objectives, with a focus on early overflow detection
+    main_objectives = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    main_objectives *= (
+        torch.where(
+            cumulative_demand > total_capacity_vector,
+            (total_capacity_vector - cumulative_demand),
+            (cumulative_demand - total_capacity_vector / 2)
+        ) / total_capacity_vector
+    )
+
+    # Integrate demand-aware features and dynamic capacity penalty
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - (total_capacity / n)) - 1e-8)
+
+    # Balance exploration and exploitation through load balance and early overflow pruning
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(torch.clamp(load_balance, min=0) - 1e-8)
+
+    # Add randomness to encourage diversification in the early exploration phase
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+
+    # Merge heuristics components while adjusting for their impact based on their desirability
+    heuristics = (0.8 * main_objectives + 0.2 * dynamic_capacity_penalty +
+                  0.5 * load_balance_penalty + 0.1 * randomness_factor)
+
+    # Introduce diversity through random factors, adjusted by cumulative demand
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+
+    # Final adjustment of heuristics with diversity factors and overflow detection
+    heuristics *= (1 - torch.where(cumulative_demand > total_capacity, torch.tensor(1.2), torch.tensor(1)))
+    heuristics += diversity_factor
+
+    return heuristics
+```

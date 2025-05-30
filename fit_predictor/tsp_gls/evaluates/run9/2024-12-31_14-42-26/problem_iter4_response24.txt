@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Number of nodes
+    n = distance_matrix.shape[0]
+    
+    # Initialize lists to store distances for each node
+    min_distances = np.zeros(n, dtype=np.float64)
+    
+    # Initialize the best solution score and threshold
+    best_solution_score = float('inf')
+    threshold = 10.617516362484723
+    
+    # Calculate minimum pairwise distances
+    for i in range(n):
+        min_distances[i] = np.min(distance_matrix[i, distance_matrix[i] != distance_matrix[i, i]])
+    
+    # Loop through each edge to calculate heuristic
+    for i in range(n):
+        for j in range(i + 1, n):
+            # Calculate the heuristic value considering distance and minimum distances
+            heuristic_value = distance_matrix[i, j] + (min_distances[i] + min_distances[j]) / 2
+            heuristics[i, j] = heuristics[j, i] = heuristic_value
+    
+    # Adaptive heuristic adjustment based on real-time fitness landscape adaptation
+    current_best_score = np.min(np.sum(distance_matrix, axis=1))
+    if current_best_score < threshold:
+        # Decrease the weight on distances for better exploration
+        heuristics *= 1 / (1 + current_best_score / threshold)
+    else:
+        # Increase the weight on distances for exploitation
+        heuristics *= 1 / (1 - current_best_score / threshold)
+    
+    return heuristics
+```

@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the sparsity of each item
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Integrate additional metrics such as the sum of weights
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Create a balanced heuristic value by blending metrics
+    heuristic_value = density * (1 - sparsity) - weight_sum
+    
+    # Introduce randomness to avoid local optima
+    random_factor = np.random.rand(*weight.shape)
+    
+    # Introduce diversity by considering the average density of the remaining items
+    remaining_average_density = np.mean(density) - density
+    
+    # Combine all factors to create the heuristic
+    heuristic = heuristic_value + random_factor * remaining_average_density
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Prune dominated items by setting their heuristic value to zero
+    # A dominated item has a lower density and higher sparsity than another item with the same or lower weight
+    for i in range(len(prize)):
+        for j in range(len(prize)):
+            if weight[i] > weight[j] and prize[i] < prize[j]:
+                normalized_heuristic[i] = 0
+            elif weight[i] == weight[j] and prize[i] < prize[j]:
+                normalized_heuristic[i] = 0
+    
+    return normalized_heuristic
+```

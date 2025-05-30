@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Combine distance and demand based on a simple heuristic
+    # The negative sign makes smaller distances more favorable
+    # The positive sign makes larger demand values less favorable
+    potential_values = -normalized_distances + normalized_demands
+    
+    # Incorporate node partitioning by favoring edges with similar demand neighbors
+    for i in range(1, n):
+        neighbor_demand = demands[distance_matrix[i, :] < max_distance]
+        average_neighbor_demand = neighbor_demand.mean() if len(neighbor_demand) > 0 else 0
+        potential_values[i, distance_matrix[i, :] < max_distance] += (max_demand - average_neighbor_demand)
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Sigmoid functions to introduce non-linear scaling
+    epsilon = 1e-8
+    distance_sigmoid = 1 / (1 + torch.exp(-0.01 * distance_matrix))
+    demand_sigmoid = torch.exp(-0.05 * torch.log(normalized_demands + epsilon))
+
+    # Apply penalties for high demand and bonus for short distance
+    penalty_high_demand = (demands > 2).float() * -0.1
+    bonus_short_distance = (distance_matrix < 5).float() * 0.05
+
+    # Incorporate smoothness to avoid sharp changes in edge weights
+    smoothness_weight = 0.05
+    smoothness = torch.exp(-0.1 * torch.abs(distance_matrix - distance_matrix.mean()))
+
+    # Combine the effects with a weighted sum
+    edge_potential = distance_sigmoid * (1 + demand_sigmoid) + penalty_high_demand + bonus_short_distance
+    edge_potential = edge_potential * smoothness
+
+    # Normalize and scale outputs to maintain a consistent range
+    max_potential = edge_potential.max()
+    min_potential = edge_potential.min()
+    edge_potential = (edge_potential - min_potential) / (max_potential - min_potential) * 2 - 1
+
+    return edge_potential
+```

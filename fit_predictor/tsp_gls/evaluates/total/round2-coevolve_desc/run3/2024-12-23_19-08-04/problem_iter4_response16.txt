@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the usage matrix
+    usage_matrix = np.zeros_like(distance_matrix)
+    
+    # Simulate usage of the edges
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                usage_matrix[i, j] = 1 / (1 + distance_matrix[i, j])
+    
+    # Calculate the total usage for each vertex to apply penalties
+    total_usage_per_vertex = np.sum(usage_matrix, axis=1)
+    
+    # Apply a penalty to the frequently used edges
+    penalty = 0.1 * np.mean(total_usage_per_vertex)
+    adjusted_distances = distance_matrix * (1 + penalty * usage_matrix)
+    
+    # Introduce a bonus for less frequently used edges to avoid local minima
+    bonus = 0.1
+    bonus_matrix = bonus * (1 - usage_matrix)
+    adjusted_distances += bonus_matrix
+    
+    # Ensure non-zero distances and return the adjusted matrix
+    return np.maximum(adjusted_distances, 1)
+```

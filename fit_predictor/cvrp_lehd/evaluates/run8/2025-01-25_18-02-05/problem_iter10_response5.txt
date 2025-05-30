@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, vehicle_capacity: float) -> torch.Tensor:
+    
+    # Normalize demands by vehicle capacity
+    normalized_demands = demands / vehicle_capacity
+    
+    # Invert distances to prioritize shorter paths
+    inverted_distances = 1 - distance_matrix
+    
+    # Non-linearly transform inverted distances to emphasize relative differences
+    transformed_distances = torch.pow(inverted_distances, 2)
+    
+    # Cumulative sum of transformed distances
+    cumulative_transformed_distances = torch.cumsum(transformed_distances, dim=0)
+    
+    # Dynamic threshold based on the maximum cumulative transformed distance
+    threshold = torch.max(cumulative_transformed_distances)
+    
+    # Avoid division by zero in cases where cumulative distances might be zero
+    with torch.no_grad():
+        safe_distances = torch.where(cumulative_transformed_distances == 0, torch.tensor(1.0e-8), cumulative_transformed_distances)
+    
+    # Calculate heuristic values based on the ratio of cumulative demand to cumulative transformed distance
+    heuristic_matrix = cumulative_transformed_distances * normalized_demands
+    
+    # Apply thresholding to filter edges based on relative differences
+    heuristics_filtered = torch.where(heuristic_matrix < threshold, heuristic_matrix, -threshold)
+    
+    # Clip the values to ensure they are within the desired range [-1, 1]
+    heuristics_clipped = torch.clamp(heuristics_filtered, min=-1, max=1)
+    
+    return heuristics_clipped
+```

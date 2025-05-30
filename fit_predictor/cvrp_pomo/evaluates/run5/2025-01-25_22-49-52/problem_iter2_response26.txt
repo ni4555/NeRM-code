@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Use k-means clustering to partition nodes into clusters
+    from sklearn.cluster import KMeans
+    kmeans = KMeans(n_clusters=3)  # Example: 3 clusters
+    kmeans.fit(normalized_demands.reshape(-1, 1))
+    clusters = kmeans.labels_
+    
+    # Initialize the potential value matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Calculate the potential value for edges between clusters
+    for i in range(n):
+        for j in range(i + 1, n):
+            if clusters[i] != clusters[j]:  # Check if the nodes belong to different clusters
+                potential_values[i, j] = normalized_distances[i, j] - torch.sum(normalized_demands[clusters[i]]) - torch.sum(normalized_demands[clusters[j]])
+            else:
+                potential_values[i, j] = -float('inf')
+    
+    # Apply a demand relaxation heuristic
+    relaxed_potential_values = potential_values - normalized_demands[clusters] * 0.1  # Example relaxation factor
+    
+    # Set the depot to 0 potential value
+    relaxed_potential_values[0, :] = 0
+    relaxed_potential_values[:, 0] = 0
+    
+    return relaxed_potential_values
+```

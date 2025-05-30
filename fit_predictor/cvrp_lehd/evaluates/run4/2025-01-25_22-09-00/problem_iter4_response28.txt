@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic function that leverages vectorized operations for efficiency,
+    incorporates demand and distance interactions, and adjusts dampening factors for
+    better granularity."""
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    demand_ratio = demands / total_demand
+    distance_matrix = distance_matrix / 10  # Adjust scale for dampening factor
+    dampen = torch.exp(-distance_matrix)
+    
+    # Calculate the edge weight based on demand-driven attractiveness and distance
+    edge_weight = distance_matrix * demand_ratio
+    
+    # Enhance weight for edges from high-demand to high-demand nodes
+    edge_weight = edge_weight * (torch.where(demands[:, None] > 0, 1, 0) * torch.where(demands[None] > 0, 1, 0) * 2)
+    
+    # Apply dampening factor
+    edge_weight *= dampen
+    
+    # Normalize the edge weights to have a range between -1 and 1
+    min_weight = edge_weight.min()
+    max_weight = edge_weight.max()
+    edge_weight = (2 * (edge_weight - min_weight)) / (max_weight - min_weight) - 1
+    
+    return edge_weight
+```

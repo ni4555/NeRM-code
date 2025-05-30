@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize and weight for each dimension
+    normalized_prize = prize / np.max(prize)
+    normalized_weight = np.sum(weight, axis=1) / np.sum(weight, axis=1)[:, np.newaxis]
+    
+    # Calculate density based on normalized prize and normalized weight
+    density = normalized_prize / normalized_weight
+    
+    # Calculate dimension-specific factors
+    dimension_factors = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate utility considering density, dimension-specific factors, and sparsity
+    utility = density * dimension_factors * (1 - dimension_factors)
+    
+    # Normalize utility to avoid overfitting
+    max_utility = np.max(utility)
+    utility = utility / max_utility
+    
+    # Sparsify by setting low utility values to zero
+    sparsity = (utility > 0.1) * 1.0  # Threshold can be adjusted
+    
+    # Return the heuristics scores
+    return utility * sparsity
+```

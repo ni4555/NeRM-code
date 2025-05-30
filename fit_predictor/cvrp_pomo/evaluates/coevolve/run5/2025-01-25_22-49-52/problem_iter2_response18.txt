@@ -1,0 +1,53 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Initialize the potential value matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Vectorized node partitioning technique to identify potential clusters
+    clusters = partition_nodes(demands)
+    
+    # Calculate the potential value for edges between clusters
+    for i in range(n):
+        for j in range(i + 1, n):
+            if i in clusters[i] and j in clusters[j]:
+                edge_potential = normalized_distances[i, j]
+                edge_potential -= torch.sum(normalized_demands[clusters[i]])
+                edge_potential -= torch.sum(normalized_demands[clusters[j]])
+                potential_values[i, j] = edge_potential
+            else:
+                potential_values[i, j] = -float('inf')
+    
+    # Incorporate an exponential decay to favor recently visited nodes
+    time_factor = torch.arange(n).float() / n
+    potential_values *= torch.exp(-time_factor)
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+
+def partition_nodes(demands: torch.Tensor) -> list:
+    # Placeholder for a sophisticated node partitioning algorithm
+    # Here we use a trivial partitioning based on demand size
+    threshold = demands.max() / 2
+    clusters = []
+    for demand in demands:
+        if demand > threshold:
+            clusters.append([0])  # Depot is always in its own cluster
+        else:
+            clusters.append([int(demand * n)])
+    return clusters
+```

@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    total_weight = np.sum(weight, axis=1)
+    value_to_weight_ratio = prize / total_weight
+    # Calculate the average value to weight ratio
+    avg_value_to_weight_ratio = np.mean(value_to_weight_ratio)
+    # Normalize the ratios by the average
+    normalized_ratios = value_to_weight_ratio / avg_value_to_weight_ratio
+    # Scale the normalized ratios with a global balance factor
+    balance_factor = 2.0
+    scaled_ratios = normalized_ratios * balance_factor
+    # Incorporate global information through a sigmoid function
+    sigmoid_alpha = 0.1
+    sigmoid_beta = 0.1
+    sigmoid_sparsity = 1 / (1 + np.exp(-sigmoid_alpha * scaled_ratios - sigmoid_beta))
+    # Normalize the sigmoid results to ensure they are between 0 and 1
+    normalized_sparsity = sigmoid_sparsity / np.max(sigmoid_sparsity)
+    # Ensure non-negative heuristics
+    heuristics = np.maximum(normalized_sparsity, 0)
+    return heuristics
+```

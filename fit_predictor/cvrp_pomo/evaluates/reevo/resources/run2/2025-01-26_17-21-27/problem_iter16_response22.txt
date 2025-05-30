@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    heuristics = (distance_penalty * cumulative_demand) + demand_penalty
+    # Normalize the heuristics to ensure non-negative values
+    max_heuristic = heuristics.max()
+    heuristics = heuristics - max_heuristic
+    # Adjust the heuristics based on the remaining capacity
+    heuristics = heuristics * (1 - (demands / total_capacity).float())
+    # Ensure that the heuristics have a positive minimum
+    heuristics = torch.clamp_min(heuristics, min_value=1e-8)
+    return heuristics
+```

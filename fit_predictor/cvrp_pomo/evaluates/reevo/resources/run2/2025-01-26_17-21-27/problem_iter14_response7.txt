@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Calculate the balance between demand and distance for non-depot nodes
+    demand_balance = -torch.abs(cumulative_demand - total_capacity) / total_capacity
+    distance_balance = 1 / (1 + distance_matrix)
+    # Combine demand and distance balance
+    combined_balance = demand_balance * distance_balance
+    # Assign a high priority to the depot node by using a large scale factor
+    depot_scale = 1e4
+    # Scale the balance for non-depot nodes
+    non_depot_balance_scaled = combined_balance * (depot_scale - cumulative_demand / total_capacity)
+    # Add the scaled balance for non-depot nodes to the depot node
+    heuristics = non_depot_balance_scaled + (depot_scale - 1)
+    return heuristics
+```

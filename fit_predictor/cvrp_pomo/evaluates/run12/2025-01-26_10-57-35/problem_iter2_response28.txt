@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic for CVRP considering local search neighborhood, demand and distance interactions, and dynamic update of candidate set."""
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Initialize the candidate set with the depot
+    candidate_set = torch.arange(1, n)
+    
+    # Iterate over the candidate set
+    while candidate_set.numel() > 0:
+        # Select the node with the highest demand from the candidate set
+        current_node = candidate_set[torch.argmax(demands[candidate_set])]
+        
+        # Calculate the distance from the current node to the depot
+        distance_to_depot = distance_matrix[current_node, depot]
+        
+        # Update the heuristics for the edge from the current node to the depot
+        heuristics[current_node, depot] = distance_to_depot
+        heuristics[depot, current_node] = distance_to_depot
+        
+        # Remove the current node from the candidate set
+        candidate_set = candidate_set[candidate_set != current_node]
+        
+        # Update the candidate set by adding the nearest unvisited node to the current node
+        nearest_unvisited_node = torch.argmin(distance_matrix[current_node][candidate_set])
+        candidate_set = torch.cat([candidate_set, candidate_set[nearest_unvisited_node]])
+        
+        # Update the demands for the nodes in the candidate set
+        demands[candidate_set] -= demands[current_node]
+    
+    # Normalize the heuristics by the vehicle capacity
+    heuristics /= demands[torch.arange(n)]
+    
+    return heuristics
+```

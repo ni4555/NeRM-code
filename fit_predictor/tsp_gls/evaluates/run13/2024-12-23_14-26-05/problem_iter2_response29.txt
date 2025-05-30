@@ -1,0 +1,38 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize usage and average distance matrices
+    edge_usage = np.zeros_like(distance_matrix)
+    edge_average_distance = np.zeros_like(distance_matrix)
+
+    # Calculate edge usage and average distance
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                edge_usage[i, j] = np.sum(np.isin([i, j], np.argwhere(distance_matrix[i] < distance_matrix).flatten()))
+                edge_average_distance[i, j] = np.mean(distance_matrix[i] if i < j else distance_matrix[j])
+
+    # Initialize a penalty and bonus factor
+    penalty_factor = 0.1
+    bonus_factor = 0.1
+
+    # Calculate heuristic based on a weighted combination of usage and average distance
+    heuristic_matrix = penalty_factor * edge_usage + (1 - penalty_factor) * edge_average_distance
+
+    # Adjust factors dynamically based on path improvements
+    path_improvement = 0
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                path_improvement += distance_matrix[i, j] - heuristic_matrix[i, j]
+
+    if path_improvement < 0:
+        penalty_factor = max(penalty_factor - 0.01, 0)
+        bonus_factor = min(bonus_factor + 0.01, 1)
+
+    # Update the heuristic matrix with adjusted factors
+    heuristic_matrix = penalty_factor * edge_usage + (1 - penalty_factor) * edge_average_distance
+
+    return heuristic_matrix
+```

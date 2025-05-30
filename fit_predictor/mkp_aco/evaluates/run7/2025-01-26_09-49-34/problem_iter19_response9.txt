@@ -1,0 +1,46 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the average normalized weight for each item across all dimensions
+    average_normalized_weight = np.mean(weight, axis=1)
+    
+    # Calculate the variance of the normalized weights for each item
+    weight_variance = np.var(weight, axis=1)
+    
+    # Calculate the inverse of the average normalized weight for each item
+    # Adding a small value to avoid division by zero
+    inverse_average_weight = 1 / (average_normalized_weight + 1e-8)
+    
+    # Calculate a diversity factor based on the variance of the weights
+    diversity_factor = 1 / (1 + weight_variance)
+    
+    # Calculate the initial heuristics based on the product of normalized prize, inverse average weight, and diversity factor
+    heuristics = normalized_prize * inverse_average_weight * diversity_factor
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Apply a dynamic threshold that considers both the average normalized weight and the diversity factor,
+    # setting elements below the threshold to zero
+    diversity_threshold = np.mean(average_normalized_weight * diversity_factor)
+    heuristics[heuristics < diversity_threshold] = 0
+    
+    # Adjust heuristics based on the variance of the weights, rewarding items with low variance
+    variance_adjustment = 1 / (1 + weight_variance)
+    heuristics *= variance_adjustment
+    
+    # Incorporate a factor that penalizes high variance items, encouraging diversity
+    variance_penalty = 1 / (1 + weight_variance)
+    heuristics *= variance_penalty
+    
+    # Final heuristics based on the sum of weighted factors and adjusted diversity factor
+    heuristics *= diversity_factor * variance_penalty
+    
+    return heuristics
+```

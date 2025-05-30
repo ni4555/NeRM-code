@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate a diversity factor that takes into account the uniform distribution of weights
+    diversity_factor = np.mean((weight / np.sum(weight, axis=1, keepdims=True)) ** 2)
+    
+    # Use the normalized prize and diversity factor to create an initial heuristic
+    heuristics = normalized_prize * (1 / diversity_factor)
+    
+    # Incorporate a domain-specific heuristic that favors items with a balanced distribution of weights
+    balance_factor = np.mean(weight, axis=1) / np.sum(weight, axis=1, keepdims=True)
+    heuristics *= balance_factor
+    
+    # Introduce a variance factor that considers the uniformity of weight distribution
+    inv_variance_factor = 1 / np.var(weight, axis=1)
+    
+    # Adjust heuristics to balance exploration and exploitation by combining factors
+    heuristics *= inv_variance_factor
+    
+    # Refine thresholds by identifying items with high potential value-to-weight ratio
+    threshold = np.percentile(heuristics, 80)  # 80% threshold
+    heuristics[heuristics > threshold] *= 1.2
+    
+    # Apply post-processing to enhance the sparsity of the heuristic values
+    # Zero out a certain percentage of the least promising heuristics
+    num_to_zero = int(len(heuristics) * 0.2)  # Zero out 20% of the lowest heuristics
+    heuristics[np.argsort(heuristics)[:num_to_zero]] = 0
+    
+    return heuristics
+```

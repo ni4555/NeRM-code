@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Calculate the negative of this ratio to use as a heuristic
+    # Negative values indicate undesirable edges (heuristic score is lower)
+    heuristic_matrix = -demand_to_distance_ratio
+    
+    # Instead of calculating cumulative sums, directly apply an adaptive threshold
+    # that considers the maximum cumulative sum observed so far
+    cumulative_sums = torch.cumsum(heuristic_matrix, dim=0)
+    max_cumulative_sum = torch.max(cumulative_sums)
+    
+    # Apply the adaptive threshold to ensure all undesirable edges have negative values
+    heuristic_matrix = torch.where(heuristic_matrix < max_cumulative_sum, heuristic_matrix, 0)
+    
+    return heuristic_matrix
+```

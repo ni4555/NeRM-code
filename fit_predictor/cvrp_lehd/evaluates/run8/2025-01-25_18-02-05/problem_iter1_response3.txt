@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the potential profit for each edge by taking the difference
+    # between the cumulative demand and the distance
+    potential_profit = cumulative_demands - distance_matrix
+    
+    # To normalize the potential profit, we can divide it by the maximum profit
+    # This will give us a value between 0 and 1, where 1 indicates the most promising edges
+    max_profit = torch.max(potential_profit)
+    normalized_profit = potential_profit / max_profit
+    
+    # Apply a sigmoid function to transform the normalized profit into a range of [-1, 1]
+    # We will use negative values to indicate undesirable edges
+    sigmoid_transform = torch.sigmoid(normalized_profit)
+    heuristic_matrix = -2 * sigmoid_transform + 1
+    
+    return heuristic_matrix
+```

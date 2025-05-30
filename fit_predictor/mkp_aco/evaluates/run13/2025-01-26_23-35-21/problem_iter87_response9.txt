@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Prune dominated items (those with lower prize but similar weight)
+    non_dominated_mask = (prize >= np.min(prize[weight[:, 0] > 1e-8]) * (weight[:, 1:] == 1)) & (weight[:, 1:] == 1)
+    dominated_items_indices = np.where(~non_dominated_mask)[0]
+    for index in reversed(dominated_items_indices):
+        prize[index] = 0
+        weight[index] = np.zeros_like(weight[index])
+
+    # Normalize prize to account for different scales
+    max_prize = np.max(prize[weight[:, 0] > 1e-8])
+    prize = prize / max_prize
+    
+    # Normalize weights for different dimensions
+    normalized_weights = np.apply_along_axis(lambda w: w / np.sum(w), 1, weight[:, 1:] - np.ones_like(weight[:, 1:]))
+    
+    # Calculate heuristic values based on normalized prize and weights
+    heuristic_values = prize * normalized_weights.sum(axis=1)
+    
+    # Introduce randomness to enhance diversity
+    random_factor = np.random.rand(*heuristic_values.shape)
+    random_factor = (random_factor - 0.5) * 2  # Range between -1 and 1
+    
+    # Calculate the final heuristic
+    heuristic = heuristic_values * random_factor
+    
+    # Normalize the heuristic to ensure it's within a certain range
+    max_heuristic = np.max(heuristic)
+    heuristic = heuristic / max_heuristic
+    
+    return heuristic
+```

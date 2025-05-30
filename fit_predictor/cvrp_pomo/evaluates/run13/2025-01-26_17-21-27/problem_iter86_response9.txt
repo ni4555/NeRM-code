@@ -1,0 +1,56 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    max_demand = torch.max(demands)
+
+    # Core objectives
+    balance_factor = 1 / (torch.abs(cumulative_demand - max_demand) + 1e-8)
+    combined_penalty = (
+        torch.log1p(torch.abs(demands - max_demand) - 1e-8) * balance_factor +
+        torch.log1p(torch.abs(distance_matrix) - 1e-8) * balance_factor
+    )
+    distance_scaling = torch.log1p(torch.abs(distance_matrix) - 1e-8) * balance_factor
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_scaling *= (1 + cumulative_demand / total_capacity) * time_factor
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+
+    # Load balance heuristic
+    load_balance = balance_factor * torch.abs(cumulative_demand - max_demand)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+
+    # Randomness and diversity factors
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1 * balance_factor
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+
+    # Apply a scaling factor to prioritize core objectives
+    scaling_factor = 2.5
+    heuristics = (
+        scaling_factor * (
+            distance_scaling +
+            combined_penalty +
+            overflow_penalty +
+            load_balance_penalty
+        ) +
+        randomness_factor
+    ) + diversity_factor
+
+    # Normalize the heuristics
+    heuristics /= (heuristics.abs().max() + 1e-8)
+
+    # Subtract depot penalty
+    depot_penalty = torch.arange(n) == 0
+    heuristics = heuristics - depot_penalty.float().unsqueeze(0)
+
+    return heuristics
+```

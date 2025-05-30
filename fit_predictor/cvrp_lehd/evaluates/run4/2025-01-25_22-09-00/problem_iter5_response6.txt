@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    total_demand = demands.sum()
+    
+    # Demand factor: increase the value of edges leading to high demand nodes
+    demand_factor = 1 - demands / total_capacity
+    
+    # Local balance factor: reduce the value of short edges with low demand
+    local_balance_factor = torch.where(
+        torch.abs(distance_matrix) < torch.mean(torch.abs(distance_matrix)),
+        -demands / total_capacity * torch.abs(distance_matrix),
+        0
+    )
+    
+    # Global balance factor: balance the effect of distant edges
+    global_balance_factor = demands / (total_capacity + torch.mean(torch.abs(distance_matrix)))
+    
+    # Refine distance scaling: decrease the weight of distant edges
+    distance_scaling = 1 / (1 + torch.exp(-distance_matrix / torch.mean(torch.abs(distance_matrix))))
+    
+    # Normalize the heuristics matrix to ensure non-negative values
+    heuristic_matrix = (demand_factor + local_balance_factor + global_balance_factor + distance_scaling) - 1
+    
+    # Integrate diverse demand factors: combine demand with distance normalization
+    integrated_demand_factor = demand_factor * distance_scaling
+    
+    # Balance local and global: balance the effect of local and global factors
+    balanced_factor = local_balance_factor + global_balance_factor
+    
+    # Fine-tune dampening: apply dampening to balance the influence of local and global factors
+    dampening_factor = torch.exp(-torch.abs(distance_matrix) / torch.mean(torch.abs(distance_matrix)))
+    
+    # Combine factors with fine-tuning
+    heuristic_matrix = (integrated_demand_factor + balanced_factor * dampening_factor) - 1
+    
+    # Adjust the heuristics for the depot to all other nodes
+    for i in range(1, n):
+        route_demand = demands[i] + (total_demand - demands[i])
+        heuristic_matrix[0, i] = -route_demand * distance_matrix[0, i]
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    capacity = 1.0  # Assume that the capacity is 1 for normalization purposes
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate cumulative demands up to each customer
+    cumulative_demands = demands.cumsum(0)
+    
+    # Calculate the distance from the last customer to the depot
+    last_to_depot = distance_matrix[:, 0].unsqueeze(1)
+    
+    # Vectorized heuristic calculation
+    feasible = (capacity - cumulative_demands)[:, None] > demands[None, :]
+    heuristics[feasible] = distance_matrix[feasible] / capacity
+    
+    # Handle cases where the total demand exceeds the capacity
+    heuristics[~feasible] = -1000
+    
+    # Update the heuristic for the last customer to return to the depot
+    feasible_last_to_depot = (capacity - cumulative_demands[-1]) > 0
+    heuristics[feasible_last_to_depot] = last_to_depot[feasible_last_to_depot] / capacity
+    
+    # Normalize the heuristics matrix
+    min_val = heuristics.min()
+    max_val = heuristics.max()
+    heuristics = (heuristics - min_val) / (max_val - min_val)
+    
+    return heuristics
+```

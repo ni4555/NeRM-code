@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # This heuristic function incorporates several factors: the edge's actual distance, the
+    # average distance of all edges, the distance to the nearest neighbor, and the distance to
+    # the farthest neighbor. The heuristic is normalized to ensure that the values are comparable
+    # across all edges.
+    
+    # Calculate the average distance of all edges
+    total_edge_distance = np.sum(distance_matrix)
+    mean_distance = total_edge_distance / (distance_matrix.shape[0] * (distance_matrix.shape[0] - 1))
+    
+    # Calculate the nearest and farthest neighbor distances for each node
+    nearest_neighbor_distances = np.argmin(distance_matrix, axis=1)
+    nearest_neighbor_distances = distance_matrix[np.arange(distance_matrix.shape[0]), nearest_neighbor_distances]
+    farthest_neighbor_distances = np.argmax(distance_matrix, axis=1)
+    farthest_neighbor_distances = distance_matrix[np.arange(distance_matrix.shape[0]), farthest_neighbor_distances]
+    
+    # Combine the heuristics with the edge's actual distance
+    heuristic_values = distance_matrix - mean_distance
+    heuristic_values += (nearest_neighbor_distances / mean_distance) * (-1)
+    heuristic_values += (farthest_neighbor_distances / mean_distance) * (1)
+    
+    # Normalize the heuristic matrix
+    row_sums = np.sum(heuristic_values, axis=1)
+    epsilon = 1e-10
+    normalized_heuristic_matrix = (heuristic_values / (row_sums[:, np.newaxis] + epsilon))
+    
+    return normalized_heuristic_matrix
+```

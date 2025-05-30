@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Incorporate multiple node attributes: distance to the first node and distance to the last node
+    # Avoid local maxima by considering the sum of the distances to all other nodes
+    # Diversify solutions by using a random element to avoid symmetry issues
+    
+    def calculate_heuristic(i, j):
+        sum_distances_to_i = np.sum(distance_matrix[i])
+        sum_distances_to_j = np.sum(distance_matrix[j])
+        sum_distances_to_i_to_j = np.sum(distance_matrix[i][j])
+        sum_distances_to_j_to_i = np.sum(distance_matrix[j][i])
+        
+        # Use a combination of attributes to calculate heuristic
+        heuristic_value = (sum_distances_to_i + sum_distances_to_j + sum_distances_to_i_to_j + sum_distances_to_j_to_i) / 4
+        
+        return heuristic_value
+    
+    for i in range(len(distance_matrix)):
+        for j in range(i+1, len(distance_matrix)):
+            # Calculate the heuristic value
+            heuristic_value = calculate_heuristic(i, j)
+            
+            # To diversify the solution and avoid local maxima, randomly select one of the two possible edges
+            if np.random.rand() < 0.5:  # 50% chance to select one edge
+                heuristic_matrix[i, j] = heuristic_value
+                heuristic_matrix[j, i] = heuristic_value
+            else:  # The other 50% chance to select the other edge
+                heuristic_matrix[j, i] = heuristic_value
+                heuristic_matrix[i, j] = heuristic_value
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,38 @@
+{
+  "generation": 8,
+  "description": "The objective is to develop a specialized stochastic heuristic for the Multi-Knapsack Problem (MKP) that maximizes total prize collection while adhering to strict multi-dimensional weight constraints. This heuristic employs adaptive sampling techniques to iteratively generate candidate solutions, incorporating dynamic fitness evaluation and robust perturbation algorithms to strike a balance between exploration and exploitation. The approach aims to iteratively refine solutions using multi-objective optimization, enabling a synergistic effect that enhances both effectiveness and efficiency in solving the MKP under stringent constraints.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom scipy.stats import multivariate_normal\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    capacity = np.ones(m)\n    item_prob = np.zeros(n)\n    mean = np.mean(weight, axis=0)\n    cov = np.cov(weight.T)\n    std_dev = np.linalg.cholesky(cov)\n\n    # Initial dynamic fitness evaluation\n    for _ in range(10):  # Iterations for initial fitness evaluation\n        proposal = multivariate_normal.rvs(mean, std_dev, size=(n, 10))\n        for j in range(n):\n            item_prob[j] += np.sum(np.all(proposal[j, :] <= capacity, axis=1))\n\n    # Refinement phase\n    for _ in range(50):  # More iterations for refinement\n        for j in range(n):\n            # Generate multiple proposals and evaluate them\n            proposals = multivariate_normal.rvs(mean, std_dev, size=(10, 10))\n            for p in proposals:\n                if np.all(p <= capacity):\n                    item_prob[j] += np.sum(prize[j] * np.all(p[j, :] <= capacity, axis=0))\n\n    return item_prob / np.sum(item_prob)",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 2, confidence: 0.9979)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    fitness = np.zeros(n)\n    probabilities = np.zeros(n)\n\n    for item in range(n):\n        item_fitness = np.prod(1 - weight[item])\n        fitness[item] = prize[item] / item_fitness\n\n    # Normalize fitness scores to form probabilities\n    probabilities = fitness / np.sum(fitness)\n\n    # Simulated Annealing for perturbation\n    max_iter = 1000\n    T = 100\n    alpha = 0.9\n    current_item = np.argmax(probabilities)\n    for i in range(max_iter):\n        T *= alpha\n        next_item = np.random.choice(n, p=probabilities)\n        if (prize[next_item] - prize[current_item]) / T > np.random.rand():\n            current_item = next_item\n\n    # Select items based on the probabilities\n    heuristics = np.zeros(n)\n    heuristics[current_item] = 1\n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 3, confidence: 0.9978)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    probabilities = np.zeros(n)\n    fitness_scores = np.zeros(n)\n\n    # Initial adaptive sampling\n    for i in range(n):\n        probabilities[i] = prize[i] / (np.sum(prize) + 1e-6)\n    \n    for iteration in range(10):  # Example of 10 iterations\n        # Dynamic fitness evaluation\n        for i in range(n):\n            item_fitness = 1\n            for j in range(m):\n                if weight[i, j] > 1:\n                    item_fitness = 0\n                    break\n            if item_fitness == 1:\n                fitness_scores[i] = prize[i]\n            else:\n                fitness_scores[i] = 0\n        \n        # Update probabilities based on fitness scores\n        probabilities /= np.sum(probabilities)\n        for i in range(n):\n            probabilities[i] *= fitness_scores[i]\n        \n        # Robust perturbation\n        for i in range(n):\n            if np.random.rand() < 0.05:  # 5% chance of perturbation\n                i_perturbed = np.random.randint(0, n)\n                while i_perturbed == i:\n                    i_perturbed = np.random.randint(0, n)\n                probabilities[i], probabilities[i_perturbed] = probabilities[i_perturbed], probabilities[i]\n\n    # Final probability scaling to get selection probabilities\n    probabilities /= np.sum(probabilities)\n\n    # Create the heuristics array based on probabilities\n    heuristics = np.random.rand(n)\n    np.add.at(heuristics, np.argmax(probabilities), 1)\n\n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 4, confidence: 0.9952)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\nimport random\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape\n    num_knapsacks = m  # Since each dimension has a weight constraint of 1\n    probability_threshold = 0.5\n\n    def fitness(solution):\n        total_weight = np.sum([np.sum(weight[sol, :]) for sol in solution])\n        return total_weight, np.sum(prize[sol] for sol in solution if sol not in solution)\n\n    initial_solution = list(range(n))\n    max_solution = initial_solution.copy()\n    max_fitness = fitness(initial_solution)\n\n    for _ in range(1000):  # Number of iterations\n        random.shuffle(initial_solution)\n        candidate_solution = [initial_solution[i] for i in range(n) if random.random() > probability_threshold]\n\n        current_fitness = fitness(candidate_solution)\n        if current_fitness > max_fitness:\n            max_solution = candidate_solution\n            max_fitness = current_fitness\n\n    heuristic = np.zeros(n)\n    heuristic[max_solution] = 1\n    return heuristic",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Traceback (most recent call last):\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 58, in <module>\n    obj = solve(prize, weight)\n          ^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main/problems/mkp_aco/eval.py\", line 23, in solve\n    heu = heuristics(prize.copy(), weight.copy()) + 1e-9\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"E:\\Projects\\CO\\reevo-main\\problems\\mkp_aco\\gpt.py\", line 6, in heuristics_v2\n    n, m = prize.shape\n    ^^^^\nValueError: not enough values to unpack (expected 2, got 1)\n",
+      "stdout_file": "coevolve\\generation_8\\stdout_0.txt",
+      "code_file": "coevolve\\generation_8\\code_0.py"
+    }
+  ]
+}

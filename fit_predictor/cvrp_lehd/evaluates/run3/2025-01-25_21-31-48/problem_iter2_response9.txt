@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that combines multiple criteria to assess the edge promise in CVRP."""
+    # Calculate the inverse of the distance matrix to emphasize shorter distances
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)
+    
+    # Emphasize nodes with higher demand by weighting the distance matrix by the demands
+    demand_weighted_distance_matrix = distance_matrix_inv * demands
+    
+    # Add a small value to the diagonal to avoid self-loop penalties
+    identity_matrix = torch.eye(distance_matrix.size(0))
+    demand_weighted_distance_matrix += identity_matrix * 1e-10
+    
+    # Normalize the matrix to ensure all values are within a certain range, considering the depot (0 demand)
+    min_demand = demands.min()
+    max_demand = demands.max()
+    normalized_demand_weighted_distance_matrix = (demand_weighted_distance_matrix - min_demand) / (max_demand - min_demand)
+    
+    # Add a term to emphasize nodes that are close to the depot, using a scaled distance to the depot
+    distance_to_depot = torch.clamp(torch.abs(demands - demands[0]), min=0)
+    depot_emphasis = 1 / (distance_to_depot + 1e-10)
+    
+    # Combine the terms to get the final heuristic values
+    heuristic_values = normalized_demand_weighted_distance_matrix * depot_emphasis
+    return heuristic_values
+```

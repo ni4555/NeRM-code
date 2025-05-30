@@ -1,0 +1,59 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate demand-based weights
+    demand_weights = demands / demands.sum()
+    
+    # Normalize distance matrix
+    distance_matrix = distance_matrix / distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine demand-based weights with normalized distances
+    weighted_matrix = distance_matrix * demand_weights
+    
+    # Apply logarithmic scale to balance demand and distance
+    weighted_matrix = torch.log1p(weighted_matrix)
+    
+    # Integrate capacity constraint by emphasizing the demand
+    capacity_factor = (1 / (demands + 1e-8))  # Avoid division by zero
+    
+    # Adjust weights to emphasize the capacity constraint
+    adjusted_weights = weighted_matrix * capacity_factor
+    
+    # Normalize the adjusted weights to ensure stability
+    max_adjusted_weight = adjusted_weights.max()
+    normalized_adjusted_weights = adjusted_weights / max_adjusted_weight
+    
+    # Apply dampening factor to all weights
+    dampening_factor = 0.8
+    normalized_adjusted_weights *= dampening_factor
+    
+    # Emphasize capacity by scaling with the difference from 1
+    capacity_emphasis = (1 - demands) * normalized_adjusted_weights
+    
+    # Apply penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    normalized_adjusted_weights += capacity_emphasis * overcapacity_penalty - undercapacity_penalty
+    
+    # Ensure that the heuristic for the depot is the highest
+    depot_cost = demands[0]
+    normalized_adjusted_weights[0, :] += depot_cost
+    normalized_adjusted_weights[:, 0] += depot_cost
+    
+    # Minimize loops by reducing the weights of edges that form a loop
+    loop_minimization = adjusted_weights + adjusted_weights.T - torch.diag(adjusted_weights)
+    loop_minimization[loop_minimization > 0] = 0
+    normalized_adjusted_weights += loop_minimization
+    
+    # Avoid dominance by balancing the weights of edges
+    dominated_edges = adjusted_weights.unsqueeze(1) + adjusted_weights.unsqueeze(0) - adjusted_weights.unsqueeze(2)
+    dominated_edges[dominated_edges > 0] = 0
+    dominated_edges = dominated_edges.view(n, n, n)
+    dominated_edges = dominated_edges.min(dim=2)[0]
+    normalized_adjusted_weights = torch.max(normalized_adjusted_weights, dominated_edges)
+    
+    return normalized_adjusted_weights
+```

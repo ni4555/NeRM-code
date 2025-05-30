@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for CVRP that balances demand and capacity, caps values, and incorporates demand-to-capacity ratios."""
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+    demand_penalty = 1 - demands
+    combined_heuristic = normalized_inv_distance_matrix - demand_penalty
+
+    # Cap the values to maintain feasibility
+    capping_factor = 1.0
+    combined_heuristic = torch.clamp(combined_heuristic, min=-capping_factor, max=capping_factor)
+
+    # Incorporate demand-to-capacity ratios to prioritize edges with better ratios
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                if demands[i] + demands[j] > 1:
+                    combined_heuristic[i, j] *= (demands[i] / (demands[i] + demands[j]))
+
+    return combined_heuristic
+```

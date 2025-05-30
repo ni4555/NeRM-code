@@ -1,0 +1,51 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate demand-based penalty for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    
+    # Loop through each node and calculate the heuristic for each edge
+    for i in range(n):
+        for j in range(n):
+            if i != j:  # Skip the depot node
+                # Calculate the heuristic based on weighted distance and demand
+                edge_heuristic = distance_matrix[i, j] * demands[j]
+                
+                # Adjust the heuristic based on capacity constraints
+                if demands[i] + demands[j] > 1:
+                    edge_heuristic += overcapacity_penalty[i] * overcapacity_penalty[j]
+                elif demands[i] + demands[j] < 1:
+                    edge_heuristic += undercapacity_penalty[i] * undercapacity_penalty[j]
+                
+                # Apply dampening factor to stabilize the heuristic
+                dampening_factor = 0.95
+                edge_heuristic *= dampening_factor
+                
+                # Set the heuristic for the edge
+                heuristics[i, j] = edge_heuristic
+    
+    # Ensure the depot node has the highest heuristic value
+    heuristics[0, :] = torch.max(heuristics[0, :]) + 1
+    heuristics[:, 0] = torch.max(heuristics[:, 0]) + 1
+    
+    # Normalize the heuristics to avoid dominance
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    # Emphasize capacity constraints
+    capacity_emphasis_factor = 1.1
+    heuristics *= capacity_emphasis_factor
+    
+    # Minimize loops by reducing the heuristic values of edges that form a loop
+    loop_minimization_factor = 0.6
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = loop_minimization_factor * loop_heuristics[loop_heuristics > 0]
+    heuristics += loop_heuristics
+    
+    return heuristics
+```

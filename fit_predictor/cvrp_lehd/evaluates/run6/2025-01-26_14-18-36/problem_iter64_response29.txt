@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # High demand and low remaining capacity penalty
+    high_demand_penalty = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * 0.1 * remaining_capacity
+
+    # Capacity violation penalty
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    high_demand_penalty += capacity_penalty
+
+    # Penalty for edges leading back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    high_demand_penalty += depot_penalty
+
+    # Preference for edges close to the depot
+    distance_preference = distance_matrix[:, 0] - distance_matrix[:, 0].mean()
+    distance_preference = torch.clamp(distance_preference, min=-0.2, max=0.0)
+    high_demand_penalty += distance_preference * 0.2
+
+    # Normalize the heuristic values
+    heuristics = (high_demand_penalty - high_demand_penalty.min()) / (high_demand_penalty.max() - high_demand_penalty.min())
+
+    # Non-linear transformation to avoid local optima
+    heuristics = torch.tanh(heuristics * 10)
+
+    # Random perturbation to avoid local optima
+    random_perturbation = torch.randn_like(heuristics) * 0.1
+    heuristics += random_perturbation
+
+    # Clamp the heuristic values to ensure they are within the range [0, 1]
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

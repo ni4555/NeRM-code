@@ -1,0 +1,14 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate cumulative demand up to each node
+    cumulative_demand = demands.cumsum(0)
+    # Calculate the total demand from the start node to the current node
+    total_demand = cumulative_demand.cumsum(0)
+    # Calculate the overflow beyond the vehicle capacity
+    overflow = (total_demand - demands[:, None]).clamp(min=0)
+    # Calculate the heuristic value as a function of overflow and distance
+    heuristic_values = -torch.abs(overflow * (1 / (distance_matrix + 1e-5)))
+    return heuristic_values
+```

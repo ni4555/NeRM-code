@@ -1,0 +1,13 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    return_distance_to_depot = distance_matrix[:, None, 0] + distance_matrix[None, :, 0]
+    current_demand = demands[:, None] + demands[None, :]
+    exceeds_capacity = current_demand >= total_demand
+    return_to_depot = (exceeds_capacity * return_distance_to_depot).float()
+    heuristic_values = -distance_matrix + return_to_depot
+    heuristics = torch.where(exceeds_capacity, -torch.inf, heuristic_values)
+    return heuristics
+```

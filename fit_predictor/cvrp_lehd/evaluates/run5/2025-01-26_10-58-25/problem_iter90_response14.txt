@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Early emphasis on demand constraint violations
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create an initial potential based on distances and demands
+    potential_matrix = torch.log1p(-torch.log(distance_matrix + 1e-6) + demand_penalty_matrix)
+    
+    # Introduce randomness for diversity in exploration
+    random_matrix = torch.randn_like(potential_matrix) * 1e-2
+    
+    # Combine the initial potential with randomness
+    combined_potential_matrix = potential_matrix + random_matrix
+    
+    # Normalize combined potential matrix to maintain non-negativity
+    normalized_combined_potential_matrix = torch.relu(combined_potential_matrix)
+    
+    # Normalize the demand penalty matrix to ensure balance with distance penalties
+    normalized_demand_penalty_matrix = demand_penalty_matrix / demand_penalty_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize distance penalty matrix for proper balancing
+    normalized_distance_penalty_matrix = -torch.log(distance_matrix + 1e-6) / (-torch.log(distance_matrix + 1e-6)).sum(dim=1, keepdim=True)
+    
+    # Combine normalized demand penalty and distance penalty matrices
+    combined_penalty_matrix = normalized_demand_penalty_matrix + normalized_distance_penalty_matrix
+    
+    # Combine normalized potential with penalty to emphasize constraints
+    balanced_matrix = normalized_combined_potential_matrix + combined_penalty_matrix
+    
+    # Non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.relu(torch.log1p(balanced_matrix))
+    
+    # Apply mutation by adding small random perturbations
+    mutation_factor = torch.rand_like(emphasized_matrix)
+    mutated_emphasized_matrix = emphasized_matrix + torch.randn_like(emphasized_matrix) * 1e-3 * mutation_factor
+    
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -mutated_emphasized_matrix
+    
+    return heuristics_matrix
+```

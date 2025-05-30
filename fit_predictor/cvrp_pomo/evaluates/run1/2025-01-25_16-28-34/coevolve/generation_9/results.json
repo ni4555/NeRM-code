@@ -1,0 +1,86 @@
+{
+  "generation": 9,
+  "description": "The goal is to devise an integrated optimization heuristic for the Capacitated Vehicle Routing Problem (CVRP) that leverages the strengths of local search techniques, adaptive population management in Particle Swarm Optimization (PSO), and dynamic tabu search strategies, while ensuring efficient navigation of the solution space and balancing exploration with exploitation. This heuristic should be tailored to address the complexities of CVRP by emphasizing the following components:\n\n1. **Problem-specific Local Search**: Implement a refined neighborhood exploration mechanism for the CVRP that takes into account vehicle capacities and demand distributions to guarantee neighborhood validity and optimally balance load.\n\n2. **Adaptive PSO with Adaptive Population Management**: Enhance the exploration capability of PSO through the implementation of a dynamic adjustment mechanism for velocity and position update rules. Employ a population management strategy that ensures a balance between exploration and convergence, fostering diversity and maintaining a broad search space coverage.\n\n3. **Dynamic Tabu Search with Adaptive Cost Function**: Integrate a tabu search approach with a cost function that dynamically evaluates load distribution and routing costs, promoting efficient navigation while respecting the vehicle constraints and avoiding previously suboptimal solutions.\n\nThe proposed heuristic will encapsulate these strategies in a modular and integrated framework that allows for individual contribution analysis, enabling clear understanding of how each heuristic contributes to the overall optimization process. The heuristic is designed to avoid the pitfalls of overgeneralization and to prioritize a clear, problem-specific, and successful optimization strategy for the CVRP, yielding optimal load distribution, minimal routing costs, and high system performance.",
+  "solutions": [
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Initialize the heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # Calculate the total vehicle capacity\n    total_capacity = demands.sum()\n    \n    # Calculate the sum of demands for each edge (i, j)\n    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix\n    \n    # Calculate the average demand per edge\n    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)\n    \n    # Calculate the heuristics based on the average demand per edge\n    heuristics = (average_demand_per_edge - total_capacity) / total_capacity\n    \n    # Adjust the heuristics to ensure they are negative for undesirable edges\n    heuristics[distance_matrix == 0] = 0  # Avoid division by zero\n    heuristics[heuristics >= 0] = 0  # Set non-negative values to zero\n    \n    return heuristics",
+      "fitness": 23.238935470581055,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_11.txt",
+      "code_file": "coevolve\\generation_9\\code_11.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the product of distance and a function of demand\n    # Here, we use a simple function: (1 - demand) * distance\n    # This function will decrease the value for edges with high demand\n    # and increase the value for edges with low demand.\n    # The '1 - demand' term is used to ensure that higher demands\n    # result in higher negative values, which are undesirable.\n    demand_weight = 1 - demands\n    weighted_distance = distance_matrix * demand_weight\n\n    # Return the weighted distance matrix\n    return weighted_distance",
+      "fitness": 23.265913009643555,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_7.txt",
+      "code_file": "coevolve\\generation_9\\code_7.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Normalize the distance matrix by the maximum distance to avoid large negative values\n    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)\n    \n    # Calculate the negative of the demands to promote their selection\n    negative_demands = -demands\n    \n    # Calculate the load balance factor for each customer\n    load_balance_factor = torch.abs(negative_demands / torch.sum(negative_demands))\n    \n    # Combine the factors to create the heuristic\n    heuristic_matrix = normalized_distance_matrix + load_balance_factor\n    \n    # Ensure that the heuristic matrix is not too large to avoid dominated solutions\n    # by clamping the values to a maximum of 1\n    heuristic_matrix = torch.clamp(heuristic_matrix, max=1)\n    \n    return heuristic_matrix",
+      "fitness": 23.284208297729492,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_2.txt",
+      "code_file": "coevolve\\generation_9\\code_2.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the sum of demands\n    total_demand = demands.sum()\n    \n    # Normalize the demands vector by the total vehicle capacity\n    normalized_demands = demands / total_demand\n    \n    # Initialize the heuristics matrix with zeros\n    heuristics_matrix = torch.zeros_like(distance_matrix)\n    \n    # Iterate over all edges in the graph (excluding the diagonal)\n    for i in range(distance_matrix.shape[0]):\n        for j in range(distance_matrix.shape[1]):\n            if i != j:\n                # Calculate the edge heuristics based on distance and demand\n                # The heuristic is negative to indicate that this edge is initially undesirable\n                heuristics_matrix[i, j] = -distance_matrix[i, j] - normalized_demands[i] - normalized_demands[j]\n    \n    return heuristics_matrix",
+      "fitness": 23.317523956298828,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_3.txt",
+      "code_file": "coevolve\\generation_9\\code_3.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Calculate the total vehicle capacity\n    total_capacity = demands.sum()\n    # Initialize the heuristic matrix with zeros\n    heuristic_matrix = torch.zeros_like(distance_matrix)\n    \n    # Calculate the load factor for each edge\n    load_factor = distance_matrix * demands.unsqueeze(1)\n    \n    # Normalize the load factor by the total capacity to get the load per edge\n    load_per_edge = load_factor / total_capacity\n    \n    # Calculate the heuristic value for each edge based on load per edge\n    # Negative values indicate undesirable edges, positive values indicate promising ones\n    heuristic_matrix = -load_per_edge\n    \n    # Adjust the heuristic values to ensure some edges are more promising than others\n    # This can be done by adding a constant to the undesirable edges\n    # Here, we add a small positive constant to make the values more distinct\n    small_constant = 0.1\n    undesirable_edges = load_per_edge.abs() > 0.5\n    heuristic_matrix[undesirable_edges] += small_constant\n    \n    return heuristic_matrix",
+      "fitness": 23.337182998657227,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_0.txt",
+      "code_file": "coevolve\\generation_9\\code_0.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Normalize the demands to be between 0 and 1\n    demands = demands / demands.sum()\n    \n    # Initialize the heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # Iterate over each edge\n    for i in range(n):\n        for j in range(n):\n            if i != j:  # Skip the diagonal\n                # Calculate the heuristic value based on the distance and the demand ratio\n                heuristics[i, j] = distance_matrix[i, j] * (demands[j] - demands[i])\n    \n    return heuristics",
+      "fitness": 23.337182998657227,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_1.txt",
+      "code_file": "coevolve\\generation_9\\code_1.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Ensure the demands tensor is a column vector\n    demands = demands.view(-1, 1)\n    \n    # Calculate the distance from the depot to each customer and back to the depot\n    distance_to_customer = distance_matrix[0, :]\n    distance_from_customer_to_depot = distance_matrix[:, 0]\n    \n    # Calculate the total distance for each edge (including the return to the depot)\n    total_distance = distance_to_customer + distance_from_customer_to_depot\n    \n    # Calculate the heuristic value as a product of total distance and demand\n    heuristic_values = total_distance * demands\n    \n    # Subtract the maximum heuristic value from all to ensure non-negative values\n    max_heuristic_value = torch.max(heuristic_values)\n    heuristic_values -= max_heuristic_value\n    \n    return heuristic_values",
+      "fitness": 23.337182998657227,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_5.txt",
+      "code_file": "coevolve\\generation_9\\code_5.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the total vehicle capacity\n    total_capacity = demands.sum()\n    \n    # Normalize demands to the total vehicle capacity\n    normalized_demands = demands / total_capacity\n    \n    # Initialize the heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # Calculate the potential load for each edge\n    for i in range(len(distance_matrix)):\n        for j in range(len(distance_matrix[i])):\n            if i != j:  # Skip the depot node\n                # Calculate the potential load if this edge is included\n                potential_load = normalized_demands[i] + normalized_demands[j]\n                \n                # If the potential load is within the vehicle capacity, assign a positive heuristic value\n                if potential_load <= 1.0:\n                    heuristics[i, j] = 1 - potential_load\n                else:\n                    # If the potential load exceeds the vehicle capacity, assign a negative heuristic value\n                    heuristics[i, j] = potential_load - 1.0\n    \n    return heuristics",
+      "fitness": 23.337182998657227,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_6.txt",
+      "code_file": "coevolve\\generation_9\\code_6.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Initialize the heuristic matrix with zeros\n    heuristic_matrix = torch.zeros_like(distance_matrix)\n    \n    # Calculate the total vehicle capacity\n    total_capacity = demands.sum()\n    \n    # Calculate the load for each customer\n    load = demands / total_capacity\n    \n    # Iterate over each customer\n    for i in range(1, n):\n        # Calculate the difference in load for each possible edge\n        load_diff = load[i] - load\n        \n        # Calculate the heuristic value for each edge\n        heuristic_matrix[i, :] = -distance_matrix[i, :] * load_diff\n    \n    # Normalize the heuristic matrix to ensure that it contains negative values for undesirable edges\n    # and positive values for promising ones\n    heuristic_matrix = (heuristic_matrix - heuristic_matrix.min()) / (heuristic_matrix.max() - heuristic_matrix.min())\n    \n    return heuristic_matrix",
+      "fitness": 23.337182998657227,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_8.txt",
+      "code_file": "coevolve\\generation_9\\code_8.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the total vehicle capacity\n    total_capacity = demands.sum()\n    \n    # Normalize demands to get the fraction of the capacity each customer represents\n    normalized_demands = demands / total_capacity\n    \n    # Initialize the heuristic matrix with zeros\n    heuristic_matrix = torch.zeros_like(distance_matrix)\n    \n    # Calculate the heuristic values for each edge\n    # The heuristic is designed to be negative for edges that would exceed vehicle capacity\n    # and positive for edges that would not exceed vehicle capacity\n    for i in range(distance_matrix.size(0)):\n        for j in range(distance_matrix.size(1)):\n            if i == j:\n                # No cost for the depot to itself\n                heuristic_matrix[i, j] = 0\n            else:\n                # Calculate the potential load if this edge is included\n                potential_load = normalized_demands[i] + normalized_demands[j]\n                # If the potential load exceeds the capacity, the heuristic is negative\n                if potential_load > 1.0:\n                    heuristic_matrix[i, j] = -torch.clamp(potential_load - 1.0, min=-1e6, max=0)\n                else:\n                    # Otherwise, the heuristic is positive\n                    heuristic_matrix[i, j] = torch.clamp(potential_load - 1.0, min=0, max=1e6)\n    \n    return heuristic_matrix",
+      "fitness": 23.337182998657227,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_9.txt",
+      "code_file": "coevolve\\generation_9\\code_9.py"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate penalties based on excess and shortfall in demands relative to the vehicle capacity
+    excess_demand_penalty = -torch.abs(demands - vehicle_capacity) * demands
+    shortfall_demand_penalty = -torch.abs(demands - vehicle_capacity) * (1 - demands)
+    
+    # Add a distance-based penalty with an emphasis on close nodes (small distances)
+    distance_penalty = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine penalties into a potential matrix with different weights for each
+    combined_potential_matrix = 0.2 * excess_demand_penalty + 0.2 * shortfall_demand_penalty + 0.6 * distance_penalty
+    
+    # Use an exponential transformation to emphasize closer nodes
+    emphasized_matrix = torch.exp(combined_potential_matrix)
+    
+    # Scale down to a more appropriate range, and make it relative for better heuristic value distinction
+    scaled_matrix = emphasized_matrix / (emphasized_matrix.sum() + 1e-6)
+    
+    # Create the heuristics matrix, negative values indicate less desirable edges
+    heuristics_matrix = -scaled_matrix
+    
+    return heuristics_matrix
+```

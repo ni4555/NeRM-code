@@ -1,0 +1,51 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+
+    # Adaptive capacity penalty based on remaining capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / n) - 1e-8)
+    dynamic_capacity_penalty *= (1 - (cumulative_demand / total_capacity) ** 2)
+
+    # Distance penalty with a focus on nearness to depot and reduced as demand is met
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= torch.clamp((total_capacity - cumulative_demand) / total_capacity, min=0.5)
+
+    # Overflow penalty for edges that lead to immediate overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+
+    # Load balance penalty for balancing the distribution of demand
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+
+    # Randomness for diversification with a decreasing influence
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - (cumulative_demand / total_capacity) ** 0.8)
+
+    # Scale factors to prioritize objectives
+    capacity_scale = 2.0
+    distance_scale = 1.5
+    load_balance_scale = 1.0
+
+    # Combine heuristics with a controlled randomness and diversity factor
+    heuristics = (
+        capacity_scale * dynamic_capacity_penalty +
+        distance_scale * distance_scaling +
+        load_balance_scale * load_balance_penalty
+    ) + randomness_factor
+
+    # Introduce diversity through random fluctuations
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    heuristics += diversity_factor
+
+    return heuristics
+```

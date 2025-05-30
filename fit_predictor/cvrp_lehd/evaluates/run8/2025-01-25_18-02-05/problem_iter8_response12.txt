@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate cumulative demands and distances
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+
+    # Ensure no division by zero
+    with torch.no_grad():
+        safe_distances = torch.where(cumulative_distances == 0, torch.tensor(1.0e-8), cumulative_distances)
+
+    # Compute heuristic values based on cumulative demand to cumulative distance ratio
+    heuristic_matrix = cumulative_demands / safe_distances
+
+    # Invert the heuristic matrix to prioritize lower ratios
+    heuristic_matrix = 1 / (heuristic_matrix + 1e-8)
+
+    # Normalize by subtracting the minimum value to ensure all values are positive
+    min_heuristic = torch.min(heuristic_matrix)
+    heuristic_matrix = heuristic_matrix - min_heuristic
+
+    # Apply a non-linear transformation (e.g., logarithm) to emphasize differences
+    heuristic_matrix = torch.log(heuristic_matrix + 1e-8)
+
+    # Apply a threshold to filter out undesirable edges
+    threshold = 0.1
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, -heuristic_matrix, heuristic_matrix)
+
+    # Clamp the values to maintain the range within [-1, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+
+    return heuristic_matrix
+```

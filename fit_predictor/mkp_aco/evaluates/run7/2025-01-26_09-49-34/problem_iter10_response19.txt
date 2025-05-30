@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by the maximum prize value to get a relative measure of item value
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate the sum of weights for each item
+    sum_weight = np.sum(weight, axis=1)
+    
+    # Calculate the relative importance of each item considering its normalized prize and sum of weights
+    relative_importance = normalized_prize / sum_weight
+    
+    # Calculate the sparsity factor for each item, higher for items with fewer non-zero weights
+    sparsity_factor = 1 / np.sum(weight != 0, axis=1)
+    
+    # Combine the relative importance and sparsity factor to compute the heuristics
+    heuristics = relative_importance * sparsity_factor
+    
+    # Normalize the heuristics by the maximum heuristic value to ensure a scale for comparison
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Apply a dynamic threshold based on the average heuristic to filter out less promising items
+    average_heuristic = np.mean(heuristics)
+    dynamic_threshold = average_heuristic * 0.75  # A 75% threshold for example
+    heuristics[heuristics < dynamic_threshold] = 0
+    
+    # Adjust heuristics to balance the trade-off between high prize-to-weight ratio and sparsity
+    adjusted_heuristics = heuristics * (1 + (1 - sparsity_factor))
+    
+    return adjusted_heuristics
+```

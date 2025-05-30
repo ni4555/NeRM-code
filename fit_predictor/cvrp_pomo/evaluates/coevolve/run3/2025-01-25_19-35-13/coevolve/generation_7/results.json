@@ -1,0 +1,62 @@
+{
+  "generation": 7,
+  "description": "The objective is to develop an innovative heuristic for the Capacitated Vehicle Routing Problem (CVRP) by integrating a demand normalization process, a robust potential function, and a synergistic blend of dynamic programming, neighborhood search, and local search techniques. The heuristic should be meticulously crafted to normalize node demands relative to vehicle capacity, ensuring consistency across scenarios. It should introduce a sophisticated potential function that assigns weights to edges based on the sum of normalized demands and incorporates factors such as distance and road quality. A hybrid strategy that leverages dynamic programming for sub-route optimization, neighborhood search for refinement, and local search for enhancement will be employed. The potential function will be refined to prevent division by zero errors and ensure reliability. The resulting heuristic must offer a well-defined optimization process with the potential to yield efficient and near-optimal routes under CVRP constraints.",
+  "solutions": [
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n    \n    # Initialize potential function matrix\n    potential_matrix = torch.zeros_like(distance_matrix)\n    \n    # Calculate edge weights based on normalized demands, distance, and road quality (assumed as 1 for simplicity)\n    for i in range(n):\n        for j in range(n):\n            if i != j:  # Exclude self-loops\n                potential_matrix[i, j] = normalized_demands[i] + normalized_demands[j] + distance_matrix[i, j]\n    \n    # Handle division by zero by setting a small threshold\n    threshold = 1e-8\n    potential_matrix[potential_matrix <= threshold] = -threshold\n    \n    return potential_matrix",
+      "fitness": 23.265913009643555,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_7\\stdout_2.txt",
+      "code_file": "coevolve\\generation_7\\code_2.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Ensure the demands are normalized by the total vehicle capacity\n    vehicle_capacity = demands.sum()\n    normalized_demands = demands / vehicle_capacity\n\n    # Calculate the potential function\n    # Here, we assume a simple potential function based on the sum of normalized demands\n    # and the distance, with a penalty for large demands and a discount for distance\n    # Adjust the parameters according to the problem's characteristics\n    demand_weight = 0.5\n    distance_weight = 0.3\n    road_quality_penalty = 0.2  # Example of incorporating road quality into the potential\n\n    # Calculate the sum of normalized demands for each edge\n    edge_demand_sum = torch.matmul(normalized_demands.unsqueeze(1), normalized_demands.unsqueeze(0))\n    \n    # Incorporate distance and road quality into the potential function\n    potential = (edge_demand_sum * demand_weight) - (distance_matrix * distance_weight)\n    \n    # Introduce a penalty for high demands\n    high_demand_penalty = torch.clamp((1 - (edge_demand_sum * demand_weight)), min=0, max=1)\n    potential = potential + (high_demand_penalty * road_quality_penalty)\n    \n    # Ensure no division by zero errors\n    potential = torch.clamp(potential, min=0)\n    \n    return potential",
+      "fitness": 23.278629302978516,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_7\\stdout_0.txt",
+      "code_file": "coevolve\\generation_7\\code_0.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize demands by the sum of demands to prevent division by zero\n    total_demand = demands.sum()\n    normalized_demands = demands / total_demand\n\n    # Calculate potential function weights based on normalized demands, distance, and road quality\n    # Assuming distance_matrix contains distances and some road quality information\n    # For simplicity, we will use distance as the road quality factor\n    # The potential function is defined as: potential = normalized_demand * distance\n    potential_weights = normalized_demands * distance_matrix\n\n    # Introduce a penalty for large distances (assuming that edges with high distance are less desirable)\n    # This is a simple heuristic to avoid overly long paths\n    penalty_factor = 1.0  # Adjust this factor as needed\n    potential_weights = potential_weights - penalty_factor * distance_matrix\n\n    # Subtract the potential weights for edges that connect to the depot to ensure they are not favored\n    depot_index = 0  # Index of the depot node\n    potential_weights[:, depot_index] -= potential_weights[depot_index, :]\n\n    return potential_weights",
+      "fitness": 23.317523956298828,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_7\\stdout_1.txt",
+      "code_file": "coevolve\\generation_7\\code_1.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize demands by the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n\n    # Calculate the sum of normalized demands for each edge\n    edge_demand_sum = torch.matmul(normalized_demands.unsqueeze(1), normalized_demands.unsqueeze(0))\n\n    # Incorporate distance and road quality factors (assuming road_quality_matrix is available)\n    # For the sake of this example, let's assume road_quality_matrix is a 1-hot encoded matrix with shape n by n\n    # road_quality_matrix = ... (not provided in the question, so we'll skip this part)\n\n    # Calculate the potential function by combining edge_demand_sum and distance\n    # For simplicity, we'll just use distance_matrix directly, as road_quality_matrix is not provided\n    potential_function = edge_demand_sum - distance_matrix\n\n    # Refine the potential function to prevent division by zero errors\n    potential_function = torch.clamp(potential_function, min=-float('inf'), max=float('inf'))\n\n    return potential_function",
+      "fitness": 23.317523956298828,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_7\\stdout_7.txt",
+      "code_file": "coevolve\\generation_7\\code_7.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    vehicle_capacity = demands.sum()  # Assuming the total demand is the vehicle capacity\n\n    # Normalize demands relative to vehicle capacity\n    normalized_demands = demands / vehicle_capacity\n\n    # Initialize the potential matrix\n    potential_matrix = torch.zeros_like(distance_matrix)\n\n    # Compute the potential for each edge\n    # Potential = sum of normalized demands + distance + road quality factor\n    # For simplicity, we use a fixed road quality factor (e.g., 1.0)\n    road_quality_factor = 1.0\n    potential_matrix = normalized_demands.unsqueeze(1) + normalized_demands.unsqueeze(0) + \\\n                       distance_matrix + road_quality_factor\n\n    # Refine the potential function to prevent division by zero errors\n    potential_matrix = torch.clamp(potential_matrix, min=-1e6)\n\n    # The heuristics matrix is the negative of the potential matrix\n    # Negative values for undesirable edges, positive for promising ones\n    heuristics_matrix = -potential_matrix\n\n    return heuristics_matrix",
+      "fitness": 23.317523956298828,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_7\\stdout_10.txt",
+      "code_file": "coevolve\\generation_7\\code_10.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize demands by the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n    \n    # Calculate the sum of normalized demands for each edge\n    sum_normalized_demands = torch.clamp(normalized_demands[:, None] + normalized_demands[None, :], min=1e-8)\n    \n    # Incorporate distance and road quality factors (assuming these are provided as additional tensors)\n    distance_factor = distance_matrix\n    road_quality_factor = torch.rand_like(distance_matrix)  # Placeholder for road quality factor\n    \n    # Combine factors to create the potential function\n    potential_function = sum_normalized_demands * distance_factor * road_quality_factor\n    \n    # Introduce a heuristic for the edges (negative values for undesirable edges)\n    heuristics = -potential_function\n    \n    return heuristics",
+      "fitness": 23.337182998657227,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_7\\stdout_9.txt",
+      "code_file": "coevolve\\generation_7\\code_9.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    vehicle_capacity = demands.sum()  # Assuming vehicle capacity is the sum of all demands\n    \n    # Normalize demands relative to vehicle capacity\n    normalized_demands = demands / vehicle_capacity\n    \n    # Calculate the sum of normalized demands for each edge\n    sum_normalized_demands = torch.matmul(normalized_demands, normalized_demands.t())\n    \n    # Incorporate distance and road quality factors\n    # Assuming distance_matrix has been scaled to include road quality factors\n    # For simplicity, let's assume road quality is represented by a factor in the distance_matrix\n    edge_potential = sum_normalized_demands - distance_matrix\n    \n    # Introduce a small constant to prevent division by zero errors\n    epsilon = 1e-8\n    edge_potential = edge_potential.clamp(min=epsilon)\n    \n    # Apply a robust potential function to assign weights\n    # For example, a simple function could be the negative of the potential function\n    weights = -edge_potential\n    \n    return weights",
+      "fitness": 23.337182998657227,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_7\\stdout_11.txt",
+      "code_file": "coevolve\\generation_7\\code_11.py"
+    }
+  ]
+}

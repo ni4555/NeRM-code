@@ -1,0 +1,54 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Initialize the potential value matrix
+    potential_values = torch.zeros_like(distance_matrix)
+    
+    # Node partitioning using a more sophisticated approach
+    clusters = partition_nodes_advanced(demands)
+    
+    # Demand relaxation to consider partial service
+    relaxed_demands = demands * 0.5
+    
+    # Calculate the potential value for edges between clusters
+    for i in range(n):
+        for j in range(i + 1, n):
+            if i in clusters[i] and j in clusters[j]:
+                potential_values[i, j] = normalized_distances[i, j] - torch.sum(relaxed_demands[clusters[i]]) - torch.sum(relaxed_demands[clusters[j]])
+            else:
+                potential_values[i, j] = -float('inf')
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Incorporate edge load to discourage heavily loaded edges
+    edge_loads = torch.sum(torch.abs(potential_values), dim=0)
+    potential_values = potential_values - edge_loads[:, None]
+    
+    # Apply dynamic window constraints by considering only the most promising edges
+    dynamic_window = torch.argsort(-potential_values, dim=1)[:, :5]
+    for i in range(n):
+        for j in range(i + 1, n):
+            if dynamic_window[i, j] < 5:
+                potential_values[i, j] *= 1.1  # Increase potential value for edges within the dynamic window
+    
+    return potential_values
+
+# This is a placeholder function for the more sophisticated node partitioning algorithm
+# It should return a list of sets, where each set represents a cluster of nodes
+# For simplicity, let's assume it's a complex partitioning based on some criteria
+def partition_nodes_advanced(demands):
+    # Complex partitioning logic here
+    # For demonstration, we'll just create a trivial partition
+    return [[i] for i in range(len(demands))]
+```

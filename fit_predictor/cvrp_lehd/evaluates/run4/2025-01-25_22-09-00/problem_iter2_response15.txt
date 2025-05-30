@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic incorporating more nuanced demand representation and fine-tuned dampening parameters."""
+    total_demand = demands.sum()
+    # Normalize demands by total demand
+    normalized_demands = demands / total_demand
+    # Incorporate the influence of demands by considering both their absolute values and a balance factor
+    balance_factor = torch.linspace(1, 0, steps=len(normalized_demands)).to(normalized_demands.device)
+    demand_influence = -normalized_demands.abs() * balance_factor
+    # Calculate the potential contribution of each edge
+    potential = distance_matrix * demand_influence
+    # Apply a dampening factor to penalize longer distances with a finer granularity
+    dampen = torch.exp(-distance_matrix / 100)
+    # Combine potential and dampening
+    heuristics = potential * dampen
+    # Normalize the heuristics to have a range between -1 and 1
+    heuristics = (2 * (heuristics - heuristics.min())) / (heuristics.max() - heuristics.min()) - 1
+    return heuristics
+```

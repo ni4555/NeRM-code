@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot demand
+    demand_scale = (demands / total_demand).unsqueeze(1)
+    distance_scale = distance_matrix / distance_matrix.max()
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Calculate the heuristic based on the scale factors
+    combined_scale = -distance_scale * demand_scale
+    heuristic_matrix = combined_scale * distance_matrix
+
+    # Apply dampening factor to balance global and local views
+    dampening_factor = 0.5
+    heuristic_matrix = heuristic_matrix * dampening_factor
+
+    # Calculate penalties for infeasibility and distance to depot
+    infeasibility_penalty = torch.clamp(demands / total_demand - 1, min=0)
+    infeasibility_penalty = infeasibility_penalty.unsqueeze(1) * 1000
+    depot_penalty = torch.ones_like(distance_matrix) * 100
+
+    # Combine the penalties
+    penalties = torch.max(infeasibility_penalty, depot_penalty)
+
+    # Apply penalties to the heuristic matrix
+    heuristic_matrix = torch.where(penalties > 0, penalties, heuristic_matrix)
+
+    return heuristic_matrix
+```

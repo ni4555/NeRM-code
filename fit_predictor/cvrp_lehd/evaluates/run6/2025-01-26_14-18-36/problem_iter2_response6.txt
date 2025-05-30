@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    max_demand = demands.max()
+    min_demand = demands.min()
+    
+    # Calculate the distance to the nearest neighbor for each node
+    nearest_neighbor_distance = torch.min(distance_matrix, dim=1, keepdim=True)[0]
+    
+    # Calculate the balance score for each node, which is the difference between the maximum and minimum demands
+    demand_balance = max_demand - demands
+    
+    # Calculate the heuristic value for each edge
+    heuristic_values = nearest_neighbor_distance - demand_balance
+    
+    # Calculate the potential benefit of visiting any node
+    potential_benefit = demands[:, None] + demands[None, :]
+    
+    # Calculate penalties for edges leading to a node with demand greater than vehicle capacity
+    penalties = (potential_benefit - 1) * (distance_matrix / distance_matrix[:, depot][:, None])
+    
+    # Combine the heuristic values with the penalties
+    heuristics = heuristic_values - penalties
+    
+    return heuristics
+```

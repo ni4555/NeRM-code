@@ -1,0 +1,30 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    
+    # Prioritize key features by calculating the sum of utilities across dimensions
+    dimensional_utility = utility.sum(axis=1)
+    
+    # Maximize without pruning by retaining all high-utility items
+    max_dimensional_utility = dimensional_utility.max(axis=1)
+    
+    # Balance trade-offs by using a weighted sum approach
+    # This is a simple trade-off balance between total utility and diversity
+    trade_off_factor = dimensional_utility / max_dimensional_utility
+    adjusted_utility = trade_off_factor * max_dimensional_utility
+    
+    # Relate metrics relative by normalizing the adjusted utility
+    normalized_adjusted_utility = adjusted_utility / adjusted_utility.sum(axis=1, keepdims=True)
+    
+    # Focus on performance by focusing on key indicators for optimal efficiency
+    # Sparsify the heuristics by setting unpromising elements to zero
+    sparsity_threshold = adjusted_utility.mean()
+    promising_items = adjusted_utility >= sparsity_threshold
+    sparsified_heuristics = np.where(promising_items, normalized_adjusted_utility, 0)
+    
+    return sparsified_heuristics
+```

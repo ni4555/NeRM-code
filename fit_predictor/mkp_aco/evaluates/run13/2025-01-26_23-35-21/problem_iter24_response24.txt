@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate the sum of weights for each item
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Calculate a balance factor to encourage diversity in item selection
+    balance_factor = (density - sparsity) / (np.max(density) - np.min(density))
+    
+    # Calculate a diversity factor based on the average density
+    average_density = np.mean(density)
+    diversity_factor = density / (average_density + 1e-8)
+    
+    # Create a heuristic value that balances density and sparsity, and discourages heavy items
+    heuristic_value = density * (1 - sparsity) - weight_sum
+    
+    # Integrate the balance factor and diversity factor into the heuristic
+    heuristic = heuristic_value * balance_factor * diversity_factor
+    
+    # Normalize the heuristic to ensure a good distribution
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Adjust the heuristic to penalize items that are too sparse
+    heuristic[sparsity > 0.5] *= 0.5
+    
+    # Introduce an additional incentive for items with high relative prize
+    relative_prize = prize / (np.max(prize) + 1e-8)
+    heuristic *= relative_prize
+    
+    # Ensure non-negative heuristics
+    heuristic = np.maximum(heuristic, 0)
+    
+    return heuristic
+```

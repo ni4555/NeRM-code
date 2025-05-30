@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a more refined heuristic that considers the balance between overloading and underloading
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Integrate adaptive PSO and tabu search strategies
+    for i in range(5):  # Example of running the heuristic multiple times for diversity
+        # Tabu search-like step: avoid previously suboptimal solutions
+        heuristics = heuristics.clamp(min=-torch.abs(heuristics).min())
+        
+        # PSO-like step: adapt velocity and position update rules dynamically
+        velocity = torch.rand_like(heuristics) * 0.1
+        heuristics += velocity
+        
+        # Local search: refine neighborhood exploration
+        for _ in range(10):  # Example of running a local search 10 times per iteration
+            edges = torch.where(distance_matrix != 0)
+            edge_indices = edges[0].unsqueeze(1).expand(-1, 2) + edges[1].unsqueeze(0)
+            edge_indices = edge_indices[:, edge_indices[:, 0].sort()[1], :]
+            new_loads = torch.log1p(heuristics[edge_indices])
+            new_load_balance = new_loads.sum(dim=1) / total_capacity
+            best_load_balance = new_load_balance.max()
+            best_indices = new_load_balance.argsort().unsqueeze(1)
+            heuristics[edge_indices] = new_loads[best_indices]
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

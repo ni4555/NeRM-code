@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:]  # Exclude the depot node from capacity calculation
+    
+    # Vectorized approach to calculate the potential heuristic values
+    potential_heuristics = distance_matrix * (demand_cumsum[1:] - demand_cumsum[:-1])
+    
+    # Apply the heuristic threshold condition
+    mask = (potential_heuristics <= remaining_capacity.unsqueeze(1)).float()
+    
+    # Update the heuristics matrix with positive values for promising edges
+    heuristics = heuristics * (1 - mask) + potential_heuristics * mask
+    
+    # Normalize by the total distance to the depot
+    total_distance_to_depot = torch.sum(distance_matrix[:, 0])
+    heuristics = heuristics / total_distance_to_depot
+    
+    # Exploit symmetry
+    heuristics = heuristics + heuristics.t()
+    
+    return heuristics
+```

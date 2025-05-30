@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    # Normalize weights based on the sum of weights
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    
+    # Calculate the score for each item based on the normalized weight
+    score = np.sum(prize * normalized_weights, axis=1)
+    
+    # Calculate the ratio of prize to the sum of weights, avoiding division by zero
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Combine score and ratio to get a comprehensive importance measure
+    importance = score * ratio
+    
+    # Normalize the importance scores to ensure they sum to 1
+    importance_normalized = importance / np.sum(importance)
+    
+    # Calculate the cumulative distribution function (CDF) of the normalized importance scores
+    cdf = np.cumsum(importance_normalized)
+    
+    # Use the quantile function to select a threshold based on a specified percentile (e.g., 80th percentile)
+    threshold = np.percentile(cdf, 80)
+    
+    # Create heuristics array where high importance items are more likely to be selected
+    heuristics = np.where(cdf >= threshold, 1.0, 0.0)
+    
+    return heuristics
+```

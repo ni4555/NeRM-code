@@ -1,0 +1,52 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+
+    # Calculate additional metrics
+    value_weight_ratio = prize / (np.sum(weight**2, axis=1) + 1e-8)
+    weight_sum = np.sum(weight, axis=1)
+
+    # Identify dominated items based on density and sparsity
+    non_dominated_mask = np.logical_and(density > np.percentile(density, 90), sparsity > np.percentile(sparsity, 90))
+
+    # Prune dominated items
+    density[np.logical_not(non_dominated_mask)] = 0
+    sparsity[np.logical_not(non_dominated_mask)] = 0
+
+    # Calculate diversity metrics
+    average_density = np.mean(density[non_dominated_mask])
+    diversity_density = density / (average_density + 1e-8)
+    diversity_sparsity = sparsity / (np.mean(sparsity[non_dominated_mask]) + 1e-8)
+
+    # Calculate heuristic value
+    heuristic_value = density * (1 - sparsity) - weight_sum + value_weight_ratio
+
+    # Combine heuristic value with diversity metrics
+    heuristic = heuristic_value * (diversity_density + diversity_sparsity) / 2
+
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+
+    # Introduce a balance factor between density and sparsity
+    balance_factor = (density + sparsity) / (2 + 1e-8)
+
+    # Combine the normalized heuristic with the balance factor
+    combined_heuristic = normalized_heuristic * balance_factor
+
+    # Set zero weights to a small value to maintain diversity
+    combined_heuristic[weight_sum < 1e-8] = 1e-8
+
+    # Ensure that the heuristic is non-negative
+    combined_heuristic = np.maximum(combined_heuristic, 0)
+
+    return combined_heuristic
+```

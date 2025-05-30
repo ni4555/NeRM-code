@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Compute the potential for each edge based on distance, demand, and a penalty for high demand
+    # This heuristic uses a weighted sum of distance and demand, with a higher penalty for high demand
+    # The weight for demand is positive to encourage routes with lower demand
+    # The weight for distance is negative to encourage routes with shorter distances
+    weight_demand = 0.5
+    weight_distance = -1.0
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    edge_potential = (weight_demand * normalized_demands + weight_distance * (1 / (distance_matrix + epsilon)))
+    
+    # Apply a discount factor to distant edges to reduce the chance of selecting long routes
+    discount_factor = torch.exp(-0.1 * distance_matrix)
+    edge_potential *= discount_factor
+    
+    return edge_potential
+```

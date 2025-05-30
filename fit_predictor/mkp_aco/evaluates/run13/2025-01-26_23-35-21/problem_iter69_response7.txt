@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items
+    dominance_mask = np.all(weight < np.tile(np.max(weight, axis=1), (n, 1)), axis=1)
+    density[~dominance_mask] = 0
+    sparsity[~dominance_mask] = 0
+    
+    # Introduce randomness to prevent getting stuck in local optima
+    random_factor = np.random.rand(n)
+    
+    # Balance metrics to ensure a good exploration and exploitation balance
+    balanced_metric = density * (1 - sparsity)
+    
+    # Create a dynamic heuristic based on the combined metrics
+    heuristic = (balanced_metric + random_factor) / (np.max(balanced_metric + random_factor) + 1e-8)
+    
+    # Introduce a dynamic diversity factor based on the average density
+    average_density = np.mean(density)
+    diversity_factor = density / (average_density + 1e-8)
+    
+    # Update the heuristic with the diversity factor
+    heuristic *= diversity_factor
+    
+    # Ensure that the combined heuristics are balanced by introducing a balance factor
+    balance_factor = np.abs(density - sparsity) / (np.abs(density) + np.abs(sparsity) + 1e-8)
+    
+    # Combine the heuristics using a weighted sum
+    combined_heuristic = 0.5 * heuristic + 0.5 * balance_factor
+    
+    # Sparsify the heuristics by setting dominated and zero-weight items to zero
+    combined_heuristic[~dominance_mask] = 0
+    combined_heuristic[weight_sum < 1e-8] = 0
+    
+    return combined_heuristic
+```

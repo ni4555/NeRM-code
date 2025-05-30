@@ -1,0 +1,52 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate a penalty for outliers based on the interquartile range
+    q1 = np.percentile(value_to_weight_ratio, 25)
+    q3 = np.percentile(value_to_weight_ratio, 75)
+    penalty = np.where((value_to_weight_ratio < q1 - 1.5 * (q3 - q1)) | (value_to_weight_ratio > q3 + 1.5 * (q3 - q1)),
+                       (value_to_weight_ratio - q1) / (q3 - q1), 0)
+    
+    # Normalize the penalty
+    penalty = penalty / np.max(penalty)
+    
+    # Calculate density factor based on value-to-weight ratio
+    density_factor = value_to_weight_ratio / np.mean(value_to_weight_ratio)
+    
+    # Factor 1: Value-to-weight ratio with penalty and density
+    combined_heuristics = value_to_weight_ratio * (1 - penalty) * density_factor
+    
+    # Factor 2: Normalize the weight factor (to avoid overly heavy items)
+    weight_factor = weight.sum(axis=1) / np.mean(weight.sum(axis=1))
+    
+    # Factor 3: Normalize the dimension factor (to avoid items with too many dimensions)
+    dimension_factor = (weight != 0).sum(axis=1) / np.mean((weight != 0).sum(axis=1))
+    
+    # Factor 4: Normalize the average weight factor (to balance the weight across dimensions)
+    avg_weight_factor = np.mean(weight, axis=1) / np.mean(np.mean(weight, axis=1))
+    
+    # Factor 5: Normalize the total value factor (to prioritize high-value items)
+    value_factor = prize / np.max(prize)
+    
+    # Combine factors to create a heuristic
+    heuristic = combined_heuristics * weight_factor * dimension_factor * avg_weight_factor * value_factor
+    
+    # Normalize the heuristic to a range between 0 and 1
+    min_heuristic = np.min(heuristic)
+    max_heuristic = np.max(heuristic)
+    heuristic = (heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # Sparsify the heuristics by setting lower elements to zero
+    sparsity_threshold = np.percentile(heuristic, 25)
+    heuristics = np.where(heuristic > sparsity_threshold, heuristic, 0)
+    
+    return heuristics
+```

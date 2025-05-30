@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot demand
+    total_capacity = demands.sum()  # Including the depot which has zero demand
+    demand_scale = (demands / total_capacity).unsqueeze(1)
+    distance_scale = distance_matrix / distance_matrix.max()
+    combined_scale = -distance_scale * demand_scale
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Calculate the heuristic for each edge
+    heuristic_matrix = combined_scale * distance_matrix
+
+    # Add penalties for edges with high demand relative to average demand
+    high_demand_penalty = (demands > average_demand * 1.5).float() * -1000.0
+    heuristic_matrix += high_demand_penalty
+
+    # Add a penalty for edges that are not part of the shortest path to the next node
+    # We do this by checking if the next node in the sorted demand order is not the next node in the sorted distance order
+    sorted_indices = torch.argsort(demands)
+    next_node_penalty = (torch.arange(n) != sorted_indices).float() * -1000.0
+    heuristic_matrix += next_node_penalty
+
+    # Add the penalty for the depot to return to the route
+    return_penalty = average_demand - demands[0]
+    heuristic_matrix[:, 0] = heuristic_matrix[:, 0] + return_penalty
+    heuristic_matrix[0, :] = heuristic_matrix[0, :] + return_penalty
+
+    return heuristic_matrix
+```

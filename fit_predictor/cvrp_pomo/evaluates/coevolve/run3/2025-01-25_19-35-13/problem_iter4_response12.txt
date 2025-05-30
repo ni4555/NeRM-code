@@ -1,0 +1,25 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Compute the potential for each edge based on distance and demand
+    # Use a non-linear transformation to introduce a penalty for high demands and a bonus for short distances
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    alpha = 1 / (1 + torch.exp(-0.01 * distance_matrix))
+    beta = -torch.log(normalized_demands + epsilon)
+    gamma = 1 + (distance_matrix < 5).float() * 0.05
+    edge_potential = alpha + gamma * beta
+    
+    # Introduce a penalty for high demands
+    high_demand_penalty = (demands > 2).float() * 0.1
+    edge_potential = edge_potential * (1 - high_demand_penalty)
+    
+    return edge_potential
+```

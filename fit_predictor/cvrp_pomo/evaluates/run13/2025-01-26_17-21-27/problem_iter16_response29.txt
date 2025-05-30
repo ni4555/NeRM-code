@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_penalty = -torch.log1p(torch.abs(demands) - 1e-8)
+    demand_over_capacity_penalty = demand_penalty * (cumulative_demand > total_capacity)
+
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand)
+    normalized_demand = (demands / total_capacity) * (1 + cumulative_demand)
+    depot_proximity = (torch.arange(n) == 0).float().unsqueeze(0)  # Depot proximity factor
+
+    # Prioritize demand-based penalties over distance-based scaling
+    heuristics = demand_over_capacity_penalty - distance_scaling * normalized_demand.unsqueeze(1) * depot_proximity
+    return heuristics
+```

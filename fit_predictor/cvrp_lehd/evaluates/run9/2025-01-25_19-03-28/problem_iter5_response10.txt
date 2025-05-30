@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Incorporate cumulative demand and capacity to adjust heuristic values
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    demand_diff = (cumulative_demand - demands) ** 2
+
+    # Calculate a penalty factor based on the distance and demand variance
+    penalty_factor = torch.mul(distance_matrix, demand_diff)
+
+    # Normalize and apply threshold constraints
+    normalized_penalty_factor = penalty_factor / penalty_factor.max()
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(normalized_penalty_factor, min=-threshold, max=threshold)
+
+    return heuristic_matrix
+```

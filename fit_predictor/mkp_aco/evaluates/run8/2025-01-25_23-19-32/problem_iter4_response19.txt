@@ -1,0 +1,24 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    weight_normalized = np.sum(weight, axis=1)
+    weight_sq = np.sum(weight**2, axis=1)
+    item_importance = prize / weight_normalized
+    importance_sparsity = 1 - (weight_sq / weight_normalized**2)
+    
+    # Incorporate domain-specific factors
+    domain_specific_factor = np.min(item_importance) * 1.5  # Example domain-specific factor
+    
+    # Combine heuristics with domain-specific factor
+    combined_heuristics = item_importance * importance_sparsity * domain_specific_factor
+    
+    # Dynamically adjust thresholds based on the range of combined heuristics
+    threshold_min = np.percentile(combined_heuristics, 25)
+    threshold_max = np.percentile(combined_heuristics, 75)
+    
+    # Balance sparsity with non-zero values by setting thresholds
+    heuristics_sparsified = np.where(combined_heuristics < threshold_min, 0,
+                                   np.where(combined_heuristics > threshold_max, combined_heuristics, 0))
+    return heuristics_sparsified
+```

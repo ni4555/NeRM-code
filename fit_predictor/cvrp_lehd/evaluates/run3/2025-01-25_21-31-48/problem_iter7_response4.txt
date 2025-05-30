@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Normalize the distance matrix by the maximum distance to prevent overflow
+    normalized_distance = distance_matrix / torch.max(distance_matrix)
+    
+    # Calculate the demand-to-capacity ratio for each customer
+    demand_to_capacity_ratio = demands / torch.max(demands)
+    
+    # Calculate the inverse of the distance matrix
+    inverse_distance = 1 / normalized_distance
+    
+    # Calculate the balance factor for each customer, considering both distance and demand
+    balance_factor = normalized_distance * (1 + demand_to_capacity_ratio)
+    
+    # Combine the factors and invert the matrix to get a heuristic
+    heuristic_matrix = balance_factor * inverse_distance
+    
+    # Ensure that the diagonal elements are non-negative (no cost to go to the depot from itself)
+    heuristic_matrix.diag() = 0
+    
+    return heuristic_matrix
+```

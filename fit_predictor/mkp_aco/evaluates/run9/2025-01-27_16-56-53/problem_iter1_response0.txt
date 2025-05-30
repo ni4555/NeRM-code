@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on multiple factors: normalized prize sum, inverse of average weight, and sparsity bonus
+    for i in range(n):
+        normalized_prize_sum = 0
+        average_weight = 0
+        for j in range(m):
+            normalized_prize_sum += prize[i] * (weight[i, j] / np.sum(weight[:, j]))
+            average_weight += weight[i, j] / m
+        heuristic[i] = normalized_prize_sum / (1 + average_weight)
+        
+        # Sparsifying heuristic by setting the value to zero if it's below a certain threshold
+        if heuristic[i] < 0.1:
+            heuristic[i] = 0
+    
+    # Add a penalty for items with high weight
+    penalty_factor = 0.05
+    heuristic *= (1 - penalty_factor * np.mean(weight))
+    
+    return heuristic
+```

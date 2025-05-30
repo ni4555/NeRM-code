@@ -1,0 +1,39 @@
+import random
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Calculate the heuristics by combining the normalized distance and the load factor
+    # The load factor is subtracted from the heuristic to discourage visiting heavily loaded nodes
+    heuristics = norm_distances - (node_loads * norm_distances).sum(-1)
+    
+    # Introduce an exploration element by adding a random noise to the heuristics
+    # The noise will encourage the algorithm to explore alternative paths
+    noise = torch.randn_like(heuristics) * 0.1  # 0.1 is a small scaling factor for the noise
+    
+    # Instead of directly adding noise, we use a probabilistic approach to balance exploitation and exploration
+    # The probability of including a node is based on its heuristic value
+    exploration_factor = torch.rand_like(heuristics)
+    exploration_factor = (exploration_factor - exploration_factor.mean()) * 2  # Center and scale the noise
+    exploration_factor = torch.clamp(exploration_factor, min=-1.0, max=1.0)
+    
+    # Adapt dynamically based on the current solution quality
+    # If the total demand is close to the vehicle capacity, we may want to encourage visiting more heavily loaded nodes
+    if demands.sum() / demands.max() > 0.9:  # If the total demand is more than 90% of the max demand
+        dynamic_factor = torch.where(node_loads > 0.5, -1.0, 1.0)
+    else:
+        dynamic_factor = torch.ones_like(node_loads)
+    
+    # Combine the heuristics with the exploration factor and the dynamic factor
+    heuristics = heuristics + exploration_factor * noise + dynamic_factor * heuristics
+    
+    # Normalize the heuristics to ensure they are within a reasonable range
+    heuristics = torch.clamp(heuristics, min=-2.0, max=2.0)
+    
+    return heuristics

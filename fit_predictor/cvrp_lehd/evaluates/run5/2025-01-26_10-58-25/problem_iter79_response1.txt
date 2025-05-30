@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate demand constraint violations and introduce a non-linear penalty
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity) ** 2
+    
+    # Normalize distance penalties to match the scale of demand penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6) / (demand_penalty_matrix.sum() + 1e-6)
+    
+    # Combine demand and distance penalties
+    combined_penalty_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Introduce a random Gaussian noise to the combined penalties
+    noise_matrix = torch.randn_like(combined_penalty_matrix) * 1e-2
+    
+    # Control randomness by limiting the range of the noise
+    bounded_noise_matrix = torch.clamp(noise_matrix, min=-0.1, max=0.1)
+    
+    # Combine the noise with the penalties
+    combined_potential_matrix = combined_penalty_matrix + bounded_noise_matrix
+    
+    # Emphasize constraints by applying a soft thresholding function
+    emphasized_matrix = torch.max(combined_potential_matrix, torch.zeros_like(combined_potential_matrix))
+    
+    # Normalize the matrix to maintain balance and non-negativity
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Add the distance penalty matrix back for further constraint emphasis
+    combined_matrix = normalized_emphasized_matrix + 0.5 * distance_penalty_matrix
+    
+    # Apply a small random perturbation to introduce diversity
+    mutation_factor = torch.rand_like(combined_matrix)
+    mutated_combined_matrix = combined_matrix + torch.randn_like(combined_matrix) * 1e-3 * mutation_factor
+    
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -mutated_combined_matrix
+    
+    return heuristics_matrix
+```

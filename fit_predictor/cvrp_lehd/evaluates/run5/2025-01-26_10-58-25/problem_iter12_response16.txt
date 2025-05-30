@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Apply an exponential transformation to emphasize feasible and low-cost edges
+    # Exponential is chosen because it is well-suited to penalize edges that do not respect capacity or have high cost
+    transformed_matrix = torch.exp(potential_matrix)
+    
+    # Normalize the transformed matrix to ensure that the values are in a manageable range
+    # and to balance the impact of the demand and distance penalties
+    min_value = torch.min(transformed_matrix)
+    max_value = torch.max(transformed_matrix)
+    normalized_matrix = (transformed_matrix - min_value) / (max_value - min_value)
+    
+    # Introduce a dynamic weight to balance the influence of demand and distance
+    # The weight is inversely proportional to the vehicle capacity to ensure that demand constraints are respected
+    weight = 1 / (vehicle_capacity / demands.sum())
+    weighted_normalized_matrix = normalized_matrix * weight
+    
+    # Cap the maximum possible weight for each edge to a reasonable upper bound to prevent outliers
+    # and ensure a stable distribution of the heuristics values
+    cap_upper_bound = 2
+    capped_normalized_matrix = torch.clamp(weighted_normalized_matrix, min=0, max=cap_upper_bound)
+    
+    # Transform the capped normalized matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -capped_normalized_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,53 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce randomness early for exploration, which is not dampened
+    exploration_noise = torch.randn_like(scaled_demands) * 0.01
+
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+    heuristic_values = demand_diff * remaining_capacity
+
+    # Combine random noise and heuristic value to encourage diversity
+    heuristic_values += exploration_noise
+
+    # Apply non-linear transformation to dampen high penalties and encourage balance
+    heuristic_values = torch.sigmoid(heuristic_values)
+
+    # Introduce a penalty for demand exceeding capacity and for edges to the depot
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristic_values -= (capacity_penalty + depot_penalty) * 0.5
+
+    # Encourage local preference for edges closer to the depot, with a dynamic weight
+    local_preference_weight = 0.5
+    local_preference = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * local_preference_weight
+    local_preference = torch.clamp(local_preference, min=0.0)
+    heuristic_values += local_preference
+
+    # Minimize unnecessary calculations and normalize the heuristic values
+    max_heuristic = heuristic_values.max()
+    min_heuristic = heuristic_values.min()
+    normalized_heuristic_values = (heuristic_values - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Introduce a diversity factor to adjust dampening, encouraging varied solutions
+    diversity = torch.mean(demand_diff)
+    diversity_factor = torch.sigmoid(-diversity)
+    dampening_factor = diversity_factor * 0.5
+
+    # Apply a final dampening to the heuristic values to balance exploration and exploitation
+    heuristic_values = torch.sigmoid(normalized_heuristic_values + dampening_factor)
+
+    # Ensure the heuristic values are balanced
+    heuristic_values = torch.clamp(heuristic_values, min=0.0, max=1.0)
+
+    return heuristic_values
+```

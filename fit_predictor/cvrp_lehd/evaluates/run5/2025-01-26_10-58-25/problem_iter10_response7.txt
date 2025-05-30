@@ -1,0 +1,31 @@
+```python
+import torch
+
+def softmax(x: torch.Tensor, dim: int) -> torch.Tensor:
+    exp_x = torch.exp(x - torch.max(x, dim=dim, keepdim=True)[0])
+    return exp_x / (exp_x.sum(dim=dim, keepdim=True))
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = 1.0
+    
+    # Calculate the absolute difference in demand between each pair of nodes
+    demand_difference = torch.abs(demands[:, None] - demands[None, :])
+    
+    # Apply a penalty to pairs where the difference exceeds vehicle capacity
+    penalty_matrix = torch.where(demand_difference > vehicle_capacity, demand_difference - vehicle_capacity, torch.zeros_like(demand_difference))
+    
+    # Create a potential matrix by adding the distance matrix and the penalty matrix
+    potential_matrix = distance_matrix + penalty_matrix
+    
+    # Apply non-linear transformation to emphasize promising edges
+    non_linear_transform = torch.log1p(potential_matrix)  # log1p avoids taking log(0)
+    
+    # Normalize the non-linear transformed potential matrix using softmax to get a probability distribution
+    softmax_matrix = softmax(non_linear_transform, dim=0)
+    
+    # Invert the softmax_matrix to transform it from a probability distribution to a heuristic
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

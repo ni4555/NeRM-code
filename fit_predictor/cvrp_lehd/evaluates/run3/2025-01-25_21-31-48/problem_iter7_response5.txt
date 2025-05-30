@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot_demand = demands[0]
+    demands = demands[1:]  # Remove depot demand
+    demands_cumsum = torch.cumsum(demands, dim=0)
+    
+    # Incorporate demand
+    demand_heuristic = 1 / demands_cumsum
+    
+    # Balance distance
+    distances_to_depot = distance_matrix[:, 0]
+    balanced_distance = 1 / (distances_to_depot + distances_to_depot / (1 + 0.5 * demand_heuristic))
+    
+    # Normalize
+    normalized_distance = balanced_distance / torch.max(balanced_distance)
+    
+    # Invert
+    inverted_distance = 1 - normalized_distance
+    
+    # Use problem-specific features
+    problem_specific = inverted_distance * demand_heuristic
+    
+    # Combine heuristics
+    heuristic_values = problem_specific
+    
+    # Add depot connection with 0 cost for the start and end of the route
+    heuristic_values[:, 0] = 0
+    heuristic_values[0, :] = 0
+    
+    return heuristic_values
+```

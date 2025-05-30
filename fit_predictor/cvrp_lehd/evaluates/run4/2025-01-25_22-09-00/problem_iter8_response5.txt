@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    demand_sum = demands.sum()
+    
+    # Incorporate demand factors
+    demand_factor = (demands / demand_sum).unsqueeze(1)
+    
+    # Calculate local factor as the negative of the distance matrix
+    local_factor = -distance_matrix
+    
+    # Calculate global factor as the sum of the local factor across all nodes for each row
+    global_factor = torch.sum(local_factor, dim=1)
+    
+    # Scale distances by the distance to the depot and normalize
+    distance_to_depot = distance_matrix[depot]
+    distance_scaled = distance_to_depot / torch.sum(distance_to_depot)
+    
+    # Combine factors with demand, scale, and normalize
+    combined_factor = (demand_factor * (local_factor + global_factor)) * distance_scaled
+    # Avoid division by zero
+    min_demand = demands.min()
+    heuristics = combined_factor / (min_demand + 1e-8)
+    
+    # Clamp negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    # Adjust the heuristics for the depot to all other nodes
+    remaining_capacity = total_capacity - demands
+    feasible = demands <= remaining_capacity
+    heuristics[0, :] = torch.where(
+        feasible,
+        -demands * distance_matrix[0, :],
+        torch.tensor(-1e8, dtype=heuristic_matrix.dtype)
+    )
+    heuristics[:, 0] = heuristics[0, :]
+    
+    return heuristics
+```

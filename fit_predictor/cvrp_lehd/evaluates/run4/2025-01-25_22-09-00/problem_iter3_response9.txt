@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand as a scaling factor for distance
+    total_demand = demands.sum()
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Compute a base heuristic value based on distance
+    heuristics += -distance_matrix
+    
+    # Incorporate demand factor: nodes with higher demand are considered more promising
+    demand_factor = (demands / total_demand) * distance_matrix
+    
+    # Adjust heuristics to balance local and global: use a simple linear combination
+    heuristics += demand_factor
+    
+    # Refine distance scaling: use a negative scaling factor for higher demand nodes
+    high_demand_scaling = (demands > total_demand * 0.5).float() * -distance_matrix
+    heuristics += high_demand_scaling
+    
+    # Optimize computationally: ensure no element exceeds the max allowed value
+    heuristics = torch.clamp(heuristics, min=-1, max=1)
+    
+    return heuristics
+```

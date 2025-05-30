@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, vehicle_capacity: float) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate demand variance
+    average_demand = normalized_demands.mean()
+    demand_variance = torch.var(normalized_demands)
+    
+    # Adjust weights based on demand variance
+    distance_weight = 0.5
+    demand_weight = 2.0
+    penalty_weight = 0.3
+    variance_weight = 0.2
+    
+    # Introduce a penalty for high variance in demand
+    penalty_term = penalty_weight * torch.abs(demand_variance - average_demand)
+    
+    # Introduce a demand relaxation term
+    demand_relaxation = torch.clamp(normalized_demands, min=0.5)
+    
+    # Sigmoid smoothing for transitions
+    sigmoid_smooth = lambda x: 1 / (1 + torch.exp(-x))
+    smooth_factor = 0.1
+    smooth_potential = sigmoid_smooth((distance_weight * normalized_distances +
+                                       demand_weight * demand_relaxation - 
+                                       penalty_term * demand_weight) * smooth_factor)
+    
+    # Adjust potential values based on dynamic vehicle capacity
+    dynamic_weight = 1.0 / (1.0 + vehicle_capacity)
+    potential_values = smooth_potential * dynamic_weight
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    
+    # Initial heuristic calculation
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    
+    # Randomness for exploration
+    random_exploration = (torch.rand(n) * 2 - 1) * heuristics_matrix
+    
+    # Mutation for diversity
+    mutation_rate = 0.1
+    mutation = torch.rand(n) < mutation_rate
+    mutation_factor = (torch.rand(n) * 2 - 1) * (heuristics_matrix > 0).float()
+    heuristics_matrix[mutation] += mutation_factor[mutation]
+    
+    # Infeasibility penalty
+    infeasibility_mask = (heuristics_matrix <= 0).float()
+    infeasibility_penalty = -1.0 * infeasibility_mask
+    
+    # Demand variance penalty
+    demand_variance = torch.var(normalized_demands)
+    variance_mask = (torch.abs(normalized_demands - avg_demand) > demand_variance).float()
+    variance_penalty = -1.0 * variance_mask
+    
+    # Combine all factors
+    heuristics_matrix += random_exploration + infeasibility_penalty + variance_penalty
+    
+    # Normalize heuristics to a meaningful range
+    min_heuristic = heuristics_matrix.min()
+    max_heuristic = heuristics_matrix.max()
+    heuristics_matrix = (heuristics_matrix - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    return heuristics_matrix
+```

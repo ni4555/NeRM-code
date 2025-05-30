@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for CVRP with non-linear scaling, demand-based normalization, and masking."""
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    vehicle_capacity = demands.max()  # Assuming all vehicles have the same capacity as the largest demand
+
+    # Calculate the cumulative demand at each node if visited
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Calculate the savings for each edge
+    savings = (distance_matrix**2 - torch.clamp(distance_matrix, min=1e-8)) * (demands[:, None] - demands[None, :])
+
+    # Create a mask to check if adding a node exceeds the vehicle capacity
+    demand_mask = cumulative_demand <= vehicle_capacity
+
+    # Apply non-linear scaling to the savings to emphasize short paths and high demands
+    non_linear_scaled_savings = torch.exp(-savings)
+
+    # Adjust the non-linear scaled savings by the cumulative demand mask to penalize edges that exceed capacity
+    adjusted_savings = non_linear_scaled_savings * demand_mask
+
+    # Normalize the savings by the total demand to balance the weight of different demands
+    normalized_savings = adjusted_savings / (total_demand + 1e-8)
+
+    # Invert the heuristic matrix to prioritize higher values
+    normalized_savings = -normalized_savings
+
+    return normalized_savings
+```

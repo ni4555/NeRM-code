@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the potential profit for each edge by taking the difference
+    # between the cumulative demand and the distance
+    potential_profit = cumulative_demands - distance_matrix
+    
+    # Normalize the potential profit to get a value between 0 and 1
+    normalized_profit = torch.relu(potential_profit) / torch.max(torch.relu(potential_profit))
+    
+    # Calculate the demand range, which is the difference between the maximum and minimum demand
+    demand_range = torch.max(demands) - torch.min(demands)
+    
+    # Use the demand range to adjust the normalized profit, giving more weight to edges with higher demands
+    adjusted_profit = normalized_profit * demand_range
+    
+    # Calculate the mean of the adjusted profit, which serves as a normalization factor
+    mean_adjusted_profit = torch.mean(adjusted_profit)
+    
+    # Normalize the adjusted profit by dividing by the mean to ensure values are between 0 and 1
+    normalized_adjusted_profit = adjusted_profit / mean_adjusted_profit
+    
+    # Apply a sigmoid function to transform the normalized adjusted profit into a range of [0, 1]
+    # Then, scale the range to [-1, 1] to indicate desirable edges
+    heuristic_matrix = 2 * torch.sigmoid(normalized_adjusted_profit) - 1
+    
+    # To ensure all undesirable edges have negative values, we set them to -1
+    heuristic_matrix = torch.where(heuristic_matrix < 0, -1, heuristic_matrix)
+    
+    # To ensure the heuristic values are within the range [-1, 1], we bound the values
+    # We only need to bound the positive values since -1 is already used to represent undesirable edges
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

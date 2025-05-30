@@ -1,0 +1,58 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    scaled_demand = demands / total_capacity
+
+    # Early overflow detection and dynamic capacity penalty
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(scaled_demand - 1))
+    early_overflow = cumulative_demand > 1
+    dynamic_capacity_penalty *= torch.where(early_overflow, 1.5, 1)
+
+    # Enhanced distance penalty with time-adaptive scaling
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (5 * total_capacity))
+    distance_scaling *= torch.where(early_overflow, 0.5, 1)
+    distance_scaling *= time_factor
+
+    # Overflow penalty with early return to depot
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + scaled_demand[None, :]) > 1,
+        -torch.log1p((cumulative_demand[:, None] + scaled_demand[None, :]) - 1 - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    overflow_penalty *= torch.where(early_overflow, 2, 1)
+
+    # Load balance heuristic with refined balance factor
+    load_balance = torch.abs(cumulative_demand - 1)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    load_balance_penalty *= torch.where(load_balance > 0.5, 1.2, 1)
+
+    # Integrate randomness with controlled impact
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= torch.where(cumulative_demand < 0.5, 1, 0.5)
+
+    # Prioritize core objectives with a scaling factor
+    scaling_factor = 2.0
+    heuristics = (
+        scaling_factor * (
+            distance_scaling +
+            dynamic_capacity_penalty +
+            overflow_penalty +
+            load_balance_penalty
+        ) +
+        randomness_factor
+    )
+
+    # Modularize for adaptability and clarity
+    def adaptive_factor(x):
+        return torch.where(early_overflow, x * 1.5, x)
+
+    heuristics = adaptive_factor(heuristics)
+
+    # Introduce demand-aware features for precision
+    heuristics *= scaled_demand[:, None]
+
+    return heuristics
+```

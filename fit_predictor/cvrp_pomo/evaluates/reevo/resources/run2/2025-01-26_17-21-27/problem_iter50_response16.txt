@@ -1,0 +1,65 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic penalty based on cumulative demand and remaining capacity
+    dynamic_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Enhanced distance penalty to account for cumulative load
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity)
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Weigh the different components to balance the objectives
+    weights = {
+        'distance': 2.0,
+        'capacity': 1.5,
+        'overflow': 1.0,
+        'balance': 1.0
+    }
+    
+    # Combine the weighted penalties
+    heuristics = (
+        weights['distance'] * distance_scaling +
+        weights['capacity'] * dynamic_penalty +
+        weights['overflow'] * overflow_penalty +
+        weights['balance'] * load_balance_penalty
+    )
+    
+    # Introduce randomness to encourage diversification
+    random_factor = torch.rand_like(demands) * 0.1
+    heuristics += random_factor
+    
+    # Adaptively adjust penalties for early overflow and imbalance
+    load_balance_adjustment = torch.where(
+        load_balance > 1.5 * total_capacity_vector,
+        -0.5 * load_balance_penalty,
+        0.5 * load_balance_penalty
+    )
+    heuristics += load_balance_adjustment
+    
+    # Subtract penalty for the depot to return to itself
+    depot_penalty = torch.arange(n) == 0
+    heuristics -= depot_penalty.float().unsqueeze(0)
+    
+    # Normalize the heuristics to maintain consistency in the search process
+    heuristics /= (heuristics.sum() + 1e-8)
+    
+    return heuristics
+```

@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Calculate the quality-to-weight ratio for each item
+    quality_to_weight = prize / np.sum(weight, axis=1)
+    
+    # Calculate the average of the quality-to-weight ratio across all items
+    avg_quality_to_weight = np.mean(quality_to_weight)
+    
+    # Initialize the heuristic values as a negative number, since lower is better for some selection algorithms
+    heuristics = -avg_quality_to_weight
+    
+    # Create a binary feature based on whether each item is "spare" (weight for each dimension is less than 1)
+    is_spare = (weight < 1).all(axis=1)
+    
+    # Add a bonus to items that are spare, as they have more space for other items
+    heuristics[is_spare] += 1
+    
+    # Calculate the penalty for items that have a weight variance
+    weight_variance = np.var(weight, axis=1)
+    variance_penalty = 1 / (1 + weight_variance)
+    
+    # Apply the variance penalty to the heuristic values
+    heuristics *= variance_penalty
+    
+    # Set a threshold to remove items that do not contribute significantly
+    threshold = avg_quality_to_weight * 0.5
+    
+    # Sparsify the heuristics by setting values below the threshold to zero
+    heuristics[heuristics < threshold] = 0
+    
+    # Normalize the heuristics by scaling to the range [0, 1]
+    heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+    
+    return heuristics
+```

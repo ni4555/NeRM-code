@@ -1,0 +1,30 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Demand-based penalty matrix
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Distance-based penalty matrix
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties
+    combined_penalty_matrix = demand_penalty_matrix + distance_penalty_matrix
+    
+    # Normalize the combined penalty matrix
+    normalized_penalty_matrix = combined_penalty_matrix / (combined_penalty_matrix.abs().max() + 1e-6)
+    
+    # Apply softmax to normalize the matrix into a probability distribution
+    softmax_matrix = F.softmax(normalized_penalty_matrix, dim=1)
+    
+    # Adjust for near-zero values by subtracting the minimum value from each element
+    adjusted_softmax_matrix = softmax_matrix - torch.min(softmax_matrix)
+    
+    # Transform the adjusted softmax matrix into a heuristics matrix
+    heuristics_matrix = -adjusted_softmax_matrix
+    
+    return heuristics_matrix
+```

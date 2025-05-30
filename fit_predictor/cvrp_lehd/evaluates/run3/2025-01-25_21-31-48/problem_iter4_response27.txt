@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize demands relative to the maximum demand
+    normalized_demands = demands / demands.max()
+    
+    # Incorporate demand normalization with a sigmoid function to emphasize the middle range of demands
+    demand_norm = torch.sigmoid(2 * (normalized_demands - 0.5))
+    
+    # Normalize distances to have a similar scale as demands
+    normalized_distances = distance_matrix / distance_matrix.max()
+    
+    # Combine demand and distance using a weighted sum to give more importance to distances
+    combined_heuristic = 0.5 * demand_norm + 0.5 * normalized_distances
+    
+    # Scale the combined heuristic to have negative values for undesirable edges and positive values for promising ones
+    min_combined_heuristic = combined_heuristic.min()
+    max_combined_heuristic = combined_heuristic.max()
+    heuristics = (combined_heuristic - min_combined_heuristic) / (max_combined_heuristic - min_combined_heuristic)
+    
+    return heuristics
+```

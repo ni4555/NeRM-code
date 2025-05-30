@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Incorporate a penalty for large gaps in cumulative demand to encourage balanced load distribution
+    gap_penalty = torch.abs(cumulative_demand[:, None] - cumulative_demand[None, :])
+    gap_penalty = torch.log1p(gap_penalty - 1e-8) * (1 + torch.abs(cumulative_demand - total_capacity_vector) / total_capacity_vector)
+    
+    # Introduce randomness that diminishes as the demand approaches the vehicle capacity
+    random_factor = (total_capacity - cumulative_demand) / total_capacity
+    random_factor = torch.clamp(random_factor, min=0, max=1)  # Ensure that the factor is non-negative and does not exceed 1
+    randomness = torch.abs(torch.randn_like(demands)) * random_factor
+    
+    # Introduce a penalty for edges that lead to high cumulative demand
+    high_demand_penalty = torch.where(
+        cumulative_demand[:, None] + demands[None, :] > total_capacity,
+        -torch.log1p(cumulative_demand[:, None] + demands[None, :] - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Introduce a reward for edges that help to fill the vehicle capacity closer to the end of the route
+    capacity_reward = (cumulative_demand - total_capacity_vector) / total_capacity
+    capacity_reward = torch.log1p(torch.abs(capacity_reward) - 1e-8) * (1 + torch.clamp(capacity_reward, min=0, max=1))
+    
+    # Combine the factors to create a heuristic
+    heuristics = gap_penalty + randomness + high_demand_penalty + capacity_reward
+    
+    return heuristics
+```

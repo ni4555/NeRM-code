@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+    visited = torch.zeros(n, dtype=torch.bool)
+    
+    # Calculate the initial distances from the depot to all other nodes
+    initial_distances = distance_matrix[depot]
+    
+    for i in range(1, n):
+        if not visited[i]:
+            nearest_node = torch.argmin(initial_distances)
+            heuristics[depot, nearest_node] = distance_matrix[depot, nearest_node]
+            heuristics[nearest_node, depot] = distance_matrix[nearest_node, depot]
+            initial_distances -= distance_matrix[nearest_node]
+            initial_distances[nearest_node] = float('inf')
+            visited[i] = True
+    
+    # Normalize demand for a heuristic value and ensure not to exceed capacity
+    normalized_demand = demands / demands.sum() * 1e6  # Large constant to ensure capacity is not exceeded
+    
+    # Adjust heuristics by demand
+    heuristics += torch.sqrt(normalized_demand.unsqueeze(1) * normalized_demand.unsqueeze(0))
+    
+    return heuristics
+```

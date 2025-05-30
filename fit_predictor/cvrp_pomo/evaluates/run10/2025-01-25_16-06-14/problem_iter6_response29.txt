@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate cumulative demand for each node
+    cumulative_demand = demands.cumsum(0)
+    # Calculate the difference between cumulative demand and vehicle capacity
+    capacity = 1.0  # Assuming the vehicle capacity is 1 for normalization
+    demand_diff = (cumulative_demand - capacity).clamp(min=0)
+    # Normalize the demand difference to get a heuristic value
+    heuristic_values = -torch.abs(demand_diff) * distance_matrix
+    
+    # Add a term that emphasizes the local demand distribution
+    local_demand = demands * (torch.arange(n) != 0).to(torch.float32)
+    local_demand = local_demand.cumsum(0) / (torch.arange(n) != 0).to(torch.float32)
+    local_demand = (local_demand - capacity).clamp(min=0)
+    local_demand_heuristic = -torch.abs(local_demand) * distance_matrix
+    
+    # Combine the global and local heuristics
+    combined_heuristic = heuristic_values + local_demand_heuristic
+    
+    # Adjust the balance between exploration and exploitation
+    exploration_term = 0.5 * torch.exp(-distance_matrix)
+    exploitation_term = 0.5 * combined_heuristic
+    
+    # Final heuristic value
+    final_heuristic = exploration_term + exploitation_term
+    
+    return final_heuristic
+```

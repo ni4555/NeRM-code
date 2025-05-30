@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Add a penalty for long loops but also encourage exploration by introducing random walk
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, np.roll(i, 1)] + distance_matrix[np.roll(i, 1), j]
+                direct_distance = distance_matrix[i, np.roll(i, 1)]
+                heuristics[i, j] = loop_distance - direct_distance
+
+    # Introduce a global penalty for large distances, but not as high as v1
+    large_distance_penalty = 1e5
+    heuristics[distance_matrix > large_distance_penalty] = large_distance_penalty - distance_matrix[distance_matrix > large_distance_penalty]
+
+    # Mutate the heuristics to add diversity and avoid getting stuck in local optima
+    random_walk_probability = 0.1
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                if random.random() < random_walk_probability:
+                    heuristics[i, j] += np.random.uniform(-1, 1)
+
+    return heuristics
+```

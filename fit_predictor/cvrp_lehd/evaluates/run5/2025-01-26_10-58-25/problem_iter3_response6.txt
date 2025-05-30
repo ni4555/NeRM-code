@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = 1.0
+    
+    # Create a matrix with negative infinity for edges where demand is greater than vehicle capacity
+    demand_matrix = -torch.clamp(torch.cumsum(demands, dim=0) / vehicle_capacity, max=float('-inf'))
+    
+    # Adjust the matrix for edges where the demand is exactly zero
+    demand_matrix[torch.where(demands == 0)] = 0
+    
+    # Incorporate a penalty for edges that are on the edge of exceeding the vehicle capacity
+    # This promotes diversity in the solution by avoiding edges that are too close to the capacity limit
+    capacity_penalty = (demands[1:] / vehicle_capacity - demands[:-1] / vehicle_capacity) * 100
+    capacity_penalty = torch.clamp(capacity_penalty, min=float('-inf'))
+    demand_matrix[1:] += capacity_penalty
+    
+    # Add the distance matrix to the demand matrix to create a potential matrix
+    potential_matrix = distance_matrix + demand_matrix
+    
+    # Apply a non-linear transformation to the potential matrix to emphasize edges with lower demand and distance
+    # This encourages the selection of edges that are both cheaper and have lower demand
+    transformed_potential_matrix = torch.pow(potential_matrix, 0.5)
+    
+    # Normalize the transformed potential matrix
+    normalized_matrix = transformed_potential_matrix / transformed_potential_matrix.sum(dim=1, keepdim=True)
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    heuristics_matrix = 1 - normalized_matrix
+    
+    return heuristics_matrix
+```

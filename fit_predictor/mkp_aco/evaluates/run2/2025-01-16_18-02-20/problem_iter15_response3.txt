@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Use a more complex scoring function that combines several factors
+    def score(item_index):
+        # Calculate normalized prize and diversity score
+        np_item_prize = normalized_prize[item_index]
+        diversity_score = np.mean(np.abs(normalized_prize - np_item_prize))
+        
+        # Calculate sparsity and weight variance
+        sparsity_score = np.sum(weight[item_index])
+        weight_variance = np.var(weight[item_index])
+        
+        # Define a composite score that balances these factors
+        composite_score = 0.4 * (np_item_prize / np.max(normalized_prize)) + \
+                          0.3 * (1 / (1 + diversity_score)) + \
+                          0.2 * (1 / (1 + sparsity_score)) - \
+                          0.1 * (weight_variance / np.max(weight_variance))
+        return composite_score
+    
+    # Calculate the scores for all items and normalize
+    item_scores = np.array([score(i) for i in range(prize.shape[0])])
+    item_scores /= np.max(item_scores)
+    
+    # Rank the items based on their scores and sparsify the heuristics
+    ranked_indices = np.argsort(item_scores)[::-1]
+    heuristics = np.zeros_like(prize)
+    heuristics[ranked_indices[:int(len(ranked_indices) * 0.3)]] = 1
+    
+    return heuristics
+```

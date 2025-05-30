@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate penalty for outliers using Z-score
+    mean_ratio = np.mean(value_to_weight_ratio)
+    std_ratio = np.std(value_to_weight_ratio)
+    z_scores = (value_to_weight_ratio - mean_ratio) / std_ratio
+    penalty_factor = np.where(np.abs(z_scores) > 2, z_scores, 0)
+    
+    # Normalize the penalty factor
+    max_penalty = np.max(np.abs(penalty_factor))
+    penalty_factor = penalty_factor / max_penalty
+    
+    # Calculate a diversity factor based on the standard deviation
+    diversity_factor = 1 / (std_ratio + 1e-6)
+    
+    # Combine the normalized ratio with the penalty and diversity factors
+    combined_heuristics = value_to_weight_ratio * (1 - penalty_factor + diversity_factor)
+    
+    # Apply a logarithmic transformation to introduce exponential decay to the higher values
+    heuristics = np.log(1 + combined_heuristics)
+    
+    # Apply a balance factor to adjust the impact of each heuristic
+    balance_factor = np.sum(prize) / np.sum(weight.sum(axis=1))
+    heuristics *= balance_factor
+    
+    # Ensure all values are non-negative and sum to 1
+    heuristics = np.maximum(heuristics, 0)
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

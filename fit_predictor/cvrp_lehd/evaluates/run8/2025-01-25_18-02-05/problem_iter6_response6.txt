@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Calculate the cumulative sum of the demand-to-distance ratio from the depot
+    cumulative_demand_to_distance_ratio = torch.cumsum(demand_to_distance_ratio, dim=1)
+    
+    # Invert high scores by subtracting from 1
+    inverted_scores = 1 - cumulative_demand_to_distance_ratio
+    
+    # Normalize the inverted scores to maintain the relative differences
+    max_score = torch.max(inverted_scores)
+    inverted_scores = inverted_scores / max_score
+    
+    # Apply a non-linear transformation to emphasize longer distances
+    transformed_scores = torch.exp(-inverted_scores)
+    
+    # Normalize the transformed scores to ensure they are on a comparable scale
+    transformed_scores = transformed_scores / torch.sum(transformed_scores)
+    
+    # Use a threshold to remove undesirable edges
+    threshold = torch.mean(transformed_scores)
+    heuristic_matrix = torch.where(transformed_scores > threshold, transformed_scores, 0)
+    
+    return heuristic_matrix
+```

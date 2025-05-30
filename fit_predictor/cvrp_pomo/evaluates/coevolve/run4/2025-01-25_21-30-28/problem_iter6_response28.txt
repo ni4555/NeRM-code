@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Use relative measures to balance heuristics impact
+    relative_inverse_distance = inverse_distance / (inverse_distance + heuristic_range)
+    relative_demand_weight = demand_weight / (demand_weight + load_balance)
+
+    # Dynamic decay to adapt to solution performance
+    decay_factor = 0.99
+    relative_inverse_distance *= decay_factor
+    relative_demand_weight *= decay_factor
+
+    # Clamp extreme values for stability
+    relative_inverse_distance = torch.clamp(relative_inverse_distance, min=0.0, max=1.0)
+    relative_demand_weight = torch.clamp(relative_demand_weight, min=0.0, max=1.0)
+
+    # Balance global/local heuristics for robustness
+    weight_relative_inverse_distance = 0.4
+    weight_relative_demand_weight = 0.6
+
+    # Combine heuristics using domain knowledge and adjusted weights
+    combined_heuristic = (relative_inverse_distance * weight_relative_inverse_distance +
+                          relative_demand_weight * weight_relative_demand_weight)
+
+    # Normalize the combined heuristic to have a range of [0, 1]
+    max_heuristic = combined_heuristic.max()
+    min_heuristic = combined_heuristic.min()
+    normalized_combined_heuristic = (combined_heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+
+    return normalized_combined_heuristic
+```

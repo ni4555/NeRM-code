@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Calculate the load factor based on a non-linear scale (e.g., inverse demand)
+    load_factors = 1.0 / (1.0 + torch.log(node_loads))
+    
+    # Blend exploration with heuristic balance using a temperature factor
+    temperature = 0.5  # The temperature controls the balance between exploitation and exploration
+    heuristics = (temperature * norm_distances) - ((1 - temperature) * (load_factors * norm_distances)).sum(-1)
+    
+    # Introduce randomness with a carefully controlled amount to explore new solutions
+    # Randomness should decrease over iterations (or based on problem constraints)
+    noise_level = 0.02  # A smaller scaling factor for later iterations
+    noise = torch.randn_like(heuristics) * noise_level
+    heuristics += noise
+    
+    # Introduce domain-specific insights: favoring shorter paths over heavier loads
+    heuristics = heuristics + (torch.rand_like(heuristics) < 0.7) * 1.5  # 70% chance of adding 1.5 to heuristics
+    
+    # Limit the heuristics to ensure they are within a reasonable range
+    heuristics = torch.clamp(heuristics, min=-3.0, max=3.0)
+    
+    return heuristics
+```

@@ -1,0 +1,65 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands = demands / total_capacity  # Normalize demands
+    
+    # Calculate the edge potential based on demand and distance
+    edge_potential = (demands[:, None] * demands[None, :] * distance_matrix).clamp(min=0)
+    
+    # Calculate the initial heuristics
+    heuristics = edge_potential - (1 - edge_potential)
+    
+    # Simulated annealing-like mechanism to balance loads
+    temperature = 1.0
+    while temperature > 1e-4:
+        # Local search to refine neighborhood exploration
+        for i in range(n):
+            for j in range(i + 1, n):
+                load_change = demands[i] + demands[j]
+                if 0 < load_change < temperature:
+                    # Swap edges if it improves the load balance
+                    if heuristics[i, j] > heuristics[j, i]:
+                        distance_matrix[i, j], distance_matrix[j, i] = distance_matrix[j, i], distance_matrix[i, j]
+                        demands[j] = demands[i]
+                        demands[i] = 0
+                        edge_potential[i, j] = 0
+                        edge_potential[j, i] = 0
+                        heuristics = edge_potential - (1 - edge_potential)
+                temperature *= 0.95  # Cool down the system
+    
+    # PSO-like exploration with population management
+    # Here we just simulate the PSO effect by randomly swapping edges with high potential
+    for _ in range(100):  # Example number of iterations
+        for i in range(n):
+            for j in range(i + 1, n):
+                if torch.rand(1) < 0.5:  # Random probability to swap
+                    distance_matrix[i, j], distance_matrix[j, i] = distance_matrix[j, i], distance_matrix[i, j]
+                    demands[j] = demands[i]
+                    demands[i] = 0
+                    edge_potential[i, j] = 0
+                    edge_potential[j, i] = 0
+                    heuristics = edge_potential - (1 - edge_potential)
+    
+    # Tabu search with a dynamic cost function
+    tabu_list = set()
+    for _ in range(100):  # Example number of iterations
+        for i in range(n):
+            for j in range(i + 1, n):
+                if (i, j) not in tabu_list and heuristics[i, j] > heuristics[j, i]:
+                    distance_matrix[i, j], distance_matrix[j, i] = distance_matrix[j, i], distance_matrix[i, j]
+                    demands[j] = demands[i]
+                    demands[i] = 0
+                    edge_potential[i, j] = 0
+                    edge_potential[j, i] = 0
+                    heuristics = edge_potential - (1 - edge_potential)
+                    tabu_list.add((i, j))
+                    tabu_list.discard((i, j))  # Evict the oldest entry from the tabu list
+    
+    # Return the heuristics matrix with edges with zero distance set to zero
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

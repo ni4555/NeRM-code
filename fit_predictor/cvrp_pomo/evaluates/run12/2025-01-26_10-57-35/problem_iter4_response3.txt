@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands = demands / total_capacity  # Normalize demand by total vehicle capacity
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the heuristic for each edge based on the difference in demands
+    demand_diff = demands.unsqueeze(0) - demands.unsqueeze(1)
+    demand_diff = torch.abs(demand_diff)
+    
+    # Calculate the heuristic for each edge based on the distance
+    distance_diff = distance_matrix - distance_matrix.unsqueeze(1)
+    
+    # Combine the two heuristics
+    combined_heuristic = demand_diff * distance_diff
+    
+    # Apply a penalty for edges that lead to an increase in demand over the vehicle capacity
+    penalty_mask = demand_diff > 0
+    combined_heuristic[penalty_mask] *= -1
+    
+    # Add a small positive constant to ensure non-negative values
+    heuristics = combined_heuristic + 1e-6
+    
+    return heuristics
+```

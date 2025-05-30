@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_distance_matrix = distance_matrix / total_demand
+    scaled_demands = demands / demands.max()
+    
+    # Exponential decay for distance
+    exp_decay_distance = torch.exp(-3.0 * normalized_distance_matrix)
+    
+    # Hyperbolic tangent for demand, scaled to a range that makes sense for CVRP
+    tanh_demand = torch.tanh(1.5 * scaled_demands)
+    
+    # Combining the transformations with weights
+    distance_weight = 0.8  # Weighting distance higher since we want to minimize travel
+    demand_weight = 0.2   # Weighting demand lower since we want to maximize capacity
+    
+    # Calculate the heuristic
+    combined_heuristic = distance_weight * exp_decay_distance - demand_weight * tanh_demand
+    
+    # Invert the sign to get negative values for undesirable edges
+    return -combined_heuristic
+```

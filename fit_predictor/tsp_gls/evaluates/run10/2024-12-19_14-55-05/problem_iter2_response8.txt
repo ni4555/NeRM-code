@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Improved heuristic by considering the average distance of all edges
+    # This allows us to scale the "badness" of each edge relative to the average
+    average_distance = np.mean(distance_matrix[distance_matrix > 0])
+    
+    # Initialize the heuristic matrix with 1s (not considered "bad" initially)
+    heuristic_matrix = np.ones_like(distance_matrix)
+    
+    # Apply a weighted penalty based on how much each edge exceeds the average distance
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if distance_matrix[i, j] > 0:  # Avoid the 0th index, which is a placeholder
+                heuristic_matrix[i, j] = (distance_matrix[i, j] - average_distance) / average_distance
+    
+    # Apply a second level of heuristic based on how many neighbors have high heuristic values
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if distance_matrix[i, j] > 0:
+                neighbors_with_high_heuristic = np.sum(heuristic_matrix[i,]) > distance_matrix.shape[0] / 2
+                heuristic_matrix[i, j] *= neighbors_with_high_heuristic
+    
+    return heuristic_matrix
+```

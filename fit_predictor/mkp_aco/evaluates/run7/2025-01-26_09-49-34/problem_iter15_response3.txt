@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate the ratio of prize to weight per item
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate a variance factor for the weights within each item
+    variance_factor = 1 - (np.var(weight, axis=1) / weight.shape[1])
+    variance_factor[variance_factor < 0.1] = 0  # Only consider variance if it's substantial
+    
+    # Calculate a diversity factor based on the distribution of weights across all dimensions
+    diversity_factor = 1 - (np.abs(np.sum(weight, axis=0) - np.ones(weight.shape[1])) / weight.shape[1])
+    diversity_factor[diversity_factor < 0.5] = 0  # Only consider diversity if it's significant
+    
+    # Combine the factors, including sparsity
+    sparsity_factor = 1 - (np.sum(weight == 0, axis=1) / weight.shape[1])
+    sparsity_factor[sparsity_factor <= 0.5] = 1
+    
+    # Final heuristic is a combination of the ratios, variance, diversity, and sparsity factors
+    heuristics = ratio * variance_factor * diversity_factor * sparsity_factor
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Apply a dynamic threshold to further sparsify the heuristics
+    dynamic_threshold = np.mean(ratio) * (1 - np.mean(variance_factor)) * (1 - np.mean(diversity_factor))
+    heuristics[heuristics < dynamic_threshold] = 0
+    
+    return heuristics
+```

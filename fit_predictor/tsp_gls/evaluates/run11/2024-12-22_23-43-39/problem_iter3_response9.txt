@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    heuristics_matrix = np.zeros_like(distance_matrix)
+
+    # Domain knowledge: Adding a penalty for edges that are likely to appear in a shorter tour
+    # e.g., adding the distance to the farthest neighbor as a penalty
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Distance to the nearest neighbor
+                nearest_neighbor_i = np.min(distance_matrix[i, ~np.isin(np.arange(n), [i])])
+                nearest_neighbor_j = np.min(distance_matrix[j, ~np.isin(np.arange(n), [j])])
+                
+                # Distance to the farthest neighbor as a penalty
+                farthest_neighbor_i = np.max(distance_matrix[i, ~np.isin(np.arange(n), [i])])
+                farthest_neighbor_j = np.max(distance_matrix[j, ~np.isin(np.arange(n), [j])])
+                
+                # Combine the nearest and farthest neighbor distances with the actual edge distance
+                heuristics_matrix[i, j] = (nearest_neighbor_i + nearest_neighbor_j +
+                                           (farthest_neighbor_i + farthest_neighbor_j) / 2 +
+                                           distance_matrix[i, j]) / 2
+            else:
+                heuristics_matrix[i, j] = float('inf')
+
+    return heuristics_matrix
+```

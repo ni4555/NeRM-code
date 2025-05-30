@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    return_distance = distance_matrix[:, 0]
+    total_demand = torch.cat([torch.zeros(1), demand_cumsum - demand_cumsum[:-1]])
+    remaining_capacity = (demands > 0).float() * (demands / demands.sum())
+
+    # Vectorized calculation of heuristics for each vehicle starting at each node
+    for start_node in range(1, n_nodes):
+        feasible_edges = total_demand[start_node:] <= remaining_capacity[start_node]
+        if feasible_edges.any():
+            feasible_edges_indices = torch.nonzero(feasible_edges, as_tuple=False)
+            distances = distance_matrix[start_node, feasible_edges_indices]
+            heuristics[start_node, feasible_edges_indices] = distances
+            remaining_capacity[start_node] -= demands[feasible_edges_indices]
+
+    # Symmetry and normalization
+    heuristics = heuristics + heuristics.t()
+    total_distance_to_depot = torch.sum(return_distance)
+    heuristics = heuristics / total_distance_to_depot
+    return heuristics
+```

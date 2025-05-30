@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Normalize prize to prevent dominance
+    normalized_prize = prize / np.max(prize)
+    
+    # Introduce a diversity factor based on the average distance from the mean
+    diversity_factor = np.mean(np.abs(normalized_prize - np.mean(normalized_prize)))
+    
+    # Adjust for sparsity and balance
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    balance_factor = (normalized_prize + diversity_factor) * sparsity_factor
+    
+    # Amplify based on an amplification factor and penalize items not reaching the average balance
+    amplification_factor = 0.5
+    mean_balance = np.mean(balance_factor)
+    amplification = np.where(balance_factor >= mean_balance, amplification_factor, 1)
+    heuristics = balance_factor * amplification
+    
+    # Sparsify and threshold amplification to reduce the influence of items not in the upper average range
+    sparsity_threshold = np.percentile(heuristics, 30)
+    heuristics[heuristics < sparsity_threshold] = 0
+    amplification_threshold = np.percentile(heuristics, 70)
+    heuristics[heuristics < amplification_threshold] = heuristics[heuristics < amplification_threshold] / 1.2
+    
+    # Normalize heuristics sum to 1 for consistency
+    heuristics /= heuristics.sum()
+    
+    return heuristics
+```

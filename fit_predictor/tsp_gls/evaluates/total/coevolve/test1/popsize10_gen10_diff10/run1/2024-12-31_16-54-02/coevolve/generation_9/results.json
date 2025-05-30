@@ -1,0 +1,70 @@
+{
+  "generation": 9,
+  "description": "The Traveling Salesman Problem (TSP) is addressed with a dynamic local search strategy that integrates an advanced heuristic for edge distance computation, using a shortest path algorithm to prevent node revisits and ensure a continuous route. To optimize solutions, the algorithm combines Tabu Search with adaptive Variable Neighborhood Descent, taking advantage of diverse neighborhood structures for iterative convergence. A refined heuristic algorithm calculates the shortest path between any two nodes without looping back to the origin, aiming to exceed a solution quality of 10.596621379960432 by reaching a termination threshold, thereby achieving exceptional route optimization.",
+  "solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Initialize a matrix with the same shape as the distance matrix to store heuristics\n    heuristics = np.zeros_like(distance_matrix)\n    \n    # Loop through each pair of nodes\n    for i in range(len(distance_matrix)):\n        for j in range(i + 1, len(distance_matrix)):\n            # Calculate the shortest path from node i to node j using Dijkstra's algorithm\n            # Here we use np.argmin to simulate a priority queue for the shortest path algorithm\n            # We find the shortest path to each node j from node i\n            shortest_path = np.argmin(distance_matrix[i, :])\n            # The heuristic value is the distance from node i to node j via the shortest path\n            heuristics[i, j] = distance_matrix[i, shortest_path]\n    \n    # Since we've only calculated heuristics for i to j, we need to calculate for j to i as well\n    heuristics = (heuristics + distance_matrix.T) / 2\n    \n    return heuristics",
+      "fitness": 10.59397873237902,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_1.txt",
+      "code_file": "coevolve\\generation_9\\code_1.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Initialize the heuristics array with large values (infinity)\n    num_nodes = distance_matrix.shape[0]\n    heuristics = np.full((num_nodes, num_nodes), np.inf)\n\n    # Calculate the shortest path for each pair of nodes\n    for i in range(num_nodes):\n        for j in range(num_nodes):\n            if i != j:\n                # Compute the shortest path between node i and node j\n                # Assuming the input distance matrix is symmetric, we can use the Floyd-Warshall algorithm\n                # as a simplified shortest path algorithm for demonstration purposes.\n                # In practice, a more efficient algorithm like Dijkstra's should be used.\n                for k in range(num_nodes):\n                    # Update the shortest path if a shorter one is found\n                    heuristics[i, j] = min(heuristics[i, j], distance_matrix[i, k] + distance_matrix[k, j])\n\n    # Set the diagonal to zero as the distance from a node to itself is zero\n    np.fill_diagonal(heuristics, 0)\n\n    return heuristics",
+      "fitness": 10.60242549294038,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_3.txt",
+      "code_file": "coevolve\\generation_9\\code_3.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Initialize the output matrix with the same shape as the input matrix\n    # where each entry (i, j) will represent the badness of including edge (i, j)\n    badness_matrix = np.full_like(distance_matrix, np.inf)\n    \n    # Calculate the diagonal elements as 0 since the distance to the node itself\n    # is not considered bad\n    np.fill_diagonal(badness_matrix, 0)\n    \n    # Calculate the shortest path between any two nodes using a heuristic approach\n    # and populate the badness matrix accordingly\n    # We can use a simple heuristic like the maximum distance from the node to any other node\n    # as a proxy for badness.\n    for i in range(distance_matrix.shape[0]):\n        # Find the maximum distance from node i to any other node\n        max_distance = np.max(distance_matrix[i, :])\n        # Update the badness matrix with this value for all edges connected to node i\n        badness_matrix[i, :] = max_distance\n    \n    # Normalize the badness matrix by dividing each row by the sum of its values\n    # This ensures that the sum of badness values for each node is equal to 1\n    row_sums = np.sum(badness_matrix, axis=1, keepdims=True)\n    badness_matrix = badness_matrix / row_sums\n    \n    return badness_matrix\n\n# Example usage:\n# distance_matrix = np.array([[0, 2, 9], [1, 0, 10], [15, 6, 0]])\n# print(heuristics_v2(distance_matrix))",
+      "fitness": 10.620375265604553,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_4.txt",
+      "code_file": "coevolve\\generation_9\\code_4.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # The \"badness\" of an edge is inversely proportional to its distance.\n    # The smaller the distance, the lower the \"badness\".\n    # We can represent \"badness\" as the inverse of the distance, with a small epsilon\n    # to avoid division by zero when the distance is zero.\n    epsilon = 1e-6\n    return 1.0 / (distance_matrix + epsilon)",
+      "fitness": 10.693036086769052,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_5.txt",
+      "code_file": "coevolve\\generation_9\\code_5.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Calculate the minimum distance from each node to all other nodes\n    min_distances = np.min(distance_matrix, axis=1)\n    \n    # Compute the heuristics as the difference between the minimum distance\n    # from the current node to all other nodes and the actual edge distance\n    heuristics = min_distances - distance_matrix\n    \n    return heuristics",
+      "fitness": 10.822793291731537,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_0.txt",
+      "code_file": "coevolve\\generation_9\\code_0.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Assuming the distance matrix is symmetric and the diagonal is filled with zeros\n    # The heuristic will be the negative of the distance matrix for the purpose of minimization\n    return -distance_matrix",
+      "fitness": 10.822793291731537,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_2.txt",
+      "code_file": "coevolve\\generation_9\\code_2.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Assuming the distance_matrix is symmetric and zero-diagonal\n    num_nodes = distance_matrix.shape[0]\n    heuristics = np.zeros_like(distance_matrix)\n    \n    # Compute the shortest path between each pair of nodes using Dijkstra's algorithm\n    for i in range(num_nodes):\n        # Use a priority queue to keep track of the nodes to visit\n        visited = set()\n        distances = {i: 0}\n        priority_queue = [(0, i)]\n        \n        while priority_queue:\n            current_distance, current_node = min(priority_queue)\n            priority_queue.remove((current_distance, current_node))\n            \n            if current_node in visited:\n                continue\n            \n            visited.add(current_node)\n            \n            for j in range(num_nodes):\n                if j not in visited:\n                    distance = current_distance + distance_matrix[current_node, j]\n                    if j not in distances or distance < distances[j]:\n                        distances[j] = distance\n                        priority_queue.append((distance, j))\n        \n        # Calculate the heuristic values\n        for j in range(num_nodes):\n            heuristics[i, j] = distances[j] - distance_matrix[i, j]\n    \n    return heuristics",
+      "fitness": 10.822793291731537,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_7.txt",
+      "code_file": "coevolve\\generation_9\\code_7.py"
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:\n    # Initialize a matrix with zeros\n    heuristic_matrix = np.zeros_like(distance_matrix)\n    \n    # Calculate the diagonal (self-loops) and set them to a large value\n    np.fill_diagonal(heuristic_matrix, np.inf)\n    \n    # Set the minimum distance between any two nodes as the heuristic\n    np.minimum.reduceat(heuristic_matrix, range(heuristic_matrix.shape[0]), axis=1, out=heuristic_matrix)\n    np.minimum.reduceat(heuristic_matrix, range(heuristic_matrix.shape[1]), axis=0, out=heuristic_matrix)\n    \n    # Return the heuristic matrix\n    return heuristic_matrix",
+      "fitness": 10.822793291731537,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_9\\stdout_8.txt",
+      "code_file": "coevolve\\generation_9\\code_8.py"
+    }
+  ]
+}

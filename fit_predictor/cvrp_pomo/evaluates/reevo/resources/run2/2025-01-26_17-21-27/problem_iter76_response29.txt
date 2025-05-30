@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_threshold = total_capacity * 0.8  # Dynamic threshold for early detection
+
+    # Distance penalty
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+
+    # Dynamic capacity penalty with early overflow detection
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    overflow_penalty = torch.where(
+        cumulative_demand > capacity_threshold,
+        -torch.log1p(cumulative_demand - capacity_threshold - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    capacity_penalty *= (1 + 0.5 * (capacity_threshold - cumulative_demand) / capacity_threshold)
+    capacity_penalty += overflow_penalty
+
+    # Load balance heuristic with a dynamic balance factor
+    balance_factor = torch.abs(cumulative_demand - total_capacity / 2)
+    balance_penalty = -torch.log1p(balance_factor - 1e-8)
+
+    # Randomness factor with controlled impact
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+
+    # Combine heuristics
+    heuristics = distance_penalty + 3 * capacity_penalty + balance_penalty + randomness_factor
+
+    return heuristics
+```

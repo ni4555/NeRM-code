@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands[1:].sum()
+    vehicle_capacity = 1.0 / (1.0 / total_demand + 1.0 / demands[depot])
+
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Iterate over each node pair (i, j)
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                cost = distance_matrix[i][j]
+                if i != depot and demands[j] > 0:
+                    potential_load = vehicle_capacity - (demands[i] / demands[j]) * demands[j]
+                    if potential_load >= demands[j]:
+                        heuristics[i][j] = cost * (potential_load / demands[j])
+                elif j == depot:
+                    potential_load = vehicle_capacity + demands[i]
+                    if potential_load <= vehicle_capacity:
+                        heuristics[i][j] = cost * (vehicle_capacity / potential_load)
+
+    return heuristics
+```

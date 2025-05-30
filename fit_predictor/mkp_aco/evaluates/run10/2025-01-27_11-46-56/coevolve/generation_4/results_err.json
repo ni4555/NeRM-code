@@ -1,0 +1,30 @@
+{
+  "generation": 4,
+  "description": "Optimizing the selection of diverse items for a multi-knapsack scenario through a hybrid metaheuristic approach that incorporates adaptive weighting and dynamic partitioning strategies. This approach leverages a stochastic sampling mechanism to strategically select subsets of items, maximizing the reward-to-weight ratio while adhering to multi-dimensional weight constraints and ensuring optimal item diversity and normalization.",
+  "failed_solutions": [
+    {
+      "code": "import numpy as np\nimport numpy as np\nfrom scipy.optimize import differential_evolution\n\ndef heuristics(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = weight.shape\n    # Calculate the reward-to-weight ratio\n    reward_to_weight_ratio = prize / weight.sum(axis=1)\n    # Normalize the reward-to-weight ratio to account for diversity\n    normalized_ratio = (reward_to_weight_ratio - reward_to_weight_ratio.min()) / (reward_to_weight_ratio.max() - reward_to_weight_ratio.min())\n    return normalized_ratio\n\ndef objective_function(individual):\n    selected_indices = np.where(individual > 0.5)[0]\n    # Ensure diversity by limiting the number of items per knapsack dimension\n    diversity_check = np.array([len(np.where(weight[:, i] <= weight[selected_indices, i])[0]) <= 1 for i in range(weight.shape[1])])\n    if not diversity_check.any():\n        return -heuristics(prize, weight[selected_indices][:, np.newaxis])[0]\n    return -float('inf')\n\ndef adaptive_weighting_dynamic_partitioning(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    # Constraints\n    cons = ({'type': 'ineq', 'fun': lambda x: 1 - x},\n            {'type': 'ineq', 'fun': lambda x: 1 - x})\n    \n    # Bounds for each item\n    bounds = [(0, 1)] * len(prize)\n    \n    # Perform differential evolution to find the best subset of items\n    result = differential_evolution(objective_function, bounds, constraints=cons)\n    return result.x\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    return adaptive_weighting_dynamic_partitioning(prize, weight)",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 2, confidence: 0.9307)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    \n    # Calculate the normalized weight for each item\n    normalized_weight = np.linalg.norm(weight, axis=1, keepdims=True)\n    \n    # Initialize heuristic array with 0\n    heuristic = np.zeros(n)\n    \n    # Calculate initial reward-to-weight ratio\n    initial_reward_to_weight_ratio = prize / normalized_weight\n    \n    # Use a stochastic sampling mechanism to select initial items\n    initial_sample_indices = np.argsort(initial_reward_to_weight_ratio)[::-1][:n//2]\n    \n    # Assign high heuristic value to selected items\n    heuristic[initial_sample_indices] = 1\n    \n    # Dynamic partitioning strategy\n    while True:\n        # Calculate new reward-to-weight ratio with current heuristic\n        current_reward_to_weight_ratio = prize[heuristic > 0] / normalized_weight[heuristic > 0]\n        \n        # Identify the next item to include\n        next_item_index = np.argmax(current_reward_to_weight_ratio[heuristic > 0])\n        \n        # Check if the next item violates any constraints\n        if np.all(weight[next_item_index] <= 1):\n            # Update heuristic for the next item\n            heuristic[next_item_index] = 1\n            \n            # Update the reward-to-weight ratio\n            updated_reward_to_weight_ratio = prize[heuristic > 0] / normalized_weight[heuristic > 0]\n            \n            # Break the loop if all items are included or if improvement is not possible\n            if heuristic.sum() == n or np.all(updated_reward_to_weight_ratio <= initial_reward_to_weight_ratio):\n                break\n        \n        # Update the normalized weight of all items with the new item's weight\n        normalized_weight = np.linalg.norm(weight + np.array([weight[next_item_index]]), axis=1, keepdims=True)\n    \n    return heuristic",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 3, confidence: 0.7991)",
+      "stdout_file": null,
+      "code_file": null
+    },
+    {
+      "code": "import numpy as np\nimport numpy as np\n\ndef heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:\n    n, m = prize.shape[0], weight.shape[1]\n    normalized_weight = weight / weight.sum(axis=1, keepdims=True)\n    reward_to_weight_ratio = prize / normalized_weight\n    heuristics = reward_to_weight_ratio.sum(axis=1)\n    return heuristics",
+      "fitness": Infinity,
+      "execution_success": false,
+      "error": "Filtered by predictor (rank: 4, confidence: 0.4451)",
+      "stdout_file": null,
+      "code_file": null
+    }
+  ]
+}

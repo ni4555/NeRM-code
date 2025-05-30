@@ -1,0 +1,13 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    demand_sensitivity = (demands / total_capacity) ** 2
+    heuristics = distance_penalty * cumulative_demand - demand_sensitivity.unsqueeze(1)
+    heuristics[:, 0] = -distance_penalty[:, 0]  # Negative heuristic for the depot to depot edge
+    return heuristics
+```

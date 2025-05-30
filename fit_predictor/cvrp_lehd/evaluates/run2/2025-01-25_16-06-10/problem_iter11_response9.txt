@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:]  # Exclude the depot node from capacity calculation
+    
+    # Normalizing inputs
+    total_demand = torch.sum(demands)
+    total_distance_to_depot = torch.sum(distance_matrix[:, 0])
+    
+    # Exploiting symmetry and incorporating diverse heuristic components
+    for start_node in range(1, n_nodes):
+        demand_diffs = demand_cumsum - demand_cumsum[start_node]
+        valid_nodes = (demand_diffs <= remaining_capacity[start_node]).nonzero(as_tuple=False)[0] + 1
+        distances = distance_matrix[start_node, valid_nodes]
+        if distances.numel() > 0:
+            min_distance = distances.min()
+            heuristics[start_node, valid_nodes] = min_distance
+            remaining_capacity[start_node] -= demand_diffs[valid_nodes].sum()
+            heuristics[start_node, 0] = min_distance  # Update the heuristic for the return to the depot
+            heuristics[valid_nodes, start_node] = heuristics[start_node, valid_nodes]  # Exploit symmetry
+
+    # Balancing exploitation/exploration by normalizing
+    heuristics = heuristics / total_distance_to_depot
+    return heuristics
+```

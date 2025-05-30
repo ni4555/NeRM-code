@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the cumulative demand at each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the penalty for each edge based on the demand at the destination node
+    demand_penalties = -cumulative_demand[torch.arange(len(demands)), torch.arange(len(demands))]
+    
+    # Calculate the capacity-aware penalty based on the remaining capacity of the vehicle
+    # Assuming the total capacity is 1 for simplicity, this is a normalized value
+    capacity = torch.tensor(1.0)
+    remaining_capacity = capacity - cumulative_demand
+    
+    # Calculate the distance-based penalty for each edge
+    distance_penalties = -distance_matrix
+    
+    # Combine the penalties
+    combined_penalties = (demand_penalties + distance_penalties) * remaining_capacity
+    
+    # Normalize the combined penalties to be in the range of the original distance matrix
+    max_penalty = combined_penalties.max()
+    min_penalty = combined_penalties.min()
+    combined_penalties = (combined_penalties - min_penalty) / (max_penalty - min_penalty)
+    
+    # Ensure that the heuristics matrix is not larger than 1
+    heuristics = torch.clamp(combined_penalties, max=1)
+    
+    return heuristics
+```

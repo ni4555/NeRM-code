@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    import numpy as np
+
+    n = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = demands.sum()
+
+    # Compute the distance to the nearest customer for each node
+    distances = torch.sqrt(torch.sum(distance_matrix**2, dim=1))
+
+    # Sort customers by their distance from the depot
+    sorted_indices = torch.argsort(distances)
+
+    # Initialize the remaining capacity of the vehicle
+    remaining_capacity = total_demand
+
+    # Iterate over customers in the order of their distance from the depot
+    for i in sorted_indices:
+        if demands[i] > 0:  # Only consider nodes with positive demand
+            if remaining_capacity < demands[i]:
+                # Calculate the remaining distance to the next customer
+                next_customer_dist = distances[sorted_indices[sorted_indices < i]].min()
+                # Add the next customer to the route
+                heuristics[sorted_indices[sorted_indices < i], i] = -next_customer_dist
+                # Update the remaining capacity
+                remaining_capacity -= demands[i]
+            else:
+                # Calculate the potential heuristics for this edge
+                edge_heuristic = demands[i] - remaining_capacity
+                # Set the heuristics value for this edge
+                heuristics[sorted_indices[sorted_indices < i], i] = edge_heuristic
+
+    return heuristics
+```

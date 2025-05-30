@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Distance scaling: focus on distance and cumulative load
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+
+    # Dynamic capacity penalty: current load difference from full capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands) - 1e-8) * (1 + (total_capacity - cumulative_demand) / total_capacity)
+
+    # Overflow penalty: for situations where the demand exceeds the capacity
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+
+    # Load balance penalty: for imbalances in the load distribution
+    load_balance_penalty = torch.where(
+        torch.abs(cumulative_demand - total_capacity / n) > total_capacity / (2 * n),
+        -torch.log1p(torch.abs(cumulative_demand - total_capacity / n) - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+
+    # Random perturbation for diversity: introducing randomness to encourage diversity
+    diversity_factor = torch.rand_like(distance_scaling)
+    diversity_penalty = diversity_factor * (distance_scaling * (1 + torch.rand_like(distance_scaling) * 0.1))
+
+    # Targeted load balance with a stronger penalty for imbalances
+    targeted_load_balance_penalty = -torch.log1p((torch.abs(cumulative_demand - total_capacity / n) - 1e-8) * (1 + 0.2))
+
+    # Combine all heuristics and normalize
+    combined_heuristics = distance_scaling + dynamic_capacity_penalty + diversity_penalty + overflow_penalty + load_balance_penalty + targeted_load_balance_penalty
+    penalties_sum = combined_heuristics.sum(dim=1, keepdim=True)
+    normalized_heuristics = combined_heuristics / (penalties_sum + 1e-8)
+
+    # Cap the heuristics to avoid overflow and underflow
+    heuristics = torch.clamp(normalized_heuristics, min=-100, max=100)
+
+    return heuristics
+```

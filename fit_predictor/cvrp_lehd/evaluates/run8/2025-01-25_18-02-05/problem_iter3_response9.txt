@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Calculate the negative of this ratio to use as a heuristic
+    heuristic_matrix = -demand_to_distance_ratio
+    
+    # Calculate cumulative demand-to-distance ratio for each path
+    cumulative_demand_to_distance_ratio = torch.cumsum(heuristic_matrix, dim=1)
+    
+    # Normalize cumulative ratio by the sum of all cumulative ratios to avoid overfitting
+    cumulative_ratio_normalized = cumulative_demand_to_distance_ratio / cumulative_demand_to_distance_ratio.sum(dim=1, keepdim=True)
+    
+    # Invert high scores to favor less promising edges, potentially increasing diversity
+    heuristic_matrix = -torch.log(1 + cumulative_ratio_normalized)
+    
+    # Set a threshold based on empirical evidence to filter out the least promising edges
+    threshold = torch.min(heuristic_matrix)
+    
+    # Apply the threshold to ensure all undesirable edges have negative values
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, heuristic_matrix, 0)
+    
+    return heuristic_matrix
+```

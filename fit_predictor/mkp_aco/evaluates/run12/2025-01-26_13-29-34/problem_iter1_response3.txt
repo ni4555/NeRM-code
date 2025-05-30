@@ -1,0 +1,54 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape
+    heuristic = np.zeros((n,))
+    
+    # Deep reinforcement learning model (simplified)
+    def reinforcement_learning_model(state, action):
+        # Placeholder for a complex model
+        return np.random.rand()  # Random heuristic value for simplicity
+    
+    # Adaptive constraint-driven filtering
+    def constraint_filter(prize, weight, item):
+        total_weight = np.sum(weight[item])
+        if total_weight > 1:
+            return 0
+        return 1
+    
+    # Particle swarm optimization
+    def particle_swarm_optimization(prize, weight):
+        swarm = np.random.rand(n, 1)  # Initialize swarm positions
+        velocities = np.random.rand(n, 1)  # Initialize velocities
+        best_positions = np.copy(swarm)
+        best_scores = np.zeros(n)
+        
+        for _ in range(100):  # Number of iterations
+            for i in range(n):
+                scores = np.sum(prize[swarm < 1], axis=0)
+                best_scores[i] = scores[i]
+                if scores[i] > best_scores[i]:
+                    best_positions[i] = swarm[i]
+        
+        return best_positions
+    
+    # Combine heuristics from different methods
+    for i in range(n):
+        # Calculate basic heuristic
+        total_prize = np.sum(prize[:i+1])
+        total_weight = np.sum(weight[:i+1], axis=1)
+        basic_heuristic = constraint_filter(prize[:i+1], weight[:i+1], np.arange(i+1))
+        
+        # Reinforcement learning heuristic
+        rl_heuristic = reinforcement_learning_model(total_weight, basic_heuristic)
+        
+        # Particle swarm optimization heuristic
+        pso_heuristic = np.max(particle_swarm_optimization(prize[:i+1], weight[:i+1]))
+        
+        # Combine heuristics
+        heuristic[i] = (basic_heuristic + rl_heuristic + pso_heuristic) / 3
+    
+    # Sparsify heuristics by setting unpromising elements to zero
+    heuristic[heuristic < np.percentile(heuristic, 10)] = 0
+    
+    return heuristic
+```

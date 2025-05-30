@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_threshold = total_demand / (demands.size(0) - 1)
+    
+    # Normalize distances and demands
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Non-linear transformation for demand
+    demand_transform = 1 - torch.sqrt((demands.unsqueeze(1) / demand_threshold))
+    
+    # Non-linear transformation for distance
+    distance_transform = 1 / (1 + norm_distances)
+    
+    # Combine demand and distance transformations
+    combined_transform = demand_transform * distance_transform
+    
+    # Add bonus for edges leading from the depot to the first customer
+    combined_transform[0, 1] += 1
+    
+    # Introduce randomness for exploration
+    temperature = 0.5
+    rand_factor = torch.rand_like(combined_transform) * temperature - temperature / 2
+    
+    # Dampen the values to avoid overly large heuristics
+    dampening_factor = 0.5
+    heuristics = combined_transform + rand_factor * dampening_factor
+    
+    return heuristics
+```

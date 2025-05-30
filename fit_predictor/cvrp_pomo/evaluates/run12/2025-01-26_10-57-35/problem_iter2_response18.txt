@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    demands_cumulative = torch.cumsum(demands, dim=0)
+    vehicle_capacity = demands.sum()
+    
+    # Calculate the difference in cumulative demand between nodes
+    demand_difference = demands_cumulative[1:] - demands_cumulative[:-1]
+    
+    # Calculate the negative difference if it exceeds vehicle capacity, otherwise set to zero
+    negative_demand_diff = torch.where(demand_difference > vehicle_capacity, -demand_difference, 0)
+    
+    # Calculate the potential savings for each edge if the demand is satisfied at the earlier node
+    potential_savings = distance_matrix - negative_demand_diff
+    
+    # Return only the positive savings, which indicate promising edges
+    heuristics = torch.where(potential_savings > 0, potential_savings, 0)
+    
+    return heuristics
+```

@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Precompute negative distance matrix
+    neg_distance_matrix = -distance_matrix
+    # Compute the cumulative sum of demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Create a mask to identify edges with total demand exceeding capacity
+    demand_exceeds_capacity = demand_cumsum[:, None] > demands[None, :]
+    
+    # Iterate over all possible destination nodes
+    for destination_node in range(n_nodes):
+        # For each destination node, find the start node that can be used without exceeding capacity
+        for start_node in torch.where(~demand_exceeds_capacity[:, destination_node])[0]:
+            distance = neg_distance_matrix[start_node, destination_node]
+            if heuristics[start_node, destination_node] == 0:
+                heuristics[start_node, destination_node] = distance
+                # Check if the edge to the depot is part of the route and calculate the return cost
+                if heuristics[destination_node, depot] == 0:
+                    heuristics[start_node, depot] = distance_matrix[destination_node, depot]
+                # If not all demands are visited, calculate the cumulative demand heuristic
+                if torch.sum(demands) > demands[start_node]:
+                    cumulative_demand = demand_cumsum[start_node]
+                    heuristics[start_node, :destination_node+1] = cumulative_demand[:destination_node+1].unsqueeze(1)
+    
+    # Apply demand heuristic, scaling to vehicle capacity
+    demand_heuristic = (demands[:, None] + demands) * distance_matrix[depot, :].unsqueeze(1)
+    # Normalize the heuristics to ensure they are in the same scale
+    heuristics = heuristics + demand_heuristic / total_demand
+    
+    return heuristics
+```

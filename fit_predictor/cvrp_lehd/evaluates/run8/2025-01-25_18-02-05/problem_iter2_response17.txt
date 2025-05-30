@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the difference between the maximum and minimum demand
+    demand_range = torch.max(demands) - torch.min(demands)
+    
+    # Create a matrix of the same shape as the distance matrix with the demand range
+    demand_range_matrix = torch.full_like(distance_matrix, demand_range)
+    
+    # Calculate the heuristic as the difference between the demand range and the distance
+    heuristic_matrix = demand_range_matrix - distance_matrix
+    
+    # Normalize the heuristic matrix by the sum of demands to ensure it's on a comparable scale
+    # and to give more weight to edges with higher demands
+    demand_sum = torch.sum(demands)
+    normalized_heuristic_matrix = heuristic_matrix / demand_sum
+    
+    # Apply a non-linear transformation to emphasize larger differences and longer distances
+    heuristic_matrix = torch.exp(-normalized_heuristic_matrix)
+    
+    # Use a threshold based on the mean of the heuristic matrix to filter out undesirable edges
+    threshold = torch.mean(heuristic_matrix)
+    
+    # Apply the threshold to ensure all undesirable edges have negative values
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, -torch.inf, heuristic_matrix)
+    
+    return heuristic_matrix
+```

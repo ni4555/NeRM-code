@@ -1,0 +1,55 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    import numpy as np
+
+    n = distance_matrix.shape[0]
+    depot = 0
+    demands = torch.cat([torch.zeros(1), demands])  # Append depot's demand to the front
+
+    # Calculate the total demand excluding the depot
+    total_demand = demands[1:].sum()
+
+    # Calculate the vehicle capacity as the inverse of the sum of the inverse demands
+    vehicle_capacity = 1.0 / (1.0 / total_demand + 1.0 / demands[depot])
+
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the edge costs for customer nodes to the depot
+    edge_costs = distance_matrix[:, depot][demands[1:] > 0]
+
+    # Iterate over each node pair (i, j)
+    for i in range(1, len(demands)):
+        for j in range(n):
+            if j != i:
+                # Calculate the edge cost if node i visits node j
+                cost = distance_matrix[i][j]
+                edge_demand = demands[j]
+
+                # If the edge connects a customer node to the depot, calculate potential load
+                if j == depot:
+                    # Calculate potential load if i goes to the depot after visiting other nodes
+                    potential_load = vehicle_capacity - (demands[i] / demands[depot]) * demands[depot]
+                    # Set heuristics value based on potential load and cost
+                    if potential_load >= edge_demand:
+                        heuristics[i][j] = cost * (potential_load / edge_demand)
+
+                # If the edge connects two customer nodes, calculate potential load
+                else:
+                    # Calculate potential load if i goes to j
+                    potential_load = vehicle_capacity - (demands[i] / edge_demand) * edge_demand
+                    # Set heuristics value based on potential load and cost
+                    if potential_load >= edge_demand:
+                        heuristics[i][j] = cost * (potential_load / edge_demand)
+
+    # Calculate edge costs from customer nodes to themselves and add to heuristics
+    edge_costs_squared = torch.square(edge_costs)
+    heuristics[:, depot] = edge_costs_squared / vehicle_capacity
+    heuristics[depot, :] = edge_costs_squared / vehicle_capacity
+
+    # Replace heuristics with zero for self-loops (i == j)
+    heuristics.fill_diagonal_(0)
+
+    return heuristics
+```

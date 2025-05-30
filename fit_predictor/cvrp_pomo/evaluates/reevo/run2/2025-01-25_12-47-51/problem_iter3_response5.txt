@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+
+    # Initialize nearest-neighbor heuristic based on demand and distance
+    # Assign the nearest-neighbor to each customer considering demand
+    distances = distance_matrix[:, 1:]
+    nearest_neighbors = distances.argmin(1)
+    demand_nearest_neighbor = demands[nearest_neighbors]
+    nearest_neighbor_heuristic = 1 / distances[:, nearest_neighbors]
+    nearest_neighbor_heuristic = nearest_neighbor_heuristic * demands[1:]
+
+    # Initialize capacity constraint
+    remaining_capacity = 1.0
+    # Normalize demand by vehicle capacity
+    normalized_demands = demands / total_demand
+    # Calculate remaining capacity after visiting each node
+    for i in range(1, n):
+        if demands[i] > remaining_capacity:
+            break
+        remaining_capacity -= demands[i]
+
+    # Create a mask for insufficient capacity
+    insufficient_capacity_mask = normalized_demands > 1
+
+    # Calculate the demand-to-capacity-based heuristic
+    capacity_heuristic = torch.abs(normalized_demands - remaining_capacity) / total_demand
+
+    # Combine the nearest-neighbor heuristic with the demand-to-capacity-based heuristic
+    combined_heuristic = nearest_neighbor_heuristic + capacity_heuristic
+
+    # penalize edges that cannot be visited due to capacity constraints
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    # Add the initial distance to the depot to the combined heuristic
+    initial_distance_to_depot = 0.0  # Assuming distance to the depot from the depot is zero
+    combined_heuristic = combined_heuristic + initial_distance_to_depot * demands[1:]
+
+    return combined_heuristic
+```

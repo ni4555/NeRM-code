@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+
+    # Normalize the prize using standard score to account for outliers and different scales
+    prize_mean = prize.mean()
+    prize_std = prize.std()
+    normalized_prize = (prize - prize_mean) / prize_std
+
+    # Normalize the weight for each dimension to ensure each has equal influence
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+
+    # Calculate utility by combining normalized prize and weight, with an emphasis on the prize
+    utility = normalized_prize / normalized_weight.sum(axis=1, keepdims=True)
+
+    # Apply a dynamic adaptive weight allocation mechanism by considering the total utility
+    # We use a weighted sum where items with higher utility have more weight in the allocation
+    # The weights are dynamically adjusted based on the sum of utilities to prevent any single item from dominating
+    total_utility = utility.sum(axis=1)
+    weight_allocation = total_utility / total_utility.sum()
+    weighted_utility = utility * weight_allocation
+
+    # Calculate the maximum weighted utility for each item
+    max_weighted_utility = weighted_utility.max(axis=1)
+
+    return max_weighted_utility
+```

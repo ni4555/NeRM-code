@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / demands.shape[0]
+    
+    # Find the minimum distance from each customer to the nearest customer
+    min_distances = torch.min(distance_matrix[1:, 1:], dim=0)[0]
+    
+    # Calculate the heuristic value based on the difference from the average demand
+    heuristic_values = (average_demand - demands[1:]) * min_distances
+    
+    # Create the heuristic matrix with zeros initialized
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Update the heuristic matrix for the edges from customer to customer
+    heuristic_matrix[1:, 1:] = heuristic_values
+    heuristic_matrix[1:, 1:].triu_(0, k=1)  # Transpose for bidirectional edges and exclude the diagonal
+    
+    # Set the edge from the depot to each customer with the negative heuristic value
+    heuristic_matrix[0, 1:] = -demands[1:]
+    
+    return heuristic_matrix
+```

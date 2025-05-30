@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    heuristics = -torch.ones_like(distance_matrix)
+    for start_node in range(distance_matrix.shape[0]):
+        # Calculate the cumulative distance cost for each path ending at every node
+        cumulative_costs = torch.cumsum(distance_matrix[start_node], dim=1)
+        # Determine the maximum cumulative cost at which the vehicle is still under capacity
+        max_capacity_idx = torch.argmax(cumulative_costs < torch.max(demand_cumsum[start_node] - demands[start_node], 0))
+        # Update heuristics to be negative only for edges that can be taken without exceeding capacity
+        feasible_edges = cumulative_costs < demand_cumsum[start_node]
+        heuristics[start_node, feasible_edges] = -cumulative_costs[0, max_capacity_idx]
+    return heuristics
+```

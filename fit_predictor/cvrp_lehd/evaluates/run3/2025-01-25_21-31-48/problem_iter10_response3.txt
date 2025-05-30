@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize demands
+    normalized_demands = demands / total_demand
+
+    # Inverse distance matrix with small epsilon to avoid division by zero
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)
+
+    # Distance from each customer to the depot normalized by the sum of all inverse distances
+    normalized_distance_to_depot = distance_matrix_inv[:, depot] / distance_matrix_inv.sum()
+
+    # Demand penalty based on the squared deviation from the mean demand
+    demand_penalty = (normalized_demands - normalized_demands.mean()) ** 2
+
+    # Weighting the demand penalty by the inverse distance to give more importance to closer customers
+    weighted_demand_penalty = demand_penalty * distance_matrix_inv
+
+    # Calculate the heuristic by combining the normalized distance, weighted demand penalty, and demand normalization
+    heuristics = normalized_distance_to_depot - weighted_demand_penalty
+
+    # Normalize the heuristic values to be positive and scale them to a range
+    heuristics = torch.clamp(heuristics, min=0) / torch.max(torch.abs(heuristics))
+
+    return heuristics
+```

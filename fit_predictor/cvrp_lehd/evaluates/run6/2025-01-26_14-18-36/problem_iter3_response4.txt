@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_scale = total_demand / (n - 1)  # Normalize by total demand excluding the depot
+    
+    # Calculate the difference in demand from the average demand
+    demand_diff = demands - demand_scale
+    
+    # Calculate the heuristic values based on the demand difference and distance
+    # Promising edges will have positive values, undesirable edges will have negative values
+    heuristics = -distance_matrix + demand_diff.abs() * (1 + torch.exp(-distance_matrix))
+    
+    # Adjust the heuristics to ensure that edges with higher demand difference are favored
+    # while also considering the distance
+    heuristics = heuristics / (heuristics.sum() + 1e-8)  # Normalize to sum to 1
+    
+    return heuristics
+```

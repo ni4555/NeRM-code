@@ -1,0 +1,41 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Calculate normalized prize per unit weight
+    prize_per_weight = prize / np.sum(weight, axis=1)
+    
+    # Calculate diversity based on the standard deviation of prize per unit weight
+    diversity = np.std(prize_per_weight)
+    
+    # Calculate sparsity as the sum of weights per item divided by the maximum weight per dimension
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1)
+    
+    # Calculate adaptability factor considering the problem scale
+    adaptability_factor = np.sum(weight, axis=1) / (m * n)
+    
+    # Introduce randomness to avoid local optima, but limit it to avoid overfitting
+    random_factor = np.random.rand(n)
+    random_factor *= (1 / np.log(n)) * (1 / np.log(np.log(n)))  # Limit the randomness as the problem grows
+    
+    # Calculate balance by using the sum of absolute differences from the mean
+    balance = np.sum(np.abs(prize_per_weight - np.mean(prize_per_weight)))
+    
+    # Weigh the factors considering their relevance in MKP context
+    heuristic_weights = np.array([0.4, 0.3, 0.2, 0.1])  # Adjust weights based on how critical each factor is
+    
+    # Combine all factors using a weighted sum
+    heuristic = heuristic_weights[0] * diversity + \
+                heuristic_weights[1] * sparsity + \
+                heuristic_weights[2] * adaptability_factor + \
+                heuristic_weights[3] * random_factor + \
+                heuristic_weights[4] * balance
+    
+    # Normalize the heuristic to ensure all values are between 0 and 1
+    heuristic /= np.sum(heuristic)
+    
+    return heuristic
+```

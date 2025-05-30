@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    cumulative_demand = cumulative_demand.unsqueeze(1).expand(n, n)
+    
+    # Calculate the potential of each edge based on the demand and distance
+    potential = (1 - cumulative_demand / total_demand) * distance_matrix
+    
+    # Adjust the potential based on the capacity constraint
+    capacity_penalty = (cumulative_demand > 1).float() * -1000
+    
+    # Combine the potential and penalty to get the heuristic values
+    heuristic_values = potential + capacity_penalty
+    
+    return heuristic_values
+```

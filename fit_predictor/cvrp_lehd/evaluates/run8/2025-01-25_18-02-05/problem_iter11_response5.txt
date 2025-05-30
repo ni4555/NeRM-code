@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    
+    # Avoid division by zero in cases where cumulative_distances might be zero
+    with torch.no_grad():
+        safe_distances = torch.where(cumulative_distances == 0, torch.tensor(1.0e-8), cumulative_distances)
+    
+    # Calculate the heuristic values based on the ratio of cumulative demand to cumulative distance
+    heuristic_matrix = cumulative_demands / safe_distances
+    
+    # Use sparsity to focus on edges with significant cumulative demand and distance
+    sparsity_factor = 0.5
+    sparsity_threshold = torch.sum(demands) * sparsity_factor
+    sparse_edges = heuristic_matrix > sparsity_threshold
+    
+    # Apply non-linear transformation to enhance the impact of edges with significant demand
+    non_linear_transform = torch.log(heuristic_matrix + 1)
+    
+    # Introduce dynamic threshold based on the average heuristic value
+    dynamic_threshold = torch.mean(non_linear_transform)
+    heuristic_matrix = torch.where(non_linear_transform < dynamic_threshold, non_linear_transform, -dynamic_threshold)
+    
+    # Use the sparsity factor to further adjust the heuristic values
+    heuristic_matrix *= sparse_edges.float()
+    
+    # Clip the values to be within the desired range to ensure they are within [-1, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

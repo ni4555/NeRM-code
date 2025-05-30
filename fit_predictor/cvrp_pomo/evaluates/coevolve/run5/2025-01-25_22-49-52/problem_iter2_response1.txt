@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the demand-distance balance
+    demand_distance_balance = torch.abs(normalized_distances - normalized_demands)
+    
+    # Avoid global maxima by penalizing high demand-distance balance
+    penalized_balance = demand_distance_balance - demand_distance_balance.mean()
+    
+    # Exploit structure by favoring edges that lead to a lower total demand
+    for i in range(n):
+        # Calculate the total demand of the neighbors
+        neighbor_demand = demands[distance_matrix[i, :] < max_distance]
+        if len(neighbor_demand) > 0:
+            total_neighbor_demand = neighbor_demand.sum()
+            # Adjust potential values to favor lower total demand
+            penalized_balance[i, distance_matrix[i, :] < max_distance] += -total_neighbor_demand / max_demand
+    
+    # Set the depot to 0 potential value
+    penalized_balance[0, :] = 0
+    penalized_balance[:, 0] = 0
+    
+    return penalized_balance
+```

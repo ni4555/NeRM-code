@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristics with zeros
+    heuristic = np.zeros(weight.shape[0])
+    
+    # Sample items randomly to maintain diversity
+    sampled_indices = np.random.choice(weight.shape[0], size=int(weight.shape[0] * 0.2), replace=False)
+    heuristic[sampled_indices] = 1.0
+    
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Add density to heuristic if it's higher than the mean
+    heuristic[density > np.mean(density)] += density[density > np.mean(density)]
+    
+    # Prune dominated items by removing those with lower prize-to-weight ratio
+    non_dominated_indices = np.argsort(density)[::-1]
+    dominated_indices = np.setdiff1d(range(weight.shape[0]), non_dominated_indices[:len(non_dominated_indices) // 2])
+    heuristic[dominated_indices] = 0
+    
+    # Normalize the heuristics
+    heuristic /= np.sum(heuristic)
+    
+    # Introduce randomness to avoid getting stuck in local optima
+    heuristic = heuristic * np.random.rand(heuristic.shape[0])
+    
+    return heuristic
+```

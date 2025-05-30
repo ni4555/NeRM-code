@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic that considers demand variability and distance influence."""
+    # Calculate the total demand excluding the depot
+    total_demand = demands[1:].sum()
+    # Calculate the normalized demand per customer
+    normalized_demand = demands[1:] / total_demand
+    # Calculate the difference between the actual demand and the normalized demand
+    demand_diff = demands[1:] - normalized_demand
+    
+    # Calculate the influence of distance on the heuristic
+    distance_influence = 1 - torch.exp(-distance_matrix)
+    
+    # Combine demand variability and distance influence
+    heuristics = demand_diff * distance_influence
+    
+    # Add the depot to the demand_diff to consider the possibility of returning to the depot
+    heuristics = torch.cat([torch.zeros_like(demands[:1]), heuristics])
+    
+    return heuristics
+```

@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge
+    # The potential value now balances the demand and distance, with a non-linear transformation
+    potential_values = torch.where(
+        normalized_demands < 0.5,
+        normalized_distances + (normalized_demands * (1 - normalized_demands)),
+        (normalized_distances + normalized_demands) * (1 - 2 * normalized_demands)
+    )
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

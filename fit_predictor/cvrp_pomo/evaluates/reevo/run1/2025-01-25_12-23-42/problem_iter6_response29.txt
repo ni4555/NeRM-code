@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the cumulative demand matrix
+    cumulative_demand = torch.cumsum(demands[:, None], dim=1)
+    
+    # Calculate the cumulative distance matrix
+    cumulative_distance = torch.cumsum(distance_matrix, dim=1)
+    
+    # Calculate the potential cost of visiting each edge
+    potential_costs = cumulative_distance - cumulative_demand
+    
+    # Calculate the difference between potential costs and average potential cost
+    diff_from_avg = potential_costs - potential_costs.mean()
+    
+    # Normalize by the maximum difference from average to scale heuristics
+    max_diff = torch.max(torch.abs(diff_from_avg))
+    normalized_diff = diff_from_avg / max_diff
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Calculate the heuristics by combining the normalized distance, potential cost difference,
+    # and the load factor. We give a higher weight to heavily loaded nodes as they may need
+    # more resources to handle the load, hence more urgency to include them in the solution.
+    heuristics = norm_distances - (node_loads * norm_distances).sum(-1)
+    heuristics += (demands.unsqueeze(1) * normalized_diff).sum(-1)
+    
+    # Clip the heuristics to ensure that they are not too high (avoid overflow)
+    heuristics = torch.clamp(heuristics, min=-1.0, max=1.0)
+    
+    return heuristics
+```

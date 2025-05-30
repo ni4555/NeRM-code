@@ -1,0 +1,62 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate a diversity score based on the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - normalized_prize.reshape(-1, 1)), axis=0)
+    
+    # Combine normalized prize and diversity score with a trade-off factor
+    trade_off_factor = 0.5
+    total_score = normalized_prize * trade_off_factor + diversity_scores * (1 - trade_off_factor)
+    
+    # Incorporate a sparsity score based on the sum of weights across dimensions
+    sparsity_scores = np.sum(weight, axis=1)
+    
+    # Calculate the variance of weights across dimensions for each item
+    weight_variance = np.var(weight, axis=1)
+    
+    # Include the sparsity and weight variance in the total score
+    total_score += sparsity_scores * 0.2 - weight_variance * 0.1
+    
+    # Normalize the total score to ensure they are on the same scale
+    total_score /= np.max(total_score)
+    
+    # Rank the items based on their normalized total score
+    ranked_indices = np.argsort(total_score)[::-1]
+    
+    # Create an initial array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    # Sparsify the heuristics by setting the top 30% of promising elements to 1
+    heuristics[ranked_indices[:len(ranked_indices)//3]] = 1
+    
+    # Dynamically adjust the trade-off factor based on the total score distribution
+    score_threshold = np.percentile(total_score, 50)
+    items_above_threshold = total_score > score_threshold
+    
+    # Adjust the trade-off factor for items above the threshold
+    adjusted_trade_off_factor = trade_off_factor * items_above_threshold.mean()
+    
+    # Recalculate the total score with the adjusted trade-off factor
+    adjusted_total_score = normalized_prize * adjusted_trade_off_factor + diversity_scores * (1 - adjusted_trade_off_factor)
+    
+    # Recalculate the sparsity score with the new trade-off factor
+    adjusted_sparsity_scores = sparsity_scores * adjusted_trade_off_factor
+    
+    # Update the total score with the new sparsity score
+    adjusted_total_score += adjusted_sparsity_scores * 0.2 - weight_variance * 0.1
+    
+    # Normalize the adjusted total score to ensure they are on the same scale
+    adjusted_total_score /= np.max(adjusted_total_score)
+    
+    # Update the heuristics with the adjusted total score
+    updated_ranked_indices = np.argsort(adjusted_total_score)[::-1]
+    heuristics[updated_ranked_indices[:len(updated_ranked_indices)//3]] = 1
+    
+    return heuristics
+```

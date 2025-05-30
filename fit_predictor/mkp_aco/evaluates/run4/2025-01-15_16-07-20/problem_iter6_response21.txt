@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    density = prize / average_weight
+    sparsity = (density > max_prize / np.sum(weight)) * 1.0
+    utility_score = density * sparsity
+    
+    # Incorporate domain insight by considering items with higher diversity
+    diversity_score = np.sum(weight, axis=1) / np.sum(weight**2, axis=1)
+    adjusted_diversity_score = diversity_score * (1 - average_weight / np.sum(weight))
+    
+    # Combine scores to reflect both local (utility) and global (diversity) features
+    combined_score = utility_score + adjusted_diversity_score
+    
+    # Add a bonus for items that are not over-represented in the total weight
+    additional_bonus = (prize / np.sum(prize)) * combined_score * (1 - average_weight / np.sum(weight))
+    
+    return combined_score + additional_bonus
+```

@@ -1,0 +1,34 @@
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # The heuristic approach is quite flexible, but one common heuristic is to use the inverse of the demand
+    # multiplied by the distance. This gives a weight to the edges that depends both on the distance and
+    # the demand, where higher demand or lower distance are more favorable. The negative sign will
+    # push undesirable edges to negative values.
+
+    # Calculate the negative of the demand vector, which will make larger demands have more positive
+    # weights and smaller demands have more negative weights.
+    negative_demands = -demands
+
+    # Element-wise multiplication of the negative demand vector with the distance matrix.
+    # This will emphasize shorter paths with higher demand, which might be more important
+    # depending on the problem's context.
+    demand_weighted_distances = negative_demands.unsqueeze(1) * distance_matrix
+
+    # We can introduce a positive constant to prevent division by zero and to adjust the scale.
+    # The choice of the constant will depend on the problem's specific scale.
+    constant = 0.1  # This is a hyperparameter that may need to be tuned.
+
+    # Divide the demand-weighted distances by a constant, which helps in scaling the heuristic values.
+    scaled_demands = demand_weighted_distances / constant
+
+    # Normalize the entire matrix so that promising edges get positive values and undesirable edges get
+    # negative values.
+    max_demand_weighted_distance = torch.max(scaled_demands)
+    min_demand_weighted_distance = torch.min(scaled_demands)
+
+    # The heuristic matrix, ensuring it has the required sign for desirable and undesirable edges.
+    heuristics_matrix = scaled_demands - max_demand_weighted_distance + min_demand_weighted_distance
+
+    return heuristics_matrix

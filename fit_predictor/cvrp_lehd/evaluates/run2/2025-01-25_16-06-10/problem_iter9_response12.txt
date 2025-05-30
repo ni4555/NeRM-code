@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:]  # Exclude the depot node from capacity calculation
+    
+    # Vectorized approach to update heuristics
+    for start_node in range(1, n_nodes):
+        # Find the next node that can be visited without exceeding capacity
+        next_node = torch.argmax(remaining_capacity[start_node:] > (demand_cumsum[start_node:] - demand_cumsum[start_node]))
+        if next_node != 0:  # Skip if the next node is the depot
+            destination_node = start_node + next_node
+            total_demand = demand_cumsum[destination_node] - demand_cumsum[start_node]
+            distance = distance_matrix[start_node, destination_node]
+            heuristics[start_node, destination_node] = distance
+            remaining_capacity[start_node] -= total_demand
+            heuristics[start_node, 0] = distance_matrix[start_node, 0]
+    
+    # Exploit symmetry
+    heuristics = heuristics + heuristics.t()
+    
+    # Normalize by total distance to depot
+    total_distance_to_depot = torch.sum(distance_matrix[:, 0])
+    heuristics = heuristics / total_distance_to_depot
+    return heuristics
+```

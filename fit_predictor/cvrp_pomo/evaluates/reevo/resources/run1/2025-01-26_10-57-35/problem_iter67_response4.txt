@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize early by the total demand for each node
+    total_demand = demands.sum()
+    normalized_demand = demands / total_demand
+    
+    # Initialize heuristics matrix with zeros
+    heuristics = torch.zeros(n, n)
+    
+    # Iterate dynamically through the nodes to compute heuristics
+    for i in range(n):
+        for j in range(n):
+            # Skip the depot in comparisons
+            if i == 0 and j == 0:
+                continue
+            
+            # Balance capacity by considering demand contribution
+            heuristics[i, j] = -demands[j]  # Negative to reflect the cost
+            
+            # Dampen dominance by normalizing edge heuristics
+            edge_heuristics = distance_matrix[i, j] * normalized_demand[j]
+            heuristics[i, j] -= edge_heuristics
+            
+            # Minimize loops by reducing heuristic for loops
+            loop_heuristics = distance_matrix[i, j] + distance_matrix[j, i]
+            heuristics[i, j] -= loop_heuristics
+    
+    # Normalize heuristics to avoid dominance and ensure stability
+    heuristics /= heuristics.max()
+    
+    # Apply capacity constraint by using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))  # Avoid division by zero
+    
+    # Final adjustment of heuristics
+    heuristics = heuristics * capacity_factor
+    
+    # Ensure the heuristic for the depot is the highest
+    heuristics[0, :] += 1  # Add a positive factor to depot edges
+    heuristics[:, 0] += 1  # Add a positive factor to depot edges
+    
+    return heuristics
+```

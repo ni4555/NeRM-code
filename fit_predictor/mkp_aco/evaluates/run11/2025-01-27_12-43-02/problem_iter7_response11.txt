@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    # Normalize weights and calculate the score for each item
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    
+    # Calculate the weight ratio for each item
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    
+    # Calculate the importance by combining the score and ratio
+    importance = score * ratio
+    
+    # Normalize the importance scores
+    importance_normalized = importance / np.sum(importance)
+    
+    # Emphasize high-scores by increasing the sparsity
+    # We set a threshold and only keep the items with high scores
+    threshold = np.mean(importance_normalized)
+    heuristics = (importance_normalized >= threshold).astype(float)
+    
+    return heuristics
+```

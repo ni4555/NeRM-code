@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Introduce a distance-based preference for nearby nodes with lower demands
+    distance_preference = torch.exp(-distance_matrix / (1 + demands))
+    
+    # Introduce a penalty for overloading the vehicle
+    overload_penalty = -torch.log1p(cumulative_demand - total_capacity)
+    
+    # Introduce a balance load heuristic
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Combine preferences and penalties to form heuristics
+    heuristics = distance_preference + overload_penalty + load_balance_penalty
+    return heuristics
+```

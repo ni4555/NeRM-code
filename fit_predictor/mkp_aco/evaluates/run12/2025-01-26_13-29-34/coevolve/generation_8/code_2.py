@@ -1,0 +1,38 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristic array
+    heuristics = np.zeros_like(prize)
+    
+    # Initialize swarm particles (position and velocity)
+    particles = {
+        'position': np.copy(prize),
+        'velocity': np.zeros_like(prize)
+    }
+    
+    # Dynamic constraint-violation filtering algorithm
+    constraints_violation = np.sum(weight, axis=1)
+    filtered_particles = {k: v for k, v in particles.items() if np.all(constraints_violation <= 1)}
+    
+    # Particle Swarm Optimization (PSO) iteration
+    for iteration in range(10):  # Assuming 10 iterations
+        for i in range(len(prize)):
+            # Update velocities
+            particles['velocity'] = particles['velocity'] + np.random.randn(*particles['position'].shape) - np.random.randn(*particles['position'].shape)
+            
+            # Update positions based on velocities
+            particles['position'] = particles['position'] + particles['velocity']
+            
+            # Apply constraint-violation filtering
+            constraints_violation = np.sum(weight, axis=1)
+            if not np.all(constraints_violation <= 1):
+                particles['position'][np.where(constraints_violation > 1)[0]] = particles['position'][np.where(constraints_violation > 1)[0]] - particles['velocity'][np.where(constraints_violation > 1)[0]]
+            
+            # Update heuristics based on positions
+            heuristics[i] = np.sum(particles['position'])
+        
+        # Update global best and personal best positions (not shown here)
+        # ...
+    
+    return heuristics

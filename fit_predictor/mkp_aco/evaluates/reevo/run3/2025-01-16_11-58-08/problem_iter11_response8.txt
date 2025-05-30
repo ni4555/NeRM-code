@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Normalize by adding a small constant to avoid division by zero
+    normalized_ratio = value_to_weight_ratio + 0.01
+    # Emphasize high values by applying an exponential function
+    emphasized_ratio = np.exp(normalized_ratio)
+    # Incorporate diversity by ensuring that only the top x ratios are kept
+    num_items_to_keep = max(1, int(len(emphasized_ratio) * 0.1))
+    sorted_indices = np.argsort(-emphasized_ratio)
+    diverse_ratio = emphasized_ratio[sorted_indices[:num_items_to_keep]]
+    # Non-linear transformation by squaring the ratios
+    non_linear_transformed = (diverse_ratio ** 2)
+    # Apply sparsity by setting the rest to zero
+    sparsified_non_linear_transformed = np.where(non_linear_transformed > 1, non_linear_transformed, 0)
+    return sparsified_non_linear_transformed
+```

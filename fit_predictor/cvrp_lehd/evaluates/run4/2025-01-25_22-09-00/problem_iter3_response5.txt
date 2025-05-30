@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_sum = demands.sum()
+    demand_normalized = demands / demand_sum
+    
+    # Incorporate demand factors
+    demand_factor = (demands * demand_normalized).unsqueeze(1)
+    
+    # Distance scaling
+    distance_scaled = distance_matrix / distance_matrix.mean()
+    
+    # Local and global balance
+    local_balance = distance_scaled * demand_factor
+    global_balance = distance_scaled * torch.exp(-0.5 * (distance_matrix**2))
+    
+    # Combine the factors
+    heuristics = local_balance + global_balance
+    
+    # Refine with negative values for undesirable edges
+    heuristics[distance_matrix == 0] = -float('inf')  # Avoid zero distances
+    heuristics[heuristics < 0] = 0
+    
+    return heuristics
+```

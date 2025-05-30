@@ -1,0 +1,25 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    
+    # Adding diversity by considering a random perturbation in the utility scores
+    diversity_factor = np.random.rand(*utility.shape)
+    perturbation = diversity_factor * (utility.max(axis=1) - utility)
+    perturbed_utility = utility + perturbation
+    
+    # Combining utility and diversity for final heuristic values
+    combined_heuristics = (perturbed_utility * prize).sum(axis=1)
+    
+    # Normalize the combined heuristics to get a final score
+    max_combined_heuristic = combined_heuristics.max()
+    heuristics = combined_heuristics / max_combined_heuristic
+    
+    # Sparsify the heuristics by setting lower values to zero
+    sparsified_heuristics = np.where(heuristics > 0.5, heuristics, 0)
+    
+    return sparsified_heuristics
+```

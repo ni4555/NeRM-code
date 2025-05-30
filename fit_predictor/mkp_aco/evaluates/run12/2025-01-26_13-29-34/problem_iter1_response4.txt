@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    heuristic = np.zeros((prize.shape[0],))
+
+    # Calculate initial heuristic based on maximum prize achievable up to each item
+    max_prize = np.zeros((prize.shape[0],))
+    total_prize = 0
+    for i in range(prize.shape[0]):
+        total_prize = max(total_prize, prize[i])
+        max_prize[i] = total_prize
+
+    # Deep reinforcement learning-inspired heuristic factor for real-time decision-making
+    def drl_heuristic(index):
+        return (max_prize[index] / (np.sum(weight[index, :]) + 1))
+
+    # Apply particle swarm optimization to determine promising indices
+    for _ in range(10):  # 10 iterations to simulate PSO convergence
+        random_index = np.random.randint(0, prize.shape[0])
+        heuristic[random_index] = max(heuristic[random_index], drl_heuristic(random_index))
+        
+        # Apply adaptive constraint-driven filtering to maintain feasibility
+        feasible_indices = np.where(heuristic > 0)[0]
+        total_weight = np.sum(weight[feasible_indices, :], axis=0)
+        if np.any(total_weight > 1):
+            for index in feasible_indices:
+                heuristic[index] *= np.exp(-0.01 * total_weight[index])
+            feasible_indices = np.where(heuristic > 0)[0]
+
+    # Sparsify the heuristic array by setting unpromising elements to zero
+    sparsity_factor = 1 / np.sum(heuristic > 0)
+    heuristic[heuristic < sparsity_factor * np.max(heuristic)] = 0
+
+    return heuristic
+```

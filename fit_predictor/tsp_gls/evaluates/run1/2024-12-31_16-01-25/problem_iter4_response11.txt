@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the number of nodes
+    num_nodes = distance_matrix.shape[0]
+    
+    # Initialize the heuristic matrix with zeros
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Calculate the center of mass for the distance matrix
+    center_of_mass = np.sum(distance_matrix) / (num_nodes * (num_nodes - 1))
+    
+    # Calculate the median distance for each edge
+    median_distance = np.median(np.sort(distance_matrix.reshape(-1, num_nodes).T, axis=0))
+    
+    # Calculate the average distance for each edge
+    average_distance = np.mean(distance_matrix)
+    
+    # Use a combination of center of mass, median distance, and average distance to compute the heuristics
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                heuristics[i, j] = np.abs(distance_matrix[i, j] - center_of_mass) + \
+                                   (distance_matrix[i, j] - median_distance) + \
+                                   (distance_matrix[i, j] - average_distance)
+                
+    # Normalize the heuristic values to ensure they are within a specific range
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    
+    return heuristics
+```

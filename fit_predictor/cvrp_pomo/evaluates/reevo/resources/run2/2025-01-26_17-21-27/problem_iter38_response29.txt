@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Calculate cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Core objective: Scaled distance
+    distance_scaled = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * (cumulative_demand / total_capacity)
+    
+    # Dynamic capacity penalty
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8) * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Overflow penalty
+    overflow_penalty = torch.where(
+        cumulative_demand[:, None] + demands[None, :] > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance penalty
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Combine penalties with the core objective
+    combined_penalties = distance_scaled + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty
+    
+    # Scale the combined penalties
+    penalty_scaling = torch.exp(-torch.abs(cumulative_demand / total_capacity))
+    scaled_penalties = combined_penalties * penalty_scaling
+    
+    # Subtract penalty for the depot to return to itself
+    depot_penalty = torch.arange(n) == 0
+    heuristics = scaled_penalties - depot_penalty.float().unsqueeze(0)
+    
+    return heuristics
+```

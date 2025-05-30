@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_vertices = distance_matrix.shape[0]
+    
+    # Calculate the minimum distance for each vertex to any other vertex
+    min_distance = np.min(distance_matrix, axis=1)
+    
+    # Calculate the second minimum distance for each vertex to any other vertex
+    second_min_distance = np.partition(distance_matrix, 1, axis=1)[:, 1]
+    
+    # Calculate the bonus for edges that are close to the minimum distance
+    bonus = np.where(distance_matrix == min_distance,
+                     1,
+                     np.where(distance_matrix == second_min_distance,
+                              0.5,
+                              0))
+    
+    # Calculate the penalty for longer edges based on their ratio to the shortest edge
+    penalty = (distance_matrix / np.min(distance_matrix)) * 2
+    
+    # Combine the penalty and bonus to create the heuristics matrix
+    heuristics_matrix = penalty + bonus
+    
+    # Normalize the heuristics matrix to ensure all values are non-negative and avoid over-normalization
+    max_val = np.max(np.abs(heuristics_matrix))
+    if max_val > 0:
+        heuristics_matrix = heuristics_matrix / max_val
+    
+    # Integrate contextual information by adding a diversity factor based on second minimum distance
+    diversity_factor = second_min_distance / min_distance
+    diversity_bonus = diversity_factor - 1
+    diversity_bonus = np.clip(diversity_bonus, -1, 1)  # Limit the bonus to [-1, 1]
+    heuristics_matrix = heuristics_matrix + diversity_bonus
+    
+    # Explore by adding a random factor to promote exploration
+    random_factor = np.random.random((num_vertices, num_vertices))
+    exploration_bonus = np.random_factor * (1 - heuristics_matrix)
+    heuristics_matrix = heuristics_matrix + exploration_bonus
+    
+    return heuristics_matrix
+```

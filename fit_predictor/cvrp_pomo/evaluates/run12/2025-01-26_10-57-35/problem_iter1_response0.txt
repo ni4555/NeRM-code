@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand for each node in the order of the distance matrix
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Loop through each edge
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            # If the destination node has a higher cumulative demand than the origin node
+            if cumulative_demand[j] > cumulative_demand[i]:
+                # Calculate the potential cost to visit node j from node i
+                potential_cost = distance_matrix[i, j] - (cumulative_demand[j] - cumulative_demand[i])
+                # Assign a negative value if the potential cost is negative, indicating a promising edge
+                heuristics[i, j] = -potential_cost if potential_cost < 0 else 0
+    
+    return heuristics
+```

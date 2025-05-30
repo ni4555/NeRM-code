@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improve upon the trivial implementation by considering the following:
+    - Shorter distances are more promising.
+    - Nodes with higher demand are more promising.
+    - Nodes that are close to the depot are more promising.
+    """
+    # Calculate the inverse of the distance matrix to emphasize shorter distances
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)  # Add a small value to avoid division by zero
+    
+    # Multiply the inverse distance matrix by the demands to emphasize nodes with higher demand
+    demand_weighted_distance_matrix = distance_matrix_inv * demands
+    
+    # Add a small value to the diagonal to avoid self-loop penalties
+    identity_matrix = torch.eye(distance_matrix.size(0))
+    demand_weighted_distance_matrix += identity_matrix * 1e-10
+    
+    # Normalize the matrix to ensure all values are within a certain range
+    max_demand = demands.max()
+    min_demand = demands.min()
+    normalized_demand_weighted_distance_matrix = (demand_weighted_distance_matrix - min_demand) / (max_demand - min_demand)
+    
+    return normalized_demand_weighted_distance_matrix
+```

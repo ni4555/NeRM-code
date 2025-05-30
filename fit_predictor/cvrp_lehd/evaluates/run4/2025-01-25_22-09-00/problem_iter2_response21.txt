@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic considering demand diversity, distance normalization, and dampening factors."""
+    total_demand = demands.sum()
+    # Normalize demands by total demand
+    normalized_demands = demands / total_demand
+    # Calculate the potential contribution of each edge
+    potential = -distance_matrix * normalized_demands
+    # Normalize distances by the maximum distance in the matrix
+    normalized_distances = distance_matrix / distance_matrix.max()
+    # Apply a dampening factor to penalize longer distances
+    dampen = torch.exp(-normalized_distances / 5)
+    # Consider demand diversity by using a diversity factor
+    diversity_factor = 1 / (1 + torch.abs(normalized_demands - normalized_demands.mean()))
+    # Combine potential, dampening, and diversity
+    heuristics = potential * dampen * diversity_factor
+    # Normalize the heuristics to have a range between -1 and 1
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    return heuristics
+```

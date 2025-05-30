@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic scaling for distance and load balance
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (cumulative_demand / (total_capacity - 1e-8))
+    
+    load_balance_scaling = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance_scaling - 1e-8)
+    
+    # Overflow penalty and early return to the depot
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    overflow_penalty *= torch.where(remaining_capacity < 1e-8, 1, 0)
+    
+    # Encourage uniform load distribution and early overflow handling
+    load_balance_encouragement = (1 - (load_balance_scaling / (total_capacity - 1e-8))) * (1 / (1 + torch.exp(remaining_capacity / -10)))
+    
+    # Apply a balance between the dynamic scaling factors
+    heuristics = distance_scaling + load_balance_penalty + overflow_penalty + load_balance_encouragement
+    
+    # Randomness to foster diversity
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    heuristics += diversity_factor
+    
+    # Scaling factors to emphasize certain aspects
+    scaling_factor_distance = 5.0
+    scaling_factor_balance = 1.0
+    scaling_factor_overflow = 3.0
+    
+    # Final heuristics vector
+    heuristics *= (scaling_factor_distance * (1.0 - remaining_capacity / total_capacity) +
+                   scaling_factor_balance * (remaining_capacity / total_capacity) +
+                   scaling_factor_overflow * (remaining_capacity < 1e-8))
+    
+    return heuristics
+```

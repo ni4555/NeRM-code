@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the cumulative sum of demands, excluding the depot (node 0)
+    cumulative_demand = torch.cumsum(demands[1:], dim=0)
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    # For each edge (i, j), where i is not the depot and j is not the depot
+    for i in range(1, n):
+        for j in range(1, n):
+            # If demand at j is greater than demand at i, consider it promising
+            if demands[j] > demands[i]:
+                # Calculate the potential benefit of visiting j from i
+                potential_benefit = distance_matrix[i, j] - (cumulative_demand[j] - cumulative_demand[i])
+                # Store the potential benefit in the heuristic matrix
+                heuristic_matrix[i, j] = potential_benefit
+    return heuristic_matrix
+```

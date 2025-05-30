@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+
+    # Normalize demands to balance their impact
+    demand_normalized = demands / demands.max()
+
+    # Initialize penalty matrices
+    demand_penalty_matrix = -torch.abs(demand_normalized - 1.0)
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+
+    # Emphasize demand constraint early on with high penalties
+    early_penalty_matrix = 5 * demand_penalty_matrix
+
+    # Normalize by the total vehicle capacity to maintain balance
+    demand_penalty_matrix /= vehicle_capacity
+
+    # Combine penalties into a potential matrix
+    potential_matrix = early_penalty_matrix + distance_penalty_matrix
+
+    # Apply a Gaussian noise for diversity while maintaining constraints
+    noise_matrix = torch.randn_like(potential_matrix) * 1e-3
+
+    # Introduce randomness to promote local search and exploration
+    combined_potential_matrix = potential_matrix + noise_matrix
+
+    # Use a non-linear transformation to enhance the effect of the constraint
+    emphasized_matrix = torch.exp(-torch.abs(combined_potential_matrix))
+
+    # Normalize to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+
+    # Introduce additional diversity by combining with distance penalty matrix
+    combined_matrix = normalized_emphasized_matrix + distance_penalty_matrix
+
+    # Use a mutation step with a perturbation that is small relative to the problem scale
+    mutation_factor = torch.rand_like(combined_matrix)
+    mutated_combined_matrix = combined_matrix + mutation_factor * torch.randn_like(combined_matrix) * 1e-3
+
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -mutated_combined_matrix
+
+    return heuristics_matrix
+```

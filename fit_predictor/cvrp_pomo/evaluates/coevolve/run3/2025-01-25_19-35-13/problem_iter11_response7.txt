@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+    
+    # Initialize the potential matrix with high penalties
+    edge_potential = -torch.inf * torch.ones_like(distance_matrix)
+    
+    # Vectorized approach to calculate potential using DP bounds
+    epsilon = 1e-8
+    for d in range(1, len(demands)):
+        dp_next = dp[:, 0] + distance_matrix[:, d]
+        dp = torch.stack([dp_next, dp], dim=1).amin(dim=1, keepdim=True)
+    
+    lower_bound = dp[1:, 0]
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    
+    # Integrate distance heuristic
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+    
+    # Shape the search space by penalizing high demand and long distances
+    edge_potential = edge_potential - (edge_potential * 0.1 * (demands > 1.5).float())
+    edge_potential = edge_potential + (edge_potential * 0.05 * (distance_matrix < 10).float())
+    
+    return edge_potential
+```

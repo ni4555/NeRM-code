@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize penalties array with zeros
+    penalties = np.zeros_like(distance_matrix)
+    
+    # Define a local optimal route (for demonstration purposes, let's use a simple cyclic route)
+    local_optimal_route = np.arange(distance_matrix.shape[0])
+    
+    # Penalize edges on the local optimal route
+    for i in range(len(local_optimal_route)):
+        penalties[local_optimal_route[i]][local_optimal_route[(i+1) % len(local_optimal_route)]] = 1
+        penalties[local_optimal_route[(i+1) % len(local_optimal_route)]][local_optimal_route[i]] = 1
+    
+    # Calculate edge penalties proportional to the distance of the edge, but with a cap to avoid overpenalizing
+    edge_penalties = distance_matrix / np.max(distance_matrix)
+    edge_penalties = np.clip(edge_penalties, 0.1, 1)  # Cap the maximum penalty to avoid overpenalization
+    
+    # Combine penalties, but ensure that known good edges are not overpenalized
+    combined_penalties = penalties * edge_penalties
+    combined_penalties = np.clip(combined_penalties, 0, 1)  # Ensure penalties are within [0, 1]
+    
+    return combined_penalties
+```

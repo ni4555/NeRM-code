@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    num_nodes = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Demand factor: higher demand nodes have higher heuristics
+    demand_factor = demands / total_demand
+
+    # Distance factor: shorter distances have higher heuristics
+    distance_factor = 1 / (1 + torch.exp(-distance_matrix / torch.mean(torch.abs(distance_matrix))))
+
+    # Combine factors
+    heuristic_matrix = demand_factor * distance_factor
+
+    # Exclude the depot node from the heuristic matrix
+    heuristic_matrix[0, :] = 0
+    heuristic_matrix[:, 0] = 0
+
+    return heuristic_matrix
+```

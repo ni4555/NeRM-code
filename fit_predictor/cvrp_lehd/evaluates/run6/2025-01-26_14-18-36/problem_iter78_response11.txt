@@ -1,0 +1,50 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce a capacity-aware penalty for edges that would exceed capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+
+    # Normalize demand differences to encourage diversity
+    demand_diff = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs()
+
+    # Calculate heuristic value using normalized demand differences and remaining capacity
+    heuristics = demand_diff * remaining_capacity
+
+    # Introduce randomness to explore diverse solutions with less noise
+    exploration_noise = torch.randn_like(heuristics) * 0.005
+
+    # Normalize heuristic values to encourage exploration
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Use a non-linear transformation to dampen high penalties and encourage balance
+    heuristics = torch.sigmoid(heuristics)
+
+    # Introduce a penalty for edges leading back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * 0.5
+
+    # Introduce a local preference for edges closer to the depot
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+    heuristics += torch.clamp(distance_penalty, min=0.0) * 0.5
+
+    # Combine all penalties and preferences
+    heuristics -= (capacity_penalty + demand_diff) * 0.5
+    heuristics += exploration_noise
+
+    # Clamp the heuristic values to ensure a balanced heuristic distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

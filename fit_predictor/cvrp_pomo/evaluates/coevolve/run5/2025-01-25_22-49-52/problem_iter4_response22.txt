@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize a matrix of the same size as the distance matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Normalize demands
+    demands = demands / demands.sum()
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demands = demands.cumsum(0)
+    
+    # Define a function to calculate the weight of each node based on its cumulative demand
+    def calculate_node_weight(cumulative_demand):
+        # The weight is a non-linear function of the cumulative demand, with a saturation effect
+        return 1 / (1 + torch.exp(-torch.clamp(5 * (cumulative_demand - 0.5), min=0)))
+    
+    # Apply the function to each node
+    node_weights = calculate_node_weight(cumulative_demands)
+    
+    # Calculate the weight of each edge
+    # The weight of an edge is the product of the weights of its two nodes
+    edge_weights = node_weights[None, :] * node_weights[:, None]
+    
+    # Normalize the edge weights to ensure they are non-negative
+    edge_weights = edge_weights.clamp(min=0)
+    
+    # Calculate the potential value for each edge
+    # The potential value is the product of the distance and the weight
+    potential_values = distance_matrix * edge_weights
+    
+    # Set the depot to have the lowest potential value
+    depot_potential = potential_values[0, :].min()
+    potential_values[0, :] = depot_potential
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

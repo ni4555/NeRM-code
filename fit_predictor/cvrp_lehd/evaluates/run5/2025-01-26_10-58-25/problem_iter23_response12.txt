@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Introduce a demand surplus penalty and a distance penalty in a combined matrix
+    combined_penalty_matrix = -(torch.abs(demands - vehicle_capacity) + torch.log(distance_matrix + 1e-6))
+    
+    # Create a normalization factor for the distance-based penalties
+    normalization_factor = combined_penalty_matrix.mean() + 1
+    
+    # Apply the normalization factor to the combined penalty matrix to maintain balance
+    balanced_penalty_matrix = combined_penalty_matrix / normalization_factor
+    
+    # Add a distance penalty that is higher for larger distances, emphasizing nearby nodes
+    distance_weight_matrix = torch.log(distance_matrix + 1e-6) / normalization_factor
+    
+    # Create a combined matrix by balancing the penalty and distance weight
+    combined_matrix = balanced_penalty_matrix + distance_weight_matrix
+    
+    # Introduce a discount factor to reduce the influence of distant edges
+    discount_factor = torch.exp(-torch.logspace(0, 1, distance_matrix.shape[0], base=2))
+    
+    # Apply the discount factor to the combined matrix to favor nearby nodes
+    discounted_combined_matrix = discount_factor[:, None] * combined_matrix
+    
+    # Normalize the discounted combined matrix to ensure non-negativity
+    normalized_discounted_matrix = F.softmax(discounted_combined_matrix, dim=1)
+    
+    # Return the normalized matrix as the heuristics
+    return normalized_discounted_matrix
+```

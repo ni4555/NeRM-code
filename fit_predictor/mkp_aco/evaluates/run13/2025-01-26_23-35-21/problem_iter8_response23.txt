@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize based on the maximum prize value
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate utility based on normalized prize per unit weight
+    utility = normalized_prize / np.sum(weight, axis=1)
+    
+    # Calculate the normalized variance to encourage diversity
+    normalized_variance = np.var(weight, axis=1) / np.sum(weight, axis=1)
+    
+    # Normalize the weight by its maximum value to prevent any single dimension from dominating
+    normalized_weight = weight / np.max(weight, axis=1, keepdims=True)
+    
+    # Calculate the sparsity score for each item
+    sparsity_score = (np.sum(normalized_weight, axis=1) < 0.5) * 1.0
+    
+    # Combine utility, variance, and sparsity score to form heuristics
+    # Weighing utility more heavily as it directly contributes to the profit
+    heuristic = utility * 0.6 + (normalized_variance * 0.2) + (sparsity_score * 0.2)
+    
+    # Normalize the heuristic to maintain values between 0 and 1
+    max_heuristic = np.max(heuristic)
+    min_heuristic = np.min(heuristic)
+    heuristics = (heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # Apply a non-zero threshold to ensure some level of sparsity in the heuristics
+    threshold = 0.1
+    heuristics[heuristic < threshold] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,50 @@
+```python
+import torch
+import heapq
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands = demands / total_capacity  # Normalize demand by total vehicle capacity
+    
+    # Initialize a visited array to keep track of visited nodes
+    visited = torch.zeros(n, dtype=torch.bool)
+    visited[0] = True  # Depot node is visited initially
+    
+    # Initialize the priority queue with the depot and the first customer
+    priority_queue = [(0, (0, 1))]
+    
+    # Initialize the heuristic matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    while priority_queue:
+        # Get the next edge with the highest heuristic value
+        cost, (u, v) = heapq.heappop(priority_queue)
+        
+        # If this edge has already been visited, skip it
+        if visited[v]:
+            continue
+        
+        # Add the edge to the heuristic matrix
+        heuristics[u, v] = heuristics[v, u] = cost
+        
+        # Update the cumulative demand
+        visited[v] = True
+        current_demand = demands[:v+1].sum()
+        
+        # Add the next node with feasible demand to the priority queue
+        for i in range(v+1, n):
+            if demands[i] <= total_capacity - current_demand:
+                heapq.heappush(priority_queue, (distance_matrix[v, i], (v, i)))
+    
+    # Adjust heuristics to reflect the capacity constraint by penalizing edges that exceed capacity
+    for i in range(n):
+        for j in range(n):
+            if i != j and (i == 0 or j == 0):
+                if heuristics[i, j] > 0:
+                    penalty = (1 - demands[:i+1].sum() - demands[i+1:].sum()) / (distance_matrix[i, j] + 1e-8)
+                    heuristics[i, j] += penalty
+                    heuristics[j, i] += penalty
+    
+    return heuristics
+```

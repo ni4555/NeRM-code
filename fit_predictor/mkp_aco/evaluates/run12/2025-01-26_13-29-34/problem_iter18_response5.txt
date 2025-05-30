@@ -1,0 +1,66 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    heuristic = np.zeros((n,))
+
+    # Initialize DRL scores with a random distribution
+    model_scores = np.random.rand(n)
+
+    # Constraint-driven filtering to maintain feasibility
+    feasible_items = np.ones(n, dtype=bool)
+    constraint_violation = np.sum(weight, axis=1) > 1
+    feasible_items[constraint_violation] = False
+
+    # Initialize PSO components
+    pso_position = np.random.rand(n)
+    pso_velocity = np.zeros(n)
+    pso_personal_best = np.copy(pso_position)
+    pso_global_best = np.copy(pso_position)
+    pso_personal_best_scores = np.copy(model_scores)
+    pso_global_best_scores = np.copy(model_scores)
+
+    # Update PSO position and personal best based on random walk and exploration
+    for i in range(n):
+        pso_velocity[i] = (0.5 * (np.random.rand() - 0.5))
+        pso_position[i] += pso_velocity[i]
+        pso_position[i] = np.clip(pso_position[i], 0, 1)
+
+        if pso_position[i] > 0.5:  # Consider only positive weights for feasibility
+            if model_scores[i] > pso_personal_best_scores[i]:
+                pso_personal_best_scores[i] = model_scores[i]
+                pso_personal_best[i] = pso_position[i]
+
+    # Update global best based on the personal bests that are feasible
+    feasible_pso_indices = np.where(feasible_items)[0]
+    if len(feasible_pso_indices) > 0:
+        pso_global_best_scores[feasible_items] = pso_personal_best_scores[feasible_pso_indices]
+        pso_global_best[feasible_items] = pso_personal_best[feasible_pso_indices]
+        pso_global_best_scores[~feasible_items] = float('-inf')
+
+    # Update model scores based on the best PSO score
+    global_best_index = np.argmax(pso_global_best_scores)
+    model_scores[~feasible_items] = float('-inf')
+    model_scores[global_best_index] = pso_global_best_scores[global_best_index]
+
+    # Update heuristics considering feasibility and weighted reward
+    for i in range(n):
+        if feasible_items[i]:
+            avg_reward = np.mean(model_scores)
+            heuristic[i] = avg_reward * (prize[i] / (prize[global_best_index] + 1e-6))
+
+    # Constraint-aware filtering
+    heuristic[~feasible_items] = 0
+
+    # Sparsify heuristics using dynamic thresholds
+    dynamic_threshold = np.percentile(heuristic, 50)
+    heuristic[heuristic < dynamic_threshold] = 0
+
+    # Enhance exploration-exploitation balance
+    exploration_rate = 0.1 + 0.9 * np.random.rand()
+    exploitation_rate = 0.9 - 0.1 * np.random.rand()
+    heuristic = (exploration_rate * np.random.rand(n)) + (exploitation_rate * heuristic)
+
+    return heuristic
+```

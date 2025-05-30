@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    
+    # Normalize the weights
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    
+    # Calculate initial heuristics based on normalized weights
+    initial_heuristics = np.sum(prize * normalized_weights, axis=1)
+    
+    # Calculate additional scores considering diversity (sparsity)
+    diversity_scores = 1 / np.linalg.norm(weight, axis=1)
+    
+    # Combine heuristics with diversity scores, normalize
+    combined_scores = initial_heuristics + diversity_scores
+    normalized_combined_scores = combined_scores / np.sum(combined_scores)
+    
+    # Adjust the heuristics by considering item relevance (ratio of prize to weight)
+    importance_ratio = prize / (np.sum(weight, axis=1) + 1e-8)
+    adjusted_heuristics = normalized_combined_scores * importance_ratio
+    
+    # Further normalize to ensure the sum is 1
+    final_heuristics = adjusted_heuristics / np.sum(adjusted_heuristics)
+    
+    return final_heuristics
+```

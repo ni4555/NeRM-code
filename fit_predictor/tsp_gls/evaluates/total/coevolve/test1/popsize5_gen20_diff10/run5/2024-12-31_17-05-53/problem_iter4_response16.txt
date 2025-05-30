@@ -1,0 +1,26 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the average distance between all nodes
+    total_edge_distance = np.sum(distance_matrix)
+    mean_distance = total_edge_distance / (distance_matrix.shape[0] * (distance_matrix.shape[0] - 1))
+
+    # Calculate the sum of the differences between each edge length and the mean distance
+    heuristic_matrix = np.abs(distance_matrix - mean_distance)
+
+    # Calculate the inverse of the distances to emphasize edges with lower weights
+    inverse_distance_matrix = 1 / (distance_matrix + 1e-10)
+
+    # Combine the heuristics: use the difference from mean as the primary, inverse as a secondary weight
+    weight_diff_from_mean = 0.6
+    weight_inverse = 0.4
+    combined_heuristic_matrix = (weight_diff_from_mean * heuristic_matrix +
+                                weight_inverse * inverse_distance_matrix)
+
+    # Normalize the combined heuristic matrix to ensure non-negative values and for consistent comparison
+    row_sums = np.sum(combined_heuristic_matrix, axis=1)
+    normalized_combined_heuristic_matrix = combined_heuristic_matrix / (row_sums[:, np.newaxis] + 1e-10)
+
+    return normalized_combined_heuristic_matrix
+```

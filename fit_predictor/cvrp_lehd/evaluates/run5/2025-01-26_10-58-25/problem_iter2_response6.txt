@@ -1,0 +1,34 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = demands.sum() / len(demands)
+    
+    # Initialize a matrix with the same shape as the distance matrix
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Iterate over all possible paths (except the trivial path from the depot to itself)
+    for start in range(1, len(demands)):
+        for end in range(1, len(demands)):
+            # Calculate the cumulative demand along the path
+            cumulative_demand = torch.cat([demands[start:end+1], demands[:start]])
+            
+            # Calculate the potential penalty for the path if it exceeds the vehicle capacity
+            penalty = (cumulative_demand > vehicle_capacity).float() * (vehicle_capacity - cumulative_demand)
+            
+            # Calculate the heuristic value for the path
+            heuristic_value = distance_matrix[start, end] - penalty
+            
+            # Update the heuristics matrix
+            heuristics_matrix[start, end] = heuristic_value
+    
+    # Softmax over each row to normalize the heuristics matrix
+    softmax_matrix = F.softmax(heuristics_matrix, dim=1)
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

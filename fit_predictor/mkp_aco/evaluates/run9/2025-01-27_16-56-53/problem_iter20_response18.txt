@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on value to weight ratio
+    for i in range(n):
+        total_value = np.sum(prize[i] * weight[i])
+        total_weight = np.sum(weight[i])
+        # Normalize by the dimension-specific weight limits (all 1 in this case)
+        heuristic[i] = total_value / total_weight
+    
+    # Emphasize sparsity by penalizing items with less unique weights
+    unique_weight_counts = np.count_nonzero(weight, axis=1)
+    heuristic *= (unique_weight_counts / m)
+    
+    # Favor diversity by considering items that are not max-weight in any dimension
+    diversity_factors = np.array([weight[i, :].max() == weight[i] for i in range(n)])
+    heuristic *= diversity_factors
+    
+    # Introduce an adaptive exploration strategy using a sigmoid function
+    exploration_exploitation_factor = 1 / (1 + np.exp((heuristic - np.mean(heuristic)) / 0.1))
+    heuristic *= exploration_exploitation_factor
+    
+    # Introduce controlled randomness to promote exploration
+    random_noise = np.random.normal(0, heuristic.std() / 2, size=n)
+    heuristic += random_noise
+    
+    # Control overfitting by reducing influence of highly weighted items
+    weighted_heuristic = np.sum(weight, axis=1)
+    heuristic[weighted_heuristic > 0.9 * m] = (heuristic[weighted_heuristic > 0.9 * m] - heuristic.min()) / (heuristic.max() - heuristic.min())
+    
+    # Set low-value items to zero
+    heuristic[heuristic < heuristic.mean() / 5] = 0
+    
+    return heuristic
+```

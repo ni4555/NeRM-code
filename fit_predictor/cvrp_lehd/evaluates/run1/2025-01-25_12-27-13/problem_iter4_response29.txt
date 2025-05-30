@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Non-linear transformation with exponential decay
+    decay_factor = 0.5
+    demand_exponential = torch.exp(-decay_factor * torch.abs(demands))
+
+    # Sigmoid function to balance demand and distance
+    sigmoid_coefficient = 1.0
+    sigmoid = torch.sigmoid(sigmoid_coefficient * (distance_matrix - distance_matrix.min() + 1e-8))
+    
+    # Combine heuristics components
+    edge_heuristic = demand_exponential * sigmoid * (demands - demands.mean())
+    
+    # Add a bonus for the depot node
+    heuristics[torch.arange(n), torch.arange(n)] += 1
+
+    return edge_heuristic
+```

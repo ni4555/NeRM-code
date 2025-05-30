@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    # Subtract the diagonal to avoid self-loops
+    demand_subtraction = torch.diag(demands)
+    # Calculate the heuristic values based on distance and demand
+    heuristic_values = (distance_matrix - demand_subtraction) / total_demand
+    # Apply a penalty for high demand nodes
+    demand_penalty = demands / total_demand
+    # Apply a discount factor to the distance to prioritize shorter paths
+    distance_discount = torch.exp(-distance_matrix)
+    # Combine the heuristic values with the penalties and discount factor
+    heuristics = heuristic_values - demand_penalty * distance_discount
+    # Clamp the values to ensure they are within the desired range
+    heuristics = torch.clamp(heuristics, min=-1.0, max=1.0)
+    return heuristics
+```

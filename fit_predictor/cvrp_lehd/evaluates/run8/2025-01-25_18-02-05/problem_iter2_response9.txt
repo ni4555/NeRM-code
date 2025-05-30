@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand-to-distance ratio as we move along each edge
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    cumulative_distance = torch.cumsum(distance_matrix, dim=0)
+    
+    # Calculate the heuristic values based on the ratio of cumulative demand to cumulative distance
+    heuristic_matrix = cumulative_demand / cumulative_distance
+    
+    # Normalize the heuristic values to create a preference for edges with lower ratios
+    normalized_heuristic = heuristic_matrix / heuristic_matrix.max()
+    
+    # Invert the normalized heuristic values to get a preference for better edges
+    inverted_heuristic = 1 - normalized_heuristic
+    
+    # Apply a non-linear transformation to emphasize the importance of edges with lower ratios
+    heuristic_matrix = torch.exp(-inverted_heuristic)
+    
+    # Ensure the heuristic values are negative to guide the search towards better edges
+    heuristic_matrix = -heuristic_matrix
+    
+    return heuristic_matrix
+```

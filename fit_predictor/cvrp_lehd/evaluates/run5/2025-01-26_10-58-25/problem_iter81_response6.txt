@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Introduce a small noise to demand to diversify initial selection
+    noise Demand_matrix = demands * torch.rand_like(demands) * 1e-2
+    
+    # Calculate demand-based penalties with non-linear transformation
+    penalty_matrix = -torch.abs(Demand_matrix - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix with log scaling to balance demand and distance
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties using a weighted sum to emphasize constraints
+    combined_potential_matrix = 0.6 * penalty_matrix + 0.4 * distance_penalty_matrix
+    
+    # Add Gaussian noise to introduce randomness early on
+    noise_matrix = torch.randn_like(combined_potential_matrix) * 1e-1
+    
+    # Combine the original potential matrix with noise
+    combined_potential_matrix = combined_potential_matrix + noise_matrix
+    
+    # Normalize the combined potential matrix to ensure non-negativity and scale balance
+    normalized_potential_matrix = combined_potential_matrix / combined_potential_matrix.sum(dim=1, keepdim=True)
+    
+    # Apply non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(normalized_potential_matrix))
+    
+    # Add a second noise term for further randomness and diversification
+    second_noise_matrix = torch.randn_like(emphasized_matrix) * 1e-2
+    
+    # Combine the emphasized matrix with the second noise term
+    combined_matrix = emphasized_matrix + second_noise_matrix
+    
+    # Adjust the combined matrix for randomness and diversification
+    adjusted_combined_matrix = combined_matrix + torch.randn_like(combined_matrix) * 1e-3
+    
+    # Introduce mutation by adding a small random perturbation to the matrix
+    mutation_factor = torch.rand_like(adjusted_combined_matrix)
+    mutated_combined_matrix = adjusted_combined_matrix + torch.randn_like(adjusted_combined_matrix) * 1e-2 * mutation_factor
+    
+    # Final transformation into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -mutated_combined_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate a balance factor that penalizes high demands more heavily
+    balance_factor = (demands - vehicle_capacity) / demands
+    
+    # Create a demand-based penalty matrix
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Blend the demand and distance penalties using the balance factor
+    blended_penalty_matrix = demand_penalty_matrix + balance_factor * distance_penalty_matrix
+    
+    # Apply a soft-clipping function to avoid extremely high penalties
+    soft_clipped_penalty_matrix = torch.clamp(blended_penalty_matrix, min=-1e4)
+    
+    # Normalize the soft-clipped penalty matrix
+    normalized_soft_clipped_matrix = soft_clipped_penalty_matrix / soft_clipped_penalty_matrix.sum(dim=1, keepdim=True)
+    
+    # Apply a logarithmic transformation to introduce diversity and enhance local search
+    diversified_matrix = torch.log(1 + normalized_soft_clipped_matrix)
+    
+    # Combine the diversified matrix with a scaled distance penalty
+    combined_matrix = diversified_matrix + 0.2 * distance_penalty_matrix
+    
+    # Adjust the combined matrix to ensure non-negativity
+    adjusted_combined_matrix = combined_matrix - torch.min(combined_matrix)
+    
+    # Convert the adjusted combined matrix into heuristics by ensuring a gradient from zero
+    heuristics_matrix = torch.relu(adjusted_combined_matrix) + 1e-8
+    
+    return heuristics_matrix
+```

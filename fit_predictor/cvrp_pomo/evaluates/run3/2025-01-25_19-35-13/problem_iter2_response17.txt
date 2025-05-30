@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize a matrix of zeros with the same shape as the distance matrix
+    edge_potential = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Modify weights based on problem specifics:
+    # - Increase the weight for demand to prioritize higher-demand nodes
+    # - Decrease the weight for distance to penalize longer paths
+    # - Introduce a non-linear transformation to the distance to further penalize long distances
+    # - Penalize excessive similarities in demand by increasing the potential when demand diversity is low
+    
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    demand_diff = max_demand - min_demand
+    
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    
+    # Use a non-linear transformation on the distance, such as a power function
+    distance_transform = torch.pow(distance_matrix, 2)
+    
+    # Calculate the potential using a weighted sum
+    edge_potential = (normalized_demands * (1 / (distance_transform + epsilon))) * (1 + demand_diff)
+    
+    # Adjust the potential to encourage diversity in demand
+    edge_potential = edge_potential * torch.sigmoid(demand_diff)
+    
+    # Ensure that the potential is within a certain range
+    edge_potential = torch.clamp(edge_potential, min=-20.0, max=20.0)
+    
+    return edge_potential
+```

@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improves the trivial implementation by considering the demand and distance."""
+    # Calculate the cumulative demand along each edge
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Calculate the maximum demand that can be carried without returning to the depot
+    max_demand_without_return = torch.clamp(cumulative_demand - demands[1:], min=0)
+    # Calculate the potential saving if taking the edge
+    potential_savings = distance_matrix - max_demand_without_return
+    # Apply a penalty for edges that exceed the vehicle capacity
+    penalty = torch.where(potential_savings < 0, torch.tensor(-float('inf')), torch.tensor(0))
+    # Normalize the potential savings to a promising value
+    promising_values = torch.where(potential_savings >= 0, potential_savings, torch.tensor(0))
+    return promising_values + penalty
+```

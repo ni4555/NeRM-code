@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate a balance factor considering both distance and demand
+    balance_factor = 1 / (1 + torch.exp(-0.1 * (normalized_distances + normalized_demands)))
+    
+    # Define a dynamic factor representing real-time changes, e.g., time-based decay
+    dynamic_factor = torch.exp(-0.05 * torch.arange(1, n+1))
+    
+    # Define penalties for high-demand and high-distance nodes
+    high_demand_penalty = torch.where(normalized_demands > 0.9, 1.5, 1)
+    high_distance_penalty = torch.where(normalized_distances > 0.5, 1.5, 1)
+    
+    # Combine potential values with dynamic factor, balance factor, and penalties
+    potential_values = (balance_factor * 
+                        normalized_distances * dynamic_factor * 
+                        high_demand_penalty * high_distance_penalty).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

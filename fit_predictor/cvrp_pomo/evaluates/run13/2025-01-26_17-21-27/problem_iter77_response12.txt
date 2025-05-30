@@ -1,0 +1,58 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Modular penalty for dynamic capacity with scaling and early overflow detection
+    capacity_penalty = torch.where(
+        cumulative_demand <= total_capacity_vector,
+        -torch.log1p(torch.abs(demands) - 1e-8),
+        torch.zeros_like(demands)
+    )
+    early_overflow = cumulative_demand > total_capacity_vector
+    capacity_penalty *= (1 + 0.3 * (total_capacity - cumulative_demand) / total_capacity) * (1 + early_overflow)
+    
+    # Modular distance penalty with time-adaptive scaling
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    distance_penalty *= (1 + cumulative_demand / total_capacity) * time_factor
+    
+    # Modular overflow penalty with early return to depot
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(demands)
+    )
+    
+    # Load balance penalty with a modular balance factor
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector) - 1e-8)
+    
+    # Introduce controlled randomness
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Time-adaptive diversity factor for exploration
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Prioritize core objectives
+    scaling_factor = 2.0
+    
+    heuristics = scaling_factor * (
+        distance_penalty +
+        capacity_penalty +
+        overflow_penalty +
+        load_balance_penalty
+    ) + randomness_factor + diversity_factor
+    
+    # Apply penalties for early overflow and imbalance
+    heuristics *= (1 + early_overflow)
+    heuristics += diversity_factor
+    
+    return heuristics
+```

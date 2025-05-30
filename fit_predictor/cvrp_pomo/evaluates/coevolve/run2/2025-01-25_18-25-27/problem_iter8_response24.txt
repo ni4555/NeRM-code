@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Introduce a cost for each edge based on the difference from average demand
+    avg_demand = normalized_demands.sum() / n
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+
+    # Introduce a penalty for edges leading back to the depot to encourage diversification
+    depot_penalty = -1e5
+    heuristics_matrix[torch.arange(n), torch.arange(n)] = depot_penalty
+
+    # Introduce a penalty for infeasible edges (demands > capacity at the depot)
+    infeasibility_penalty = torch.where(demands > 1, -1.0, 0.0)
+
+    # Incorporate randomness and local refinement
+    random_factor = (torch.rand(n) * 2 - 1) * (1 - (heuristics_matrix <= 0).float())
+
+    # Combine all factors
+    heuristics_matrix += random_factor + infeasibility_penalty
+    return heuristics_matrix
+```

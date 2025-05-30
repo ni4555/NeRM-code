@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic based on a combination of demand and distance
+    # Use the normalized demand and the square root of the inverse distance
+    # as heuristics. The idea is that lower demand and shorter distance are
+    # more promising.
+    heuristic_matrix = torch.mul(normalized_demands, torch.sqrt(1 / distance_matrix))
+
+    # Apply a penalty for high variance in demand
+    mean_demand = demands.mean()
+    std_demand = demands.std()
+    z_scores = (normalized_demands - mean_demand) / std_demand
+    variance_penalty = z_scores ** 2
+
+    # Adjust the heuristic based on the variance
+    heuristic_matrix = torch.clamp(heuristic_matrix - variance_penalty, min=0)
+
+    # Apply a threshold to ensure all heuristics are within a specific range
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-threshold, max=threshold)
+
+    return heuristic_matrix
+```

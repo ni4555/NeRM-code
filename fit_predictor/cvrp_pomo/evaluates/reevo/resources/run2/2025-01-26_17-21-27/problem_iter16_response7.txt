@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Calculate distance-based heuristic
+    distance_heuristic = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+
+    # Calculate capacity-based heuristic with penalties for overflows
+    capacity_heuristic = -torch.abs(demands - total_capacity / 2) * (demands > total_capacity / 2).float()
+    capacity_heuristic = capacity_heuristic * (2 - demands / total_capacity)
+
+    # Calculate total heuristic as the sum of distance and capacity heuristics
+    heuristics = distance_heuristic + capacity_heuristic
+    return heuristics
+```

@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    
+    # Introduce randomness and a penalty for infeasibilities
+    penalty = torch.rand(n)
+    feasible_edges = (heuristics_matrix > 0).float()
+    random_factor = (torch.rand(n) * 2 - 1) * feasible_edges
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    
+    # Mutation: Introduce a small noise to promote diversity and escape local optima
+    noise = torch.rand(n) * 0.01
+    mutated_heuristics_matrix = heuristics_matrix + random_factor + infeasibility_penalty * (1 - feasible_edges) + noise
+    
+    # Ensure the heuristics are still within feasible bounds
+    mutated_heuristics_matrix = torch.clamp(mutated_heuristics_matrix, min=-1.0, max=0.0)
+    return mutated_heuristics_matrix
+```

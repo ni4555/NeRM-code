@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the difference from vehicle capacity to emphasize overdemanded edges
+    demand_excess = torch.abs(demands - vehicle_capacity)
+    
+    # Create a normalized distance matrix, giving more weight to short distances
+    normalized_distance_matrix = 1 / (distance_matrix + 1e-6)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = demand_excess * normalized_distance_matrix
+    
+    # Use a non-linear transformation to penalize higher excess demands more
+    transformed_potential_matrix = torch.exp(-potential_matrix)
+    
+    # Smooth the matrix to avoid overly large differences between cells
+    smoothed_matrix = transformed_potential_matrix / transformed_potential_matrix.sum(dim=1, keepdim=True)
+    
+    # Adjust the smoothed matrix to introduce a balance between demands and distances
+    combined_matrix = smoothed_matrix * demands + (1 - demands) * normalized_distance_matrix
+    
+    # Create a heuristic matrix by adding a positive value to encourage feasible routes
+    heuristics_matrix = combined_matrix + 1e-6
+    
+    # Ensure the matrix has no zero values to make the heuristic more robust
+    heuristics_matrix = heuristics_matrix - heuristics_matrix.min()
+    
+    return heuristics_matrix
+```

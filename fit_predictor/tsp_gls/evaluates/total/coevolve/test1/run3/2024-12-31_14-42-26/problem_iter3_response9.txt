@@ -1,0 +1,49 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Dynamic fusion of metaheuristic strategies
+    # Adaptive neighborhood strategy: use a k-nearest neighbors approach
+    k = 3  # Number of nearest neighbors to consider for the heuristic
+    for i in range(distance_matrix.shape[0]):
+        # Find the k nearest neighbors excluding the node itself
+        nearest_neighbors = np.argsort(distance_matrix[i])[:k]
+        # Calculate the heuristic as the average distance to the nearest neighbors
+        heuristics[i] = np.mean(distance_matrix[i][nearest_neighbors])
+    
+    # Guided local search enhancements: use a simple hill climbing approach
+    # Real-time fitness landscape adaptation: adjust the heuristic based on the best solution found so far
+    best_solution = np.zeros(distance_matrix.shape[0], dtype=int)
+    best_solution[0] = 0  # Start with the first node
+    best_cost = np.sum(distance_matrix[best_solution[:-1], best_solution[1:]])
+    for _ in range(distance_matrix.shape[0] - 1):
+        for j in range(distance_matrix.shape[0]):
+            # Check if the new solution is better
+            new_cost = best_cost - distance_matrix[best_solution[-1], best_solution[:-1]][j] + distance_matrix[j, best_solution[-1]]
+            if new_cost < best_cost:
+                best_solution[-1] = j
+                best_cost = new_cost
+        # Update the heuristic for the best solution
+        heuristics[best_solution] = best_cost
+    
+    # Balance local and global exploration
+    # Introduce a simulated annealing-like mechanism to allow for exploration of worse neighbors
+    temperature = 1.0
+    while temperature > 0.01:
+        for i in range(distance_matrix.shape[0]):
+            for j in range(distance_matrix.shape[0]):
+                if i != j:
+                    # Calculate the cost of the new solution
+                    new_cost = np.sum(distance_matrix[best_solution[:-1], best_solution[1:]]) - distance_matrix[best_solution[-1], best_solution[:-1]][i] + distance_matrix[j, best_solution[-1]]
+                    # Accept the new solution with a probability that decreases with temperature
+                    if np.exp((new_cost - best_cost) / temperature) > np.random.rand():
+                        best_solution[-1] = j
+                        best_cost = new_cost
+        temperature *= 0.9  # Cool down the temperature
+    
+    # Return the heuristics matrix
+    return heuristics
+```

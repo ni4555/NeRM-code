@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+    
+    # Problem-specific Local Search
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate potential load for each edge considering vehicle capacity
+                potential_load = (demands[i] + demands[j]) / total_capacity
+                # Calculate a heuristic based on load and distance
+                edge_heuristic = (potential_load - 1) / distance_matrix[i, j]
+                # Adjust heuristic to ensure it's negative for undesirable edges
+                heuristics[i, j] = max(edge_heuristic, -100)
+    
+    # Ensure that the heuristics matrix contains no positive values for desirable edges
+    heuristics[heuristics >= 0] = -100
+    
+    return heuristics
+```

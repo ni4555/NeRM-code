@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Use a distance-based factor to weigh the distance between nodes
+    distance_factor = -torch.log(distance_matrix + 1e-6)
+    
+    # Blend the penalty matrix and distance factor to create a raw potential matrix
+    raw_potential_matrix = penalty_matrix + distance_factor
+    
+    # Introduce randomness with a binary mask
+    binary_mask = torch.rand_like(raw_potential_matrix) < 0.5
+    random_noise = torch.where(binary_mask, raw_potential_matrix, -raw_potential_matrix)
+    
+    # Apply a logarithmic transformation to the random noise
+    log_noise = torch.log(1 + torch.abs(random_noise))
+    
+    # Combine the logarithmic noise with the raw potential matrix
+    combined_potential_matrix = raw_potential_matrix + log_noise
+    
+    # Normalize the combined potential matrix to ensure diversity
+    normalized_potential_matrix = combined_potential_matrix / (combined_potential_matrix.sum(dim=1, keepdim=True) + 1e-6)
+    
+    # Multiply by the distance factor to balance demand and distance
+    balanced_potential_matrix = normalized_potential_matrix * distance_factor
+    
+    # Add a scaling factor to emphasize the constraints
+    emphasized_matrix = balanced_potential_matrix * (1 + torch.randn_like(balanced_potential_matrix) * 0.01)
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Negative values for undesirable edges, positive values for promising ones
+    heuristics_matrix = -normalized_emphasized_matrix
+```

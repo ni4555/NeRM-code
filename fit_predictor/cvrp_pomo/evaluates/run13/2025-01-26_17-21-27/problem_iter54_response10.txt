@@ -1,0 +1,61 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic penalty based on remaining capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Enhanced distance penalty to account for cumulative load
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity)
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balance load heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Scaling factors for each objective
+    scaling_factors = {
+        'distance': 3.0,
+        'capacity': 2.0,
+        'overflow': 2.0,
+        'balance': 1.5
+    }
+    
+    # Combined weighted penalties
+    heuristics = (
+        scaling_factors['distance'] * distance_scaling +
+        scaling_factors['capacity'] * dynamic_capacity_penalty +
+        scaling_factors['overflow'] * overflow_penalty +
+        scaling_factors['balance'] * load_balance_penalty
+    )
+    
+    # Control diversity by adding small randomness
+    random_factor = torch.rand_like(demands) * 0.1
+    heuristics += random_factor
+    
+    # Adjust for early overflow detection
+    early_overflow = torch.where(cumulative_demand > total_capacity_vector, -1.0, 0.0)
+    heuristics += early_overflow
+    
+    # Normalize the heuristics to maintain consistency
+    heuristics /= (heuristics.sum() + 1e-8)
+    
+    # Exclude the depot from itself
+    depot_penalty = torch.arange(n) == 0
+    heuristics -= depot_penalty.float().unsqueeze(0)
+    
+    return heuristics
+```

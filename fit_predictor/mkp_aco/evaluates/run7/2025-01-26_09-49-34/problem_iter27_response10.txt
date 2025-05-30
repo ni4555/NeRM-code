@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the variance and its inverse as heuristics components
+    variances = np.mean(weight, axis=1) ** 2 - np.mean(weight, axis=1) ** 2
+    inv_variances = 1 / (variances + 1e-10)  # Adding a small constant to avoid division by zero
+    
+    # Calculate sparsity by counting non-zero dimensions
+    sparsity = (weight.sum(axis=1) > 0).astype(float)
+    
+    # Calculate a diversity measure as the sum of normalized prizes and sparsity
+    diversity = normalized_prize + sparsity
+    
+    # Combine the factors: prize value, sparsity, inverse variance, and diversity
+    heuristics = normalized_prize * sparsity * inv_variances * diversity
+    
+    # Refine heuristics by applying a logarithmic function to enhance the discrimination between items
+    heuristics = np.log(heuristics + 1)
+    
+    # Dynamic weight adjustment to account for different factors
+    dynamic_weight = sparsity + 2 * inv_variances  # Different weights for diversity and variance
+    
+    # Adjust heuristics by multiplying with the dynamic weight
+    heuristics *= dynamic_weight
+    
+    # Normalize heuristics by dividing by the maximum value to ensure they sum up to 1
+    max_heuristic = np.max(heuristics)
+    heuristics /= max_heuristic
+    
+    # Sparsify by setting a threshold based on the 90th percentile
+    threshold = np.percentile(heuristics, 90)
+    heuristics[heuristics < threshold] = 0
+    
+    return heuristics
+```

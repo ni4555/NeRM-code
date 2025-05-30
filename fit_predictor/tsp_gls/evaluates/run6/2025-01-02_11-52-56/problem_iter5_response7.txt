@@ -1,0 +1,47 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Feature 1: Edge weight
+    for i in range(num_nodes):
+        for j in range(i + 1, num_nodes):
+            heuristic_matrix[i, j] = distance_matrix[i, j]
+            heuristic_matrix[j, i] = distance_matrix[i, j]
+    
+    # Feature 2: Normalization by the sum of extremities of node influence, with symmetry consideration
+    min_max_distances = np.min(distance_matrix, axis=1) + np.max(distance_matrix, axis=1)
+    extremities_sum = np.sum(min_max_distances)
+    for i in range(num_nodes):
+        for j in range(i + 1, num_nodes):
+            heuristic_matrix[i, j] /= extremities_sum
+            heuristic_matrix[j, i] = heuristic_matrix[i, j]  # Preserve symmetry
+    
+    # Feature 3: Node degree influence, with risk-weighing
+    degree_matrix = np.sum(distance_matrix, axis=0)
+    degree_matrix[degree_matrix == 0] = 1  # Avoid division by zero
+    for i in range(num_nodes):
+        for j in range(i + 1, num_nodes):
+            risk_weight = degree_matrix[i] * degree_matrix[j]
+            heuristic_matrix[i, j] *= risk_weight
+            heuristic_matrix[j, i] = heuristic_matrix[i, j]  # Preserve symmetry
+    
+    # Feature 4: Local and global balance
+    for i in range(num_nodes):
+        for j in range(i + 1, num_nodes):
+            # Combine the local and global metrics using a weighted sum
+            global_metric = heuristic_matrix[i, j] + heuristic_matrix[j, i]
+            local_metric = 1 / (degree_matrix[i] + degree_matrix[j])
+            balance_weight = 0.5  # Weight for balancing local and global metrics
+            heuristic_matrix[i, j] = (balance_weight * global_metric) + ((1 - balance_weight) * local_metric)
+            heuristic_matrix[j, i] = heuristic_matrix[i, j]  # Preserve symmetry
+    
+    # Normalize the heuristic matrix to sum to 1 over each row
+    for i in range(num_nodes):
+        row_sum = np.sum(heuristic_matrix[i, :])
+        heuristic_matrix[i, :] /= row_sum
+    
+    return heuristic_matrix
+```

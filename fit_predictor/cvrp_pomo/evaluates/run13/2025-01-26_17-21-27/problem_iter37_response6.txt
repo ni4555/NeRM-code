@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Enhanced distance heuristic with cumulative load consideration
+    distance_heuristic = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_heuristic *= (1 + cumulative_demand / total_capacity)
+    
+    # Early overflow detection heuristic with adaptive penalty
+    overflow_heuristic = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic to encourage uniform load distribution
+    load_balance_heuristic = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_heuristic = -torch.log1p(load_balance_heuristic - 1e-8)
+    
+    # Diversity heuristic to escape local optima
+    diversity_heuristic = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Combine heuristics with weighted factors
+    weight_distance = 0.4
+    weight_overflow = 0.3
+    weight_balance = 0.2
+    weight_diversity = 0.1
+    
+    heuristics = (
+        weight_distance * distance_heuristic +
+        weight_overflow * overflow_heuristic +
+        weight_balance * load_balance_heuristic +
+        weight_diversity * diversity_heuristic
+    )
+    
+    # Normalize heuristics to ensure they are in the same scale
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    
+    return heuristics
+```

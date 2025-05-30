@@ -1,0 +1,49 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Enhanced dynamic penalty based on the proximity to the total capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= torch.where(
+        (cumulative_demand[:, None] - total_capacity_vector[None, :]) <= 0.2,
+        5.0,
+        1.0
+    )
+    
+    # Adaptive distance scaling to favor shorter distances and prevent overflow
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= torch.exp(-cumulative_demand / total_capacity)
+    
+    # Early return heuristic that discourages routes that will lead to overflow
+    early_return = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balance load heuristic to avoid large imbalances between routes
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    load_balance_penalty *= torch.exp(-load_balance / total_capacity_vector)
+    
+    # Apply a strong scaling factor to prioritize the core objectives
+    scaling_factor = 2.5
+    heuristics = scaling_factor * (distance_scaling + dynamic_capacity_penalty + early_return + load_balance_penalty)
+    
+    # Introduce diversity in the heuristic to explore more of the search space
+    diversity_factor = torch.randn_like(demands) * 0.1
+    
+    # Encourage diversity and balance by modifying heuristics
+    heuristics += diversity_factor * 0.5
+    
+    # Limit the penalty adjustments to a maximum factor to avoid large changes in the heuristics
+    heuristics = torch.clamp(heuristics, min=-10.0, max=10.0)
+    
+    return heuristics
+```

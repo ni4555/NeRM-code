@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for the Capacitated Vehicle Routing Problem (CVRP)."""
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    capacity = demands.max()  # Assuming all vehicles have the same capacity as the largest demand
+    
+    # Calculate the savings for each edge
+    savings = (distance_matrix**2 - torch.clamp(distance_matrix, min=1e-8)) * (demands[:, None] - demands[None, :])
+    
+    # Calculate the cumulative demand at each node if visited
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Create a mask to check if adding a node exceeds the vehicle capacity
+    demand_mask = cumulative_demand <= capacity
+    
+    # Adjust the savings heuristic to consider demand
+    adjusted_savings = savings * demand_mask
+    
+    # Apply penalties for infeasible edges
+    for i in range(1, n):
+        adjusted_savings[i] -= torch.where(adjusted_savings[i] > 0, adjusted_savings[i], 0)
+    
+    # Normalize savings to have a range of [0, 1]
+    min_savings = adjusted_savings.min()
+    max_savings = adjusted_savings.max()
+    normalized_savings = (adjusted_savings - min_savings) / (max_savings - min_savings)
+    
+    return normalized_savings
+```

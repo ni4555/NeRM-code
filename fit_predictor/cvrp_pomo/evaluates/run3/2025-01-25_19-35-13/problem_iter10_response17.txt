@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.7
+    distance_weight = 0.3
+
+    # Apply dynamic programming to find a lower bound on the cost using a more efficient indexing
+    n = len(demands)
+    dp = torch.full((n, n), float('inf'))
+    dp.fill_diagonal_(0)
+    for d in range(1, n):
+        for s in range(d):
+            dp[d, s] = dp[s, max(0, d-2)] + distance_matrix[s, d]
+
+    # Calculate the potential based on the lower bound and demand
+    epsilon = 1e-8
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    edge_potential = edge_potential * (1 - distance_weight) + (1 / (distance_matrix + epsilon)) * torch.pow(normalized_demands, 0.5) * distance_weight
+
+    # Introduce a more sophisticated penalty scheme with threshold-based logic
+    edge_potential = edge_potential - (edge_potential * torch.relu(demands - 1.5))
+    edge_potential = edge_potential + (edge_potential * torch.relu(distance_matrix - 20))
+
+    # Normalize the potential to ensure a balance between distance and demand
+    edge_potential /= (torch.exp(edge_potential).sum(dim=1, keepdim=True) + epsilon)
+
+    # Set the potential of the diagonal (depot node) to zero
+    edge_potential.diag().fill_(0)
+
+    return edge_potential
+```

@@ -1,0 +1,30 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+
+    # Calculate the combined score for each item
+    def combined_score(item_idx):
+        weighted_ratio = prize[item_idx] / np.sum(weight[item_idx, :])
+        sparsity = np.count_nonzero(weight[item_idx, :] > 0) / weight.shape[1]
+        accumulated_weight = np.sum(weight[item_idx, :])
+        return weighted_ratio + sparsity + np.log(accumulated_weight)
+
+    # Calculate all combined scores
+    combined_scores = np.array([combined_score(i) for i in range(n)])
+
+    # Normalize combined scores
+    normalized_scores = (combined_scores - np.min(combined_scores)) / (np.max(combined_scores) - np.min(combined_scores))
+
+    # Set threshold to 10% of the maximum normalized score
+    threshold = np.max(normalized_scores) * 0.1
+
+    # Create heuristics based on normalized scores and threshold
+    heuristics = np.where(normalized_scores >= threshold, normalized_scores, 0)
+
+    # Normalize heuristics to sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

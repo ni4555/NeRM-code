@@ -1,0 +1,38 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Balance factor for different metrics
+    edge_weight_balance = 1.0
+    loop_balance = 1.5
+    direct_distance_balance = 0.5
+    center_balance = 2.0
+    connectivity_balance = 1.0
+
+    # Loop and direct distance penalties
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                loop_penalty = distance_matrix[i, j] + distance_matrix[j, (i + 1) % num_nodes] + distance_matrix[(i + 1) % num_nodes, j]
+                direct_distance_penalty = distance_matrix[i, (i + 1) % num_nodes]
+                loop_diff = loop_balance * (loop_penalty - (direct_distance_balance * direct_distance_penalty))
+
+                # Context-aware penalty based on proximity to the center
+                center = num_nodes // 2
+                distance_to_center = np.abs(center - i) + np.abs(center - j)
+                context_penalty = center_balance * (distance_to_center)
+
+                # Connectivity and diversity penalty
+                edges_connected_to_i = np.sum(distance_matrix[i, :] != np.inf)
+                edges_connected_to_j = np.sum(distance_matrix[j, :] != np.inf)
+                connectivity_penalty = connectivity_balance * (max(edges_connected_to_i, edges_connected_to_j) - 1)
+
+                # Weighted sum of all penalties
+                total_penalty = edge_weight_balance * distance_matrix[i, j] + loop_diff + context_penalty + connectivity_penalty
+                heuristics[i, j] = total_penalty
+
+    return heuristics
+```

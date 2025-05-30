@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for CVRP that incorporates demand-based penalties, normalizes inverses, and caps negative values."""
+    n = distance_matrix.shape[0]
+    
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+    
+    # Calculate the inverse of distance matrix
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    # Normalize the inverse distance matrix by the total demand
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+    
+    # Incorporate demand-based penalties by subtracting the demand
+    demand_penalty = 1 - demands
+    
+    # Combine the normalized inverse distance and demand penalty
+    combined_heuristic = normalized_inv_distance_matrix - demand_penalty
+    
+    # Cap the values to avoid extremely negative values for unfeasible edges
+    combined_heuristic = torch.clamp(combined_heuristic, min=-1.0, max=None)
+    
+    # Clamp the heuristic values to ensure they do not exceed 1
+    combined_heuristic = torch.clamp(combined_heuristic, max=1)
+    
+    return combined_heuristic
+```

@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    
+    # Normalize prize and weight for fairness and to avoid dominance
+    min_prize = np.min(prize)
+    max_prize = np.max(prize)
+    normalized_prize = (prize - min_prize) / (max_prize - min_prize)
+    
+    min_weight = np.min(weight, axis=0)
+    max_weight = np.max(weight, axis=0)
+    normalized_weight = weight / (max_weight - min_weight)
+    
+    # Use a weighted sum approach to balance exploitation and exploration
+    exploitation = np.sum(normalized_prize, axis=1) * (1 - normalized_weight,)
+    exploration = np.random.rand(n)
+    
+    # Non-dominated selection and dynamic adjustment of weight
+    non_dominated_index = np.argsort(exploitation)[::-1][:int(n * 0.5)]
+    domination_count = np.zeros(n)
+    for idx in non_dominated_index:
+        dominated_idx = np.where(np.all(weight[:, idx] <= weight[:, :], axis=1))
+        domination_count[dominated_idx] += 1
+    weight = (domination_count / np.max(domination_count)) ** 0.5
+    
+    # Combine exploitation and exploration to create heuristics
+    heuristics = exploitation * weight + exploration
+    
+    # Sparsify and amplify promising heuristics
+    heuristics[domination_count < np.percentile(domination_count, 25)] = 0
+    heuristics[domination_count > np.percentile(domination_count, 75)] *= 1.5
+    
+    # Ensure all heuristics sum to 1 to maintain the probability distribution
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

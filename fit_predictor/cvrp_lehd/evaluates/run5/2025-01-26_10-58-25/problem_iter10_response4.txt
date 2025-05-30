@@ -1,0 +1,28 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    balance_factor_demand = 0.8
+    balance_factor_distance = 0.2
+    temperature = 1.0
+    
+    # Calculate cumulative demand and apply demand penalty
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_penalty = -torch.abs(cumulative_demand - vehicle_capacity)
+    
+    # Calculate distance penalty
+    distance_penalty = -distance_matrix
+    
+    # Combine demand and distance penalties with balance factors
+    combined_penalty = (balance_factor_demand * demand_penalty + balance_factor_distance * distance_penalty)
+    
+    # Incorporate temperature in the softmax function for adaptability
+    softmax_matrix = F.softmax(combined_penalty / temperature, dim=1)
+    
+    # Create a heuristic matrix, using the softmax to promote lower potential edges
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

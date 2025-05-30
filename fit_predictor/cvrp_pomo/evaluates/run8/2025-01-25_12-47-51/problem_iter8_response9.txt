@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize the distance matrix and demand vector
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    demand_normalized = demands / total_demand
+
+    # Combine heuristics using a weighted sum of the inverse distances
+    combined_heuristic = inv_distance_matrix * demand_normalized
+
+    # Calculate the remaining capacity for each customer after considering its own demand
+    remaining_capacity = 1 - demand_normalized
+
+    # Calculate the weighted sum of distances considering the remaining capacity
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Add the capacity-based heuristic to the combined heuristic
+    combined_heuristic += capacity_weighted_distance
+
+    # Penalize edges where demand exceeds capacity
+    capacity_exceeded_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[capacity_exceeded_mask] = -torch.inf
+
+    return combined_heuristic
+```

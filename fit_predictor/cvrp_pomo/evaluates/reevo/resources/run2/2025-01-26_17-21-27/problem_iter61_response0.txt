@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Enhanced dynamic capacity penalty, detecting overflow early and adaptively scaling penalties
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / (n + 1)) - 1e-8)
+    overflow_detected = cumulative_demand > total_capacity / (n + 1)
+    dynamic_capacity_penalty *= torch.exp(-torch.clamp(cumulative_demand / total_capacity, 0, 1))
+    
+    # Distance heuristic, with time-adaptive scaling and load balance
+    distance_heuristic = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    time_factor = torch.exp(-cumulative_demand / (total_capacity * 5))
+    load_balance = torch.abs(cumulative_demand - total_capacity / (n + 1))
+    distance_heuristic *= time_factor * torch.exp(-load_balance / (total_capacity * 5))
+    
+    # Overflow heuristic with early return, only applied when close to overflow
+    overflow_heuristic = -torch.log1p(torch.abs(cumulative_demand[:, None] + demands[None, :] - total_capacity) - 1e-8)
+    overflow_heuristic *= (1 - (cumulative_demand < total_capacity * 0.9).float())
+    
+    # Randomness factor, capping randomness when close to solution space
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics with adaptive weights
+    combined_heuristics = dynamic_capacity_penalty + distance_heuristic + overflow_heuristic + randomness_factor
+    
+    # Apply time-adaptive diversity factor to encourage exploration
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Final adjustments and scaling
+    adjusted_heuristics = combined_heuristics + diversity_factor
+    adjusted_heuristics *= (1 + overflow_detected.float())
+    
+    return adjusted_heuristics
+```

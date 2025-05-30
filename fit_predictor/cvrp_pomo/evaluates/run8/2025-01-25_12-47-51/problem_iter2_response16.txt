@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+    
+    # Normalize the inverse distance matrix by the total demand and the demand of the node
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    normalized_inv_distance_matrix = inv_distance_matrix / (demands[:, None] + 1e-8)
+    
+    # Calculate the demand-based penalty for each edge
+    demand_penalty = 1 - demands[None, :] - demands[:, None]
+    
+    # Incorporate diversity by considering the minimum distance to the nearest node of opposite demand
+    opposite_demand_mask = (demands[None, :] < 0) & (demands[:, None] > 0)
+    min_distance_to_opposite = torch.min(distance_matrix[opposite_demand_mask], dim=2)[0]
+    
+    # Combine the heuristics using a weighted sum of normalized inverse distance, demand penalty, and opposite demand distance
+    weight_distance = 1.0
+    weight_demand = 0.5
+    weight_opposite = 0.5
+    combined_heuristic = weight_distance * normalized_inv_distance_matrix + \
+                          weight_demand * demand_penalty + \
+                          weight_opposite * min_distance_to_opposite
+    
+    # Apply the heuristics matrix
+    heuristics = combined_heuristic - torch.min(combined_heuristic, dim=1)[0][None, :]
+    
+    return heuristics
+```

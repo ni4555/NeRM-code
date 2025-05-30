@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    from torch.nn.functional import softmax
+
+    # Calculate the inverse of the demand as a heuristic for popularity
+    demand_inverse = 1 / (demands + 1e-8)  # Adding a small constant to avoid division by zero
+
+    # Calculate the inverse of the distance matrix as a heuristic for short paths
+    distance_inverse = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+
+    # Combine the heuristics using a weighted sum
+    combined_heuristic = (distance_inverse * demand_inverse).unsqueeze(1).unsqueeze(2) + \
+                         (demand_inverse * distance_inverse).unsqueeze(0).unsqueeze(2) + \
+                         (distance_inverse * distance_inverse).unsqueeze(0).unsqueeze(1)
+
+    # Apply softmax to normalize the heuristics
+    heuristics = softmax(combined_heuristic, dim=(1, 2))
+
+    return heuristics
+```

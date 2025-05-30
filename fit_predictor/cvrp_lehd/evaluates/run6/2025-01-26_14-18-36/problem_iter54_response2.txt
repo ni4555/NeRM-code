@@ -1,0 +1,48 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Create a heuristic value matrix based on the difference between scaled demands and scaled remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Apply a dampening factor to the heuristics to reduce the impact of high penalties
+    dampening_factor = 0.5
+
+    # Add penalties for edges that would result in exceeding the vehicle capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * dampening_factor
+
+    # Add penalties for edges that return to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * dampening_factor
+
+    # Normalize the heuristic values using min-max scaling to get values in the range [0, 1]
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Introduce a non-linear transformation using sigmoid to avoid local optima
+    heuristics = torch.sigmoid(heuristics)
+
+    # Further normalize heuristics to a range [0, 1] to balance the heuristic distribution
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    # Incorporate a diversity factor to promote different solutions
+    diversity_factor = torch.abs(distance_matrix - distance_matrix[:, 0].unsqueeze(1)).mean(dim=0)
+    diversity_factor = diversity_factor / diversity_factor.max()
+    heuristics *= diversity_factor
+
+    # Dynamically adjust the penalties to balance feasible and balanced solutions
+    heuristics = heuristics * torch.clamp(1.0 - (capacity_penalty > 0).float(), min=0.0, max=1.0)
+
+    return heuristics
+```

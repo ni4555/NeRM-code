@@ -1,0 +1,74 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep Reinforcement Learning (DRL) model for reward prediction
+    class DRLModel:
+        def __init__(self):
+            self.q_values = np.zeros((n, n))
+            self.alpha = 0.1
+            self.gamma = 0.6
+
+        def predict(self, state: np.ndarray) -> float:
+            return self.q_values[state, 1] - self.q_values[state, 0]
+
+        def update(self, state: np.ndarray, action: int, reward: float):
+            target = reward + self.gamma * self.predict([state, [action]])[action]
+            self.q_values[state, action] = self.q_values[state, action] + self.alpha * (target - self.q_values[state, action])
+
+    drl_model = DRLModel()
+    q_values = drl_model.q_values
+    rewards = []
+
+    # PSO parameters
+    num_particles = 20
+    w = 0.5
+    c1 = 2
+    c2 = 2
+    particle_position = np.random.rand(num_particles, n)
+    particle_velocity = np.random.rand(num_particles, n)
+    particle_best_position = np.copy(particle_position)
+    particle_best_scores = -np.inf * np.ones(num_particles)
+    global_best_score = -np.inf
+    global_best_position = np.zeros(n)
+
+    # Constraint satisfaction
+    weight_per_dimension = np.sum(weight, axis=1) == 1
+    feasible_indices = np.where(weight_per_dimension)[0]
+
+    # Initialize Q-values with random actions and no rewards
+    q_values[np.arange(n), 1] = 0
+    q_values[np.arange(n), 0] = float('inf')
+
+    for iteration in range(50):
+        # PSO optimization
+        r1, r2 = np.random.rand(num_particles, n), np.random.rand(num_particles, n)
+        particle_velocity = w * particle_velocity + c1 * r1 * (particle_best_position - particle_position) + c2 * r2 * (global_best_position - particle_position)
+        particle_position = np.clip(particle_position + particle_velocity, 0, 1)
+        for i, particle_idx in enumerate(np.random.permutation(num_particles)):
+            # Calculate rewards
+            score = q_values[particle_position[particle_idx], 1]
+            reward = 1 if weight[particle_idx][ feasible_indices] == weight[particle_idx][ feasible_indices].sum() else 0
+            rewards.append(reward)
+            # Update Q-values
+            drl_model.update([particle_position[particle_idx]], 1 if reward == 1 else 0, reward)
+
+        # Update global best
+        for particle_idx in range(num_particles):
+            if rewards[particle_idx] == 1 and particle_best_scores[particle_idx] > global_best_score:
+                global_best_score = particle_best_scores[particle_idx]
+                global_best_position = particle_best_position[particle_idx]
+
+        # Update particle best
+        for i, particle_idx in enumerate(np.random.permutation(num_particles)):
+            if rewards[i] == 1 and particle_best_scores[particle_idx] > global_best_score:
+                particle_best_scores[particle_idx] = global_best_score
+                particle_best_position[particle_idx] = global_best_position
+
+    # Calculate heuristic scores
+    heuristic = q_values[:, 1]
+    return heuristic
+```

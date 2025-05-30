@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize demand and distance
+    demand_normalized = demands / total_demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+
+    # Dynamic weights based on domain-specific knowledge
+    dynamic_weight = torch.exp(-demands)  # Example of a dynamic weight function
+
+    # Combine normalized demand and distance with dynamic weights
+    demand_weighted_distance = demand_normalized * inv_distance_matrix * dynamic_weight
+
+    # Prioritize demand and capacity by using a global heuristic
+    global_heuristic = torch.sum(demand_weighted_distance, dim=1)
+
+    # Local heuristic to balance the load among vehicles
+    local_heuristic = torch.max(demands, dim=0).values
+
+    # Combine global and local heuristics
+    combined_heuristic = global_heuristic * local_heuristic
+
+    # Refine heuristics to prevent infeasibilities
+    capacity_mask = demands[:, None] + demands[None, :] <= 1
+    combined_heuristic[~capacity_mask] = -torch.inf
+
+    return combined_heuristic
+```

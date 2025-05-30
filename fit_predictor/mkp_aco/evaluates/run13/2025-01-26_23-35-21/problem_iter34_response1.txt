@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a random number generator for stochastic elements
+    rng = np.random.default_rng()
+    
+    # Calculate the normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Introduce randomness to encourage diversity
+    randomness = rng.uniform(0, 1, size=weight.shape[0])
+    
+    # Create a heuristic that balances density and sparsity
+    balanced_heuristic = (density + sparsity) / 2
+    
+    # Normalize by the maximum heuristic value to avoid dominance
+    normalized_balanced_heuristic = balanced_heuristic / np.max(balanced_heuristic)
+    
+    # Introduce a diversity factor based on the average density
+    average_density = np.mean(density)
+    diversity_factor = density / (average_density + 1e-8)
+    
+    # Integrate dimensionality into the heuristic
+    dimensionality_factor = 1 / (np.mean(weight.shape[1]) + 1e-8)
+    
+    # Create a final heuristic by combining the factors
+    heuristic = normalized_balanced_heuristic * diversity_factor * dimensionality_factor
+    
+    # Introduce randomness to encourage diversity in the solution space
+    randomness_factor = randomness / np.max(randomness)
+    
+    # Final combination of heuristics
+    final_heuristic = heuristic * randomness_factor
+    
+    # Set zero weights to a small value to maintain diversity
+    final_heuristic[weight.sum(axis=1) < 1e-8] = 1e-8
+    
+    return final_heuristic
+```

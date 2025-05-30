@@ -1,0 +1,49 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize heuristic matrix with high negative values for edges not considered
+    heuristics = torch.full((n, n), -torch.inf)
+    
+    # Normalize demand by the total demand and by capacity
+    demand_normalized = (demands / demands.sum() / (demands + 1e-8))
+    
+    # Create demand matrix for the depot node
+    depot_demand = demand_normalized.clone()
+    depot_demand[0] = 0  # depot node demand is 0
+    
+    # Calculate the demand contribution matrix
+    demand_contribution_matrix = torch.outer(depot_demand, demand_normalized)
+    
+    # Normalize the distance matrix by the maximum distance to balance the scale
+    distance_normalized = distance_matrix / distance_matrix.max()
+    
+    # Initialize heuristic matrix with a basic distance heuristic
+    heuristics += distance_normalized
+    
+    # Integrate demand into heuristic values
+    heuristics *= demand_contribution_matrix
+    
+    # Use logarithmic scale to dampen the influence of larger values
+    heuristics = torch.log1p(heuristics)
+    
+    # Minimize loops by adding penalties for edges that would create a loop
+    loop_penalty = 2  # Adjust this penalty value as needed
+    heuristics = heuristics + loop_penalty * torch.triu(torch.eye(n, k=1)) + torch.triu(torch.eye(n, k=1), diagonal=1).T
+    
+    # Adjust for capacity by penalizing overcapacity
+    overcapacity_penalty = (demands > 1).float() * 10  # Adjust this penalty value as needed
+    undercapacity_penalty = (demands < 1).float() * -1  # Adjust this penalty value as needed
+    heuristics += overcapacity_penalty - undercapacity_penalty
+    
+    # Normalize heuristic values to avoid dominance and ensure stability
+    heuristics = (heuristics + heuristics.min()) / (2 * heuristics.max())
+    
+    # Apply a dampening factor to the heuristics
+    dampening_factor = 0.7  # Adjust this dampening factor as needed
+    heuristics *= dampening_factor
+    
+    return heuristics
+```

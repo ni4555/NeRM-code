@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize the distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize the demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the balance between distance and demand using a non-linear transformation
+    distance_demand_balance = torch.exp(-0.5 * (normalized_distances + normalized_demands)**2)
+    
+    # Incorporate demand relaxation and penalty for highly interconnected nodes
+    demand_relaxation_factor = 0.2
+    partitioning_penalty = 0.1
+    connectivity_measure = (distance_demand_balance.sum(dim=1) + distance_demand_balance.sum(dim=0) - distance_demand_balance**2).diag()
+    partitioning_effect = partitioning_penalty * connectivity_measure
+    
+    # Adjust the potential values based on the balance and the partitioning effect
+    potential_values = distance_demand_balance - demand_relaxation_factor * (2 * normalized_demands - 1) + partitioning_effect
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

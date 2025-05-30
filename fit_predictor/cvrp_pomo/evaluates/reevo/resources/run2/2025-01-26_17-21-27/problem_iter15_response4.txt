@@ -1,0 +1,14 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    demand_threshold = torch.abs(total_capacity / n)
+    dynamic_penalty = torch.where(cumulative_demand < demand_threshold,
+                                  torch.zeros_like(cumulative_demand),
+                                  capacity_penalty)
+    heuristics = distance_penalty * (1 + dynamic_penalty)
+    return heuristics
+```

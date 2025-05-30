@@ -1,0 +1,35 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = len(distance_matrix)
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Calculate the center of gravity for each cluster using the k-means++ algorithm
+    def kmeans_plusplus(dist_matrix, k):
+        # Randomly select the first center
+        centers = [dist_matrix[np.random.randint(n)]]
+        for _ in range(k - 1):
+            distances = np.linalg.norm(dist_matrix - centers[-1], axis=1)
+            probabilities = distances / np.sum(distances)
+            cumulative_probabilities = np.cumsum(probabilities)
+            r = np.random.rand()
+            center = np.random.choice(n, p=probabilities)
+            while np.linalg.norm(dist_matrix[center] - centers[-1]) < cumulative_probabilities[r]:
+                center = np.random.choice(n, p=probabilities)
+            centers.append(dist_matrix[center])
+        return np.array(centers)
+    
+    # Run k-means++ algorithm to get cluster centers
+    k = 2  # Choose the number of clusters based on the problem size
+    centers = kmeans_plusplus(distance_matrix, k)
+    
+    # Assign the closest center to each node and store the heuristic values
+    for i in range(n):
+        for j in range(n):
+            closest_center = np.argmin(np.linalg.norm(distance_matrix[i] - centers, axis=1))
+            heuristics[i, j] = np.linalg.norm(distance_matrix[i] - centers[closest_center])
+            heuristics[j, i] = heuristics[i, j]  # Symmetry
+    
+    return heuristics
+```

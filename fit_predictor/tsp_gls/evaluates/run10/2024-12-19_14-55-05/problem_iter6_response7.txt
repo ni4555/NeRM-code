@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Introduce a balance between direct and loop penalties
+    direct_penalty = 1
+    loop_penalty = 10
+    diversity_penalty = 1
+    context_penalty = 1
+
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Calculate the sum of distances for the current edge and the previous and next edges in a loop
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, (i + 1) % num_nodes] + distance_matrix[(i + 1) % num_nodes, j]
+                direct_distance = distance_matrix[i, (i + 1) % num_nodes]
+                
+                # Balance the penalties based on the relative distances
+                penalty = direct_penalty * direct_distance + loop_penalty * (loop_distance - direct_distance)
+
+                # Context-aware metrics for local structure
+                context_count = np.sum(distance_matrix[i, :]) + np.sum(distance_matrix[:, j]) - distance_matrix[i, j]
+                context_penalty_value = context_count * context_penalty
+
+                # Foster diversity by penalizing edges that are part of a frequently visited path
+                frequency_penalty = np.sum(distance_matrix, axis=0)[i] * np.sum(distance_matrix, axis=1)[j]
+                frequency_penalty = max(frequency_penalty, 1)  # Avoid zero frequency edges with infinite penalty
+                frequency_penalty = diversity_penalty / frequency_penalty
+
+                # Calculate heuristic value
+                heuristics[i, j] = penalty + context_penalty_value + frequency_penalty
+
+    # Apply a global penalty for large distances to encourage exploration
+    large_distance_penalty = 1e6
+    large_distance_edges = distance_matrix > large_distance_penalty
+    heuristics[large_distance_edges] = large_distance_penalty - distance_matrix[large_distance_edges]
+
+    return heuristics
+```

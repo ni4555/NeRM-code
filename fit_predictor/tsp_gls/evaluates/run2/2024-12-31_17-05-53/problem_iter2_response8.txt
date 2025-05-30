@@ -1,0 +1,23 @@
+```python
+import numpy as np
+from scipy.sparse.csgraph import minimum_spanning_tree
+from scipy.sparse import csr_matrix
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # This heuristic function uses the minimum spanning tree (MST) approach as a basis, but
+    # also incorporates the concept of shortest paths from each node to the MST, which can
+    # be seen as a measure of the node's "exclusivity" from the MST.
+    
+    # Compute the minimum spanning tree using Prim's algorithm
+    num_nodes = distance_matrix.shape[0]
+    mst = minimum_spanning_tree(csr_matrix(distance_matrix))
+    
+    # Create a matrix of shortest paths from each node to the MST
+    shortest_paths = np.array(mst.data).sum(axis=1) / (num_nodes - 1)
+    
+    # Calculate the heuristic as the sum of the shortest paths to the MST, divided by the total number of edges
+    # in the MST, to normalize by the number of edges in the tree
+    heuristic_matrix = shortest_paths / (num_nodes - 1)
+    
+    return heuristic_matrix
+```

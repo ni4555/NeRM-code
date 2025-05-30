@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Initialize a vector to hold different heuristic components
+    heuristic_components = []
+    
+    # Demand-based heuristic: Higher demand results in higher penalty
+    demand_penalty = -normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0)
+    heuristic_components.append(demand_penalty)
+    
+    # Distance heuristic: Shorter distances have lower heuristic values
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    heuristic_components.append(distance_heuristic)
+    
+    # Load balance heuristic: Consider the balance between node demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    heuristic_components.append(load_balance)
+    
+    # Time dynamics heuristic: Introduce a dynamic element to represent real-time rerouting
+    time_constant = torch.rand(distance_matrix.shape[0])
+    time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0)))
+    heuristic_components.append(time_heuristic)
+    
+    # Vehicle capacity-based heuristic: Reward edges that contribute to capacity constraints
+    capacity_heuristic = (demands.unsqueeze(1) * demands.unsqueeze(0)).unsqueeze(1).unsqueeze(0)
+    heuristic_components.append(capacity_heuristic)
+    
+    # Combine all heuristic components using a weighted sum
+    # The weights are chosen based on their importance in the context of the problem
+    weights = torch.tensor([0.1, 0.2, 0.3, 0.2, 0.2])
+    combined_heuristic = sum(w * h for w, h in zip(weights, heuristic_components))
+    
+    return combined_heuristic
+```

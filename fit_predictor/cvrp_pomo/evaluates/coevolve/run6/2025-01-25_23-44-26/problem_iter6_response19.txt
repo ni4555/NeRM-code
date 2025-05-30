@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the negative of the demand for each edge to penalize high demand edges
+    demand_penalty = -torch.sum(normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0), dim=0)
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    distance_heuristic = 1 / (distance_matrix + 1e-6)
+    
+    # Add a load balancing factor by considering the difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Use a time factor to simulate real-time rerouting capabilities
+    time_constant = torch.rand(distance_matrix.shape[0])
+    time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0)))
+    
+    # Combine the demand penalty, distance heuristic, and load balance
+    combined_heuristic = demand_penalty + distance_heuristic + load_balance * time_heuristic
+    
+    # Normalize each row to have a sum of 1 (unit-length vector)
+    row_sums = combined_heuristic.sum(dim=1, keepdim=True)
+    normalized_combined_heuristic = combined_heuristic / row_sums
+    
+    # Scale the entire heuristic matrix to a consistent range, for example between 0 and 1
+    min_heuristic = normalized_combined_heuristic.min()
+    max_heuristic = normalized_combined_heuristic.max()
+    consistent_scaled_heuristic = (normalized_combined_heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    return consistent_scaled_heuristic
+```

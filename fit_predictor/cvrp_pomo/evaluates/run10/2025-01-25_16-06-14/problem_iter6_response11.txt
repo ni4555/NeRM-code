@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand for each node
+    cumulative_demand = demands.cumsum(0)
+    # Calculate the difference between cumulative demand and vehicle capacity
+    demand_diff = (cumulative_demand - demands[:, None]).clamp(min=0)
+    # Calculate the cumulative sum of the demand difference to identify the points where
+    # the demand exceeds the vehicle capacity, which are the points where the vehicle should return
+    cumulative_demand_diff = demand_diff.cumsum(0)
+    # Use the maximum of the cumulative demand difference and the vehicle capacity
+    # to identify the points where the vehicle should potentially return
+    max_demand = torch.max(cumulative_demand_diff, demands[:, None])
+    # The heuristic value is the negative of the distance multiplied by the
+    # maximum of the cumulative demand difference and the vehicle capacity
+    # This encourages the inclusion of edges that contribute to the vehicle returning
+    # to the depot to avoid exceeding the vehicle capacity
+    heuristic_values = -distance_matrix * max_demand
+    return heuristic_values
+```

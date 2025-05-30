@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    heuristic = np.zeros((prize.shape[0],))
+
+    # Deep reinforcement learning component (simplified)
+    # Assuming a pre-trained model that scores items based on their potential
+    # Here we simulate this with a random number generator for demonstration
+    model_scores = np.random.rand(prize.shape[0])
+
+    # Initialize variables for adaptive constraint-driven filtering
+    cumulative_weight = np.zeros(prize.shape[0])
+    for i in range(prize.shape[0]):
+        cumulative_weight[i] = np.sum(weight[:i+1])
+
+    # Initialize variables for particle swarm optimization
+    local_best = np.max(prize)
+    global_best = np.max(prize)
+
+    # Calculate heuristic based on the factors
+    for i in range(prize.shape[0]):
+        # Adaptive constraint-driven filtering
+        feasible = cumulative_weight[i] <= 1
+
+        # Particle swarm optimization for evolutionary swarm intelligence
+        heuristic[i] = model_scores[i] * (prize[i] / (local_best + 1e-6)) * ((global_best - prize[i]) / (global_best + 1e-6))
+
+        # Update local and global best
+        local_best = max(local_best, prize[i])
+        global_best = max(global_best, local_best)
+
+        # Apply adaptive constraint-driven filtering
+        if not feasible:
+            heuristic[i] = 0
+
+    # Sparsify the heuristics by setting unpromising elements to zero
+    heuristic[heuristic < 0.5] = 0
+
+    return heuristic
+```

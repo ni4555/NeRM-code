@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    import numpy as np
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Create a mask for nodes with positive demand
+    demand_mask = (demands > 0).float()
+
+    # Calculate the average distance from the depot to all other nodes
+    avg_distance_to_depot = torch.mean(distance_matrix[:, 1:], dim=1)
+
+    # Calculate the potential heuristics value for each edge based on demand difference and distance
+    potential_heuristics = demands[1:] - demands[1:] * demands[:-1] * distance_matrix[1:, :-1] / distance_matrix[1:, 1:].view(-1, 1)
+
+    # Normalize potential heuristics by the average distance and apply the demand mask
+    heuristics[1:, :-1] = (potential_heuristics - avg_distance_to_depot[1:].unsqueeze(1)) * demand_mask[1:, :-1]
+
+    # Ensure non-negative heuristics
+    heuristics = torch.clamp(heuristics, min=0)
+
+    # Symmetry of the matrix
+    heuristics = (heuristics + heuristics.t()) / 2
+
+    return heuristics
+```

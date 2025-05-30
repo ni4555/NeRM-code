@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Create demand matrix
+    demand_matrix = (demands[:, None] * demands)
+    demand_matrix -= torch.diag(demand_matrix)
+    demand_matrix /= (torch.sum(demand_matrix, dim=1, keepdim=True) + 1e-8)
+    
+    # Incorporate capacity into heuristic
+    capacity_factor = 1 / (demands + 1e-8)
+    
+    # Weighted distance matrix considering demand
+    weighted_distance_matrix = distance_matrix * (demand_matrix + capacity_factor)
+    
+    # Apply a decay to the heuristic to avoid the depot domination
+    depot_decay_factor = torch.log1p(torch.abs(distance_matrix[:, 0]))
+    weighted_distance_matrix[:, 0] *= depot_decay_factor
+    weighted_distance_matrix[0, :] *= depot_decay_factor
+    
+    # Normalize to prevent one edge from being overly dominant
+    normalized_weighted_distance = weighted_distance_matrix / torch.max(weighted_distance_matrix, dim=1, keepdim=True)[0]
+    
+    # Apply a logarithmic scale to balance demand and distance
+    heuristics = torch.log1p(normalized_weighted_distance)
+    
+    # Introduce a linear function to balance between demand and distance
+    heuristics += (1 + demands)
+    
+    # Add penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += (overcapacity_penalty - undercapacity_penalty)
+    
+    # Avoid loops by reducing heuristic values for looping edges
+    loop_reduction_factor = 0.5
+    loop_heuristics = heuristics + heuristics.t() - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] *= loop_reduction_factor
+    
+    # Combine heuristics with loop adjustments
+    heuristics = torch.clamp(heuristics - loop_heuristics, min=0)
+    
+    return heuristics
+```

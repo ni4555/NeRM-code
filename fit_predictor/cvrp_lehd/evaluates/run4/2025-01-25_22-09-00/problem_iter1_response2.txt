@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand from the start node
+    cum_demand = torch.cumsum(demands, dim=0) - demands[0]
+
+    # Calculate the potential cost for each edge based on the cumulative demand
+    potential_cost = cum_demand[:, None] * distance_matrix
+
+    # Create a mask for edges that exceed the capacity
+    capacity_exceeded = cum_demand > demands[0]
+
+    # Subtract the distance from edges that exceed capacity (to make them less promising)
+    heuristics = potential_cost - distance_matrix[capacity_exceeded]
+
+    # For edges that do not exceed capacity, set the heuristic to the cumulative potential cost
+    heuristics[~capacity_exceeded] = potential_cost[~capacity_exceeded]
+
+    # Ensure non-negative heuristics
+    heuristics = torch.clamp(heuristics, min=0)
+
+    return heuristics
+```

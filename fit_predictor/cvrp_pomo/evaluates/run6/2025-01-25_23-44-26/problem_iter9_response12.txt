@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Create a balanced penalty weight that takes into account both the distance and demand
+    penalty_weight = torch.sqrt((normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0))**2 + distance_matrix)
+    
+    # Apply non-linear transformation to the penalty weights
+    # Using a logarithm to down-weight larger penalties (heavier demands or longer distances)
+    penalty_transformation = torch.log(penalty_weight + 1e-6)
+    
+    # Add a load balancing factor by considering the difference between demands
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs()
+    
+    # Incorporate randomness to escape local optima while preserving diversity
+    diversity_factor = torch.rand(distance_matrix.shape) * 0.02
+    
+    # Create a dynamic routing heuristic that considers real-time conditions
+    # Here we simulate real-time conditions with time of day and traffic factor
+    time_of_day = torch.rand(distance_matrix.shape[0]) * 24  # Simulate different hours of the day
+    traffic_factor = torch.rand(distance_matrix.shape[0]) * 2 - 1  # Simulate expected traffic (0-1 range)
+    dynamic_routing_heuristic = 1 / (1 + time_of_day.unsqueeze(1) * time_of_day.unsqueeze(0) + traffic_factor)
+    
+    # Combine the heuristics into a single weighted sum
+    # Weights are assigned to each heuristic to balance their impact
+    weights = torch.tensor([0.6, 0.3, 0.1], dtype=torch.float32)  # Adjust weights as necessary
+    combined_heuristic = (weights[0] * penalty_transformation +
+                          weights[1] * load_balance +
+                          weights[2] * dynamic_routing_heuristic +
+                          diversity_factor)
+    
+    return combined_heuristic
+```

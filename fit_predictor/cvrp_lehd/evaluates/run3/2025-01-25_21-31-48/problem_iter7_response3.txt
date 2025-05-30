@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_sum = demands.sum()
+    demand_balance = demands - demands.mean()
+    balance_penalty = torch.abs(demand_balance) / demand_sum
+
+    # Normalize distances
+    min_distance = distance_matrix.min()
+    max_distance = distance_matrix.max()
+    normalized_distances = (distance_matrix - min_distance) / (max_distance - min_distance)
+
+    # Invert the normalized distances to make smaller distances more promising
+    inverted_distances = 1 - normalized_distances
+
+    # Combine all features into a single heuristic matrix
+    heuristic_matrix = -inverted_distances * balance_penalty
+
+    # Add demand-based heuristic
+    demand_heuristic = -demands
+    heuristic_matrix += demand_heuristic
+
+    # Ensure the heuristic matrix is in the same shape as the distance matrix
+    return heuristic_matrix
+```

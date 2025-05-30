@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Calculate the minimum and maximum distances for each node to any other node
+    min_distances = np.min(distance_matrix, axis=1)
+    max_distances = np.max(distance_matrix, axis=1)
+    
+    # Calculate the average of the max and min distances for each node
+    average_max_min = (max_distances + min_distances) / 2
+    
+    # Calculate the diversity metric using the min and max distances
+    diversity_metric = distance_matrix / average_max_min
+    
+    # Calculate the relative cost metric based on the total distance minus the minimum distance
+    relative_cost_metric = distance_matrix - min_distances
+    
+    # Combine both metrics to get a heuristic value for each edge
+    # Using a weighted sum where the relative cost has a higher influence
+    alpha = 0.5  # Weight for the relative cost metric
+    beta = 0.5   # Weight for the diversity metric
+    heuristic_matrix = alpha * relative_cost_metric + beta * diversity_metric
+    
+    # Limit the maximum value of the heuristic to prevent extreme influence on the search
+    max_heuristic_value = 10
+    heuristic_matrix = np.clip(heuristic_matrix, 0, max_heuristic_value)
+    
+    # Use a penalty for highly connected nodes to encourage diversity in the solution
+    connectivity_penalty = np.zeros_like(distance_matrix)
+    for i in range(num_nodes):
+        connected_nodes = np.where(distance_matrix[i, :] != np.inf)[0]
+        if len(connected_nodes) > num_nodes / 2:  # Arbitrary threshold for high connectivity
+            connectivity_penalty[i, connected_nodes] = max_heuristic_value
+    
+    # Combine the penalties with the heuristic matrix
+    heuristics = heuristic_matrix + connectivity_penalty
+    
+    return heuristics
+```

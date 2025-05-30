@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    total_demand = demands[0]  # The demand of the depot node is not included in the heuristic calculation
+    total_capacity = demands.sum()
+
+    for i in range(1, n):
+        for j in range(1, n):
+            if total_demand + demands[j] <= 1:
+                heuristic_matrix[i, j] = distance_matrix[i, j]
+                total_demand += demands[j]
+            else:
+                # Use exponential decay for non-feasible edges based on how close we are to the capacity
+                decay = torch.exp(-((total_demand + 1 - demands[j]) / total_capacity))
+                heuristic_matrix[i, j] = decay * distance_matrix[i, j]
+    return heuristic_matrix
+```

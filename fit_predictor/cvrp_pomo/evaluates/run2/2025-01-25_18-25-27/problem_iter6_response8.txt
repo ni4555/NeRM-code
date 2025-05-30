@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Heuristics based on normalized demands and distance
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True))
+
+    # Heuristics to account for the local neighborhood structure
+    neighborhood_heuristics = (distance_matrix.sum(axis=1, keepdim=True) ** 2) / distance_matrix.sum()
+
+    # Heuristics to explicitly introduce capacity constraints
+    capacity_heuristics = (normalized_demands.unsqueeze(1) - demands.unsqueeze(0)).clamp(min=0) * 1000
+
+    # Heuristics to balance exploration and exploitation by penalizing infeasibility
+    infeasibility_penalty = torch.clamp((normalized_demands - 1.0 / n) ** 2, min=0) * 1000
+
+    # Combine all heuristics into a single matrix
+    heuristics_matrix = heuristics_matrix + neighborhood_heuristics + capacity_heuristics + infeasibility_penalty
+
+    # Normalize the heuristics matrix to ensure efficient computation
+    heuristics_matrix /= heuristics_matrix.sum() / distance_matrix.shape[0]
+
+    return heuristics_matrix
+```

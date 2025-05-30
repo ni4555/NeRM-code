@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Initialize the heuristics matrix with the distance matrix
+    heuristics_matrix = distance_matrix.clone()
+    # Set penalties for edges to the depot
+    heuristics_matrix[:, 0] = -float('inf')
+    heuristics_matrix[0, :] = -float('inf')
+    # Compute the heuristics matrix using a modified Dijkstra's heuristic
+    for i in range(1, n):
+        heuristics_matrix[i, :] = heuristics_matrix[i, :].unsqueeze(0).add(
+            distance_matrix[i].unsqueeze(0), alpha=1).add(
+            heuristics_matrix.max(0)[0].unsqueeze(0), alpha=-1).add(
+            (1 - normalized_demands.unsqueeze(0)), alpha=-1)
+    return heuristics_matrix
+```

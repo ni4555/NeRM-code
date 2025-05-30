@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Initialize heuristics array
+    heuristics = np.zeros_like(prize)
+
+    # Sample a random subset of items
+    sample_size = int(prize.size * 0.2)  # 20% of items
+    indices = np.random.choice(prize.size, sample_size, replace=False)
+    
+    # Calculate heuristics for the sampled items
+    for i in indices:
+        heuristics[i] = (prize[i] / (np.sum(weight[i]) + 1e-8))
+    
+    # Prune dominated items (those with lower heuristic values)
+    dominance_mask = np.ones(prize.size, dtype=bool)
+    for i in range(prize.size):
+        if heuristics[i] == 0:
+            continue
+        for j in range(prize.size):
+            if i != j and prize[j] <= prize[i] and np.sum(weight[j]) <= np.sum(weight[i]):
+                dominance_mask[j] = False
+    heuristics[dominance_mask] = 0
+
+    # Normalize the heuristics
+    heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+
+    return heuristics
+```

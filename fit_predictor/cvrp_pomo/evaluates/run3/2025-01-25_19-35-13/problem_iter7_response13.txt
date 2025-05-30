@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+    
+    # Apply a hybrid heuristic that combines a greedy approach with a nearest neighbor method
+    edge_potential = torch.zeros_like(distance_matrix)
+    
+    # Greedy heuristic: Start from the depot and calculate potential based on remaining capacity
+    remaining_capacity = 1.0
+    for i in range(1, len(demands)):
+        edge_potential[i, 0] = -normalized_demands[i] * remaining_capacity + distance_matrix[i, 0]
+        if edge_potential[i, 0] > 0:
+            remaining_capacity -= normalized_demands[i]
+    
+    # Nearest neighbor heuristic: For each node, find the closest node that can be added without exceeding capacity
+    for i in range(1, len(demands)):
+        for j in range(1, len(demands)):
+            if demands[j] <= remaining_capacity:
+                edge_potential[i, j] = -normalized_demands[j] * (1 - remaining_capacity / demands[j]) + distance_matrix[i, j]
+    
+    # Add adaptive penalties for high-demand nodes and for nodes that are too far
+    edge_potential = edge_potential - (edge_potential * 0.1 * (demands > 1.5).float())
+    edge_potential = edge_potential + (edge_potential * 0.05 * (distance_matrix < 10).float())
+    
+    return edge_potential
+```

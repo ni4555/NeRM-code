@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate normalized density and sparsity
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Integrate metrics such as normalized density, sparsity, and balance between density and sparsity
+    combined_metric = 0.5 * density + 0.5 * sparsity - np.abs(density - sparsity)
+    
+    # Add a diversity factor based on density
+    diversity_factor = density / np.mean(density + 1e-8)
+    
+    # Introduce a randomness component to avoid local optima
+    random_factor = np.random.rand(len(prize))
+    
+    # Blend the metrics with the diversity and randomness
+    heuristic = (combined_metric * diversity_factor + random_factor) / (np.sum(combined_metric * diversity_factor + random_factor) + 1e-8)
+    
+    # Ensure diversity by setting zero weights to a slightly positive value
+    zero_weight_heuristic = np.where(weight_sum < 1e-8, 1e-8, heuristic)
+    
+    return zero_weight_heuristic
+```

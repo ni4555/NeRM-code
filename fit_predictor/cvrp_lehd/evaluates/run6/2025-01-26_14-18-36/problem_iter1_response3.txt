@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improve upon the trivial implementation by considering the following:
+    - Edges to nodes with high demand are more promising.
+    - Edges to nodes that are far from the depot are less promising.
+    - Normalize by the total demand to ensure that high demand nodes are weighted appropriately."""
+    # Calculate the normalized demand
+    normalized_demand = demands / demands.sum()
+    
+    # Calculate the weight of each edge based on the normalized demand and distance
+    edge_weights = -normalized_demand.unsqueeze(1) * normalized_demand.unsqueeze(0) * distance_matrix
+    
+    # Add a penalty for edges that go to nodes with high demand
+    penalty = (demands > 1.0).float() * -1000
+    
+    # Combine the weights and penalties
+    heuristics = edge_weights + penalty
+    
+    return heuristics
+```

@@ -1,0 +1,31 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    
+    # Incorporate demand penalties by increasing the potential of edges with high demand
+    # The penalty is inversely proportional to the vehicle capacity
+    demand_matrix = -torch.cumsum(demands, dim=0) / vehicle_capacity
+    
+    # Use a non-linear transformation to balance distance and demand
+    # For instance, use the negative exponential to reduce the impact of high distances
+    distance_matrix = -torch.exp(distance_matrix)
+    
+    # Combine the demand penalties and the distance matrix to create a potential matrix
+    potential_matrix = distance_matrix + demand_matrix
+    
+    # Use softmax to promote diversity in edge selection by creating a probability distribution
+    softmax_matrix = F.softmax(potential_matrix, dim=1)
+    
+    # Subtract from 1 to convert softmax probabilities into heuristics values
+    # This will result in negative values for undesirable edges and positive values for promising ones
+    heuristics_matrix = 1 - softmax_matrix
+    
+    # Normalize the heuristics matrix to ensure the sum of heuristics from the depot to any customer is 1
+    heuristics_matrix[0, 1:] = heuristics_matrix[0, 1:] / heuristics_matrix[0, 1:].sum(1, keepdim=True)
+    heuristics_matrix[1:, 0] = heuristics_matrix[1:, 0] / heuristics_matrix[1:, 0].sum(1, keepdim=True)
+    
+    return heuristics_matrix
+```

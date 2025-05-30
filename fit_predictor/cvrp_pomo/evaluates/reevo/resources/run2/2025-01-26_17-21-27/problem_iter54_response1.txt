@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Common utility function for scaling
+    def penalty(value, reference, scale=1.0):
+        return scale * (-torch.log1p(torch.abs(value - reference) - 1e-8))
+
+    # Scale distances based on current cumulative demand and capacity
+    distance_penalty = penalty(distance_matrix, 0, scale=(cumulative_demand / total_capacity).mean())
+
+    # Capacity penalty considering how close we are to total capacity
+    capacity_penalty = penalty(demands - total_capacity, 0, scale=penalty(demands, total_capacity, scale=1.0))
+
+    # Overflow penalty to encourage early returns
+    overflow_penalty = penalty(
+        (cumulative_demand[:, None] + demands[None, :]) - total_capacity,
+        0,
+        scale=1.0
+    )
+
+    # Load balancing penalty
+    load_balance_penalty = penalty(cumulative_demand - total_capacity / n, 0)
+
+    # Combine all penalties
+    combined_penalties = distance_penalty + capacity_penalty + overflow_penalty + load_balance_penalty
+
+    # Scale combined penalties to prioritize objectives
+    scaling_factor = 3.0
+    heuristics = scaling_factor * combined_penalties
+
+    # Ensure non-negativity and apply large penalty for returning to depot
+    heuristics = torch.clamp(heuristics, min=0.0, max=1e6)
+    heuristics[0, 0] = -1e7
+
+    return heuristics
+```

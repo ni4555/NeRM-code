@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    # Initialize dynamic programming table
+    dp = torch.zeros((len(demands), len(demands)))
+    
+    # Base case: the cost of going from a node to itself is zero
+    dp[:, 0] = 0
+    
+    # Fill the dynamic programming table
+    for d in range(1, len(demands)):
+        for s in range(d):
+            dp[d, s] = torch.min(dp[s, :d], dp[:d, s])[0] + distance_matrix[s, d]
+    
+    # Find the minimum cost of serving all nodes starting from the depot
+    lower_bound = torch.min(dp[:, 0], dp[0, :])
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.7
+    distance_weight = 0.3
+    
+    # Calculate the potential based on the lower bound and demand
+    epsilon = 1e-8
+    edge_potential = (lower_bound / (distance_matrix + epsilon)) * torch.pow(normalized_demands, demand_weight)
+    
+    # Apply a distance penalty for long distances
+    distance_penalty = torch.exp(-distance_weight * distance_matrix)
+    
+    # Apply a demand penalty for very high or very low demands
+    demand_penalty_high = torch.exp(-0.5 * (demands > 2.0).float())
+    demand_penalty_low = torch.exp(-0.5 * (demands < 0.5).float())
+    
+    # Combine the penalties
+    penalty = demand_penalty_high + demand_penalty_low
+    
+    # Adjust the potential by combining the penalties
+    edge_potential = edge_potential * distance_penalty * (1 - penalty)
+    
+    # Clamp the potential to a certain range to avoid extreme values
+    edge_potential = torch.clamp(edge_potential, min=-5.0, max=5.0)
+    
+    return edge_potential
+```

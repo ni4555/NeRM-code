@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demands_cumsum = demands.cumsum()
+    capacity_thresholds = demands_cumsum <= 1.0  # Assuming vehicle capacity is 1.0 for simplicity
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Calculate the cumulative distance for each possible route
+    for i in range(n):
+        for j in range(i + 1, n):
+            if capacity_thresholds[j] - capacity_thresholds[i] <= 1.0:
+                heuristic_matrix[i, j] = -torch.abs(demands[j] - demands[i])
+            else:
+                # Calculate the distance back to the depot to fulfill the capacity constraint
+                distance_back_to_depot = distance_matrix[j, 0]
+                if capacity_thresholds[i] > 0:
+                    # Only consider if the first node is not yet at full capacity
+                    heuristic_matrix[i, j] = -distance_back_to_depot
+
+    # Adjust for the reverse edge to ensure symmetric values
+    heuristic_matrix = (heuristic_matrix + heuristic_matrix.t()) / 2
+
+    return heuristic_matrix
+```

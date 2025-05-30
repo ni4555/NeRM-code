@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Normalize demands by total demand
+    normalized_demands = demands / total_demand
+    
+    # Calculate the weighted distance matrix, where each edge is weighted by its inverse distance
+    weighted_distances = (1.0 / distance_matrix) * (demands / total_demand)
+    
+    # Scale demands based on distance
+    scaled_demands = normalized_demands * distance_matrix
+    
+    # Calculate the potential contribution of each edge
+    potential = -scaled_demands
+    
+    # Apply a dampening factor to penalize longer distances
+    dampen = torch.exp(-distance_matrix / 10)
+    
+    # Combine potential and dampening
+    heuristics = potential * dampen
+    
+    # Normalize the heuristics to have a range between -1 and 1
+    min_val = heuristics.min()
+    max_val = heuristics.max()
+    heuristics = (heuristics - min_val) / (max_val - min_val)
+    
+    # Adjust the range to be between -1 and 1
+    heuristics = (2 * heuristics - 1) * (max_val - min_val) / 2 + min_val
+    
+    # Apply a penalty for edges that lead to the same node or the depot
+    for i in range(num_nodes):
+        heuristic_matrix[i][i] = -float('inf')
+        if i == 0:
+            for j in range(1, num_nodes):
+                heuristic_matrix[i][j] = -float('inf')
+    
+    return heuristic_matrix
+```

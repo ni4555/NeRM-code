@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Introduce diversity in heuristics by using a more complex demand penalty
+    diversity_factor = torch.abs(normalized_demands.unsqueeze(1) - normalized_demands.unsqueeze(0))
+    demand_penalty = -diversity_factor
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Add a load balancing factor by considering the variance of demands in each edge
+    load_balance = torch.var(normalized_demands.unsqueeze(1) - normalized_demands.unsqueeze(0), dim=0)
+    
+    # Use dynamic factors for the time heuristic, which could change over time
+    time_constant = torch.rand(distance_matrix.shape[0])  # Could be replaced with a more dynamic approach
+    time_heuristic = (1 / (1 + time_constant.unsqueeze(1) * time_constant.unsqueeze(0)))
+    
+    # Combine the demand penalty, distance heuristic, load balance, and time heuristic
+    # Introduce a penalty for edges that have been used more often to prevent overuse
+    used_edges = torch.ones_like(distance_matrix)
+    used_edges_penalty = (used_edges.unsqueeze(1) - used_edges.unsqueeze(0)) * 0.1
+    combined_heuristic = demand_penalty + distance_heuristic + load_balance * time_heuristic - used_edges_penalty
+    
+    return combined_heuristic
+```

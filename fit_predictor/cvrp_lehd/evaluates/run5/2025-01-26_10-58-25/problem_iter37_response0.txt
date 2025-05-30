@@ -1,0 +1,38 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Normalize the distance matrix to avoid dominance of larger distances
+    normalized_distance_matrix = distance_matrix / distance_matrix.max()
+    
+    # Create a potential matrix combining normalized distances and demand penalties
+    potential_matrix = normalized_distance_matrix + penalty_matrix
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(potential_matrix))
+    
+    # Scale the emphasized matrix appropriately to ensure it is balanced with the penalties
+    scaled_emphasized_matrix = emphasized_matrix * 1000
+    
+    # Normalize the scaled emphasized matrix to ensure non-negativity and scale balance
+    normalized_scaled_emphasized_matrix = F.softmax(scaled_emphasized_matrix, dim=1)
+    
+    # Avoid redundant steps by combining with the original penalties once
+    combined_matrix = normalized_scaled_emphasized_matrix + penalty_matrix
+    
+    # Scale the combined matrix to adjust the balance between the normalized distances and penalties
+    combined_matrix = combined_matrix / combined_matrix.sum()
+    
+    # Transform the combined matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -combined_matrix
+    
+    return heuristics_matrix
+```

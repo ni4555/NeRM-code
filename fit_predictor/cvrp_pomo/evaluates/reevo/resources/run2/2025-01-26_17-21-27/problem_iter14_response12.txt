@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demand = demands / total_capacity
+    cumulative_demand = torch.cumsum(normalized_demand, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+    
+    # Calculate the heuristic values based on demand balance and distance
+    demand_balance = (cumulative_demand - normalized_demand).pow(2)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling = distance_penalty * (1 + cumulative_demand)
+    distance_scaling[distance_scaling == float('inf')] = 0
+    
+    # Incentivize remaining capacity
+    capacity_incentive = torch.exp(-remaining_capacity / total_capacity)
+    
+    # Combine the components into the final heuristic
+    heuristics = demand_balance + distance_scaling * capacity_incentive * (torch.arange(n) == 0).float().unsqueeze(0)
+    
+    return heuristics
+```

@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:]  # Exclude the depot node from capacity calculation
+
+    # Iterate only over pairs of nodes where start_node < destination_node
+    # This avoids redundant calculations and utilizes symmetry
+    for start_node in range(1, n_nodes):
+        # Calculate the total demand from the start node to all nodes
+        total_demand_to_start = demand_cumsum - demand_cumsum[start_node]
+        # Select nodes that can be visited without exceeding the capacity
+        feasible_nodes = (total_demand_to_start <= remaining_capacity[start_node]).nonzero(as_tuple=False)[0]
+        # Update the heuristics for feasible edges
+        heuristics[start_node, feasible_nodes] = distance_matrix[start_node, feasible_nodes]
+        heuristics[feasible_nodes, start_node] = distance_matrix[feasible_nodes, start_node]
+
+        # Update the remaining capacity for the start node
+        remaining_capacity[start_node] -= total_demand_to_start[feasible_nodes]
+
+        # Check if the vehicle can return to the depot
+        if remaining_capacity[start_node] <= 0:
+            heuristics[start_node, 0] = distance_matrix[start_node, 0]
+            break  # No need to continue to other destination nodes
+```

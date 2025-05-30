@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    depot_distance = distance_matrix[:, 0]
+    heuristic_range = 1.0 / (depot_distance + distance_matrix.mean() + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Capacity-based incentives: penalize edges that would exceed vehicle capacity
+    capacity_incentive = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Heuristic performance weighting: adaptively weight heuristics based on performance
+    heuristic_performance = (inverse_distance + demand_weight + heuristic_range + load_balance + capacity_incentive).mean(dim=0)
+    weighted_inverse_distance = inverse_distance * heuristic_performance[0]
+    weighted_demand_weight = demand_weight * heuristic_performance[1]
+    weighted_heuristic_range = heuristic_range * heuristic_performance[2]
+    weighted_load_balance = load_balance * heuristic_performance[3]
+    weighted_capacity_incentive = capacity_incentive * heuristic_performance[4]
+
+    # Combine heuristics with weights
+    combined_heuristic = weighted_inverse_distance * 0.3 + weighted_demand_weight * 0.3 + \
+                         weighted_heuristic_range * 0.2 + weighted_load_balance * 0.2 + \
+                         weighted_capacity_incentive * 0.2
+
+    return combined_heuristic
+```

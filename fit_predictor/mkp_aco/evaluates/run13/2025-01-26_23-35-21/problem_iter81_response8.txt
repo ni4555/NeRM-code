@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Initialize heuristics array
+    heuristics = np.zeros_like(prize)
+    
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items
+    for i in range(n):
+        for j in range(n):
+            if (prize[j] / np.sum(weight[j, :])) > (prize[i] / np.sum(weight[i, :])) and (density[i] < density[j]):
+                heuristics[i] = 0
+                break
+    
+    # Introduce exploration-exploitation
+    exploration_factor = np.random.rand(n)
+    exploitation_factor = (prize / (np.sum(weight, axis=1) + 1e-8)) * 0.5
+    
+    # Integrate metrics into heuristics
+    heuristics = (density * exploration_factor + exploitation_factor * sparsity)
+    
+    # Normalize heuristics
+    heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+    
+    # Prune dominated items again to ensure no dominated items are included
+    for i in range(n):
+        for j in range(n):
+            if (prize[j] / np.sum(weight[j, :])) > (prize[i] / np.sum(weight[i, :])) and (density[i] < density[j]):
+                heuristics[i] = 0
+                break
+    
+    return heuristics
+```

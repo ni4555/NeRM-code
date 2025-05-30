@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize distances to reduce the impact of larger distances
+    max_distance = distance_matrix.max()
+    normalized_distances = distance_matrix / max_distance
+
+    # Normalize demands to balance the effect of varying demand values
+    max_demand = demands.max()
+    normalized_demands = demands / max_demand
+
+    # Emphasize demand variance by using the standard deviation as a penalty
+    demand_variance = torch.std(normalized_demands)
+    penalty_factor = 1 + demand_variance
+
+    # Balance demand distribution by applying a factor that promotes uniformity
+    load_balance_factor = (demands.sum() - demands.max()) / demands.sum()
+    weight_factor = (1 + load_balance_factor) / (1 + penalty_factor)
+
+    # Combine normalized demands, normalized distances, and penalties into a heuristic matrix
+    heuristic_matrix = torch.mul(
+        torch.mul(normalized_distances, normalized_demands),
+        penalty_factor
+    )
+
+    # Dynamically weight the heuristic values to balance the factors
+    heuristic_matrix = torch.mul(heuristic_matrix, weight_factor)
+
+    # Cap penalties to ensure the heuristic values are stable and within a range
+    cap = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-cap, max=cap)
+
+    return heuristic_matrix
+```

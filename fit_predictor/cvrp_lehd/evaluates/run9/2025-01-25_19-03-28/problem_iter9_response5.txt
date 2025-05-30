@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+    
+    max_demand = demands.max()
+    min_demand = demands.min()
+    demand_diff = max_demand - min_demand
+    
+    # Incorporate dynamic penalties balancing variance and outliers
+    # Here we use the interquartile range to identify outliers
+    q1 = torch.quantile(demands, 0.25)
+    q3 = torch.quantile(demands, 0.75)
+    iqr = q3 - q1
+    outliers = (demands < q1 - 1.5 * iqr) | (demands > q3 + 1.5 * iqr)
+    penalty_outliers = torch.ones_like(demands) * 2  # Example penalty for outliers
+    penalty_outliers[~outliers] = 1  # Reset penalty for non-outliers
+    
+    # Combine demand, distance, variance and outlier penalties
+    heuristic_matrix = -torch.mul(
+        torch.mul(normalized_demands, distance_matrix),
+        torch.mul(demand_diff, penalty_outliers)
+    )
+    
+    threshold = torch.tensor(0.1, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-threshold, max=threshold)
+    
+    return heuristic_matrix
+```

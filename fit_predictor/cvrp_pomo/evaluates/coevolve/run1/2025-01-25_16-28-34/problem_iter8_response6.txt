@@ -1,0 +1,54 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Adjust the average demand per edge to be relative to the total capacity
+    adjusted_average_demand = average_demand_per_edge / total_capacity
+    
+    # Introduce a risk penalty for high average demand per edge to encourage exploration
+    risk_penalty = adjusted_average_demand.clamp(min=0) ** 2
+    
+    # Introduce a success bonus for edges with lower average demand per edge to encourage exploitation
+    success_bonus = (1 - adjusted_average_demand.clamp(max=1)) ** 2
+    
+    # Calculate the heuristic value as the difference between risk penalty and success bonus
+    heuristics = risk_penalty - success_bonus
+    
+    # Introduce a diversity factor by penalizing highly connected nodes
+    diversity_factor = 1 / (distance_matrix.sum(dim=1) + 1)
+    
+    # Introduce a load balance penalty to encourage load balancing
+    load_balance_penalty = torch.abs(average_demand_per_edge - 1)
+    
+    # Combine all heuristics
+    combined_heuristics = heuristics * diversity_factor * load_balance_penalty
+    
+    # Normalize combined heuristics to maintain a scale for all factors
+    max_combined_heuristics = combined_heuristics.max()
+    normalized_combined_heuristics = combined_heuristics / max_combined_heuristics
+    
+    # Introduce a local search component to adjust the heuristics based on capacity constraints
+    # This is a simplified version of local search and can be replaced with more complex algorithms
+    for i in range(n):
+        for j in range(n):
+            if i != j and distance_matrix[i, j] > 0:
+                # Check if including this edge would cause overcapacity
+                temp_demand = (demands[i] + demands[j])
+                if temp_demand <= total_capacity:
+                    normalized_combined_heuristics[i, j] += 0.5
+    
+    # Return the heuristics matrix with edges with zero distance set to zero
+    heuristics_v2 = -normalized_combined_heuristics.clamp(min=0)
+    heuristics_v2[distance_matrix == 0] = 0
+    
+    return heuristics_v2
+```

@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / n
+
+    # Calculate the load factor, which penalizes heavily loaded nodes
+    load_factor = (demands - average_demand) / average_demand
+
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+
+    # Calculate the heuristics by combining the normalized distance and the load factor
+    # The load factor is subtracted from the heuristic to discourage visiting heavily loaded nodes
+    heuristics = norm_distances - load_factor.unsqueeze(1)
+
+    # Limit the heuristics to ensure they are within a reasonable range
+    heuristics = torch.clamp(heuristics, min=-2.0, max=2.0)
+
+    # Add a bonus for edges leading from the depot to reduce travel distance
+    heuristics[:, 0] += 1
+
+    return heuristics
+```

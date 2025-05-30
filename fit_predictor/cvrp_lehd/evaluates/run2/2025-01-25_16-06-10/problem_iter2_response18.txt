@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic considering demand and distance, using vectorized operations."""
+    # Calculate the total demand
+    total_demand = demands.sum()
+    
+    # Create a matrix of demands, with the depot's demand set to zero
+    demand_matrix = torch.cat((torch.zeros((1, demands.size(0))), demands), dim=0)
+    
+    # Calculate the distance to return to the depot from each node
+    return_distances = distance_matrix[:, 0]
+    
+    # Calculate the potential return distances for each edge
+    potential_return_distances = torch.clamp(distance_matrix - distance_matrix.T, min=0)
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Apply demand-aware weights and distance-based penalties
+    heuristic_matrix = (distance_matrix - return_distances) * torch.clamp(demands[:, None] + demands[None, :] - 2 * demands, min=0)
+    
+    # Adjust heuristic values to consider vehicle capacity constraints
+    for i in range(demand_matrix.shape[0]):
+        for j in range(demand_matrix.shape[1]):
+            if demand_matrix[i] + demand_matrix[j] > total_demand:
+                heuristic_matrix[i, j] -= return_distances[j]
+    
+    return heuristic_matrix
+```

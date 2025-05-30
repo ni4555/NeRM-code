@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Exclude the depot from the demand vector
+    demands_excluding_depot = demands[1:]
+    total_demand_excluding_depot = total_demand - demands[0]
+    
+    # Calculate the heuristic value for each edge considering only the demand of customers
+    heuristic_matrix[1:, 1:] = -distance_matrix[1:, 1:] + (distance_matrix[1:, 0] + distance_matrix[0, 1:])
+    
+    # Apply a threshold based on the demand
+    edge_demand = demands_excluding_depot.unsqueeze(1) + demands_excluding_depot.unsqueeze(0)
+    edge_capacity = edge_demand * total_demand_excluding_depot / total_demand
+    heuristic_matrix[1:, 1:] += (edge_capacity - 1) * distance_matrix[1:, 0] + (edge_capacity - 1) * distance_matrix[0, 1:]
+    
+    # Set edges to -inf if they exceed the total demand
+    edge_exceeds_demand = (demands_excluding_depot.unsqueeze(1) + demands_excluding_depot.unsqueeze(0)) > total_demand_excluding_depot
+    heuristic_matrix[1:, 1:] = torch.where(edge_exceeds_demand, torch.full_like(heuristic_matrix[1:, 1:], -float('inf')), heuristic_matrix[1:, 1:])
+    
+    return heuristic_matrix
+```

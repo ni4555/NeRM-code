@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize prize and weight within each dimension
+    normalized_prize = (prize - np.min(prize, axis=0)) / (np.max(prize, axis=0) - np.min(prize, axis=0))
+    normalized_weight = (weight - np.min(weight, axis=1, keepdims=True)) / (np.max(weight, axis=1, keepdims=True) - np.min(weight, axis=1, keepdims=True))
+    
+    # Calculate value-to-weight ratio for each item and each dimension
+    value_to_weight_ratio = normalized_prize / np.sum(normalized_weight, axis=1)
+    
+    # Amplify high-value features and introduce randomness
+    amplified_ratio = np.exp(value_to_weight_ratio * (value_to_weight_ratio > 0.1))
+    randomness_factor = np.random.rand(amplified_ratio.shape[0]) * (value_to_weight_ratio < 0.2)
+    
+    # Combine the amplified ratio with randomness to increase diversity
+    combined_heuristics = amplified_ratio * randomness_factor
+    
+    # Normalize the combined heuristics to ensure they sum to 1 for each item
+    heuristics = combined_heuristics / np.sum(combined_heuristics, axis=1, keepdims=True)
+    
+    # Sparsify the heuristics by setting low values to zero
+    sparsified_heuristics = np.where(heuristics > 0.05, heuristics, 0)
+    
+    return sparsified_heuristics
+```

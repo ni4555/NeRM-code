@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize array to ensure the largest prize is 1
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate the density (normalized prize divided by total weight)
+    density = normalized_prize / np.sum(weight, axis=1)
+    
+    # Define a sparsity threshold and calculate sparsity (whether the total weight is below the threshold)
+    sparsity_threshold = 0.1
+    sparsity = np.sum(weight, axis=1) < sparsity_threshold
+    
+    # Calculate diversity (inverse of total weight)
+    diversity = 1 / np.sum(weight, axis=1)
+    
+    # Normalize diversity to ensure it is non-negative
+    diversity = np.clip(diversity, 0, np.inf)
+    
+    # Assign weights to each metric based on their importance in MKP
+    density_weight = 0.6
+    sparsity_weight = 0.3
+    diversity_weight = 0.1
+    
+    # Form heuristics using the weighted combination of metrics
+    heuristics = (density * density_weight +
+                  sparsity * sparsity_weight +
+                  diversity * diversity_weight)
+    
+    # Ensure all heuristics are non-negative
+    heuristics = np.maximum(heuristics, 0)
+    
+    # Normalize heuristics to be between 0 and 1
+    heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+    
+    return heuristics
+```

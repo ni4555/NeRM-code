@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate penalties for edges with high demand to avoid overloading vehicles
+    demand_penalty = -torch.clamp(normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0), min=0)
+    
+    # Inverse distance matrix heuristic (shorter distances are better)
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Load balancing heuristic to distribute the load evenly across routes
+    load_balance = (demands.unsqueeze(1) - demands.unsqueeze(0)).abs() / demands.sum()
+    
+    # Dynamic time factor considering time of day and traffic conditions
+    time_of_day = torch.rand(distance_matrix.shape[0]) * 24  # Simulate different hours of the day
+    traffic_factor = torch.rand(distance_matrix.shape[0]) * 2 - 1  # Simulate expected traffic (0-1 range)
+    dynamic_time_factor = (1 / (1 + time_of_day.unsqueeze(1) * time_of_day.unsqueeze(0) + traffic_factor))
+    
+    # Diversity heuristic by slightly randomizing the heuristics
+    diversity_factor = torch.randn(distance_matrix.shape) * 0.01  # Using Gaussian noise for diversity
+    
+    # Combine heuristics with adaptive weights
+    weights = torch.tensor([0.3, 0.5, 0.2], dtype=torch.float32)  # Example weights
+    combined_heuristic = weights[0] * demand_penalty + weights[1] * distance_heuristic + \
+                          weights[2] * load_balance * dynamic_time_factor + diversity_factor
+    
+    # Non-linear transformation to optimize the heuristics
+    non_linear_transformation = torch.relu(combined_heuristic)
+    
+    # Normalize the final heuristics
+    max_heuristic = non_linear_transformation.max()
+    min_heuristic = non_linear_transformation.min()
+    normalized_heuristic = (non_linear_transformation - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    return normalized_heuristic
+```

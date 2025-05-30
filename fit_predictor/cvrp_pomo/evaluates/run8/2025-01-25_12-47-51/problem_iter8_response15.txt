@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand and normalize the distance matrix
+    total_demand = torch.sum(demands)
+    normalized_distance_matrix = 1 / (distance_matrix + 1e-8)
+
+    # Demand-based heuristic: Prioritize edges based on the ratio of demand to total demand
+    demand_ratio = demands / total_demand
+    demand_heuristic = demand_ratio * normalized_distance_matrix
+
+    # Capacity-based heuristic: Consider the remaining capacity of each customer
+    remaining_capacity = 1 - demands
+    capacity_heuristic = remaining_capacity * normalized_distance_matrix
+
+    # Local search heuristic: Use nearest neighbor approach to estimate the heuristic
+    # Calculate the nearest neighbor for each customer
+    nearest_neighbor_indices = torch.argmin(distance_matrix, dim=1)
+    nearest_neighbor_distances = torch.gather(distance_matrix[:, 1:], 1, nearest_neighbor_indices[:, None])
+    nearest_neighbor_heuristic = torch.zeros_like(nearest_neighbor_distances)
+    nearest_neighbor_heuristic.fill_(torch.inf)
+    nearest_neighbor_heuristic.scatter_(1, nearest_neighbor_indices[:, None], nearest_neighbor_distances)
+    nearest_neighbor_heuristic = torch.exp(-nearest_neighbor_heuristic / (1e-4 * (n - 1)))
+
+    # Combine heuristics
+    combined_heuristic = demand_heuristic + capacity_heuristic + nearest_neighbor_heuristic
+
+    # Add penalties for edges that lead to an overflow of the vehicle capacity
+    capacity_overflow_penalty = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[capacity_overflow_penalty] = -torch.inf
+
+    # Normalize heuristics to ensure non-negativity
+    combined_heuristic = combined_heuristic.clamp(min=0)
+
+    return combined_heuristic
+```

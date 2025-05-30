@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Refined heuristic that considers both overloading and underloading
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Introduce penalties for overloading and underloading
+    overload_penalty = torch.relu(heuristics)
+    underload_penalty = torch.relu(1 - heuristics)
+    
+    # Weighted combination of overloading and underloading penalties
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    # Apply additional local search adjustments based on vehicle capacity constraints
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Check if the edge (i, j) leads to overloading
+                if heuristics[i, j] > 0:
+                    for k in range(n):
+                        if k != i and k != j:
+                            # Calculate potential load if customer k is visited instead of customer j
+                            potential_load = demands[j] - demands[k]
+                            if 0 < potential_load <= 1:
+                                heuristics[i, j] = -torch.abs(potential_load)
+    
+    return heuristics
+```

@@ -1,0 +1,50 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate penalties for outliers and sparsity
+    penalties = np.abs(value_to_weight_ratio - np.mean(value_to_weight_ratio))
+    penalties = np.clip(penalties, 0, None)
+    
+    # Apply penalties to value-to-weight ratio
+    penalized_ratio = value_to_weight_ratio - penalties
+    
+    # Normalize penalized ratio
+    normalized_ratio = (penalized_ratio - np.min(penalized_ratio)) / (np.max(penalized_ratio) - np.min(penalized_ratio))
+    
+    # Factor 1: Normalized penalized value-to-weight ratio
+    value_to_weight_factor = normalized_ratio
+    
+    # Factor 2: Sum of weights (to avoid overly heavy items)
+    weight_factor = weight.sum(axis=1)
+    
+    # Factor 3: Count of dimensions with non-zero weights (to avoid overly complex items)
+    dimension_factor = (weight != 0).sum(axis=1)
+    
+    # Factor 4: Average weight per dimension (to balance the load across dimensions)
+    avg_weight_factor = np.mean(weight, axis=1)
+    
+    # Factor 5: Total value (to prioritize high-value items)
+    value_factor = prize
+    
+    # Combine factors to create a heuristic
+    heuristic = value_to_weight_factor * (1 / weight_factor) * (1 / (dimension_factor + 1)) * (1 / (avg_weight_factor + 1)) * (value_factor / np.max(value_factor))
+    
+    # Normalize the heuristic to a range between 0 and 1
+    min_heuristic = np.min(heuristic)
+    max_heuristic = np.max(heuristic)
+    heuristic = (heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # Sparsify the heuristics by setting lower elements to zero
+    sparsity_threshold = np.percentile(heuristic, 25)
+    heuristics = np.where(heuristic > sparsity_threshold, heuristic, 0)
+    
+    return heuristics
+```

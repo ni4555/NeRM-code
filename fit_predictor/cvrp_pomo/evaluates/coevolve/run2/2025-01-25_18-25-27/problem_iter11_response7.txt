@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Initialize a matrix to store heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+
+    # Assign heuristics based on demand contribution
+    for i in range(n):
+        for j in range(n):
+            heuristics_matrix[i, j] = distance_matrix[i, j] * (normalized_demands[i] + normalized_demands[j])
+
+    # Introduce diversity by adding random perturbations
+    random_factor = torch.rand(n, n) * 2 - 1
+    heuristics_matrix += random_factor
+
+    # Penalize infeasibilities
+    feasible_edges = (heuristics_matrix > 0).float()
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    heuristics_matrix += infeasibility_penalty * (1 - feasible_edges)
+
+    # Balance exploration and exploitation by adjusting heuristics
+    exploration_factor = torch.rand(n, n) * 2 - 1
+    heuristics_matrix += exploration_factor * (1 - feasible_edges)
+
+    return heuristics_matrix
+```

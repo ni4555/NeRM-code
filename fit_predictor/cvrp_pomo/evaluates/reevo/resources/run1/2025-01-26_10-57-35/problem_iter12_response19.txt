@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum().item()
+    
+    # Normalize demands by the total capacity to ensure they are in [0, 1]
+    normalized_demands = demands / total_capacity
+    
+    # Softly normalize the distance matrix by the sum of demands for each row
+    demand_sum_per_row = normalized_demands.sum(dim=1, keepdim=True)
+    normalized_distance_matrix = distance_matrix / demand_sum_per_row
+    
+    # Integrate capacity constraints by considering the inverse of demand
+    capacity_factor = 1 / (normalized_demands + 1e-8)
+    
+    # Calculate the heuristic by combining the normalized distance and capacity factor
+    heuristics = normalized_distance_matrix * capacity_factor
+    
+    # Apply a soft thresholding to penalize larger distances
+    distance_threshold = 1.5  # This can be adjusted
+    heuristics = torch.where(distance_matrix > distance_threshold, heuristics - 1, heuristics)
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

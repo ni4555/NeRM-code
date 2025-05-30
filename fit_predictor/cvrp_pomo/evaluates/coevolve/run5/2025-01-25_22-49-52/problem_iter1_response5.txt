@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate potential values based on a combination of distance and demand
+    # This heuristic uses a weighted sum of distance and demand relaxation
+    alpha = 0.5  # Weight for demand relaxation
+    potential_values = normalized_distances - alpha * normalized_demands
+    
+    # Apply a partitioning heuristic to promote feasible solutions
+    # Here, we use a simple partitioning based on the cumulative sum of demands
+    cumulative_demands = torch.cumsum(normalized_demands, dim=0)
+    partition_indices = torch.where(cumulative_demands > 1.0)[0]
+    
+    # Adjust potential values based on partitioning
+    for i in range(len(partition_indices) - 1):
+        start, end = partition_indices[i], partition_indices[i + 1]
+        potential_values[start:end, :] = -torch.inf
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

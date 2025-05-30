@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_vertices = distance_matrix.shape[0]
+    
+    # Calculate the mean distance for each edge's neighbors
+    neighbors_mean = (distance_matrix[:, :-1].mean(axis=1) +
+                      distance_matrix[:, 1:].mean(axis=1)) / 2
+    
+    # Calculate the standard deviation for each edge's neighbors
+    neighbors_std = (distance_matrix[:, :-1].std(axis=1) +
+                     distance_matrix[:, 1:].std(axis=1)) / 2
+    
+    # Calculate the deviation from the mean for each edge
+    deviations = distance_matrix - neighbors_mean
+    
+    # Normalize the deviations to ensure they are within the range of [0, 1]
+    deviations = (deviations - deviations.min()) / (deviations.max() - deviations.min())
+    
+    # Scale the normalized deviations based on the standard deviation of the neighbors
+    scaled_deviations = deviations * (1 + neighbors_std)
+    
+    # Further refine the heuristic by considering the local optimal route
+    local_optimal_edges = [(i, j) for i in range(num_vertices) for j in range(i+1, num_vertices) if distance_matrix[i][j] < scaled_deviations[i][j]]
+    
+    # Apply a higher penalty to edges not in the local optimal route
+    for i, j in local_optimal_edges:
+        scaled_deviations[i][j] = scaled_deviations[j][i] = 0
+    
+    # Apply a bonus to edges in the local optimal route
+    bonus = 1 - (scaled_deviations.max() - scaled_deviations.min())
+    for i, j in local_optimal_edges:
+        scaled_deviations[i][j] = scaled_deviations[j][i] = bonus
+    
+    return scaled_deviations
+```

@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the total demand sum
+    total_demand = demands.sum()
+
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the minimum distance from the depot to each customer
+    min_distance_to_customer = torch.min(distance_matrix[0, 1:], dim=0).values
+
+    # Calculate the minimum distance from each customer to the depot
+    min_distance_from_customer = torch.min(distance_matrix[1:, 0], dim=0).values
+
+    # Calculate the total distance if a vehicle starts at the depot, visits all customers, and returns to the depot
+    total_distance = (distance_matrix[0, 1:].sum() + distance_matrix[1:, 0].sum() + (n - 1) * total_demand)
+
+    # Calculate the heuristic values for the edges from the depot to customers
+    heuristics[0, 1:] = (total_distance - min_distance_to_customer) * (1 - demands[1:])
+
+    # Calculate the heuristic values for the edges from customers to the depot
+    heuristics[1:, 0] = (total_distance - min_distance_from_customer) * (1 - demands[1:])
+
+    # Calculate the heuristic values for the edges between customers
+    heuristics[1:, 1:] = heuristics[1:, 0] - distance_matrix[1:, 1:]
+
+    # Normalize the heuristics values by the maximum heuristic to ensure values are in the range [0, 1]
+    max_value = heuristics.max()
+    heuristics = heuristics / max_value
+
+    # Apply a penalty for nodes that exceed the capacity of a vehicle
+    penalty_matrix = (demands.view(-1, 1) + demands) * torch.triu(torch.ones(n), diagonal=1)
+    heuristics = heuristics - penalty_matrix
+
+    # Ensure negative values are not included (undesirable edges)
+    heuristics = torch.clamp(heuristics, min=0)
+
+    return heuristics
+```

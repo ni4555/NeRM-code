@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic array
+    heuristic = np.zeros_like(prize)
+    
+    # Calculate normalized density for each item
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity for each item
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized weight sum for each item
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Calculate the average density
+    average_density = np.mean(density)
+    
+    # Calculate diversity factors based on density
+    diversity_factors = density / (average_density + 1e-8)
+    
+    # Apply density as a bonus to items with higher value per weight
+    density_bonus = np.maximum(0, density - average_density)
+    
+    # Apply sparsity penalties to items that are too sparse
+    sparsity_penalty = np.maximum(0, 1 - sparsity)
+    
+    # Calculate the balance between density and sparsity
+    balance = density_bonus + sparsity_penalty
+    
+    # Combine the heuristics using a weighted sum
+    # Weights are chosen based on the importance of diversity, balance, and density
+    heuristic = 0.5 * balance + 0.3 * diversity_factors + 0.2 * density
+    
+    # Normalize the heuristic to ensure it sums to 1
+    heuristic /= np.sum(heuristic)
+    
+    # Set items with zero weight sum to a lower value to maintain diversity
+    zero_weight_index = np.where(weight_sum < 1e-8)[0]
+    heuristic[zero_weight_index] = 0.1
+    
+    return heuristic
+```

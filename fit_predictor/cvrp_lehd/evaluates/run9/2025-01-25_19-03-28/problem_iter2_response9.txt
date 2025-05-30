@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic for each edge as the negative of the sum of the normalized demand
+    # and the negative of the distance. This heuristic gives higher scores to edges with lower
+    # demands and shorter distances.
+    heuristic_matrix = -torch.mul(normalized_demands, distance_matrix)
+
+    # Add a penalty for demand importance, which is inversely proportional to the demand
+    # to encourage visiting customers with lower demands first.
+    demand_importance = 1 / (normalized_demands + 1e-6)  # Add a small value to avoid division by zero
+    penalty = torch.mul(demand_importance, demands)
+    heuristic_matrix = torch.add(heuristic_matrix, penalty)
+
+    return heuristic_matrix
+```

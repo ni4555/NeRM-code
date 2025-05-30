@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # This heuristic function combines multiple diverse heuristics to estimate the "badness" of an edge.
+    
+    # Edge weight (larger is worse)
+    weight_edge = distance_matrix.copy()
+
+    # Inverse of the distance (smaller is better)
+    weight_inverse = 1 / (distance_matrix + 1e-10)
+
+    # Sum of distances to the closest node (larger is better)
+    min_row_distances = np.min(distance_matrix, axis=1)
+    sum_to_closest = np.sum(distance_matrix, axis=1)
+    weight_sum_to_closest = sum_to_closest / (min_row_distances + 1e-10)
+
+    # Weigh the heuristics to combine them
+    # Assigning higher weight to the edge weight, as it is a direct indicator of the "badness" of an edge
+    weights = [0.6, 0.2, 0.2]  # Weight for edge, inverse, and sum to closest
+
+    # Combine the weighted heuristics
+    combined_heuristic = sum(w * h for w, h in zip(weights, [weight_edge, weight_inverse, weight_sum_to_closest]))
+
+    # Normalize the combined heuristic matrix
+    combined_heuristic = combined_heuristic / np.max(combined_heuristic)
+    
+    return combined_heuristic
+```

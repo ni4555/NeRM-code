@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Dynamic adjustment of heuristic weights based on simulation results
+    # Assuming we have a function that calculates the optimal weights based on the problem specifics
+    optimal_weights = calculate_optimal_weights(distance_matrix, normalized_demands)
+
+    # Combine heuristics with dynamic weights
+    combined_heuristic = (optimal_weights[0] * inverse_distance +
+                          optimal_weights[1] * demand_weight +
+                          optimal_weights[2] * heuristic_range +
+                          optimal_weights[3] * load_balance)
+
+    # Quantify and tune weights based on problem complexity and performance
+    combined_heuristic = torch.clamp(combined_heuristic, min=-10.0, max=10.0)
+
+    return combined_heuristic
+
+def calculate_optimal_weights(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # This function would contain the logic to calculate the optimal weights based on the problem specifics.
+    # Since the implementation details of this function are not provided, it is a placeholder.
+    # In a real-world scenario, this could involve machine learning models, expert knowledge, or other optimization techniques.
+    return torch.tensor([0.5, 0.3, 0.2, 0.4])
+```

@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Distinct penalties for different aspects
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Early overflow detection and high penalty
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    ) * 1.5
+    
+    # Load balancing heuristic
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Diversity penalty to avoid early convergence
+    diversity_penalty = torch.log1p(torch.abs(demands - demands.mean()) - 1e-8)
+    
+    # Heuristic vector combining the penalties
+    heuristics = distance_penalty + capacity_penalty + overflow_penalty + load_balance_penalty + diversity_penalty
+    
+    # Scaling for robustness and to keep the heuristics in a reasonable range
+    scaling_factor = 2.0
+    heuristics *= scaling_factor
+    
+    # Penalty for excessive load imbalance
+    uniform_load_penalty = torch.where(
+        load_balance > total_capacity / (2 * n),
+        -torch.log1p(load_balance - 1e-8),
+        torch.zeros_like(load_balance)
+    )
+    
+    heuristics += uniform_load_penalty
+    
+    # Normalize heuristics for better comparison
+    heuristics = heuristics / heuristics.max()
+    
+    return heuristics
+```

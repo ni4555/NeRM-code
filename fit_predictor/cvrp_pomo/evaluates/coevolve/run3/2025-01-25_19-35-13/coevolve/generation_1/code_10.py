@@ -1,0 +1,19 @@
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Compute the potential for each edge based on distance and demand
+    # The potential is a function of the distance (the higher the distance, the lower the potential)
+    # and the normalized demand (the higher the demand, the higher the potential).
+    # Here, we use a simple heuristic: the potential is inversely proportional to the distance
+    # and proportional to the demand, with a small positive constant to avoid division by zero.
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    edge_potential = normalized_demands * (1 / (distance_matrix + epsilon))
+    
+    return edge_potential

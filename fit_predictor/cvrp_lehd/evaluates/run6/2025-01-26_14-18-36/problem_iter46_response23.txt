@@ -1,0 +1,65 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Dampening factor for penalties
+    dampening_factor = 0.5
+
+    # Demand-based penalty for infeasibility
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * dampening_factor
+
+    # Depot-based penalty for returning to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * dampening_factor
+
+    # Distance-based penalty for edges leading back to the depot
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 50
+    heuristics += torch.clamp(distance_penalty, min=0.0) * dampening_factor
+
+    # Normalize the heuristic values to the range [0, 1] using min-max scaling
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Distance-based penalty for local preference
+    local_preference = (distance_matrix[:, 0] - distance_matrix[:, 0].mean())
+    heuristics += torch.clamp(local_preference, min=0.0) * dampening_factor
+
+    # Introduce diversity by balancing capacity and distance
+    diversity_balance = 0.6 * heuristics + 0.4 * local_preference
+
+    # Further balance the heuristic values
+    heuristics = torch.clamp(diversity_balance, min=0.0, max=1.0)
+
+    # Introduce an adaptive penalty based on the number of vehicles used
+    vehicles_used = torch.clamp(torch.sum(scaled_demands > 1.0), min=0)
+    adaptive_penalty = torch.clamp(vehicles_used * 200.0, min=0.0)
+    heuristics -= adaptive_penalty * dampening_factor
+
+    # Introduce diversity factors to avoid local optima
+    diversity_factor = torch.clamp(torch.sum(remaining_capacity < 0.1), min=0.0)
+    diversity_penalty = torch.clamp(diversity_factor * 100.0, min=0.0)
+    heuristics -= diversity_penalty * dampening_factor
+
+    # Introduce a variance penalty for remaining capacity
+    variance_penalty = torch.var(remaining_capacity, dim=0)
+    variance_penalty = torch.clamp(variance_penalty, min=0.0)
+    heuristics -= variance_penalty * dampening_factor
+
+    return heuristics
+```

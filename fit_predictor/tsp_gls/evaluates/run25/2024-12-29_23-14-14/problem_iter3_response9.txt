@@ -1,0 +1,30 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the mean distance for each edge's neighbors
+    neighbors_mean = (distance_matrix[:, :-1].mean(axis=1) +
+                      distance_matrix[:, 1:].mean(axis=1)) / 2
+    
+    # Calculate the deviation from the mean for each edge
+    deviations = distance_matrix - neighbors_mean
+    
+    # Normalize the deviations to ensure they are within the range of [0, 1]
+    deviations = (deviations - deviations.min()) / (deviations.max() - deviations.min())
+    
+    # Add a diversity heuristic by considering the standard deviation of the neighbors
+    # The higher the standard deviation, the more diversified the edge is
+    std_devs = np.std(distance_matrix, axis=1)
+    diversity_factor = std_devs / std_devs.max()
+    
+    # Combine the normalized deviation and diversity factor
+    combined_heuristic = deviations * diversity_factor
+    
+    # Apply a balance between exploration and exploitation by penalizing high deviation
+    # and rewarding diversity. This encourages the heuristic to consider edges with
+    # lower deviations and higher diversity.
+    exploration_exploitation_balance = np.exp(-combined_heuristic)
+    
+    # Return a matrix where the value indicates how bad it is to include each edge
+    return exploration_exploitation_balance
+```

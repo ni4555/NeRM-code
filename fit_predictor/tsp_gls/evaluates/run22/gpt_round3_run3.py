@@ -1,0 +1,35 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_vertices = distance_matrix.shape[0]
+    
+    # Calculate the minimum distance for each vertex to any other vertex
+    min_distance = np.min(distance_matrix, axis=1)
+    
+    # Calculate the second minimum distance for each vertex to any other vertex
+    second_min_distance = np.partition(distance_matrix, 1, axis=1)[:, 1]
+    
+    # Calculate the bonus for edges that are close to the minimum distance
+    bonus = np.where(distance_matrix == min_distance,
+                     1,
+                     np.where(distance_matrix == second_min_distance,
+                              0.5,
+                              0))
+    
+    # Calculate the penalty for longer edges based on their ratio to the shortest edge
+    penalty = (distance_matrix / np.min(distance_matrix)) * 2
+    
+    # Combine the penalty and bonus to create the heuristics matrix
+    heuristics_matrix = penalty + bonus
+    
+    # Apply an additional bonus for edges that are in the immediate neighborhood of the minimum distance
+    for i in range(num_vertices):
+        for j in range(num_vertices):
+            if distance_matrix[i][j] < min_distance[i] + 1:
+                heuristics_matrix[i][j] += 1.5
+    
+    # Normalize the heuristics matrix to ensure all values are non-negative
+    heuristics_matrix = np.maximum(0, heuristics_matrix)
+    
+    return heuristics_matrix

@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    max_demand = demands.max()
+    capacity_threshold = max_demand * 0.1  # 10% of max demand
+
+    # Demand-driven selection: prioritize high-demand nodes
+    high_demand_mask = demands > capacity_threshold
+
+    # Local neighborhood exploration: consider the nearest feasible nodes
+    for i in range(num_nodes):
+        if high_demand_mask[i]:
+            # Find the nearest node that can be added without exceeding capacity
+            for j in range(num_nodes):
+                if j != i and (demand_cumsum[i] - demands[j]) <= demands[i]:
+                    distance = distance_matrix[i, j]
+                    if distance > 0 and distance < heuristics[i, j]:
+                        heuristics[i, j] = distance
+    return heuristics
+```

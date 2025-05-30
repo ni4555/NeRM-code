@@ -1,0 +1,79 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Define neighborhood function for local search
+    def neighborhood(edge, demands, current_load):
+        current_demand = demands[edge]
+        for i in range(n):
+            if i != edge and i != demands.argmin():
+                new_load = current_load + demands[i]
+                if new_load <= total_capacity:
+                    return (i, new_load)
+        return (edge, current_load)  # No feasible improvement found
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Define a population for PSO
+    def initialize_population(size):
+        return torch.randint(0, n, (size, 2), dtype=torch.long)
+    
+    # Define the PSO fitness function
+    def pso_fitness(route):
+        total_cost = 0
+        current_load = 0
+        for i in range(len(route)):
+            edge = route[i] * (i + 1) + (i + 1) * route[(i + 1) % len(route)]
+            distance = distance_matrix[route[i], route[(i + 1) % len(route)]]
+            current_load += demands[route[(i + 1) % len(route)]]
+            total_cost += distance
+        return -total_cost if current_load <= total_capacity else float('inf')
+    
+    # Define a tabu search function
+    def tabu_search(initial_route, tabu_list_size=10):
+        best_route = initial_route
+        best_cost = pso_fitness(initial_route)
+        tabu_list = []
+        while True:
+            next_route, cost = neighborhood(best_route[-1], demands, best_cost / psu_fitness(best_route))
+            if (next_route not in tabu_list and cost > best_cost):
+                best_route = torch.cat((best_route, torch.tensor([next_route])), dim=0)
+                best_cost = cost
+                tabu_list.append(next_route)
+                if len(tabu_list) > tabu_list_size:
+                    tabu_list.pop(0)
+            else:
+                break
+        return best_route
+    
+    # Run PSO to explore the solution space
+    population_size = 50
+    population = initialize_population(population_size)
+    best_routes = []
+    best_costs = []
+    for _ in range(100):  # Number of PSO iterations
+        for i in range(population_size):
+            route = population[i]
+            cost = psu_fitness(route)
+            if cost < best_costs[i]:
+                best_routes[i] = route
+                best_costs[i] = cost
+            tabu_route = tabu_search(route)
+            if psu_fitness(tabu_route) < best_cost:
+                best_route = tabu_route
+                best_cost = psu_fitness(tabu_route)
+    
+    # Update heuristics based on PSO and tabu search best route
+    for i in range(n):
+        for j in range(n):
+            if i != j and (i, j) not in zip(best_route[1:], best_route[:-1]):
+                edge_cost = psu_fitness(torch.tensor([i, j]))
+                heuristics[i, j] = edge_cost
+                if edge_cost < 0:
+                    heuristics[i, j] = 0
+    return heuristics
+```

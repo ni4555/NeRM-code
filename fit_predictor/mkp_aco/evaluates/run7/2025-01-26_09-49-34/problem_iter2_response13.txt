@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the ratio of prize to total weight per item
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate the variance of weights for each item to quantify weight spread
+    weight_variance = np.var(weight, axis=1)
+    
+    # Normalize the variance to a range that can be combined with the ratio
+    normalized_variance = weight_variance / np.mean(weight_variance)
+    
+    # Combine the ratio and normalized variance to get a heuristic value
+    heuristics = ratio * normalized_variance
+    
+    # Determine dynamic thresholds for sparsity and balance local and global sparsity
+    global_sparsity = np.mean(heuristics)
+    local_sparsity = np.percentile(heuristics, 90)
+    
+    # Set a threshold as the average of the local and global sparsity
+    sparsity_threshold = (local_sparsity + global_sparsity) / 2
+    
+    # Apply sparsification by setting elements below the threshold to zero
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Blend the demand and distance penalties using a blend ratio
+    blend_ratio = 0.5
+    blended_penalty_matrix = blend_ratio * penalty_matrix + (1 - blend_ratio) * distance_penalty_matrix
+    
+    # Normalize the blended penalty matrix
+    normalized_blended_matrix = blended_penalty_matrix / blended_penalty_matrix.sum(dim=1, keepdim=True)
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(normalized_blended_matrix))
+    
+    # Adjust the emphasized matrix to ensure stability
+    adjusted_emphasized_matrix = emphasized_matrix - torch.min(emphasized_matrix)
+    
+    # Normalize the adjusted emphasized matrix
+    normalized_emphasized_matrix = adjusted_emphasized_matrix / adjusted_emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Apply another blend ratio to the normalized matrix with the original distance penalty matrix
+    final_blended_matrix = normalized_emphasized_matrix + blend_ratio * distance_penalty_matrix
+    
+    # Transform the final blended matrix into a heuristics matrix
+    heuristics_matrix = -final_blended_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize to a range [0, 1]
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Normalize the weight for each dimension
+    normalized_weight = (weight - np.min(weight, axis=0)) / (np.max(weight, axis=0) - np.min(weight, axis=0))
+    
+    # Calculate the sum of normalized weights for each item
+    total_normalized_weight = np.sum(normalized_weight, axis=1)
+    
+    # Calculate the utility score considering normalized prize and weight
+    utility_score = normalized_prize / total_normalized_weight
+    
+    # Apply a non-linear transformation to the utility score to highlight important features
+    transformed_score = np.tanh(utility_score)
+    
+    # Adjust the score based on item properties such as the number of non-zero weights
+    # This introduces a bias towards items with fewer constraints
+    adjusted_score = transformed_score * (1 + np.sum(weight, axis=1))
+    
+    # Sparsify the heuristics by setting scores that are below a certain threshold to zero
+    threshold = np.mean(adjusted_score)
+    sparsity_mask = adjusted_score >= threshold
+    heuristics = adjusted_score * sparsity_mask
+    
+    return heuristics
+```

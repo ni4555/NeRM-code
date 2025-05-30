@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    import numpy as np
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize the demands by the total demand
+    normalized_demands = (demands / total_demand).unsqueeze(1)
+
+    # Calculate the inverse demand for non-depot nodes
+    inverse_demand = 1.0 / (demands[1:] - demands[0])
+
+    # Calculate the heuristic values using a non-linear transformation
+    edge_heuristic = torch.exp(-distance_matrix * inverse_demand)
+
+    # Scale the heuristic values by the normalized demand
+    heuristics = edge_heuristic * normalized_demands
+
+    # Apply a mask to ensure that only edges with positive heuristics are considered
+    heuristics[heuristics < 0] = 0
+
+    return heuristics
+```

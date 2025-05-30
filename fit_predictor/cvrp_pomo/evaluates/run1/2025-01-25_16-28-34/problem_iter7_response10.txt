@@ -1,0 +1,56 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Initialize PSO parameters
+    num_particles = 30
+    w = 0.5  # Inertia weight
+    c1 = 1   # Cognitive coefficient
+    c2 = 2   # Social coefficient
+    
+    # Initialize PSO
+    particles = torch.rand((num_particles, n))
+    velocities = torch.zeros_like(particles)
+    personal_best_positions = torch.zeros_like(particles)
+    personal_best_scores = torch.zeros(num_particles)
+    
+    # Tabu list initialization
+    tabu_list = torch.zeros(n, dtype=torch.bool)
+    tabu_tenure = 10
+    
+    for _ in range(100):  # Main loop for PSO
+        # Update velocities
+        velocities = w * velocities + c1 * torch.rand_like(velocities) * (personal_best_positions - particles) + \
+                     c2 * torch.rand_like(velocities) * (torch.rand_like(particles) * torch.ones_like(particles))
+        # Update positions
+        particles += velocities
+        # Apply tabu search
+        for i in range(n):
+            if not tabu_list[i]:
+                new_score = heuristics_v1(distance_matrix, demands)
+                if new_score > personal_best_scores[i]:
+                    personal_best_positions[i] = particles[i]
+                    personal_best_scores[i] = new_score
+        # Update tabu list
+        for i in range(n):
+            tabu_list[i] = tabu_list[i] or (i in tabu_list)
+            tabu_list[i] = tabu_list[i] and personal_best_scores[i] > personal_best_scores[i - 1]
+            if not tabu_list[i]:
+                tabu_list[i] = True
+                if i % tabu_tenure == 0:
+                    tabu_list[i] = False
+    
+    # Evaluate the heuristics based on personal best positions
+    for i in range(n):
+        edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix[personal_best_positions[i]]
+        average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+        heuristics[personal_best_positions[i]] = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Apply penalties and ensure negative values for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

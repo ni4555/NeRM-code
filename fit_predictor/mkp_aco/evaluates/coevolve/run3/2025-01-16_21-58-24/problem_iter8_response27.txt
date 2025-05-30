@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate sparsity and density factors
+    sparsity_factor = 1 - (value_to_weight_ratio / np.max(value_to_weight_ratio))
+    density_factor = value_to_weight_ratio / np.mean(value_to_weight_ratio)
+    
+    # Calculate entropy to represent information gain
+    probabilities = value_to_weight_ratio / value_to_weight_ratio.sum()
+    entropy = -np.sum(probabilities * np.log2(probabilities))
+    
+    # Combine the normalized ratio with the sparsity, density, and entropy factors
+    combined_heuristics = value_to_weight_ratio * (sparsity_factor + density_factor + entropy)
+    
+    # Apply a threshold to the heuristics
+    threshold = np.percentile(combined_heuristics, 75)
+    heuristics = np.where(combined_heuristics > threshold, combined_heuristics, 0)
+    
+    return heuristics
+```

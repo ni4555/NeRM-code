@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    import numpy as np
+
+    # Calculate the cumulative demand for each node starting from the depot
+    cumulative_demand = np.cumsum(demands)
+
+    # Calculate the cost to reach each node with the current vehicle capacity
+    edge_cost = torch.where(distance_matrix < np.inf, distance_matrix, torch.full_like(distance_matrix, np.inf))
+    cost_with_capacity = torch.clamp(edge_cost * cumulative_demand, min=0) / (1 - cumulative_demand)
+
+    # Calculate the maximum distance a vehicle can travel without exceeding capacity
+    max_distance_with_capacity = torch.clamp(1 - cumulative_demand, min=0) * torch.sum(edge_cost, dim=1)
+
+    # Calculate the cost ratio for each edge
+    cost_ratio = cost_with_capacity / max_distance_with_capacity
+
+    # Create a heuristics matrix with positive values for promising edges
+    heuristics = torch.where(cost_ratio < 1, cost_ratio, torch.full_like(cost_ratio, np.inf))
+
+    # Set the cost for returning to the depot as negative
+    heuristics = heuristics - torch.sum(heuristics, dim=1, keepdim=True)
+
+    return heuristics
+```

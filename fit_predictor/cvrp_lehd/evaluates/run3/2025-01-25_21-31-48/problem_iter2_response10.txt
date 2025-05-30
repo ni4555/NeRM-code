@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    heuristics = torch.full_like(distance_matrix, float('-inf'))  # Initialize with negative infinity
+
+    # Only consider edges between non-depot nodes
+    for i in range(1, n):
+        for j in range(1, n):
+            if i != j:
+                # Calculate the contribution of the edge to the solution
+                contribution = distance_matrix[i][j] - demands[j]
+                # Normalize the contribution based on the total demand
+                heuristics[i][j] = contribution / total_demand
+                # Set the edge from the depot to the first customer as positive
+                if i == 1:
+                    heuristics[0][i] = contribution / total_demand
+
+    # Replace negative infinity values with zeros and clip to a small positive value to avoid issues with log-sum-exp
+    heuristics = torch.clamp(heuristics, min=1e-8)
+    heuristics = torch.where(heuristics == float('-inf'), torch.zeros_like(heuristics), heuristics)
+
+    return heuristics
+```

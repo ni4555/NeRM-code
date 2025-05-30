@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize a score array where each element is 1 initially
+    scores = np.ones_like(prize)
+
+    # Normalize prize by the sum of weights to get a per-unit-weight prize value
+    normalized_prize = prize / np.sum(weight, axis=1)[:, np.newaxis]
+
+    # Calculate diversity score based on the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - np.repeat(normalized_prize, n, axis=1)), axis=1)
+
+    # Normalize the diversity score to the same scale as prize
+    diversity_scores /= np.max(normalized_prize)
+
+    # Sparsity score based on the sum of weights across dimensions
+    sparsity_scores = np.sum(weight, axis=1) / np.sum(weight)
+
+    # Weight variance across dimensions
+    weight_variance = np.var(weight, axis=1)
+
+    # Combine scores: normalized prize, diversity, sparsity, and weight variance
+    scores *= normalized_prize
+    scores *= diversity_scores
+    scores *= sparsity_scores
+    scores *= (1 - weight_variance)
+
+    # Normalize the combined scores to ensure a consistent scale
+    scores /= np.max(scores)
+
+    # Dynamically adapt thresholds based on the average diversity score
+    average_diversity = np.mean(diversity_scores)
+    if average_diversity < 0.5:
+        threshold = 0.3
+    elif average_diversity < 0.8:
+        threshold = 0.6
+    else:
+        threshold = 0.8
+
+    # Select items that exceed the threshold score
+    heuristics = (scores >= threshold).astype(int)
+
+    # Sparsify by keeping only the top 30% items
+    num_to_keep = int(len(prize) * 0.3)
+    sorted_indices = np.argsort(scores)[::-1]
+    heuristics[sorted_indices[num_to_keep:]] = 0
+
+    return heuristics
+```

@@ -1,0 +1,46 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate inverse distance matrix and normalize by total demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Demand-based heuristic: prioritize edges with higher demand
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = normalized_inv_distance_matrix * demand_normalized
+
+    # Remaining capacity-based heuristic: prioritize edges with higher remaining capacity
+    remaining_capacity = 1 - demands
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Nearest-neighbor heuristic: add the closest node for each customer
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # Improved demand-based heuristic: add a penalty for edges with high demand
+    high_demand_penalty = 1 / (demands + 1e-8) * demand_weighted_distance
+
+    # Improved remaining capacity-based heuristic: reduce penalty for high capacity utilization
+    capacity_penalty = remaining_capacity * capacity_weighted_distance
+    capacity_penalty[remaining_capacity < 0.5] = 0
+
+    # Improved nearest-neighbor heuristic: add more weight to closest nodes
+    nearest_neighbor_weight = 10 * nearest_neighbor
+
+    # Combine heuristics with improved terms, considering the balance between demand and distance
+    combined_heuristic = demand_weighted_distance + capacity_penalty + nearest_neighbor_weight
+
+    # Penalize edges that would lead to a route exceeding the vehicle capacity
+    infeasible_edges = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[infeasible_edges] = -torch.inf
+
+    # Normalize heuristics to ensure a positive range and improve exploration
+    max_heuristic = torch.max(combined_heuristic)
+    combined_heuristic = combined_heuristic - max_heuristic
+
+    return combined_heuristic
+```

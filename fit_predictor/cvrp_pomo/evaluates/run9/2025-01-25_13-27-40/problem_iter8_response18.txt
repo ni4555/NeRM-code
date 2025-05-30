@@ -1,0 +1,13 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    cum_demands = torch.cumsum(demands, dim=0)
+    capacity_mask = cum_demands < demands[0]
+    demand_to_capacity_ratio = cum_demands / demands[0]
+    potential = torch.exp(-distance_matrix * 0.1) * capacity_mask
+    high_demand_penalty = demand_to_capacity_ratio * torch.where(capacity_mask, torch.zeros_like(demand_to_capacity_ratio), torch.ones_like(demand_to_capacity_ratio))
+    distance_potential = (distance_matrix ** 2) / (distance_matrix ** 2 + 1)
+    heuristics = potential - high_demand_penalty - distance_potential
+    return heuristics
+```

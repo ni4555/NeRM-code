@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=1)
+
+    # Calculate the centrality of each node based on its degree and the average
+    # degree of its neighbors
+    centrality = degrees + np.mean(distance_matrix, axis=1)
+
+    # Calculate the penalty for high degrees to avoid local optima
+    penalty = np.exp(-centrality / 10)
+
+    # Define a function to calculate the local feature of each edge based on
+    # the importance of its nodes and the distance between them
+    def local_feature(i, j):
+        return 1 / (centrality[i] * centrality[j]) * distance_matrix[i, j] * penalty[i] * penalty[j]
+
+    # Calculate the heuristic matrix by applying the local feature function
+    # to each edge
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                heuristic_matrix[i, j] = local_feature(i, j)
+
+    # Normalize the heuristic matrix to the range [0, 1]
+    max_feature = np.max(heuristic_matrix)
+    if max_feature > 0:
+        heuristic_matrix /= max_feature
+
+    return heuristic_matrix
+```

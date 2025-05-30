@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Use a non-linear combination to encourage diversity and balance exploitation/exploration
+    heuristics = norm_distances * (1 + torch.sin(node_loads * norm_distances))
+    
+    # Introduce exploration through a Gaussian noise, scaled by the average distance
+    noise = torch.randn_like(heuristics) * (0.1 / norm_distances.mean())
+    heuristics += noise
+    
+    # Normalize heuristics for dynamic load balancing
+    heuristics = heuristics / (heuristics.abs().max() + 1e-8)
+    
+    # Clamp to prevent extreme values from negatively impacting the algorithm's convergence
+    heuristics = torch.clamp(heuristics, min=-2.0, max=2.0)
+    
+    return heuristics
+```

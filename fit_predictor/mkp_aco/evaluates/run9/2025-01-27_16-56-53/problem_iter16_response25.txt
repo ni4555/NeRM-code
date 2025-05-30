@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on prize, weight, and value-to-weight ratio
+    for i in range(n):
+        total_prize = prize[i] * np.sum(weight[i])
+        total_weight = np.sum(weight[i])
+        heuristic[i] = total_prize / (1 + total_weight)
+    
+    # Incorporate a diversity factor that rewards items with less redundancy
+    for i in range(n):
+        diversity_factor = 1
+        for j in range(m):
+            diversity_factor *= 1 - (weight[i, j] / np.max(weight[i]))
+        heuristic[i] *= diversity_factor
+    
+    # Introduce randomness to explore different solutions
+    random_factor = np.random.rand(n)
+    heuristic *= (random_factor + 1)
+    
+    # Balance exploration and exploitation by adjusting heuristics
+    exploration_factor = np.random.rand(n)
+    exploitation_factor = 1 / (1 + total_weight.reshape(n, 1))
+    adaptive_heuristic = exploration_factor * heuristic + exploitation_factor * heuristic
+    
+    # Normalize the heuristic values to ensure they are within a certain range
+    max_heuristic = np.max(adaptive_heuristic)
+    min_heuristic = np.min(adaptive_heuristic)
+    adaptive_heuristic = (adaptive_heuristic - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    # Set low-value and high-weight items to zero
+    low_value_threshold = np.max(adaptive_heuristic) / 10
+    high_weight_threshold = m * 0.8
+    heuristic[adaptive_heuristic < low_value_threshold] = 0
+    heuristic[weight.sum(axis=1) > high_weight_threshold] = 0
+    
+    return heuristic
+```

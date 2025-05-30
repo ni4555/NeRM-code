@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Node partitioning based on demand
+    partition_threshold = 0.5  # Threshold for partitioning
+    partitioned = torch.where(normalized_demands > partition_threshold, 1, 0)
+    
+    # Calculate potential value for each edge
+    # The potential value is a combination of distance and demand-related factors
+    potential_values = normalized_distances * partitioned
+    
+    # Incorporate demand relaxation by favoring lower demands
+    demand_weight = torch.clamp(normalized_demands * (1 - normalized_demands), min=0)
+    
+    # Introduce a dynamic window approach by adjusting potential values for nodes with higher demands
+    dynamic_window = torch.where(normalized_demands > partition_threshold, normalized_distances, 1)
+    
+    # Adjust potential values based on the dynamic window
+    potential_values = potential_values + dynamic_window * demand_weight
+    
+    # Apply a penalty for high load factors to discourage routes with high demand
+    load_factor = demands.mean()
+    penalty_factor = 1 + 0.5 * (load_factor - 1)
+    potential_values *= penalty_factor
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

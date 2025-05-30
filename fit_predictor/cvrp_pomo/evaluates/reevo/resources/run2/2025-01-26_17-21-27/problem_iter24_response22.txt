@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    dynamic_scaling = (1 + cumulative_demand) * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Dynamic scaling of distance and capacity penalties
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * dynamic_scaling
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8) * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Overflow penalty for edges that lead to overcapacity
+    overflow_penalty = -torch.log1p(torch.abs(torch.cumsum(demands, dim=0) - total_capacity) - 1e-8)
+    
+    # Demand awareness factor to promote routes with lower total demand
+    demand_awarenss_factor = demands / (total_capacity + 1e-8)
+    
+    # Aggressive scaling factor
+    scaling_factor = 2.0
+    
+    # Combine penalties and factors into the heuristic value
+    heuristics = scaling_factor * (distance_penalty +
+                                  capacity_penalty +
+                                  overflow_penalty +
+                                  demand_awarenss_factor)
+    
+    # Subtract the penalty for depot to ensure it's not chosen as a next node
+    depot_penalty = torch.arange(n) == 0
+    heuristics = heuristics - depot_penalty.float().unsqueeze(0)
+    
+    return heuristics
+```

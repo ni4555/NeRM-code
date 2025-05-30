@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on a combination of factors
+    for i in range(n):
+        total_prize = np.sum(prize[i] * weight[i])
+        total_weight = np.sum(weight[i])
+        value_to_weight_ratio = total_prize / total_weight if total_weight > 0 else 0
+        
+        # Normalize by weight to get a per-item heuristic and penalize high weight
+        heuristic[i] = (value_to_weight_ratio / (1 + weight[i].sum())) / (1 + weight[i].sum())
+    
+    # Incorporate adaptive penalties and normalization
+    for i in range(n):
+        item_factor = prize[i] / weight[i].sum()
+        heuristic[i] = heuristic[i] * item_factor / (1 + item_factor)
+    
+    # Introduce randomness to enhance diversity and penalize outliers
+    random_factor = np.random.rand(n)
+    for i in range(n):
+        if weight[i].sum() > m * 0.7 or prize[i] / weight[i].sum() < 0.5:
+            heuristic[i] *= 0.5
+        heuristic[i] *= (random_factor[i] + 1)
+    
+    # Use an adaptive mechanism to balance exploration and exploitation
+    exploration_factor = np.random.rand(n)
+    exploitation_factor = np.zeros(n)
+    for i in range(n):
+        exploitation_factor[i] = 1 / (1 + weight[i].sum())
+    adaptive_heuristic = (exploration_factor + exploitation_factor) * heuristic
+    
+    # Set low-value items and those with high total weight to zero
+    threshold = heuristic.max() / 10
+    heuristic[heuristic < threshold] = 0
+    heuristic[weight.sum(axis=1) > m * 0.8] = 0
+    
+    return adaptive_heuristic
+```

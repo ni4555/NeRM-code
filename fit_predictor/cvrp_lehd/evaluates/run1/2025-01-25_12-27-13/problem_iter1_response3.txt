@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """A heuristic based on nearest neighbor for edge promise calculation."""
+    n = distance_matrix.shape[0]
+    dist_matrix_sqrt = torch.sqrt(torch.sum(distance_matrix**2, dim=1))
+    
+    # Nearest neighbor for every customer, based on total distance
+    nearest = torch.argmin(dist_matrix_sqrt)
+    nearest_indices = [nearest]
+    
+    while len(nearest_indices) < n - 1:
+        # Distance from the nearest customer to the remaining ones
+        nearest_to_rest = torch.sqrt(torch.sum((dist_matrix_sqrt - dist_matrix_sqrt[nearest])[:, None]**2, dim=1))
+        # Find the customer nearest to the nearest one
+        new_nearest = torch.argmin(nearest_to_rest)
+        nearest_indices.append(new_nearest)
+        # Remove the newly visited customer from the list
+        nearest_indices = [i for i in nearest_indices if i != new_nearest]
+        
+        # Update distances, assuming current nearest as a temporary depot
+        current_nearest_dist = distance_matrix[nearest]
+        temp_nearest_indices = nearest_indices
+        temp_nearest_indices.remove(new_nearest)
+        
+        # Update distances with the current nearest
+        for idx in temp_nearest_indices:
+            for j in range(n):
+                distance_matrix[idx, j] = min(distance_matrix[idx, j], distance_matrix[nearest, j] + current_nearest_dist[idx, j])
+    
+    # Calculate the promise for each edge based on distance and demand
+    edge_promises = -torch.sum(distance_matrix, dim=1) - torch.max(demands) * (distance_matrix < dist_matrix_sqrt).float()
+    
+    return edge_promises
+```

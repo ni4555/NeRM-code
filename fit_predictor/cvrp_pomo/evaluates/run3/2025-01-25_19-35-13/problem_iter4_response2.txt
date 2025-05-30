@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Initialize potential matrix with high negative value
+    edge_potential = -torch.ones_like(distance_matrix)
+    
+    # Calculate average distance and demand for normalization
+    avg_distance = distance_matrix.mean()
+    avg_demand = normalized_demands.mean()
+    
+    # Use a combination of distance, demand, and diversity metrics
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    diversity_bonus = (torch.abs(normalized_demands - avg_demand) * 0.5)
+    
+    # Distance-based potential: shorter distances have higher potential
+    distance_potential = -torch.log(distance_matrix + epsilon)
+    
+    # Demand-based potential: higher diversity in demand encourages edge selection
+    demand_potential = diversity_bonus * (1 / (torch.abs(demands) + epsilon))
+    
+    # Combine the potential metrics
+    edge_potential = distance_potential + demand_potential
+    
+    # Normalize the potential to ensure a balance between distance and demand
+    edge_potential = edge_potential / (torch.exp(edge_potential).sum(dim=1, keepdim=True) + epsilon)
+    
+    # Set the potential of the diagonal (depot node) to zero
+    edge_potential.diag().fill_(0)
+    
+    return edge_potential
+```

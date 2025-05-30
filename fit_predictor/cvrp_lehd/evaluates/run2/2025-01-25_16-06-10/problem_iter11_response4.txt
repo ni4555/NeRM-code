@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:]  # Exclude the depot node from capacity calculation
+    
+    # Vectorized approach for calculating heuristics
+    mask = (demand_cumsum[:, None] <= remaining_capacity[None, :]).all(axis=1)
+    feasible_edges = torch.nonzero(mask, as_tuple=False)
+    distances = distance_matrix[feasible_edges[:, 0], feasible_edges[:, 1]]
+    
+    heuristics[feasible_edges[:, 0], feasible_edges[:, 1]] = distances
+    heuristics = heuristics + heuristics.t()
+    
+    # Normalize by total distance to depot
+    total_distance_to_depot = torch.sum(distance_matrix[:, 0])
+    heuristics = heuristics / total_distance_to_depot
+    
+    # Incorporate diverse heuristic components
+    # For example, adding a penalty for high demand nodes
+    high_demand_penalty = (demands > demands.mean()).float() * -1000
+    heuristics = heuristics + high_demand_penalty[None, :]
+    
+    return heuristics
+```

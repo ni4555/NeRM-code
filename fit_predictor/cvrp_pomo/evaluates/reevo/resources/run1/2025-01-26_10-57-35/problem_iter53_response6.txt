@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize demand to ensure all demands fit within a vehicle's capacity
+    demand_matrix = (demands[:, None] + 1) / (demands + 1)
+    
+    # Adjust distance to the depot with a decay function to reduce the effect of long distances
+    decay_factor = torch.exp(-distance_matrix)
+    depot_decay_factor = torch.log1p(distance_matrix[:, 0])
+    decay_factor[:, 0] *= depot_decay_factor
+    decay_factor[0, :] *= depot_decay_factor
+    
+    # Combine the decayed distance and normalized demand to get an initial heuristic value
+    initial_heuristics = distance_matrix * demand_matrix * decay_factor
+    
+    # Normalize the heuristic matrix to avoid dominance and ensure stability
+    max_heuristic = initial_heuristics.max()
+    normalized_heuristics = initial_heuristics / max_heuristic
+    
+    # Incorporate the capacity factor to prevent overcapacity by prioritizing underutilized capacity
+    capacity_factor = 1 / (demands + 1e-8)
+    normalized_heuristics *= capacity_factor
+    
+    # Introduce penalties for loops and dominant edges to improve solution quality
+    loop_penalty = (torch.abs(torch.triu(initial_heuristics) - torch.triu(initial_heuristics, 1)).sum(dim=1) > 0).float() * -5
+    dominant_edge_penalty = (initial_heuristics > torch.tril(initial_heuristics, -1)).float() * -3
+    
+    # Apply the penalties to the heuristics to discourage poor edge choices
+    heuristics = normalized_heuristics - loop_penalty - dominant_edge_penalty
+    
+    return heuristics
+```

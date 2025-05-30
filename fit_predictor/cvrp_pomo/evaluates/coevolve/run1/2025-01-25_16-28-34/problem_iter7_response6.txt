@@ -1,0 +1,54 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a more refined heuristic that considers the balance between overloading and underloading
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Calculate penalties for overloading and underloading
+    overload_penalty = torch.abs(heuristics)
+    underload_penalty = torch.abs(1 - heuristics)
+    
+    # Weighted combination of overloading and underloading penalties
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Introduce a local search mechanism to refine the heuristics
+    for i in range(n):
+        for j in range(n):
+            if i != j and distance_matrix[i, j] != 0:
+                # Simulate a swap operation in the local search
+                temp_demand = demands[i]
+                demands[i] = demands[j]
+                demands[j] = temp_demand
+                
+                # Update the average demand per edge after the swap
+                edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+                
+                # Recalculate the heuristics after the swap
+                average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+                heuristics[i, j] = torch.log1p(average_demand_per_edge[i, j]) - torch.log1p(total_capacity)
+                
+                # Swap back the demands to restore the original state
+                temp_demand = demands[i]
+                demands[i] = demands[j]
+                demands[j] = temp_demand
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = len(distance_matrix)
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate cumulative demand sums
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of the heuristics along the columns
+    # This will help in identifying promising edges
+    cumulative_heuristics = torch.cumsum(heuristics, dim=0)
+    
+    # Loop through each edge and compute the heuristic value
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # If the demand of the current node is greater than the cumulative demand of the previous node
+                # And the distance from the current node to the next node is less than the cumulative heuristic
+                # Then the edge is promising
+                heuristics[i, j] = -distance_matrix[i, j] * (cumulative_demand[j] - cumulative_demand[i]) / (cumulative_heuristics[j] - cumulative_heuristics[i])
+    
+    return heuristics
+```

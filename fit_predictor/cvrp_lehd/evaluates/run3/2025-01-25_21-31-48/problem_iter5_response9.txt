@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the distance matrix with respect to the minimum distance from each node to the depot
+    min_distances = torch.min(distance_matrix[:, 1:], dim=1)[0]
+    normalized_distances = distance_matrix / min_distances.unsqueeze(1)
+
+    # Normalize demands relative to the total demand
+    normalized_demands = demands / demands.sum()
+
+    # Combine distance and demand factors for each edge
+    heuristic_matrix = -normalized_distances + normalized_demands
+
+    # Inverse the distances for a preference towards shorter routes
+    heuristic_matrix *= (1 / (1 + torch.exp(-heuristic_matrix)))
+
+    return heuristic_matrix
+```

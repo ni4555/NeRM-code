@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Demand factor: emphasize high demand nodes
+    demand_factor = 1 - demands / total_capacity
+    
+    # Distance factor: increase the value of shorter distances
+    distance_factor = torch.exp(-distance_matrix / torch.mean(distance_matrix))
+    
+    # Avoidance factor: penalize edges that lead to loops or revisiting nodes
+    avoidance_factor = torch.where(
+        torch.any(distance_matrix == 0, axis=0),
+        -distance_factor,
+        0
+    )
+    
+    # Non-linear transformations for balance and smoothness
+    balance_factor = torch.sin(demand_factor) * torch.cos(distance_factor)
+    
+    # Normalize factors for better scaling
+    demand_normalized = demand_factor / (torch.max(demand_factor) if torch.max(demand_factor) > 0 else 1)
+    distance_normalized = distance_factor / (torch.max(distance_factor) if torch.max(distance_factor) > 0 else 1)
+    balance_normalized = balance_factor / (torch.max(balance_factor) if torch.max(balance_factor) > 0 else 1)
+    
+    # Combine normalized factors into the heuristics matrix
+    heuristic_matrix = demand_normalized + distance_normalized + balance_normalized + avoidance_factor
+    
+    # Normalize the heuristics matrix to ensure non-negative values
+    heuristic_matrix = heuristic_matrix.clamp(min=0)
+    
+    # Adjust the heuristics for the depot to all other nodes
+    depot_distance = distance_matrix[:, 0]
+    for i in range(1, n):
+        route_demand = demands[i] + (total_capacity - demands[i])
+        heuristic_matrix[0, i] = -route_demand * depot_distance[i]
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    return heuristic_matrix
+```

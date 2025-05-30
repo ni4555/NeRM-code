@@ -1,0 +1,31 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize a matrix to store the potential values for each edge
+    potential_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the maximum demand that can be carried by a single vehicle
+    vehicle_capacity = 1.0
+    
+    # Iterate through each customer and calculate the cumulative demand along the route
+    for i in range(1, demands.size(0)):
+        # Subtract the cumulative demand at the current node from the vehicle capacity
+        potential_matrix[i, 0] = torch.max(vehicle_capacity - demands[i], 0).item()
+        
+        # For each subsequent node, calculate the cumulative demand and add it to the potential matrix
+        for j in range(i + 1, demands.size(0)):
+            potential_matrix[i, j] = torch.min(potential_matrix[i, j - 1], vehicle_capacity - demands[j])
+    
+    # Add the distance matrix to the potential matrix to create a combined potential matrix
+    combined_potential_matrix = distance_matrix + potential_matrix
+    
+    # Use softmax over each row to create a probability distribution
+    softmax_matrix = F.softmax(combined_potential_matrix, dim=1)
+    
+    # Invert the probabilities to get a heuristic matrix where higher values indicate better edges
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

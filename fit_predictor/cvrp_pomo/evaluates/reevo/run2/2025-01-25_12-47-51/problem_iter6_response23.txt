@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    demand_ratio = demands / total_demand
+
+    # Incorporate interaction terms for combined influence
+    interaction_terms = inv_distance_matrix * demand_ratio * (1 - demand_ratio)
+
+    # Use demand and distance to guide edge selection
+    heuristic_base = interaction_terms
+
+    # Apply a balance factor to favor closer nodes with lower demand
+    balance_factor = torch.exp(-distance_matrix)
+
+    # Combine the heuristic base with the balance factor
+    combined_heuristic = heuristic_base * balance_factor
+
+    # Normalize to scale heuristics effectively
+    normalized_combined_heuristic = combined_heuristic / total_demand
+
+    # Use the negative of the normalized heuristic as the final heuristic
+    heuristic_matrix = -normalized_combined_heuristic
+
+    return heuristic_matrix
+```

@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    vehicle_capacity = demands.sum()
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+
+    visited = [False] * n_nodes
+    visited[0] = True
+    route = [0]
+    current_capacity = vehicle_capacity
+    node_index = 0
+
+    while len(route) < n_nodes:
+        current_demand = demands[node_index]
+        if current_demand <= current_capacity:
+            for j in range(node_index + 1, n_nodes):
+                if not visited[j] and (demand_cumsum[j] - demand_cumsum[node_index]) <= current_capacity:
+                    heuristics[node_index, j] = 1 - distance_matrix[node_index, j]
+            next_node_index = torch.argmax(heuristics[node_index])
+            current_capacity -= demands[next_node_index]
+            visited[next_node_index] = True
+            route.append(next_node_index)
+        else:
+            for i in range(node_index + 1, n_nodes):
+                if not visited[i]:
+                    if demand_cumsum[i] - demand_cumsum[node_index] <= current_capacity:
+                        heuristics[node_index, i] = 0
+            distance_to_depot = distance_matrix[node_index, 0]
+            heuristics[node_index, 0] = 1 - distance_to_depot
+            route.append(0)
+            current_capacity = vehicle_capacity
+            visited = [False] * n_nodes
+            visited[0] = True
+            route = [0]
+            node_index = 0
+
+    heuristics[route[-1], 0] = 1 - distance_matrix[route[-1], 0]
+
+    return heuristics
+```

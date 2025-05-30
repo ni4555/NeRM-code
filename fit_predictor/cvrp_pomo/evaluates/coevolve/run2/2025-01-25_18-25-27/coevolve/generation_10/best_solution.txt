@@ -1,0 +1,34 @@
+Fitness: 23.25006866455078
+
+Description:
+The proposed heuristic for the Capacitated Vehicle Routing Problem (CVRP) integrates a targeted hybrid evolutionary strategy with a precise local search module. The hybrid evolutionary component utilizes a state-of-the-art genetic algorithm with adaptive selection, efficient crossover, and selective mutation to explore the solution space effectively. The local search module focuses on neighborhood exploration using a swap-insertion heuristic and a capacity-aware 2-opt algorithm, ensuring both route length optimization and capacity adherence. The heuristic incorporates a normalization technique to level the demand of customer nodes and applies a constraint-aware optimization process to efficiently manage vehicle capacities. Additionally, the algorithm dynamically adjusts the neighborhood structure based on evolutionary progress to balance exploration and exploitation. This streamlined approach provides a clear and direct route to efficient and capacity-constrained solutions, avoiding unnecessary complexity and ensuring a robust optimization process.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Get the number of customers (excluding the depot)
+    num_customers = distance_matrix.size(0) - 1
+    
+    # Calculate the total demand
+    total_demand = demands.sum()
+    
+    # Normalize the demands by the total vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Create a vector of all ones for the number of possible routes
+    ones = torch.ones(num_customers, dtype=torch.float32)
+    
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # For each customer, calculate the heuristic based on distance and demand
+    for i in range(num_customers):
+        # Calculate the difference in normalized demand
+        demand_diff = normalized_demands - normalized_demands[i]
+        
+        # Calculate the heuristic as a function of distance and demand difference
+        heuristics[:, i] = distance_matrix[:, i] + demand_diff
+    
+    return heuristics

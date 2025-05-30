@@ -1,0 +1,66 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep Reinforcement Learning (DRL) with adaptive reward function
+    model_scores = np.random.rand(n)
+    reward_function = lambda x: np.sum(x * np.log(1 + x))
+    model_rewards = [reward_function(model_scores)]
+
+    # Initialize PSO global best with RL scores and maintain feasibility
+    feasible_items = np.sum(weight, axis=1) <= 1
+    pso_global_best = np.copy(model_scores[feasible_items])
+    pso_global_best_scores = np.copy(model_scores[feasible_items])
+
+    # Adaptive sparsity and learning rate
+    sparsity_threshold = np.percentile(model_scores, 50)
+    learning_rate = 0.01
+
+    # PSO with adaptive learning rate and constraint checking
+    for _ in range(10):  # Using a small number of iterations for demonstration
+        pso_position = np.copy(model_scores)
+        pso_velocity = np.zeros(n)
+
+        for i in range(n):
+            if feasible_items[i]:
+                pso_velocity[i] = learning_rate * pso_velocity[i] + \
+                                  (0.5 * (np.random.rand() - 0.5))
+                pso_position[i] += pso_velocity[i]
+                pso_position[i] = np.clip(pso_position[i], 0, 1)
+
+            # Update personal best
+            if pso_position[i] > pso_global_best_scores[i]:
+                pso_global_best_scores[i] = pso_position[i]
+                pso_global_best[i] = pso_position[i]
+
+        # Update RL scores based on the best PSO score
+        model_scores[~feasible_items] = float('-inf')
+        model_scores[feasible_items] = pso_global_best_scores
+
+        # Update rewards for RL
+        model_rewards.append(reward_function(model_scores))
+
+    # Update heuristics based on the weighted average of RL and PSO scores, considering feasibility
+    avg_reward = np.mean(model_rewards)
+    for i in range(n):
+        if feasible_items[i]:
+            heuristic[i] = avg_reward * (prize[i] / (prize[np.argmax(model_rewards)] + 1e-6))
+
+    # Adaptive sparsity and filtering
+    dynamic_threshold = np.percentile(heuristic, 50)
+    heuristic[heuristic < dynamic_threshold] = 0
+    feasible_items = np.sum(weight, axis=1) <= 1
+    heuristic[~feasible_items] = 0
+
+    # Refine the reward mechanism by incorporating the most promising heuristic scores
+    refined_reward_function = lambda x: np.sum(x * np.log(1 + x)) + np.sum(x * heuristic)
+    refined_model_scores = np.exp(refined_reward_function(model_scores) - np.max(refined_reward_function(model_scores)))
+    refined_model_scores /= np.sum(refined_model_scores)
+
+    # Update heuristics based on the refined RL scores
+    heuristic = refined_model_scores * prize / (prize[np.argmax(refined_model_scores)] + 1e-6)
+
+    return heuristic
+```

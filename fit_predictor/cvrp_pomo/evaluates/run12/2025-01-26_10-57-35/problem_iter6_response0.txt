@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_weight = demands / total_demand
+    
+    # Calculate the normalized demands
+    normalized_demands = demand_weight[:, None] + demand_weight[None, :]
+    
+    # Calculate the potential of each edge
+    potential = (1 - normalized_demands) * distance_matrix
+    
+    # Add a penalty for exceeding capacity
+    capacity_penalty = (normalized_demands > 1).float() * -1000
+    
+    # Calculate the heuristic values
+    heuristic_values = potential + capacity_penalty
+    
+    # Normalize the heuristic values by the maximum value
+    heuristic_values /= heuristic_values.max() + 1e-8
+    
+    return heuristic_values
+```

@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the distance to return to the depot
+    return_distance_to_depot = distance_matrix[:, None, 0] + distance_matrix[None, :, 0]
+    
+    # Calculate the current demand if an edge is taken
+    current_demand = demands[:, None] + demands[None, :]
+    
+    # Determine if the edge should return to the depot based on demand
+    return_to_depot = (current_demand >= total_demand).float()
+    
+    # Calculate the heuristic value for edges that don't need to return to the depot
+    heuristic_values = -distance_matrix + return_distance_to_depot * return_to_depot
+    
+    # For edges that exceed the capacity, set the heuristic value to negative infinity
+    heuristic_matrix = torch.where(current_demand < total_demand, heuristic_values, -torch.inf)
+    
+    return heuristic_matrix
+```

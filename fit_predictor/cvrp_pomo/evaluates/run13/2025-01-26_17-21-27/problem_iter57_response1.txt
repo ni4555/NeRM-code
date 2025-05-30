@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Introduce a weighted penalty based on the balance of the load on vehicles
+    load_balance = (cumulative_demand - total_capacity_vector) / (2 * total_capacity)
+    load_balance_penalty = -torch.log1p(-torch.abs(load_balance))
+    
+    # Incorporate a more refined dynamic capacity penalty that reduces the penalty for remaining capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / 2))
+    dynamic_capacity_penalty *= torch.exp(-(demands / total_capacity).float().fill_(2))
+    
+    # A simpler distance scaling factor without the cumulative demand term
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Reduce the impact of randomness for nodes that are close to the total capacity
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity) * (cumulative_demand / total_capacity < 0.8)
+    
+    # Apply penalties and randomness to the distance scaling factor
+    scaled_heuristics = (
+        load_balance_penalty +
+        dynamic_capacity_penalty +
+        distance_scaling
+    )
+    
+    # Add randomness while controlling its influence for less crowded routes
+    randomness_factor /= (torch.sum(torch.abs(randomness_factor)) + 1e-8)
+    final_heuristics = scaled_heuristics + randomness_factor
+    
+    return final_heuristics
+```

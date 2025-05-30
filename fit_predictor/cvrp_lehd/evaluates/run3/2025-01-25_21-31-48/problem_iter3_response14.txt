@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distance matrix
+    normalized_distance = distance_matrix / torch.max(distance_matrix, dim=1)[0].unsqueeze(1)
+    
+    # Calculate the demand-based heuristic
+    demand_heuristic = -demands
+    
+    # Combine the normalized distance and demand-based heuristic
+    combined_heuristic = normalized_distance + demand_heuristic
+    
+    # Incorporate domain knowledge: penalize edges leading to nodes with high demand
+    high_demand_penalty = torch.where(demands > demands.mean(), torch.ones_like(demands), torch.zeros_like(demands))
+    combined_heuristic += high_demand_penalty * 10  # Example penalty factor
+    
+    # Incorporate domain knowledge: reward edges leading to nodes with low demand
+    low_demand_reward = torch.where(demands < demands.mean(), torch.ones_like(demands), torch.zeros_like(demands))
+    combined_heuristic += low_demand_reward * 5   # Example reward factor
+    
+    return combined_heuristic
+```

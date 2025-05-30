@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An enhanced heuristic for CVRP, incorporating scale normalization, demand balance, and smooth transitions."""
+    total_capacity = demands.sum()
+    total_demand = torch.sum(demands)
+    
+    # Normalize the distance matrix to ensure the scale of distance and demand are comparable
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    
+    # Calculate the imbalance factor as the difference between each node's demand and the average demand
+    average_demand = total_demand / len(demands)
+    imbalance_factor = (demands - average_demand).abs()
+    
+    # Use a smooth function to avoid sharp changes at the boundaries of the imbalance factor
+    smooth_imbalance_factor = torch.sin(imbalance_factor * torch.pi / 2)
+    
+    # Normalize the imbalance factor to the range of 0 to 1
+    normalized_imbalance_factor = smooth_imbalance_factor / torch.max(smooth_imbalance_factor)
+    
+    # Calculate the normalized demand difference to the total demand
+    normalized_demand_diff = (demands - average_demand) / total_demand
+    
+    # Create a heuristic value that combines distance, normalized demand difference, and interaction effects
+    heuristic_values = -normalized_distance_matrix + normalized_demand_diff.abs() + torch.sin(normalized_demand_diff) + normalized_imbalance_factor
+    
+    return heuristic_values
+```

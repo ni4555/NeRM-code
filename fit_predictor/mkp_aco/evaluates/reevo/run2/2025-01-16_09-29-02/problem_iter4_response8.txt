@@ -1,0 +1,27 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the value per unit weight for each item
+    value_per_weight = prize / np.sum(weight, axis=1)
+    
+    # Calculate the maximum possible value per unit weight for each dimension
+    max_value_per_weight = np.max(value_per_weight, axis=1, keepdims=True)
+    
+    # Normalize the value per unit weight to account for dimension-specific metrics
+    normalized_value = value_per_weight / max_value_per_weight
+    
+    # Calculate the feasibility factor, which is the remaining capacity after taking the item
+    feasibility_factor = 1 - np.sum(weight, axis=1)
+    
+    # Incorporate a penalty for items that exceed the weight limit
+    penalty = np.maximum(1 - np.sum(weight, axis=1), 0)
+    
+    # Combine the normalized value, feasibility factor, and penalty to form the heuristic
+    heuristics = normalized_value * feasibility_factor * penalty
+    
+    # Normalize the heuristics to ensure they are all non-negative
+    heuristics = np.clip(heuristics, 0, None)
+    
+    return heuristics
+```

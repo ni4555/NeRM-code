@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate demand penalties, but emphasize high penalties for edges with high demand deviation
+    demand_penalty_matrix = -torch.abs(demands - vehicle_capacity) * torch.log(torch.abs(demands - vehicle_capacity) + 1e-6)
+    
+    # Distance penalty with an emphasis on shorter distances
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Blend demand and distance penalties using a weighted sum, favoring demand penalties more for heavily loaded edges
+    demand_weight = 0.6
+    combined_potential_matrix = demand_weight * demand_penalty_matrix + (1 - demand_weight) * distance_penalty_matrix
+    
+    # Introduce a diversity factor by slightly altering the penalty for high and low demand edges
+    diversity_factor = 0.2 * (torch.abs(demands - vehicle_capacity) > 0.1 * vehicle_capacity)
+    combined_potential_matrix = combined_potential_matrix * (1 - diversity_factor)
+    
+    # Apply a transformation to avoid small values that do not provide a good heuristic signal
+    heuristics_matrix = torch.exp(-combined_potential_matrix)
+    
+    # Normalize the heuristics matrix to avoid any node from dominating the solution
+    max_val = torch.max(heuristics_matrix)
+    heuristics_matrix = heuristics_matrix / max_val
+    
+    return heuristics_matrix
+```

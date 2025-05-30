@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate normalized demand
+    normalized_demand = demands / total_demand
+    
+    # Initialize visitation matrix
+    visited = torch.zeros(n, dtype=torch.bool)
+    
+    # Loop over each node except the depot
+    for i in range(1, n):
+        if not visited[i]:
+            # Get the current node demand
+            current_demand = demands[i]
+            # Initialize the potential to the total demand
+            potential = total_demand
+            # Loop over all nodes for the current node
+            for j in range(n):
+                if j != i and not visited[j]:
+                    # Update the potential
+                    potential = potential - demands[j]
+                    # If the potential is less than the remaining capacity of the current vehicle
+                    if potential < current_demand:
+                        # Add the negative potential to the heuristic matrix
+                        heuristic_matrix[i, j] = -potential
+                        # Update the visitation state
+                        visited[j] = True
+                        break
+                else:
+                    # If the node is already visited, set the heuristic to a large negative value
+                    heuristic_matrix[i, j] = -float('inf')
+    return heuristic_matrix
+```

@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Calculate distance-based penalties and add a normalization factor to balance it with demand penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6) / (vehicle_capacity * demands.numel())
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Apply a smoothing function to the potential matrix
+    smoothed_matrix = torch.exp(-torch.abs(potential_matrix) / (vehicle_capacity * demands.numel() * 2))
+    
+    # Use a simple thresholding to emphasize edges closer to the depot
+    emphasis_on Depot = distance_matrix[torch.arange(demands.numel()), 0]
+    smoothed_matrix = smoothed_matrix * emphasis_on
+    
+    # Apply a non-linear scaling transformation to ensure a clear differentiation of values
+    scaled_matrix = torch.clamp(smoothed_matrix, 0, 1) * torch.log(1 + smoothed_matrix)
+    
+    # Convert the scaled matrix into a heuristic matrix
+    heuristics_matrix = -scaled_matrix
+    
+    return heuristics_matrix
+```

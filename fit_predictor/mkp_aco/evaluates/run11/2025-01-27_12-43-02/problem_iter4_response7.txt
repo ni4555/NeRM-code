@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)  # Avoid division by zero
+    combined_score = score * ratio
+    # Calculate weighted scores to consider the importance of items
+    weighted_scores = combined_score * normalized_weights
+    # Compute the mean and standard deviation of the weighted scores
+    weighted_mean = np.mean(weighted_scores)
+    weighted_std = np.std(weighted_scores)
+    # Use a z-score threshold to identify items with scores that are significantly above average
+    z_scores = (combined_score - weighted_mean) / weighted_std
+    # Select items that have a positive z-score
+    heuristics = z_scores > 0
+    return heuristics.astype(int)
+```

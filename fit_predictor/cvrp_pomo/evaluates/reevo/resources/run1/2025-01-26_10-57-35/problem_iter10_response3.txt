@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the capacity penalty matrix
+    capacity_penalty = torch.min(torch.tensor(1.0) - demands, torch.zeros_like(demands))
+    
+    # Calculate the sum of demands for each node
+    sum_of_demands = torch.sum(demands[:, None] + demands[None, :], dim=0)
+    
+    # Calculate the inverse distance matrix with a small epsilon to avoid division by zero
+    inverse_distance = 1 / (distance_matrix + 1e-8)
+    
+    # Calculate the initial heuristic value
+    heuristics = sum_of_demands * inverse_distance
+    
+    # Adjust the heuristic by considering the balance between distance and demand
+    balance_factor = torch.min(demands, 1 / demands)
+    
+    # Apply the capacity penalty and balance factor
+    heuristics *= (capacity_penalty * balance_factor[:, None])
+    
+    # Clip the negative values to zero
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

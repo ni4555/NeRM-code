@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative distance matrix
+    cumulative_distance = torch.cumsum(distance_matrix, dim=1)
+    
+    # Calculate the cumulative demand matrix
+    cumulative_demand = torch.cumsum(demands[:, None], dim=1)
+    
+    # Calculate the demand-to-distance ratio to encourage visiting nodes with lower demand first
+    demand_to_distance_ratio = cumulative_demand / cumulative_distance
+    
+    # Encourage exploration by favoring edges with high diversity in demand to distance ratio
+    diversity = torch.var(demand_to_distance_ratio, dim=1)
+    
+    # Use a combination of distance and demand-to-distance ratio to calculate potential cost
+    potential_costs = -torch.log(demand_to_distance_ratio)
+    
+    # Encourage exploitation by considering the diversity of the demand-to-distance ratio
+    heuristics = potential_costs - diversity
+    return heuristics
+```

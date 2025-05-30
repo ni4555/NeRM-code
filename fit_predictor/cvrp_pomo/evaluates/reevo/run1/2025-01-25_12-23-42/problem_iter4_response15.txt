@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the cumulative sum of demands
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances
+    cumulative_distance = torch.cumsum(distance_matrix, dim=0)
+    
+    # Calculate the potential cost savings for each edge
+    potential_savings = cumulative_distance - cumulative_demand
+    
+    # Calculate the heuristics based on the potential savings and normalized distances
+    heuristics = potential_savings * norm_distances
+    
+    # Encourage diversification by adding a term that discourages consecutive visits to the same node
+    diversification_penalty = torch.abs(torch.diff(demands)) / total_demand
+    heuristics -= diversification_penalty.unsqueeze(1) * norm_distances
+    
+    # Consider load balance by adding a term that encourages spreading the load evenly across nodes
+    load_balance = (cumulative_demand / total_demand).unsqueeze(1) * (demands / total_demand)
+    heuristics += load_balance * norm_distances
+    
+    # Normalize the heuristics by the maximum possible heuristic value
+    max_heuristic = torch.max(heuristics)
+    heuristics /= max_heuristic
+    
+    # Invert the normalized heuristics to get negative values for undesirable edges
+    heuristics = -heuristics
+    return heuristics
+```

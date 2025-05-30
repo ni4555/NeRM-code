@@ -1,0 +1,32 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    n = distance_matrix.shape[0]
+    
+    # Calculate the cumulative demand sum along each row
+    cumulative_demand = torch.cumsum(demands.unsqueeze(1), dim=0)
+    
+    # Create a matrix with negative infinity for edges where demand is greater than vehicle capacity
+    demand_excess = cumulative_demand > vehicle_capacity.unsqueeze(0)
+    
+    # Set the demand for excess edges to negative infinity
+    cumulative_demand = torch.where(demand_excess, torch.full_like(cumulative_demand, float('-inf')),
+                                   cumulative_demand)
+    
+    # Add the negative of the cumulative demand to the distance matrix
+    potential_matrix = distance_matrix - cumulative_demand
+    
+    # Apply softmax to each row to create a probability distribution
+    softmax_matrix = F.softmax(potential_matrix, dim=1)
+    
+    # Invert the softmax matrix to get the heuristic values
+    heuristics_matrix = 1 - softmax_matrix
+    
+    # Ensure that the sum of each row is 1
+    heuristics_matrix = heuristics_matrix / heuristics_matrix.sum(dim=1, keepdim=True)
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the badness matrix with zeros
+    badness_matrix = np.zeros_like(distance_matrix)
+    
+    # Add a penalty for edges that are part of the local optimal route
+    local_optimal_penalty = np.where(distance_matrix == np.min(distance_matrix), 10, 1)
+    badness_matrix += local_optimal_penalty
+    
+    # Calculate the mean distance for each edge's neighbors
+    neighbors_mean = (distance_matrix[:, :-1].mean(axis=1) +
+                      distance_matrix[:, 1:].mean(axis=1)) / 2
+    
+    # Calculate the deviation from the mean for each edge
+    deviations = distance_matrix - neighbors_mean
+    
+    # Introduce a penalty factor that decreases as the edge length deviates from the mean
+    penalty_factor = np.exp(-np.abs(deviations) / (deviations.max() - deviations.min()))
+    
+    # Normalize the deviations to ensure they are within the range of [0, 1]
+    normalized_deviations = (deviations - deviations.min()) / (deviations.max() - deviations.min())
+    
+    # Combine the penalty factor with the normalized deviations to get a badness score
+    badness_scores = penalty_factor * normalized_deviations
+    badness_matrix += badness_scores
+    
+    # Promote diversity by penalizing edges that are too similar to each other
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                edge_similarity = np.linalg.norm(distance_matrix[i, j])
+                diversity = 1 / (1 + edge_similarity)
+                badness_matrix[i, j] += diversity
+    
+    # Normalize the badness values to ensure they are within the range of [0, 1]
+    badness_matrix /= badness_matrix.max()
+    
+    return badness_matrix
+```

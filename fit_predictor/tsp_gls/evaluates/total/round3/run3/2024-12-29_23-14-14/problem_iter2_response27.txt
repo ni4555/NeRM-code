@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    num_vertices = distance_matrix.shape[0]
+    local_optimal_penalty = 100  # High penalty for long edges in the local optimal route
+    average_distance_bonus = 10  # Bonus for short average distance to the nearest neighbor
+    diversity_bonus = 5  # Bonus for edges that are part of the diverse neighborhoods
+
+    # Initialize the heuristics matrix
+    heuristics_matrix = np.zeros_like(distance_matrix)
+
+    # Calculate the minimum distance to the nearest neighbor for each edge
+    min_distance_to_neighbor = np.min(distance_matrix, axis=1)
+
+    # Calculate the average distance to the nearest neighbor for each edge
+    average_distance = np.mean(distance_matrix, axis=1)
+
+    # Calculate diversity score for each edge
+    diversity_score = np.where(np.max(distance_matrix, axis=1) == distance_matrix, 1, 0)
+
+    # Apply penalties and bonuses
+    heuristics_matrix[distance_matrix > 100] = local_optimal_penalty
+    heuristics_matrix[distance_matrix <= 100] -= local_optimal_penalty
+
+    # Add bonus for short average distance to the nearest neighbor
+    heuristics_matrix[average_distance < 100] += average_distance_bonus
+
+    # Add diversity bonus for edges with high diversity score
+    heuristics_matrix += diversity_bonus * diversity_score
+
+    # Normalize the heuristics matrix to maintain the same scale as the original matrix
+    max_heuristics = np.max(heuristics_matrix)
+    heuristics_matrix = heuristics_matrix / max_heuristics
+
+    return heuristics_matrix
+```

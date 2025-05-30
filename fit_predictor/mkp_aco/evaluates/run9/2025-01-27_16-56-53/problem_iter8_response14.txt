@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on value-to-weight ratio and diversity
+    for i in range(n):
+        total_prize = np.sum(prize[i] * weight[i])
+        total_weight = np.sum(weight[i])
+        value_to_weight_ratio = total_prize / total_weight
+        diversity_factor = np.sum(weight[i] < np.max(weight[i])) / m
+        heuristic[i] = value_to_weight_ratio * diversity_factor
+    
+    # Dynamically adjust heuristics based on cumulative performance
+    cumulative_performance = np.cumsum(heuristic)
+    heuristic *= cumulative_performance / cumulative_performance[-1]
+    
+    # Balance exploration and exploitation using a sigmoid function
+    exploration_exploitation_factor = 1 / (1 + np.exp(-heuristic))
+    heuristic *= exploration_exploitation_factor
+    
+    # Introduce a sparsity penalty to encourage inclusion of more diverse items
+    sparsity_penalty = 1 - (np.sum(weight, axis=1) / m)
+    heuristic *= sparsity_penalty
+    
+    # Manage thresholds to ensure items with high total weight are not overly favored
+    weight_threshold = 0.8
+    weight_factor = 1 / (1 + (np.sum(weight, axis=1) - m * weight_threshold) / (m * weight_threshold))
+    heuristic *= weight_factor
+    
+    # Prevent convergence to local optima by adding Gaussian noise
+    random_noise = np.random.normal(0, np.std(heuristic) / 5, size=n)
+    heuristic += random_noise
+    
+    # Normalize the heuristics to ensure they sum to 1
+    heuristic /= np.sum(heuristic)
+    
+    return heuristic
+```

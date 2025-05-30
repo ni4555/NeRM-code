@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum().item()
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= torch.diag(demand_matrix)
+    demand_matrix /= torch.sum(demand_matrix, dim=1, keepdim=True)
+    
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    demand_normalized = demand_matrix / torch.sum(demand_matrix, dim=1, keepdim=True)
+    
+    # Integrate capacity constraints using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))
+    
+    # Combine the weighted distances with demand normalization
+    base_potential = weighted_distance_matrix + demand_normalized
+    
+    # Normalize by the total vehicle capacity
+    base_potential *= capacity_factor
+    
+    # Incorporate cumulative distances to reflect return to depot
+    cumulative_distance_matrix = distance_matrix.cumsum(dim=1)
+    normalized_cumulative_distance_matrix = cumulative_distance_matrix / cumulative_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Reflect the return to the depot by subtracting the cumulative distance
+    cumulative_factor = -normalized_cumulative_distance_matrix[:, :-1]
+    
+    # Combine all factors into the heuristic values
+    heuristics = base_potential + cumulative_factor
+    
+    # Ensure that the heuristic values are non-negative
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

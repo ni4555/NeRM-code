@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize values to balance between high and low prizes
+    normalized_prize = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Normalize weights to balance different weight scales
+    normalized_weight = (weight - np.min(weight, axis=1, keepdims=True)) / (np.max(weight, axis=1, keepdims=True) - np.min(weight, axis=1, keepdims=True))
+    
+    # Calculate non-linear transformation using a sigmoid function to emphasize important features
+    sigmoid = 1 / (1 + np.exp(-normalized_prize))
+    
+    # Calculate constraint balance for each item
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Combine sigmoid transformation and constraint balance to create a utility score
+    utility = sigmoid * (1 - constraint_balance)
+    
+    # Apply a threshold to sparsify the heuristics, focusing on items with the highest utility
+    sparsity_threshold = np.percentile(utility, 90)  # Set a threshold for sparsity based on the 90th percentile
+    sparsity = (utility > sparsity_threshold) * 1.0
+    
+    # Return the heuristics scores
+    return utility * sparsity
+```

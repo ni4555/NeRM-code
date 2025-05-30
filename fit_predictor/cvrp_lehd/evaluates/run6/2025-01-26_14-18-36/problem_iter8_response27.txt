@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    total_demand = demands.sum()
+    
+    # Sort the demands in descending order to prioritize high-demand nodes
+    sorted_indices = torch.argsort(-demands)
+    
+    # Normalize demand by total vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Initialize variables
+    visited = torch.zeros(n, dtype=torch.bool)
+    visited[0] = True
+    current_demand = demands[0]
+    
+    # Iterate over the sorted demands
+    for i in sorted_indices[1:]:
+        if visited[i]:
+            continue
+        
+        # Calculate the minimum distance to an unvisited node
+        min_distance = torch.min(distance_matrix[~visited])
+        
+        # Update the heuristic value for the edge
+        edge_index = (torch.argmin(distance_matrix[~visited]), i)
+        heuristic_matrix[edge_index[0], edge_index[1]] = -min_distance
+        
+        # Add penalty if the node's demand is greater than vehicle capacity
+        if demands[i] > 1:
+            heuristic_matrix[edge_index[0], edge_index[1]] -= 1000.0
+        
+        # Update visited nodes and current demand
+        visited[i] = True
+        current_demand += demands[i]
+        
+        # Check if we need to return to the depot
+        if current_demand > 1:
+            return_to_depot_index = (i, 0)
+            heuristic_matrix[return_to_depot_index[0], return_to_depot_index[1]] = -distance_matrix[return_to_depot_index[0], return_to_depot_index[1]]
+            break  # All nodes have been visited or the vehicle is full
+    
+    return heuristic_matrix
+```

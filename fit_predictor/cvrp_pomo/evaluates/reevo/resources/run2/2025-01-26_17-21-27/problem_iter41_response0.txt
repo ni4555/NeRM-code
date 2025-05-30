@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Use a combination of load and distance penalties
+    combined_penalty = torch.abs(distance_matrix - total_capacity_vector) * torch.abs(cumulative_demand - total_capacity_vector)
+    
+    # Introduce a dynamic scaling based on the deviation from the average demand
+    demand_deviation = cumulative_demand - total_capacity_vector
+    dynamic_scale = torch.log1p(torch.abs(demand_deviation) - 1e-8)
+    
+    # Apply penalties more heavily for larger deviations from the average load
+    scale_penalty = combined_penalty * (1 + demand_deviation / total_capacity_vector)
+    
+    # Use a diversity heuristic to escape local optima
+    diversity = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Introduce an overflow penalty that is higher when demand exceeds capacity
+    overflow_penalty = torch.where(
+        cumulative_demand > total_capacity_vector,
+        -torch.log1p(cumulative_demand - total_capacity_vector - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Apply a scaling factor to prioritize core objectives
+    scaling_factor = 2.0
+    heuristics = scaling_factor * (scale_penalty + overflow_penalty)
+    
+    # Add diversity and scale heuristics to promote a wider search space
+    heuristics += diversity * scaling_factor
+    
+    # Ensure the heuristics are normalized and within the desired range
+    heuristics = torch.clamp(heuristics, min=-10.0, max=10.0)
+    return heuristics
+```

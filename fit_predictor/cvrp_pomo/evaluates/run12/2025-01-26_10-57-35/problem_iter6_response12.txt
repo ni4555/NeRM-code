@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    normalized_demands = demands / demands.sum()
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    cumulative_distance = torch.cumsum(distance_matrix[:, 0], dim=0)
+    
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    
+    # Iterate over the upper triangle of the matrix to avoid double counting
+    for i in range(n):
+        for j in range(i + 1, n):
+            # Calculate the difference in cumulative demand and distance
+            demand_diff = cumulative_demand[j] - cumulative_demand[i]
+            distance_diff = distance_matrix[i, j] - cumulative_distance[i]
+            # Update heuristics matrix with a positive value
+            heuristics[i, j] = distance_diff * demand_diff
+            # Update cumulative demand at the next node
+            cumulative_demand[j] += demands[j]
+    
+    # Ensure that the values are non-negative by clamping at zero
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate a heuristic value based on the ratio of prize to weight
+    heuristic_value = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Introduce randomness by adding a small random noise
+    random_noise = np.random.rand(len(prize))
+    
+    # Blend the heuristic value with randomness and normalization
+    blended_heuristic = (heuristic_value + random_noise) / (np.max(heuristic_value + random_noise) + 1e-8)
+    
+    # Introduce a sparsity penalty for items with low sparsity
+    sparsity_penalty = (1 - sparsity) / (1 - np.min(sparsity) + 1e-8)
+    
+    # Combine the blended heuristic with the sparsity penalty
+    combined_heuristic = blended_heuristic * sparsity_penalty
+    
+    # Normalize the combined heuristic to maintain a range
+    normalized_combined_heuristic = combined_heuristic / (np.max(combined_heuristic) + 1e-8)
+    
+    # Apply an additional heuristic that penalizes items with high weight
+    weight_penalty = 1 / (weight_sum + 1e-8)
+    
+    # Final heuristic combining all factors
+    final_heuristic = normalized_combined_heuristic * weight_penalty
+    
+    # Ensure no zero weights are included
+    final_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return final_heuristic
+```

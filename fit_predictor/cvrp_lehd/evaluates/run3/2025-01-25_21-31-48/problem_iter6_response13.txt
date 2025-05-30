@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic emphasizing diversity, demand, and distance decay while avoiding uniformity and normalizing values."""
+    # Inverse distance matrix with added small value to avoid division by zero
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)
+    
+    # Demand-weighted inverse distance matrix
+    demand_weighted_distance_matrix = distance_matrix_inv * demands
+    
+    # Introduce a diversity factor that encourages selection of a wider variety of customers
+    diversity_factor = demands / demands.sum()
+    
+    # Apply the diversity factor to the demand-weighted distance matrix
+    demand_weighted_distance_matrix *= diversity_factor
+    
+    # Apply a distance decay to promote shorter paths
+    distance_decay = 1 - torch.exp(-distance_matrix)
+    
+    # Introduce a uniformity penalty to avoid overconcentration around the depot
+    uniformity_penalty = 1 / (torch.min(distance_matrix, dim=1).values + 1e-10)
+    
+    # Combine the factors to get the heuristic value
+    heuristics = demand_weighted_distance_matrix * distance_decay * uniformity_penalty
+    
+    # Normalize the matrix to ensure all values are within a certain range
+    max_heuristics = heuristics.max()
+    min_heuristics = heuristics.min()
+    normalized_heuristics = (heuristics - min_heuristics) / (max_heuristics - min_heuristics)
+    
+    return normalized_heuristics
+```

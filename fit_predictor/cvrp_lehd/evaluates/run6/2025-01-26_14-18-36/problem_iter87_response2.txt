@@ -1,0 +1,47 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce exploration by scaling demand differences with the inverse of remaining capacity
+    demand_diff_scaled = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * (1 / remaining_capacity)
+
+    # Normalize demand differences to encourage diversity
+    demand_diff = demand_diff_scaled / demand_diff_scaled.sum(dim=0, keepdim=True)
+
+    # Encourage exploitation by reducing the impact of capacity constraints
+    capacity_exploitation = torch.clamp(1 - (scaled_demands > 1.0).float(), min=0.0, max=1.0)
+
+    # Combine demand differences and capacity exploitation
+    base_heuristics = demand_diff * capacity_exploitation
+
+    # Introduce randomness for exploration
+    exploration_noise = torch.randn_like(base_heuristics) * 0.01
+
+    # Introduce dampening to prevent extreme values
+    dampening_factor = torch.sigmoid(torch.relu(-torch.log(torch.rand_like(base_heuristics))))
+
+    # Combine base heuristics with exploration and dampening
+    heuristics = base_heuristics + exploration_noise * dampening_factor
+
+    # Introduce a penalty for edges leading back to the depot
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * 0.5
+
+    # Add local preference for edges closer to the depot
+    local_preference = torch.clamp(distance_matrix[:, 0] - distance_matrix[:, 0].mean(), min=-10, max=0)
+    heuristics += local_preference * 0.5
+
+    # Clamp heuristic values to ensure a balanced heuristic distribution
+    heuristics = torch.clamp(heuristics, min=-5.0, max=5.0)
+
+    return heuristics
+```

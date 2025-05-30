@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    from scipy.spatial.distance import cdist
+
+    # Calculate the distance from the depot to all other nodes
+    depot_distances = distance_matrix[0]
+
+    # Calculate the distance from all other nodes to the depot
+    to_depot_distances = distance_matrix[:, 0]
+
+    # Calculate the cumulative demand from the depot to all other nodes
+    cumulative_demand = torch.cumsum(demands[1:], dim=0)
+
+    # Calculate the cumulative demand from all other nodes to the depot
+    cumulative_demand_to_depot = torch.cumsum(demands[:-1], dim=0)
+
+    # Calculate the potential profit for each edge
+    potential_profit = (depot_distances * cumulative_demand) - (to_depot_distances * cumulative_demand_to_depot)
+
+    # Normalize the potential profit by the maximum possible profit
+    max_profit = torch.max(potential_profit)
+    normalized_profit = potential_profit / max_profit
+
+    # Create a mask for edges that are above a certain threshold
+    threshold = torch.mean(normalized_profit)
+    mask = normalized_profit > threshold
+
+    # Assign positive values to promising edges and negative values to undesirable edges
+    heuristics = torch.where(mask, normalized_profit, -normalized_profit)
+
+    return heuristics
+```

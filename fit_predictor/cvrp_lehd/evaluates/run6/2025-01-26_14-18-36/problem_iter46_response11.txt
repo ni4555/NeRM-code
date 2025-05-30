@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Dampen the influence of high demand differences and distances
+    dampening_factor = torch.clamp((scaled_demands > 0.5).float() * 0.5, min=0.1, max=0.9)
+    distance_dampening_factor = torch.clamp(distance_matrix.mean() - distance_matrix > 0.5, min=0.1, max=0.9)
+    
+    # Calculate heuristic values based on scaled demand and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+    heuristics *= dampening_factor * distance_dampening_factor
+
+    # Add penalties for edges that lead to a node with demand greater than vehicle capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty
+
+    # Add penalties for edges leading back to the depot (index 0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty
+
+    # Introduce preferences for cumulative demand and remaining capacity
+    global_preference = 1.0 / (cumulative_demand + 1e-6)
+    capacity_preference = 1.0 / (remaining_capacity + 1e-6)
+    heuristics += global_preference + capacity_preference
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    return heuristics
+```

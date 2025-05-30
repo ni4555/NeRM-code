@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Dynamic weighting based on the performance of previously evaluated solutions
+    # Assuming performance_data is a tensor with the performance metrics of the solutions
+    # performance_data = torch.tensor([...])  # Placeholder for actual performance data
+    # performance_data = performance_data / performance_data.sum()  # Normalize performance data
+    # dynamic_weight = performance_data / (performance_data + 1e-8)  # Avoid division by zero
+
+    # Dynamic adaptation of the search space based on the performance
+    # Weights are adjusted to prioritize local search and balance heuristics based on performance
+    weights = torch.tensor([0.6, 0.3, 0.1, 0.1])
+
+    # Combine heuristics with dynamic weighting
+    combined_heuristic = (
+        inverse_distance * weights[0] +
+        demand_weight * weights[1] +
+        heuristic_range * weights[2] +
+        load_balance * weights[3]
+    )
+
+    # Clamp values to a reasonable range to avoid extreme values
+    combined_heuristic = torch.clamp(combined_heuristic, min=-10.0, max=10.0)
+
+    return combined_heuristic
+```

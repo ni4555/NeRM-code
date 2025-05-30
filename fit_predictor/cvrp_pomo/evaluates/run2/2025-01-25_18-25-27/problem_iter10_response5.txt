@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Calculate the cumulative sum of demands along each row
+    demand_cumsum = normalized_demands.cumsum(axis=1)
+    # Calculate the cumulative sum of demands along each column
+    demand_cumsum_t = normalized_demands.cumsum(axis=0).transpose(0, 1)
+
+    # Heuristic for promising edges is a function of distance and demand
+    heuristics_matrix = distance_matrix - demand_cumsum * distance_matrix.sum(axis=1, keepdim=True)
+    heuristics_matrix -= demand_cumsum_t * distance_matrix.sum(axis=0, keepdim=True)
+    
+    # Scale heuristics based on the average demand per node
+    heuristics_matrix /= avg_demand
+
+    # Introduce randomness for further exploration
+    perturbation = (torch.rand(n, n) - 0.5) * (heuristics_matrix > 0).float()
+    
+    # Adjust for infeasibilities
+    infeasibility_penalty = (1 - (heuristics_matrix > 0).float()) * -1e6
+
+    # Final heuristics computation with randomness and penalties
+    heuristics_matrix += perturbation + infeasibility_penalty
+    return heuristics_matrix
+```

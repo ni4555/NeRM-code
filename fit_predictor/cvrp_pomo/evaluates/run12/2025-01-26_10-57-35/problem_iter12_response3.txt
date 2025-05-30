@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    capacity = demands.sum()  # Total capacity
+    cumulative_demands = demands.cumsum(0)[:, None]
+    
+    # Calculate the maximum feasible demand at each node
+    max_feasible_demand = capacity - cumulative_demands
+    
+    # Create a boolean matrix where a cell is True if the node can be visited
+    feasible = max_feasible_demand > demands[None, :]
+    
+    # Assign a negative large number for infeasible edges
+    heuristics = -torch.full_like(distance_matrix, float('inf'))
+    
+    # Set feasible edges to their actual distances
+    heuristics[feasible] = distance_matrix[feasible] / capacity
+    
+    # Set the heuristics for returning to the depot after the last feasible visit
+    heuristics[:, 0] = (capacity - cumulative_demands[-1]) / capacity
+    
+    # Normalize the heuristics to a 0-1 range
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    
+    return heuristics
+```

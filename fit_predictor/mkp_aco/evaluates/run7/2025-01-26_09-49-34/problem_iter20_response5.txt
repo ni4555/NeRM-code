@@ -1,0 +1,58 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the average normalized weight for each item across all dimensions
+    average_normalized_weight = np.mean(weight, axis=1)
+    
+    # Calculate the inverse of the average normalized weight for each item
+    # Adding a small value to avoid division by zero
+    inverse_average_weight = 1 / (average_normalized_weight + 1e-8)
+    
+    # Calculate the sparsity factor based on the number of dimensions with zero weight
+    sparsity_factor = (weight == 0).mean(axis=1)
+    
+    # Calculate the initial heuristics based on the product of normalized prize and inverse average weight
+    heuristics = normalized_prize * inverse_average_weight
+    
+    # Adjust heuristics based on sparsity, rewarding items with high sparsity
+    heuristics *= (1 + sparsity_factor)
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Apply a dynamic sparsification threshold that considers both the average normalized weight
+    # and the sparsity factor, setting elements below the threshold to zero
+    sparsity_threshold = np.mean(average_normalized_weight * (1 + sparsity_factor))
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    # Adjust heuristics based on the variance of the weights, rewarding items with low variance
+    weight_variance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)
+    variance_adjustment = 1 / (1 + weight_variance)
+    heuristics *= variance_adjustment
+    
+    # Incorporate weighted factors based on the normalized prize and variance adjustment
+    weighted_factors = normalized_prize * variance_adjustment
+    
+    # Final heuristics based on the sum of weighted factors and adjusted sparsity factor
+    heuristics *= weighted_factors * (1 + sparsity_factor)
+    
+    # Integrate additional features such as diversity
+    diversity_factor = np.var(normalized_prize)
+    diversity_adjustment = 1 / (1 + diversity_factor)
+    heuristics *= diversity_adjustment
+    
+    # Optimize further by considering the total potential gain and total potential weight
+    total_potential_gain = np.sum(normalized_prize * weight, axis=1)
+    total_potential_weight = np.sum(weight, axis=1)
+    potential_gains_weight_ratio = total_potential_gain / total_potential_weight
+    potential_gain_adjustment = 1 / (1 + potential_gains_weight_ratio)
+    heuristics *= potential_gain_adjustment
+    
+    return heuristics
+```

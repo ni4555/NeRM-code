@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_diff = demands - demands.mean()
+    distance_penalty = distance_matrix * (1 - torch.exp(-demands))
+
+    # Normalize the contributions of demand difference and distance penalty to maintain scale
+    demand_diff_normalized = demand_diff / (torch.abs(demand_diff).max() + 1e-8)
+    distance_penalty_normalized = distance_penalty / (distance_penalty.max() + 1e-8)
+
+    # Combine the normalized contributions and apply weights
+    heuristic_matrix = -0.5 * demand_diff_normalized - 0.5 * distance_penalty_normalized
+    bonus = demands.mean()
+    depot_bonus = torch.ones_like(heuristic_matrix[:, 0])
+    heuristic_matrix[:, 0] += bonus * depot_bonus  # Adding a bonus to return to the depot
+    
+    return heuristic_matrix
+```

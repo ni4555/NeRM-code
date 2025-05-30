@@ -1,0 +1,39 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate the heuristics value for each edge based on scaled demand and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Introduce a penalty for high-demand nodes, high distance, and distance outliers
+    penalty_high_demand = (scaled_demands > 0.5).float() * 500.0
+    penalty_high_distance = (distance_matrix[:, 0] > distance_matrix[:, 0].mean() + 1.5 * distance_matrix[:, 0].std()).float() * 500.0
+
+    # Apply penalties to the heuristics
+    heuristics -= (penalty_high_demand + penalty_high_distance)
+
+    # Dampen the global effect of the penalties to balance feasibility
+    dampen_factor = 0.9
+    heuristics *= dampen_factor
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    if max_heuristic != min_heuristic:
+        heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        # Avoid division by zero
+        heuristics = torch.ones_like(heuristics)
+
+    return heuristics
+```

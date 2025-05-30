@@ -1,0 +1,15 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = demands.cumsum(0)
+    # Calculate the difference between the cumulative demand and the vehicle capacity
+    demand_diff = (cumulative_demand - demands[:, None]).clamp(min=0)
+    # Normalize the demand difference by the sum of all demands to get a balanced heuristic
+    normalized_demand_diff = demand_diff / demands.sum()
+    # Calculate a heuristic value based on the distance and the normalized demand difference
+    # We add a term that penalizes high cumulative demand
+    heuristic_values = -distance_matrix * (normalized_demand_diff + (cumulative_demand / demands.sum())**2)
+    return heuristic_values
+```

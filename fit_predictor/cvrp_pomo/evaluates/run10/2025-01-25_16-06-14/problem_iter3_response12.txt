@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Scale demands to the range [0, 1]
+    scaled_demands = demands / demands.max()
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    # Iterate over each row to calculate the heuristic value for each edge
+    for i in range(len(distance_matrix)):
+        # Only consider edges from the depot (index 0)
+        if i == 0:
+            continue
+        # Calculate the cumulative demand from the depot to the current node
+        cumulative_demand = scaled_demands.cumsum()
+        # Calculate the heuristic value as the negative cumulative demand
+        heuristic_matrix[0, i] = -cumulative_demand[i]
+        # Calculate the heuristic value as the negative difference of cumulative demand
+        # to the next node minus the cumulative demand to the current node
+        if i < len(distance_matrix) - 1:
+            heuristic_matrix[i, i + 1] = -(cumulative_demand[i + 1] - cumulative_demand[i])
+    # Add the return to the depot edge with the negative of the demand of the last node
+    heuristic_matrix[len(distance_matrix) - 1, 0] = -scaled_demands[len(distance_matrix) - 1]
+    return heuristic_matrix
+```

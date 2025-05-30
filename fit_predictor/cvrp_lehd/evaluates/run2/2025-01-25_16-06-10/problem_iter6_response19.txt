@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate cumulative sums of demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    
+    # Create a mask for all edges where a feasible route is possible
+    feasible_route_mask = (demand_cumsum <= demands) * (demand_cumsum <= demands.cumsum(dim=0))
+    
+    # Vectorize the distance calculations and update heuristics
+    heuristics = (1 - distance_matrix) * feasible_route_mask.float()
+    
+    # Calculate the distance from each node to the depot
+    distance_to_depot = distance_matrix[:, 0]
+    
+    # Incorporate the distance to the depot in the heuristic
+    heuristics += distance_to_depot[feasible_route_mask]
+    
+    # Handle cases where no feasible route is possible by setting the heuristics to negative infinity
+    no_feasible_route_mask = (demands.cumsum(dim=0) >= demands).float()
+    heuristics = heuristics - no_feasible_route_mask * heuristics.abs()
+    
+    return heuristics
+```

@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_factor = 1 / (1 + torch.abs(demands - total_capacity))
+    
+    # Priority is given to the shortest paths, with capacity and overflow penalties
+    base_value = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    capacity_penalty = capacity_factor * torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    overflow_penalty = torch.where(
+        cumulative_demand > total_capacity,
+        torch.log1p((cumulative_demand - total_capacity) * capacity_factor - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Distance is time-adaptive, becoming more important as more of the capacity is used
+    distance_factor = 1 / (1 + cumulative_demand / total_capacity)
+    
+    # Adjust heuristics based on distance and penalties
+    heuristics = base_value * (distance_factor - capacity_penalty - overflow_penalty)
+    
+    # Incorporate diversity through random perturbations, with a decreasing effect
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= distance_factor / (torch.sum(distance_factor) + 1e-8)
+    
+    # Balance the impact of penalties with the priority of objectives
+    balance_factor = 0.5
+    heuristics += balance_factor * randomness_factor
+    
+    # Ensure diversity does not overpower the core objectives
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    heuristics += diversity_factor
+    
+    return heuristics
+```

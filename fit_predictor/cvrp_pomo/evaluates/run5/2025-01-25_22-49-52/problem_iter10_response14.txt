@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the load factor based on the average demand
+    load_factor = demands.mean()
+    
+    # Calculate the penalty term for high demand nodes
+    penalty_threshold = 0.8  # Nodes with demand greater than 0.8 times the average demand are penalized
+    average_demand = normalized_demands.mean()
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                normalized_demands - average_demand, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Calculate the demand relaxation factor
+    demand_relaxation = 1.0 / (1.0 + torch.exp(-2.0 * (normalized_demands - average_demand)))
+    
+    # Combine potential values with normalized distances, demand relaxation, and penalty term
+    potential_values = (normalized_distances + 
+                        demand_relaxation - 
+                        penalty_term).abs()
+    
+    # Adjust weights dynamically based on the load factor
+    dynamic_weight = 1.0 + (load_factor - 1.0) * 0.5  # Weight adjustment between 1.0 and 1.5
+    potential_values *= dynamic_weight
+    
+    # Increase potential for nodes with balanced and low demand, and low neighbor demand
+    balanced_and_low_demand = (torch.abs(normalized_demands - 0.5) < 0.1) & (normalized_demands < 0.5)
+    neighbor_demand_sums = torch.zeros(n)
+    for i in range(n):
+        neighbor_indices = distance_matrix[i, :] < max_distance
+        neighbor_demand_sums[i] = demands[neighbor_indices].sum()
+    potential_values[balanced_and_low_demand] += neighbor_demand_sums[balanced_and_low_demand] * 0.1
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

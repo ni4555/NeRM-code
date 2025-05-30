@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    demand_diversity = torch.var(normalized_demands)
+
+    # Create a weight matrix based on distance and normalized demand
+    weight_matrix = (1 / distance_matrix) * normalized_demands
+
+    # Incorporate diversity and adjust for the capacity to balance the impact of demand
+    adjusted_weight_matrix = weight_matrix * demand_diversity * total_capacity
+
+    # Use the maximum value in the adjusted weight matrix for normalization
+    max_weight = torch.max(adjusted_weight_matrix)
+    
+    # Ensure that the maximum value does not cause an overflow
+    max_weight = torch.clamp(max_weight, max=1e-5)
+
+    # Normalize the adjusted weight matrix
+    heuristic_matrix = adjusted_weight_matrix / max_weight
+
+    # Clip the heuristic values to ensure no overflow and to handle the uniform distribution
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+
+    return heuristic_matrix
+```

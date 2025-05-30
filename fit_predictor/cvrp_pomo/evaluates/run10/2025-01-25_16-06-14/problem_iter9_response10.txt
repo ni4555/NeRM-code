@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Scale demands to the range [0, 1]
+    scaled_demands = demands / demands.max()
+    # Use a logarithmic transformation for distances to balance out large distances
+    log_distance = torch.log(normalized_distance_matrix + 1)  # Adding 1 to avoid log(0)
+    # Use a logarithmic transformation for demands to balance out large demands
+    log_demand = torch.log(scaled_demands + 1)  # Adding 1 to avoid log(0)
+    # Integrate symmetry by considering both directions of the edges
+    symmetric_distance = (log_distance + torch.transpose(log_distance, 0, 1)) / 2
+    symmetric_demand = (log_demand + torch.transpose(log_demand, 0, 1)) / 2
+    # Combine the symmetric distance and demand terms with an exponential function
+    combined_heuristic = torch.exp(-symmetric_distance + symmetric_demand)
+    # Invert the sign to get negative values for undesirable edges
+    return -combined_heuristic
+```

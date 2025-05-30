@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Consider items with a higher ratio of prize to weight as more promising
+    ratio_factor = normalized_prize / weight.sum(axis=1)
+    
+    # Calculate a dynamic factor based on the standard deviation to promote diversity
+    std_factor = np.mean(np.std(weight, axis=1))
+    
+    # Promote items with lower variance in weight dimensions
+    variance_factor = 1 / (std_factor + 1e-5)
+    
+    # Introduce a balance factor that encourages diversity
+    balance_factor = np.sum(weight, axis=1) / np.sum(weight)
+    
+    # Combine all factors into a weighted sum
+    combined_factor = ratio_factor * variance_factor * balance_factor
+    
+    # Introduce sparsity by setting a fraction of the lowest heuristics to zero
+    num_to_zero = int(len(combined_factor) * 0.1)
+    combined_factor[np.argsort(combined_factor)[:num_to_zero]] = 0
+    
+    # Refine heuristics iteratively by reinforcing items that are beneficial and sparse
+    for i in range(len(combined_factor)):
+        if combined_factor[i] > 0 and (weight.sum(axis=1)[i] > 0.5):
+            combined_factor[i] *= 1.1
+    
+    # Normalize heuristics to ensure they sum to 1, maintaining the probability interpretation
+    heuristic_sum = np.sum(combined_factor)
+    if heuristic_sum > 0:
+        combined_factor /= heuristic_sum
+    
+    return combined_factor
+```

@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand as we move from the depot (0) to each customer
+    cumulative_demand = demands.cumsum(0)
+    
+    # Create a mask to indicate which customers have not been visited yet
+    unvisited_mask = (cumulative_demand <= demands).float()
+    
+    # Calculate the total demand of the edges
+    edge_demand = demands.unsqueeze(1) * demands.unsqueeze(0)
+    
+    # Normalize the demand to get a relative measure of demand per unit distance
+    relative_demand = edge_demand / distance_matrix.pow(2)
+    
+    # Apply a heuristic that prefers edges with lower relative demand and lower distance
+    heuristics = -relative_demand + distance_matrix
+    
+    # Ensure that the heuristics are within the bounds [-1, 1]
+    heuristics = torch.clamp(heuristics, min=-1.0, max=1.0)
+    
+    # Update the heuristics based on the unvisited mask
+    heuristics = heuristics * unvisited_mask
+    
+    return heuristics
+```

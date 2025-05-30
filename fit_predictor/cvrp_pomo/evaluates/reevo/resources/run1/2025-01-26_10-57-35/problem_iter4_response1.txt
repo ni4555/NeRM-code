@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = demands.cumsum(dim=0)
+    # Calculate the cumulative distance from the depot to each node
+    cumulative_distance = distance_matrix.cumsum(dim=1)
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the heuristics for each edge
+    # An edge from node i to node j is promising if the demand at node j is less than the
+    # vehicle capacity or if it is the last node in the route (cumulative demand reaches capacity)
+    edge_demand_exceeds_capacity = (cumulative_demands >= 1.0).float()
+    edge_demand_not_exceeds_capacity = (cumulative_demands < 1.0).float()
+    
+    # If the edge demand exceeds capacity, calculate the penalty
+    heuristics += (1 - edge_demand_exceeds_capacity) * distance_matrix
+    # If the edge demand does not exceed capacity, calculate the heuristic
+    heuristics += edge_demand_not_exceeds_capacity * (cumulative_distance[:, None] - cumulative_distance[:-1][:, None])
+    
+    return heuristics
+```

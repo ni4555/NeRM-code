@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    
+    demand_variance = (normalized_demands - avg_demand) ** 2
+    feasibility_mask = (heuristics_matrix > 0).float()
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 1.0)
+    
+    perturbation = (torch.rand(n, 1) - 0.5) * 2  # Range between -0.5 and 0.5
+    stability_bonus = 1e-3
+    stability_bonus_mask = (demand_variance < torch.mean(demand_variance)).float()
+    
+    heuristics_matrix = heuristics_matrix + perturbation * feasibility_mask + infeasibility_penalty * (1 - feasibility_mask) + stability_bonus * stability_bonus_mask
+    heuristics_matrix = torch.clamp(heuristics_matrix, min=0)
+    
+    return heuristics_matrix
+```

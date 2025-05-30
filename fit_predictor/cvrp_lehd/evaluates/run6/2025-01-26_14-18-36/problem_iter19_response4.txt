@@ -1,0 +1,49 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate the heuristics value for each edge based on scaled demand and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Add a penalty for edges that lead to a node with demand greater than vehicle capacity
+    penalty = (scaled_demands > 1.0).float() * 1000.0
+    heuristics -= penalty
+
+    # Add a dampened penalty for edges leading back to the depot (index 0)
+    dampened_penalty = torch.zeros_like(distance_matrix)
+    dampened_penalty[torch.arange(distance_matrix.shape[0]), 0] = -0.5
+    heuristics += dampened_penalty
+
+    # Introduce a dampened penalty for edges that are too far from the depot (local preference)
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+    heuristics += distance_penalty
+
+    # Blend multi-scale penalties by considering both local and global penalties
+    # Local penalty (distance from depot)
+    local_penalty = distance_penalty
+    # Global penalty (cumulative demand)
+    global_penalty = cumulative_demand
+    blended_penalty = (local_penalty + global_penalty) / (local_penalty + global_penalty).sum()
+
+    # Combine the heuristic values with the penalties, ensuring that the penalties dominate for infeasible edges
+    heuristics = torch.where(blended_penalty > 0, blended_penalty, heuristics)
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    if max_heuristic != min_heuristic:
+        heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        # Avoid division by zero
+        heuristics = torch.ones_like(heuristics)
+
+    return heuristics
+```

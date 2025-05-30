@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Introduce an adaptive weight for demand variance
+    demand_variance = torch.var(normalized_demands)
+    adaptive_demand_weight = 1.5 / (1 + demand_variance)
+    
+    # Calculate the potential value for each edge using a demand variance-aware heuristic
+    distance_weight = 0.5
+    penalty_threshold = 0.8
+    average_demand = normalized_demands.mean()
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                normalized_demands - average_demand, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Avoid redundancy by penalizing direct connections between highly demanded nodes
+    redundancy_penalty = torch.where(normalized_demands > average_demand,
+                                     normalized_distances,
+                                     torch.zeros_like(normalized_distances))
+    
+    # Combine weights and penalties to form potential values
+    potential_values = (normalized_distances * (1 - penalty_term) +
+                        distance_weight * normalized_distances +
+                        adaptive_demand_weight * normalized_demands - 
+                        penalty_term * redundancy_penalty).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Introduce a dynamic window approach to adapt weights based on current vehicle capacity
+    vehicle_capacity = demands.sum().item() / n
+    dynamic_weight = 1.0 / (1.0 + vehicle_capacity)
+    potential_values *= dynamic_weight
+    
+    return potential_values
+```

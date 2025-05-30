@@ -1,0 +1,56 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep Reinforcement Learning (DRL) reward function with adaptive weight
+    def drl_reward(x):
+        return np.sum(x * np.log(1 + x)) + np.dot(x, np.sum(weight, axis=1))
+
+    # Particle Swarm Optimization (PSO) with adaptive learning and constraint handling
+    pso_position = np.random.rand(n)
+    pso_velocity = np.zeros(n)
+    pso_personal_best = np.copy(pso_position)
+    pso_personal_best_scores = -np.inf
+    pso_global_best = pso_position.copy()
+    pso_global_best_scores = drl_reward(pso_global_best)
+
+    feasible_items = np.sum(weight, axis=1) <= 1
+    infeasible_items = ~feasible_items
+
+    # Run PSO for a fixed number of iterations
+    for _ in range(100):
+        for i in range(n):
+            pso_velocity[i] = 0.5 * pso_velocity[i] + \
+                              0.1 * (np.random.rand() - 0.5)
+            pso_position[i] += pso_velocity[i]
+            pso_position[i] = np.clip(pso_position[i], 0, 1)
+
+        for i in range(n):
+            score = drl_reward(pso_position[i])
+            if i in infeasible_items:
+                score += np.inf  # Penality for infeasibility
+
+            if score > pso_personal_best_scores:
+                pso_personal_best_scores = score
+                pso_personal_best[:] = pso_position[i]
+
+        if pso_personal_best_scores > pso_global_best_scores:
+            pso_global_best_scores = pso_personal_best_scores
+            pso_global_best[:] = pso_personal_best[:]
+
+    # Filter PSO results to ensure feasibility
+    feasible_pso_scores = pso_global_best_scores[feasible_items]
+    best_pso_score = np.max(feasible_pso_scores)
+
+    # Calculate heuristic scores based on DRL and PSO scores
+    heuristic = (drl_reward(prize / (prize[0] + 1e-6)) + np.sum(pso_position * prize, axis=1)) / (best_pso_score + 1e-6)
+
+    # Sparsify heuristics based on a dynamic threshold
+    dynamic_threshold = np.percentile(heuristic, 75)
+    heuristic[heuristic < dynamic_threshold] = 0
+
+    return heuristic
+```

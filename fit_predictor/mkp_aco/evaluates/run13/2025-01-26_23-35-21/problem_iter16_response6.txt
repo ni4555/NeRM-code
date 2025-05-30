@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize array to ensure non-zero and consistent scaling
+    prize = prize / np.max(prize + 1e-8)
+    
+    # Calculate density as the normalized prize
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate sparsity by checking if any dimension weight is zero or close to zero
+    sparsity = 1.0 - (np.abs(np.min(weight, axis=1)) < 1e-8)
+    
+    # Calculate diversity using standard deviation across all dimensions
+    diversity = np.std(weight, axis=1)
+    
+    # Blend density, sparsity, and diversity with equal weights
+    heuristics = (density + sparsity + diversity) / 3
+    
+    # Apply a penalty to items with too high density or diversity to prevent dominance
+    density_penalty = np.where(density > 0.9, -density * 10, 0)
+    diversity_penalty = np.where(diversity > 1, -(diversity - 1), 0)
+    
+    # Add penalties to heuristics
+    heuristics -= density_penalty + diversity_penalty
+    
+    # Normalize by the maximum value to ensure all heuristic values are positive
+    max_heuristic = np.max(heuristics)
+    heuristics /= max_heuristic
+    
+    # Apply a sparsity penalty to encourage diversity
+    sparsity_penalty = np.where(sparsity < 0.9, -1, 0)
+    heuristics += sparsity_penalty
+    
+    # Final normalization to ensure heuristic values are between 0 and 1
+    heuristics = (heuristics + 1) / 2
+    
+    return heuristics
+```

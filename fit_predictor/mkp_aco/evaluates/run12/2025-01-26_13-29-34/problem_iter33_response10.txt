@@ -1,0 +1,93 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Initialize a population of agents for PSO with diverse starting points
+    population_size = 50
+    agents = np.random.dirichlet(np.ones(m), size=population_size)
+    agents = agents / np.sum(agents, axis=1, keepdims=True)
+    personal_best_fitness = -np.inf * np.ones(population_size)
+    personal_best_position = agents.copy()
+
+    # Initialize deep reinforcement learning for dynamic decision-making
+    drl_model = initialize_drl_model(prize.shape[0], weight.shape[1])  # Dummy initialization function
+    reward_model = create_reward_model(prize, weight)  # Dummy function for reward model
+
+    # Define adaptive learning and exploration parameters
+    learning_rate = 0.1
+    exploration_rate = 1.0
+    decay_rate = 0.01
+    iteration = 0
+    max_iterations = 1000
+
+    while iteration < max_iterations:
+        for i, agent in enumerate(agents):
+            current_reward = reward_model(agent, prize, weight)
+            if current_reward > personal_best_fitness[i]:
+                personal_best_fitness[i] = current_reward
+                personal_best_position[i] = agent
+
+        global_best_position = personal_best_position[np.argmax(personal_best_fitness)]
+
+        # Update the PSO agents using social and cognitive learning
+        new_agents = []
+        for j in range(population_size):
+            new_agent = update_agent(j, personal_best_position[j], global_best_position, learning_rate, exploration_rate)
+            new_agents.append(new_agent)
+            agents[j] = new_agent
+
+        exploration_rate = max(exploration_rate - decay_rate, 0.01)
+
+        iteration += 1
+
+    # Update heuristics based on the best PSO agent's reward and diversity
+    heuristic = personal_best_fitness / (np.max(personal_best_fitness) + 1e-6)
+
+    # Integrate early feasibility checks and constraint-aware filtering
+    feasible_items = np.all(weight * agents <= np.ones(m), axis=1)
+    heuristic[~feasible_items] = 0
+
+    # Sparsify the heuristic matrix based on a dynamic threshold
+    sparsity_threshold = np.percentile(heuristic[feasible_items], 75)
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    # Enhance the reward model with the new heuristic-based scoring
+    refined_reward_model = create_reward_model_with_heuristics(prize, weight, heuristic)
+    reward_model = refined_reward_model
+
+    return heuristic
+
+def initialize_drl_model(input_size, action_size):
+    # Placeholder function for initializing the DRL model
+    pass
+
+def create_reward_model(prize, weight):
+    # Placeholder function for creating a reward model based on prizes and weights
+    def reward_function(agent, prizes, weights):
+        selected_prizes = prizes[np.any(weight * agent > np.ones(len(prizes))), :]
+        total_reward = np.sum(selected_prizes)
+        total_weight = np.sum(weights[np.any(weight * agent > np.ones(len(weights)))])
+        return total_reward - 1000 * (total_weight - 1)
+    return reward_function
+
+def update_agent(j, personal_best_position, global_best_position, learning_rate, exploration_rate):
+    # Placeholder function for updating the agent position
+    # This should be replaced with an actual PSO agent update algorithm
+    new_position = personal_best_position[j] + \
+                   learning_rate * (np.random.rand() - 0.5) * (global_best_position - personal_best_position[j]) + \
+                   exploration_rate * (np.random.rand() - 0.5)
+    new_position = np.clip(new_position, 0, 1)
+    return new_position
+
+def create_reward_model_with_heuristics(prize, weight, heuristic):
+    # Placeholder function for creating a reward model with heuristic influence
+    def reward_function_with_heuristic(agent, prizes, weights, heuristic):
+        selected_prizes = prizes[np.any(weight * agent > np.ones(len(prizes))), :]
+        heuristic_score = np.sum(heuristic[np.any(weight * agent > np.ones(len(prizes)))])
+        total_reward = np.sum(selected_prizes) + heuristic_score
+        total_weight = np.sum(weights[np.any(weight * agent > np.ones(len(weights)))] - heuristic_score)
+        return total_reward - 1000 * (total_weight - 1)
+    return reward_function_with_heuristic
+```

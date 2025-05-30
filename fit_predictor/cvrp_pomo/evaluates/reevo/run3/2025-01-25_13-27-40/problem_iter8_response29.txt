@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    cum_demands = torch.cumsum(demands, dim=0)
+    capacity_mask = cum_demands < demands[0]
+    potential = torch.exp(-distance_matrix * 0.1) * capacity_mask
+    high_demand_penalty = demands * torch.where(capacity_mask, torch.zeros_like(demands), torch.ones_like(demands))
+    
+    # Use torch.where to create a mask for the non-penalty part of the heuristic matrix
+    non_penalty_mask = capacity_mask.unsqueeze(1) & capacity_mask.unsqueeze(0)
+    
+    # Apply a non-linear penalty based on distance and demand only where necessary
+    penalty = high_demand_penalty * torch.relu(distance_matrix ** 2 * 0.001)
+    
+    # Combine potential and penalty
+    heuristics = potential - penalty
+    
+    # Average the matrix to leverage symmetry
+    heuristics = (heuristics + heuristics.t()) / 2
+    
+    # Zero out the diagonal since it represents the depot, which should not be visited by a vehicle
+    heuristics[torch.eye(len(demands), dtype=torch.bool)] = 0
+    
+    return heuristics
+```

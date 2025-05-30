@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce a damping factor to balance exploration and exploitation
+    damping_factor = 0.5
+
+    # Calculate the heuristics value for each edge based on scaled demand and remaining capacity
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Blend multi-scale penalties by considering a range of distances
+    local_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 100
+    global_penalty = (distance_matrix - distance_matrix.mean()) * 10
+    blended_penalty = damping_factor * local_penalty + (1 - damping_factor) * global_penalty
+
+    # Dampen the penalties to increase adaptability
+    dampened_penalty = blended_penalty / blended_penalty.max()
+
+    # Normalize the heuristics to ensure consistency
+    heuristics = heuristics / heuristics.max()
+
+    # Combine the heuristic values with the dampened penalties
+    combined_penalties = torch.max(dampened_penalty, torch.zeros_like(dampened_penalty))
+    heuristics = heuristics - combined_penalties
+
+    # Introduce a small normalization factor to ensure the values are within a consistent range
+    normalization_factor = 2.0
+    heuristics = heuristics * normalization_factor
+
+    # Add penalties for edges that lead to a node with demand greater than vehicle capacity
+    penalty = (scaled_demands > 1.0).float() * 1000.0
+    heuristics -= penalty
+
+    # Add a small penalty for edges leading back to the depot (index 0)
+    penalty = torch.zeros_like(distance_matrix)
+    penalty[torch.arange(distance_matrix.shape[0]), 0] = -1
+    heuristics += penalty
+
+    return heuristics
+```

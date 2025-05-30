@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the maximum demand at each node
+    max_demand_at_node = torch.max(cumulative_demand, dim=0)[0]
+    
+    # Calculate the difference in cumulative demand between consecutive nodes
+    demand_diff = (cumulative_demand[1:] - cumulative_demand[:-1]).abs()
+    
+    # Calculate the heuristic value for each edge based on the maximum demand difference
+    max_demand_diff = torch.max(demand_diff)
+    
+    # Generate a matrix of 1s for edges where the distance is non-zero
+    non_zero_edges = distance_matrix != 0
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # For each non-zero edge, assign a heuristic value based on the maximum demand difference
+    heuristics_matrix[non_zero_edges] = max_demand_diff
+    
+    # Add penalties for edges that exceed the vehicle capacity
+    over_capacity_penalty = torch.where((cumulative_demand[1:] + distance_matrix[1:, :-1]) > 1.0,
+                                       distance_matrix[1:, :-1], 0.0)
+    
+    # Update the heuristics matrix with the over_capacity_penalty
+    heuristics_matrix[non_zero_edges] += over_capacity_penalty[non_zero_edges]
+    
+    # Add rewards for edges that can reduce the maximum demand at the next node
+    reduced_demand_reward = torch.where((cumulative_demand[1:] + distance_matrix[1:, :-1]) <= 1.0,
+                                        torch.max(max_demand_at_node[1:] - (cumulative_demand[1:] + distance_matrix[1:, :-1]),
+                                                 torch.zeros_like(max_demand_at_node[1:])),
+                                        torch.zeros_like(max_demand_at_node[1:]))
+    
+    # Update the heuristics matrix with the reduced_demand_reward
+    heuristics_matrix[non_zero_edges] += reduced_demand_reward[non_zero_edges]
+    
+    return heuristics_matrix
+```

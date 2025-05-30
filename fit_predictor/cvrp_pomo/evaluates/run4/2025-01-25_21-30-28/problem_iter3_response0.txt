@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: adaptively adjust based on recent performance
+    # This could be replaced with a more sophisticated adaptation strategy
+    recent_performance = torch.zeros_like(distance_matrix)
+    adaptive_heuristic = 1.0 / (distance_matrix + recent_performance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Use a more dynamic balancing of heuristics
+    # Instead of using fixed weights, use a weight tuning strategy
+    weights = torch.tensor([0.4, 0.3, 0.2, 0.1], dtype=distance_matrix.dtype)
+    combined_heuristic = inverse_distance * weights[0] + demand_weight * weights[1] + adaptive_heuristic * weights[2] + load_balance * weights[3]
+
+    # Apply a quantile-based clamping to avoid extreme values, which helps to balance the impact of each heuristic
+    quantile_threshold = torch.quantile(combined_heuristic, 0.5)
+    combined_heuristic = torch.where(combined_heuristic < -quantile_threshold, -quantile_threshold, combined_heuristic)
+    combined_heuristic = torch.where(combined_heuristic > quantile_threshold, quantile_threshold, combined_heuristic)
+
+    return combined_heuristic
+```

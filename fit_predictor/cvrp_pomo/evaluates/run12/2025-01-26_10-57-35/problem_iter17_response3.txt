@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize demand matrix by subtracting the total demand for each node from each demand
+    demand_matrix = demands - demands.sum() / n
+    
+    # Calculate the inverse of demand matrix to balance the influence of each node
+    demand_matrix = 1 / (demand_matrix + 1e-8)  # Adding a small epsilon to avoid division by zero
+    
+    # Normalize the distance matrix by the total demand to balance distance importance
+    normalized_distance_matrix = distance_matrix / distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity by using the inverse of demand as a weighting factor
+    capacity_factor = demand_matrix
+    
+    # Combine distance and demand factors in the heuristic
+    heuristics = normalized_distance_matrix * capacity_factor
+    
+    # Enhance the heuristic for edges leading to high-demand or high-capacity usage
+    heuristics += (1 + demands) * demand_matrix
+    
+    # Clip negative values to zero and scale the promising edges
+    heuristics = torch.clamp(heuristics, min=0) * (1 + demands)  # Scale again to enhance promising edges
+    
+    return heuristics
+```

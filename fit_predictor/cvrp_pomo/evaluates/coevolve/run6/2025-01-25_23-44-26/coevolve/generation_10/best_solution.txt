@@ -1,0 +1,32 @@
+Fitness: 49.78913116455078
+
+Description:
+Develop a comprehensive heuristic solution for the Capacitated Vehicle Routing Problem (CVRP) that integrates demand normalization to ensure uniform problem scale. Implement a unified penalty function for capacity constraints, ensuring that vehicles operating near full capacity face a higher routing cost. Strategically combine demand-driven heuristics with a dynamic, real-time rerouting mechanism, incorporating elements of the Inverse Distance Heuristic (IDH) for initial customer assignment, and a hybrid optimization approach that leverages the strength of Genetic Algorithms for iterative improvement, Simulated Annealing to avoid local optima, and Ant Colony Optimization for path exploration. This algorithmic framework must be adaptable to real-time changes in customer demands and vehicle capacities, thereby maintaining optimal route distances and vehicle assignments while minimizing the total travel cost and enhancing overall efficiency.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize demands by the total vehicle capacity (assuming total capacity is 1 for simplicity)
+    normalized_demands = demands / demands.sum()
+    
+    # Initialize a tensor of zeros with the same shape as distance_matrix
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the inverse distance heuristic (IDH) for each edge
+    # We use a simple inverse of the distance as the heuristic value
+    heuristics = 1 / (distance_matrix + 1e-8)  # Adding a small constant to avoid division by zero
+    
+    # Integrate demand normalization into the heuristic
+    # We multiply the IDH by the normalized demand of the destination node
+    heuristics *= normalized_demands
+    
+    # Implement a penalty function for edges that are close to the vehicle's capacity
+    # We use a simple linear penalty proportional to the distance
+    # This is a simplified example, and the actual penalty function can be more complex
+    penalty_threshold = 0.8  # Threshold for when the penalty should be applied
+    penalty_factor = 1.5  # Factor by which the heuristic is penalized
+    heuristics[distance_matrix > penalty_threshold] *= penalty_factor
+    
+    return heuristics

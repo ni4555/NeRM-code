@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to the range of 0 to 1
+    prize_normalized = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    # Normalize weight to the range of 0 to 1
+    weight_normalized = (weight - np.min(weight, axis=1, keepdims=True)) / (np.max(weight, axis=1, keepdims=True) - np.min(weight, axis=1, keepdims=True))
+    # Calculate the inverse of the average weight per dimension
+    avg_weight_inverse = 1.0 / np.mean(weight_normalized, axis=1)
+    # Combine normalized prize and inverse average weight
+    heuristics = prize_normalized * avg_weight_inverse
+    # Apply a sparsity threshold to set unpromising elements to zero
+    sparsity_threshold = 0.1
+    heuristics[heuristics < sparsity_threshold] = 0
+    # Apply a dampening effect to the heuristics based on the total prize
+    dampening_factor = prize / np.sum(prize)
+    heuristics *= dampening_factor
+    return heuristics
+```

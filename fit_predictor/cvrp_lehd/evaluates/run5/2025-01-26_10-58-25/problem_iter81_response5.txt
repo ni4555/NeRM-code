@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Introduce randomness early to allow exploration
+    noise_matrix = torch.randn_like(distance_matrix) * 1e-2
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Balance demand and distance penalties using a weighted sum
+    balance_factor = 0.5
+    combined_potential_matrix = balance_factor * penalty_matrix + (1 - balance_factor) * (torch.log(distance_matrix + 1e-6))
+    
+    # Normalize for scale to ensure all components contribute equally
+    normalized_combined_potential_matrix = combined_potential_matrix / combined_potential_matrix.sum(dim=1, keepdim=True)
+    
+    # Emphasize constraints using a non-linear transformation
+    emphasized_matrix = torch.exp(-torch.abs(normalized_combined_potential_matrix))
+    
+    # Control randomness to prevent excessive noise
+    controlled_noise_matrix = torch.randn_like(emphasized_matrix) * 1e-1
+    
+    # Introduce a second level of noise to allow for further exploration
+    second_level_noise_matrix = torch.randn_like(emphasized_matrix) * 1e-1
+    
+    # Combine the two noise levels
+    final_noise_matrix = controlled_noise_matrix + second_level_noise_matrix
+    
+    # Mutate the matrix by adding a random perturbation
+    mutation_factor = torch.rand_like(emphasized_matrix)
+    mutated_matrix = emphasized_matrix + final_noise_matrix * mutation_factor
+    
+    # Normalize the mutated matrix to ensure non-negativity and scale balance
+    normalized_mutated_matrix = mutated_matrix / mutated_matrix.sum(dim=1, keepdim=True)
+    
+    # Final transformation into a heuristics matrix
+    heuristics_matrix = -normalized_mutated_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize values to reduce the impact of higher value outliers
+    normalized_prize = (prize - np.mean(prize)) / np.std(prize)
+    
+    # Calculate the sparsity factor based on the number of zero weights
+    sparsity_factor = np.sum(weight == 0, axis=1) / weight.shape[1]
+    
+    # Combine normalized prize and sparsity factor
+    heuristic_base = normalized_prize * (1 - sparsity_factor)
+    
+    # Consider the average sparsity across all items as a factor to reduce heuristics of items with higher sparsity
+    average_sparsity = np.mean(sparsity_factor)
+    sparsity_reduction = average_sparsity ** 2
+    heuristic_base *= (1 - sparsity_reduction)
+    
+    # Introduce a diversity factor that penalizes items that are too similar to others in terms of weight distribution
+    diversity_factor = np.apply_along_axis(lambda x: -np.mean(np.abs(x - np.mean(x))), axis=1, arr=weight)
+    heuristic_base += diversity_factor
+    
+    # Normalize the heuristics to ensure they are comparable
+    max_heuristic = np.max(heuristic_base)
+    if max_heuristic > 0:
+        heuristics = heuristic_base / max_heuristic
+    else:
+        heuristics = np.zeros_like(heuristic_base)
+    
+    # Sparsify the heuristics by setting values below a dynamic threshold to zero
+    sparsity_threshold = 0.1
+    heuristics[heuristic_base < sparsity_threshold] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    normalized_ratio = (value_to_weight_ratio - np.min(value_to_weight_ratio)) / (np.max(value_to_weight_ratio) - np.min(value_to_weight_ratio))
+    
+    # Apply a logarithmic transformation to emphasize higher ratios
+    transformed_ratio = np.log(1 + normalized_ratio)
+    
+    # Calculate sparsity score to encourage diversity
+    sparsity_score = np.sum(weight == 0) / (weight.shape[0] * weight.shape[1])
+    diversity_heuristic = (1 - sparsity_score) * 0.2
+    
+    # Combine the transformed ratio with the diversity heuristic
+    combined_heuristic = transformed_ratio + diversity_heuristic
+    
+    # Normalize the combined heuristic to maintain balance between the two factors
+    combined_heuristic /= (np.max(combined_heuristic) + diversity_heuristic)
+    
+    # Trim the heuristics to ensure a balance between selecting and excluding items
+    heuristics = np.where(combined_heuristic < 0.01, 0, combined_heuristic)
+    
+    return heuristics
+```

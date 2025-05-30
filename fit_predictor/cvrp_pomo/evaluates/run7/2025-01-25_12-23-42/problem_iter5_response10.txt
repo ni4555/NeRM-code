@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Calculate the heuristic using a weighted combination of the normalized distance and the load factor
+    # Introduce an exponential decay to encourage the exploration of longer paths
+    # This will increase the likelihood of paths with lower loads but higher distances
+    load_weight = 0.5  # This can be adjusted as a hyperparameter
+    heuristics = (1 - load_weight) * norm_distances + load_weight * (node_loads * torch.exp(-norm_distances)).sum(-1)
+    return heuristics
+```

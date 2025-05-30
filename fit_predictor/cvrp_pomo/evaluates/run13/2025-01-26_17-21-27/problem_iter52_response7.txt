@@ -1,0 +1,58 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Distance scaling
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic capacity penalty with early return encouragement
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Enhanced overflow penalty with early return
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balancing heuristic to encourage even distribution of demand
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Weighted combination of objectives
+    distance_weight = 2.0
+    capacity_weight = 1.5
+    overflow_weight = 1.0
+    balance_weight = 1.0
+    heuristics = (
+        distance_weight * distance_scaling +
+        capacity_weight * dynamic_capacity_penalty +
+        overflow_weight * overflow_penalty +
+        balance_weight * load_balance_penalty
+    )
+    
+    # Random noise for diversity
+    diversity_noise = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Early overflow and imbalance tuning
+    early_overflow = torch.where(cumulative_demand > total_capacity_vector, torch.ones_like(cumulative_demand), torch.zeros_like(cumulative_demand))
+    diversity_noise *= early_overflow
+    
+    # Add diversity noise
+    heuristics += diversity_noise
+    
+    # Penalty for depot to avoid selecting it as a next node
+    depot_penalty = torch.arange(n) == 0
+    heuristics = heuristics - depot_penalty.float().unsqueeze(0)
+    
+    # Cap the heuristics to maintain range and control randomness
+    heuristics = torch.clamp(heuristics, min=-10.0, max=10.0)
+    
+    return heuristics
+```

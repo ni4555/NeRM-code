@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the total demand
+    total_demand = torch.sum(demands)
+
+    # Initialize the solution with the depot
+    solution = torch.zeros(n, dtype=torch.bool)
+    solution[0] = True
+
+    # Greedy heuristic: prioritize edges based on the inverse of distance and demand
+    for i in range(1, n):
+        if torch.sum(solution) >= total_demand:
+            break
+
+        # Find the best edge to add by considering the inverse distance and demand
+        potential_edges = distance_matrix[solution][:, ~solution]
+        edge_values = 1 / (potential_edges + 1e-8) * (1 - demands[~solution])
+        min_edge = torch.argmin(edge_values)
+
+        # Update the solution and the heuristics
+        source, target = torch.div(min_edge, n), min_edge % n
+        heuristics[source, target] = 1 / (distance_matrix[source, target] + 1e-8)
+        solution[target] = True
+
+    return heuristics
+```

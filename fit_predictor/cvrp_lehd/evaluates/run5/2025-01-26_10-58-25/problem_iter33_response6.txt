@@ -1,0 +1,36 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = torch.relu(demands - vehicle_capacity)  # Use ReLU to create non-negative penalties
+    
+    # Normalize the penalty matrix to balance the scale with distance
+    normalized_penalty_matrix = penalty_matrix / penalty_matrix.sum()
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = normalized_penalty_matrix + distance_penalty_matrix
+    
+    # Invert non-linear scales to convert penalties into heuristic values
+    heuristic_matrix = 1 / (1 + torch.exp(-potential_matrix))
+    
+    # Normalize the heuristic matrix to ensure non-negativity and scale balance
+    normalized_heuristic_matrix = F.softmax(heuristic_matrix, dim=1)
+    
+    # Transform the normalized heuristic matrix to balance scales with distance matrix
+    balanced_matrix = normalized_heuristic_matrix * (1 - 0.5) + distance_matrix * 0.5
+    
+    # Invert the balanced matrix to ensure that the values are not too close to zero
+    inverted_balanced_matrix = 1 / (1 + balanced_matrix)
+    
+    # Ensure that the inverted matrix has non-negative values by adding the minimum possible value
+    heuristics_matrix = torch.clamp(inverted_balanced_matrix, min=1e-6)
+    
+    return heuristics_matrix
+```

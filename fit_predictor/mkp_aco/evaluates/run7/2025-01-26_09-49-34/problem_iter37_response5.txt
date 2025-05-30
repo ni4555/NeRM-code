@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize prize to ensure items are not dominated by high prizes
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate a balance factor considering both sparsity and variance
+    sparsity_factor = (weight.sum(axis=1) > 0).astype(float)
+    inv_variance_factor = np.mean(weight, axis=1) / np.mean(weight ** 2, axis=1)
+    balance_factor = sparsity_factor * inv_variance_factor
+    
+    # Incorporate exploration-exploitation by using an adaptive threshold
+    np.random.seed(0)
+    adaptive_threshold = np.percentile(normalized_prize, 60)  # 60% as a balance point
+    diversity = np.random.normal(0, 0.02, size=normalized_prize.shape)
+    diversity = np.maximum(diversity, -adaptive_threshold)  # Ensure diversity does not dominate
+    balanced_prize = normalized_prize * balance_factor + diversity
+    
+    # Amplify the heuristics of items with higher potential and promote sparsity
+    amplification_threshold = np.percentile(balanced_prize, 80)  # 80% threshold for amplification
+    sparsity_threshold = np.percentile(balanced_prize, 20)  # 20% threshold for sparsity
+    balanced_prize[balanced_prize > amplification_threshold] *= 1.2
+    balanced_prize[balanced_prize < sparsity_threshold] = 0
+    
+    # Normalize the final heuristics
+    heuristic_sum = np.sum(balanced_prize)
+    if heuristic_sum > 0:
+        balanced_prize /= heuristic_sum
+    
+    return balanced_prize
+```

@@ -1,0 +1,40 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+
+    # Normalize prizes to avoid dominance by large prizes
+    max_prize = np.max(prize)
+    normalized_prize = prize / max_prize
+
+    # Normalize weights to handle the multi-dimensional nature of weights
+    max_weight_sum = np.max(np.sum(weight, axis=1))
+    normalized_weight_sum = np.sum(weight, axis=1) / max_weight_sum
+
+    # Calculate the density of each item, which combines value and weight
+    density = normalized_prize / normalized_weight_sum
+
+    # Introduce diversity by considering the sum of weights, encouraging selection of different items
+    diversity = np.mean(weight, axis=1) / np.sum(weight, axis=1)
+
+    # Introduce a sparsity measure to encourage the selection of items with varying weights
+    sparsity = np.mean(weight, axis=1) / np.sum(np.abs(weight), axis=1)
+
+    # Calculate a combined score based on density, diversity, and sparsity
+    combined_score = 0.5 * density + 0.3 * diversity + 0.2 * sparsity
+
+    # Normalize the combined score to ensure no dominance
+    max_combined_score = np.max(combined_score)
+    normalized_combined_score = combined_score / (max_combined_score + 1e-8)
+
+    # Apply a penalty for items that are close to the maximum allowed weight sum
+    weight_sum_penalty = np.sum(weight, axis=1) / max_weight_sum
+    weight_sum_penalty = np.clip(weight_sum_penalty, 0, 1)
+    normalized_combined_score *= (1 - weight_sum_penalty)
+
+    # Ensure non-negative heuristics
+    normalized_combined_score = np.maximum(normalized_combined_score, 0)
+
+    return normalized_combined_score
+```

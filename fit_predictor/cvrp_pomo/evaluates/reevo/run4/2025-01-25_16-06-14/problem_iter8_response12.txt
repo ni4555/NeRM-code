@@ -1,0 +1,16 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_distance_matrix = distance_matrix / total_demand
+    scaled_demands = demands / demands.max()
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    # Use a combination of exponential decay for distances and a demand-based cost function
+    exponentiated_distance = torch.exp(-normalized_distance_matrix)
+    # The demand-based cost function is designed to increase as the cumulative demand increases
+    demand_cost = torch.cumsum(torch.log1p(cumulative_demand), dim=0)
+    # The heuristic is the difference between the cost of visiting and the cost of demand
+    heuristic = exponentiated_distance - demand_cost
+    return heuristic
+```

@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Apply a non-linear transformation to the ratio, such as the exponential function
+    # This emphasizes the edge-specific feature by reducing the weight of very high ratios
+    transformed_ratio = torch.exp(-2 * demand_to_distance_ratio)
+    
+    # Normalize the transformed ratio by the sum of the transformed ratio to avoid overfitting
+    normalized_transformed_ratio = transformed_ratio / transformed_ratio.sum(dim=1, keepdim=True)
+    
+    # Invert the normalized transformed ratio to make it a heuristic for edge selection
+    inverted_normalized_ratio = 1 / (normalized_transformed_ratio + 1e-10)  # Add a small constant to avoid division by zero
+    
+    # The inverted normalized ratio is now a heuristic value that prioritizes edges
+    heuristic_matrix = inverted_normalized_ratio
+    
+    # Set the edges with zero demand or zero distance to have zero heuristic value
+    heuristic_matrix = torch.where(torch.isnan(heuristic_matrix) | torch.isinf(heuristic_matrix), 0, heuristic_matrix)
+    
+    return heuristic_matrix
+```

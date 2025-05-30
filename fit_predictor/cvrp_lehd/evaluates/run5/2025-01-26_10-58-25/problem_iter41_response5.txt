@@ -1,0 +1,37 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the deviation from vehicle capacity
+    deviation = torch.abs(demands - vehicle_capacity)
+    
+    # Initialize a matrix to hold heuristics values
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Iterate over each edge
+    for i in range(distance_matrix.size(0)):
+        for j in range(distance_matrix.size(1)):
+            # Apply penalties based on demand deviation
+            demand_penalty = deviation[i] + deviation[j]
+            
+            # Use a distance-based heuristic
+            distance heuristic = 1 / (distance_matrix[i, j] + 1e-6)  # Avoid division by zero
+            
+            # Combine penalties with distance heuristic
+            combined_penalty = demand_penalty * 0.5 + heuristic * 0.5
+            
+            # Assign combined penalty to the heuristics matrix
+            heuristics_matrix[i, j] = combined_penalty
+    
+    # Normalize the heuristics matrix
+    normalized_heuristics = F.softmax(heuristics_matrix, dim=1)
+    
+    # Apply a non-linear transformation to the normalized heuristics matrix
+    heuristics_matrix = torch.exp(-normalized_heuristics)
+    
+    return heuristics_matrix
+```

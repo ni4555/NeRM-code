@@ -1,0 +1,49 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Dynamic weight calculation based on the average distance and demand
+    average_distance = normalized_distances.mean()
+    average_demand = normalized_demands.mean()
+    
+    # Node partitioning using the minimum cut technique or clustering methods could be implemented here.
+    # For simplicity, we assume that partitioning is done and the partition indices are given by `partition_indices`.
+    # This would be a complex task and is not implemented here.
+    partition_indices = torch.randperm(n)[:n//2]
+    
+    # Calculate potential values within each partition
+    potential_values = torch.zeros_like(normalized_distances)
+    for i in range(n//2):
+        for j in range(n//2):
+            if i != j:
+                potential = normalized_distances[i, j]
+                # Balance weights within partitions
+                weight_distance = 0.6
+                weight_demand = 2.4
+                # Dampen potential for high demands
+                demand_threshold = 0.7
+                if normalized_demands[i] > demand_threshold or normalized_demands[j] > demand_threshold:
+                    potential *= 0.8
+                potential_values[i, j] = potential_values[j, i] = potential * (weight_distance * (1 - normalized_demands[i]) +
+                                                                             weight_demand * (1 - normalized_demands[j]))
+    
+    # Apply potential values to inter-partition edges
+    for i in range(n//2):
+        for j in range(n//2, n):
+            potential_values[i, j] = potential_values[j, i] = normalized_distances[i, j]
+    
+    # Adjust for the depot node
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

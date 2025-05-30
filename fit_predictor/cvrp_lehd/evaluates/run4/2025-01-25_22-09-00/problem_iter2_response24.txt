@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """A heuristic function that considers the demand-to-distance ratio and vectorizes computations."""
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    # Create a matrix of indices for all possible edges
+    indices = torch.arange(num_nodes)[None, :] * num_nodes + torch.arange(num_nodes)[None, ]
+    # Exclude the depot node (index 0) and diagonal edges
+    indices = indices[indices != 0][:, indices != torch.arange(num_nodes).reshape(-1, 1)].reshape(-1, 2)
+    # Calculate the heuristic values for all valid edges
+    edge_distances = distance_matrix[indices[:, 0], indices[:, 1]]
+    edge_demands = demands[indices[:, 0]] * demands[indices[:, 1]]
+    heuristic_values = edge_distances * (edge_demands / total_demand)
+    # Expand the heuristic values to match the shape of the original distance matrix
+    expanded_heuristic_values = torch.zeros_like(distance_matrix)
+    expanded_heuristic_values.scatter_(0, indices[:, 0], heuristic_values[:, 0])
+    expanded_heuristic_values.scatter_(1, indices[:, 1], heuristic_values[:, 1])
+    return expanded_heuristic_values
+```

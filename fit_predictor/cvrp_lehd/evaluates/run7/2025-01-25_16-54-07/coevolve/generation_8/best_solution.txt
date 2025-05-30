@@ -1,0 +1,26 @@
+Fitness: 21.411426544189453
+
+Description:
+Designing an optimization heuristic for a Capacitated Vehicle Routing Problem (CVRP) where the focus is on utilizing cumulative demand to efficiently route vehicles, while ensuring each route respects the vehicle's capacity constraints. The heuristic should create a simplified approach to manage demand and capacity, avoiding complexity and ensuring clarity in route prioritization. This involves developing a cumulative demand mask to dynamically assess the load distribution along potential routes, and an edge feasibility mask to rigorously evaluate the impact of adding an edge on the vehicle's capacity before including it in the route. The algorithm will prioritize edges based on their contribution to balanced load distribution, emphasizing computational efficiency and maintaining simplicity in managing demand and capacity constraints.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    vehicle_capacity = demands.sum()
+    
+    # Create cumulative demand mask
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Create edge feasibility mask based on vehicle capacity
+    edge_feasibility = (cumulative_demand - demands[:, None]) <= vehicle_capacity
+    
+    # Calculate contribution to balanced load distribution
+    load_contribution = (vehicle_capacity - (cumulative_demand - demands[:, None])) / vehicle_capacity
+    
+    # Combine the masks with load contribution
+    heuristics = load_contribution * edge_feasibility.float() - (1 - edge_feasibility.float())
+    
+    return heuristics

@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, vehicle_capacity: float) -> torch.Tensor:
+    
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Demand balancing heuristic using exponential decay to emphasize lower demands
+    demand_balance = torch.exp(-normalized_demands.unsqueeze(1) * normalized_demands.unsqueeze(0))
+    
+    # Inverse distance matrix heuristic
+    distance_heuristic = torch.inverse(distance_matrix + 1e-6)
+    
+    # Dynamic load balancing factor considering current load and vehicle capacity
+    load_balance = torch.clamp(torch.min(demands.unsqueeze(1), demands.unsqueeze(0)) / demands.sum(), min=0, max=vehicle_capacity)
+    
+    # Time dynamic factor considering real-time conditions with a sinusoidal function
+    time_of_day = torch.sin(torch.linspace(0, 2 * torch.pi, distance_matrix.shape[0]))
+    time_heuristic = (1 / (1 + time_of_day.unsqueeze(1) * time_of_day.unsqueeze(0)))
+    
+    # Combine heuristics with proper balancing weights
+    combined_heuristic = demand_balance * distance_heuristic * 0.2 + load_balance * time_heuristic * 0.6 + distance_heuristic * 0.2
+    
+    return combined_heuristic
+```

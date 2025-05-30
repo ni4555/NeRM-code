@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Scaled capacity penalty
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    scaled_capacity_penalty = capacity_penalty * (1 + (cumulative_demand / total_capacity))
+    
+    # Distance penalty
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic overflow penalty with aggressive scaling
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    overflow_penalty = overflow_penalty * 3.0  # More aggressive penalty for overflow
+    
+    # Load balance heuristic with a penalty for imbalances
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Combine all heuristics
+    heuristics = scaled_capacity_penalty + distance_penalty + overflow_penalty + load_balance_penalty
+    
+    # Incentivize the depot node
+    depot_incentive = -torch.log1p(torch.abs(cumulative_demand - total_capacity / n))
+    heuristics = heuristics * depot_incentive
+    
+    return heuristics
+```

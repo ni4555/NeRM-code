@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Define a function to calculate the heuristic based on a weighted sum of distance and demand
+    def heuristic_func(dist, demand, alpha=0.5, beta=0.5):
+        return (alpha / (dist + 1e-8)) + (beta * demand)
+    
+    # Vectorize the heuristic function over the edges
+    edge_potential = torch.apply_as_broadcast(
+        heuristic_func(
+            distance_matrix,
+            normalized_demands,
+            alpha=1 / (distance_matrix.max() + 1e-8),  # Use max distance for alpha
+            beta=normalized_demands.sum() / (demands > 0).sum()  # Use total demand ratio for beta
+        ),
+        distance_matrix
+    )
+    
+    return edge_potential
+```

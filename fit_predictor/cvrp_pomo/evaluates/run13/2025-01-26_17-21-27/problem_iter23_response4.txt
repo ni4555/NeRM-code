@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Introduce penalties for high cumulative demand, high demand for next customer, and distance
+    cumulative_demand_penalty = -torch.log1p(torch.abs(cumulative_demand - (total_capacity / 2)))
+    next_demand_penalty = -torch.log1p(torch.abs(demands[1:]))  # Penality for next customer demand
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Vectorized dynamic capacity penalty based on current load and vehicle capacity
+    current_load = torch.relu(cumulative_demand - total_capacity / 2) / (total_capacity / 2)
+    dynamic_capacity_penalty = current_load
+    
+    # Scale the penalties dynamically to give more weight to edges that contribute to capacity overflow
+    heuristics = distance_penalty + cumulative_demand_penalty + next_demand_penalty + dynamic_capacity_penalty
+    return heuristics
+```

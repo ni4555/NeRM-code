@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    
+    # Demand deviation from the average demand
+    demand_deviation = (demands - average_demand).unsqueeze(1)
+    
+    # Heuristic based on the sum of demand deviations and distances
+    demand_cost = (demands > 0.5).to(torch.float32) * torch.abs(demand_deviation * distance_matrix)
+    
+    # Heuristic based on the difference in demands and distances
+    demand_difference = -torch.abs(demands[1:] - demands[0]) * distance_matrix[0, 1:]
+    demand_difference = torch.cat([demand_difference, -demand_difference.transpose(0, 1)])
+    
+    # Combine demand-related heuristics
+    demand_heuristic = demand_cost + demand_difference
+    
+    # Distance-related heuristic
+    distance_heuristic = torch.abs(distance_matrix) * (demands > 0.5).to(torch.float32)
+    
+    # Infeasibility penalty (demand exceeds 1.0)
+    infeasibility_penalty = (demands > 1.0).to(torch.float32) * -10000
+    
+    # High-demand bonus (demand is above average demand)
+    high_demand_bonus = (demands > average_demand).to(torch.float32) * 1000
+    
+    # Depot-related heuristics
+    depot_heuristic_in = distance_matrix[1:, 0] * -1000
+    depot_heuristic_out = distance_matrix[0, 1:] * -1000
+    
+    # Combine heuristics
+    combined_heuristic = demand_heuristic + distance_heuristic + infeasibility_penalty + high_demand_bonus + depot_heuristic_in + depot_heuristic_out
+    
+    # Exclude self-loops for the depot node
+    combined_heuristic[torch.arange(n), 0] = 0
+    combined_heuristic[0, torch.arange(n)] = 0
+    
+    return combined_heuristic
+```

@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Introduce a more refined heuristic that considers the balance between overloading and underloading
+    heuristics = torch.log1p(average_demand_per_edge) - torch.log1p(total_capacity)
+    
+    # Calculate penalties for overloading and underloading
+    overload_penalty = torch.abs(heuristics)
+    underload_penalty = torch.abs(1 - heuristics)
+    
+    # Dynamic penalties based on the ratio of average demand to total capacity
+    penalty_ratio = torch.clamp((average_demand_per_edge / total_capacity), min=0, max=1)
+    dynamic_penalty = (penalty_ratio ** 2) * (overload_penalty + underload_penalty)
+    
+    # Apply the dynamic penalty to the heuristics
+    heuristics -= dynamic_penalty
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    # Introduce a balance parameter to control exploration-exploitation
+    balance_param = 0.5  # Example balance parameter
+    
+    # Incorporate domain knowledge into the heuristic
+    domain_knowledge_penalty = torch.where(distance_matrix < 100, torch.zeros_like(heuristics), torch.ones_like(heuristics) * 10)
+    
+    # Adjust the heuristic with domain knowledge
+    heuristics += balance_param * domain_knowledge_penalty
+    
+    # Introduce a perturbation for maintaining diversity
+    perturbation = torch.rand_like(heuristics) * (torch.log1p(total_capacity) - torch.log1p(torch.abs(heuristics)))
+    heuristics -= perturbation
+    
+    return heuristics
+```

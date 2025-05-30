@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    max_utility = utility.max(axis=1)
+    
+    # Add non-linearity to enhance diversity
+    diversity_factor = utility.max(axis=1) - utility
+    # Normalize diversity factor
+    max_diversity = diversity_factor.max(axis=1)
+    normalized_diversity = diversity_factor / max_diversity
+    # Balance utility and diversity
+    balanced_heuristics = max_utility + normalized_diversity
+    
+    # Select the top promising items to ensure sparsity
+    top_heuristics = balanced_heuristics.argsort()[::-1]
+    top_heuristics_index = top_heuristics[:balanced_heuristics.size // 2]
+    
+    heuristics = np.zeros_like(prize)
+    heuristics[top_heuristics_index] = balanced_heuristics[top_heuristics_index]
+    return heuristics
+```

@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Initialize heuristics matrix
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate total demand
+    total_demand = demands.sum()
+    
+    # Normalize demands
+    normalized_demands = demands / total_demand
+    
+    # Calculate Euclidean distances from the depot
+    distances = torch.sqrt(((torch.arange(n, dtype=torch.float32) - 0)**2).sum(1))
+    
+    # Calculate heuristic for each edge
+    for i in range(n):
+        for j in range(i+1, n):
+            if i != 0:  # Exclude the depot from comparisons
+                heuristics[i, j] = -distance_matrix[i, j] - torch.abs(total_demand * normalized_demands[i] - demands[j])
+    
+    return heuristics
+```

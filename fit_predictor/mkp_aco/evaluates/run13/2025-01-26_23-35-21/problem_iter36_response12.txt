@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+
+    # Calculate normalized density with regularization
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity with regularization
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate a combined heuristic value based on density and sparsity
+    heuristic_value = density * (1 - sparsity)
+    
+    # Introduce randomness to the heuristic
+    randomness = np.random.rand(n)
+    
+    # Combine the heuristic value and randomness to form the initial heuristic
+    heuristic = heuristic_value + randomness
+    
+    # Normalize the heuristic to the range [0, 1]
+    max_heuristic = np.max(heuristic)
+    normalized_heuristic = heuristic / max_heuristic
+    
+    # Apply post-processing to encourage sparsity by setting some values to zero
+    sparsity_threshold = np.mean(normalized_heuristic) * 0.5
+    combined_heuristic = np.where(normalized_heuristic > sparsity_threshold, normalized_heuristic, 0)
+    
+    return combined_heuristic
+```

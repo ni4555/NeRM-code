@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Combine heuristics using domain knowledge and weights
+    combined_heuristic = (inverse_distance +
+                          demand_weight +
+                          heuristic_range +
+                          load_balance)
+
+    # Normalize the combined heuristic values
+    combined_heuristic /= combined_heuristic.max()
+
+    # Introduce a small random factor for diversity
+    random_factor = torch.rand_like(combined_heuristic)
+    combined_heuristic += random_factor * 0.05
+
+    # Mutation: Introduce a random walk for exploration
+    mutated_heuristic = combined_heuristic + torch.rand_like(combined_heuristic) * 0.1
+
+    # Clamp values to a reasonable range to avoid extreme values
+    mutated_heuristic = torch.clamp(mutated_heuristic, min=-0.95, max=1.05)
+
+    # Apply domain insights by prioritizing edges close to the depot and with high demand
+    combined_heuristic = combined_heuristic * torch.clamp(torch.arange(n), min=0, max=1) / (n * 2)
+    combined_heuristic += demands * 0.5 / (total_capacity * 2)
+
+    # Mutation: Adjust the mutated heuristic to reflect exploration within bounds
+    mutated_heuristic = mutated_heuristic * combined_heuristic + (1 - combined_heuristic) * 0.5
+
+    return mutated_heuristic
+```

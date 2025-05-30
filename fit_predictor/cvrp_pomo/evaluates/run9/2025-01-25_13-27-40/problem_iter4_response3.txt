@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the start node
+    cum_demands = torch.cumsum(demands, dim=0)
+    # Create a binary mask where a 1 indicates the vehicle is still under capacity
+    capacity_mask = cum_demands < demands[0]
+    # Create a scaling factor that penalizes distant edges
+    distance_scaling = torch.exp(-distance_matrix * 0.2)
+    # Scale the demand penalty to balance capacity and demand
+    scaled_demand_penalty = demands * torch.where(capacity_mask, torch.zeros_like(demands), torch.ones_like(demands)) * 0.5
+    # Apply a non-linear scaling to the demand penalty to emphasize high demand nodes
+    demand_scaling = torch.sqrt(demands)
+    # Combine distance scaling, scaled demand penalty, and demand scaling to create a more nuanced heuristic
+    heuristics = distance_scaling * capacity_mask - scaled_demand_penalty - demand_scaling
+    return heuristics
+```

@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    total_distance = distance_matrix.sum()
+
+    # Normalize by demand to prioritize high-demand nodes
+    demand_normalized = (demands / total_demand) * 10
+
+    # Normalize by distance to prioritize nodes closer to the depot
+    distance_normalized = (distance_matrix / total_distance) * 10
+
+    # Combine distance and demand into heuristic
+    heuristic_matrix = distance_normalized - demand_normalized
+
+    # Invert the matrix to make higher values more promising
+    heuristic_matrix = -heuristic_matrix
+
+    # Ensure no negative values by clamping
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=0)
+
+    return heuristic_matrix
+```

@@ -1,0 +1,15 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    min_demand = demands.min()
+    max_demand = demands.max()
+    # Heuristic based on demand difference
+    demand_diff = (demands - min_demand) / (max_demand - min_demand)
+    # Promising edges have higher demand difference and lower distance
+    heuristic = demand_diff * (1 - distance_matrix / distance_matrix.min(dim=0)[0])
+    # Add negative values for edges that are close to exceeding capacity
+    return heuristic - (demands > demands.mean()).float() * 1e-3
+```

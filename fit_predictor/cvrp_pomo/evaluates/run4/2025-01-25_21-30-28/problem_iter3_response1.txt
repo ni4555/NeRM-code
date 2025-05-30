@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: adaptively modify search space based on previous performance
+    mean_distance = distance_matrix.mean()
+    previous_performance = torch.clamp(torch.rand(1), min=0.0, max=1.0)  # Simulate previous performance
+    heuristic_range = 1.0 / ((distance_matrix + mean_distance + 1e-8) * previous_performance)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Dynamic weights based on problem characteristics and previous performance
+    weight_inverse_distance = 0.5 * (1 + torch.clamp(torch.rand(1), min=0.0, max=1.0))
+    weight_demand = 0.3 * (1 + torch.clamp(torch.rand(1), min=0.0, max=1.0))
+    weight_range = 0.2 * (1 + torch.clamp(torch.rand(1), min=0.0, max=1.0))
+    weight_balance = 0.4 * (1 + torch.clamp(torch.rand(1), min=0.0, max=1.0))
+
+    # Combined heuristic with dynamic weights
+    combined_heuristic = (weight_inverse_distance * inverse_distance +
+                          weight_demand * demand_weight +
+                          weight_range * heuristic_range +
+                          weight_balance * load_balance)
+
+    # Clamp values to a reasonable range to avoid extreme values
+    combined_heuristic = torch.clamp(combined_heuristic, min=-10.0, max=10.0)
+
+    return combined_heuristic
+```

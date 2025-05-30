@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Capacity penalty based on how close to the capacity the route is
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Distance penalty, scaled by the cumulative demand to increase its impact as more of the demand is met
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * (1 + cumulative_demand)
+    
+    # Overflow penalty, applied when the cumulative demand exceeds the vehicle capacity
+    overflow_penalty = torch.where(cumulative_demand > total_capacity, -torch.log1p(cumulative_demand - total_capacity), torch.zeros_like(cumulative_demand))
+    
+    # Scatter the overflow penalty to apply it to all edges
+    overflow_penalty = overflow_penalty.scatter_add(0, torch.arange(n), overflow_penalty)
+    
+    # Dynamic scaling for penalties
+    scaling_factor_demand = (1 + cumulative_demand / total_capacity)
+    scaling_factor_distance = scaling_factor_demand ** 2
+    
+    # Combine penalties with the scaling factors
+    heuristics = (
+        scaling_factor_distance * distance_penalty +
+        scaling_factor_demand * capacity_penalty +
+        overflow_penalty
+    )
+    
+    return heuristics
+```

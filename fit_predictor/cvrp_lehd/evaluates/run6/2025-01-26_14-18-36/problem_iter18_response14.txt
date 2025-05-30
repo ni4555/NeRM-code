@@ -1,0 +1,53 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Demand-based penalties
+    demand_penalty = (demands > total_demand / n).float() * -1000.0
+    capacity_excess = (demands > 1.0).float() * -1000.0
+    
+    # Distance-based penalties and patterns
+    distance_pattern = (distance_matrix > distance_matrix.mean()).float() * -10.0
+    
+    # Demand-based patterns
+    demand_pattern = (demands < 0.2 * total_demand).float() * 10.0
+    
+    # Combine penalties and patterns
+    combined_pattern = torch.cat([
+        demand_penalty,
+        capacity_excess,
+        distance_pattern,
+        demand_pattern
+    ], dim=1)
+    
+    # Normalize the combined pattern
+    pattern_sum = combined_pattern.sum(dim=1, keepdim=True)
+    combined_pattern /= pattern_sum
+    
+    # Decay functions
+    distance_decay = torch.exp(-distance_matrix / distance_matrix.mean())
+    demand_decay = torch.exp(-demands / total_demand)
+    
+    # Normalize the decays
+    distance_decay /= distance_decay.sum()
+    demand_decay /= demand_decay.sum()
+    
+    # Combine decays with the pattern
+    combined_decay = distance_decay * demand_decay
+    
+    # Normalize the combined decay
+    decay_sum = combined_decay.sum(dim=1, keepdim=True)
+    combined_decay /= decay_sum
+    
+    # Apply the decay to the pattern
+    heuristics = combined_pattern * combined_decay
+    
+    # Scale heuristics to ensure non-negative values and proper normalization
+    heuristics = torch.clamp(heuristics, min=0)
+    heuristics /= heuristics.sum()
+    
+    return heuristics
+```

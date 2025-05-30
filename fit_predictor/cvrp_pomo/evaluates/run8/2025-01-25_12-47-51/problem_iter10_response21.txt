@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Demand-based heuristic: prioritize edges with higher demand
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = normalized_inv_distance_matrix * demand_normalized
+
+    # Remaining capacity-based heuristic: prioritize edges with higher remaining capacity
+    remaining_capacity = 1 - demands
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Nearest-neighbor heuristic: add the closest node for each customer
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # High demand penalty: penalize edges with high demand
+    high_demand_penalty = torch.clamp(1 / (demands + 1e-8), min=0) * demand_weighted_distance
+
+    # Capacity utilization penalty: penalize high capacity utilization
+    capacity_utilization_penalty = torch.clamp(remaining_capacity, min=0.5) * capacity_weighted_distance
+
+    # Nearest-neighbor weight: increase weight for closer nodes
+    nearest_neighbor_weight = 10 * nearest_neighbor
+
+    # Combine heuristics with improved terms
+    combined_heuristic = demand_weighted_distance + capacity_utilization_penalty + nearest_neighbor_weight - high_demand_penalty
+
+    # Penalize infeasible edges
+    infeasible_edges = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[infeasible_edges] = -torch.inf
+
+    # Balance factor for demand and distance
+    balance_factor = 0.5
+    heuristics = balance_factor * combined_heuristic + (1 - balance_factor) * demand_weighted_distance
+
+    return heuristics
+```

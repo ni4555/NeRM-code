@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand along each row (from depot to each customer)
+    cumulative_demand = torch.cumsum(demands[:, None], dim=1).T
+    
+    # Calculate the cumulative distance along each row (from depot to each customer)
+    cumulative_distance = torch.cumsum(distance_matrix, dim=1)
+    
+    # Calculate the "slope" of the cumulative demand vs. distance graph
+    slopes = cumulative_demand / cumulative_distance
+    
+    # Normalize the slopes to get a heuristic value
+    max_slope = torch.max(slopes)
+    normalized_slopes = slopes / max_slope
+    
+    # Use the negative of the normalized slopes as the heuristic value
+    # Negative because we want to prioritize edges with higher slopes (lower heuristic value)
+    return -normalized_slopes
+```

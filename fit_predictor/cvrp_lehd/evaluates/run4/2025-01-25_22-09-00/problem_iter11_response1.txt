@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    total_demand = demands.sum()
+    
+    # Demand factor: increase the value of edges leading to high demand nodes
+    demand_factor = 1 - demands / total_capacity
+    
+    # Local balance factor: reduce the value of short edges with low demand
+    local_balance_factor = torch.where(
+        torch.abs(distance_matrix) < torch.mean(torch.abs(distance_matrix)),
+        -demands / total_capacity * torch.abs(distance_matrix),
+        0
+    )
+    
+    # Global balance factor: balance the effect of distant edges
+    global_balance_factor = demands / (total_capacity + torch.mean(torch.abs(distance_matrix)))
+    
+    # Refine distance scaling: decrease the weight of distant edges
+    distance_scaling = 1 / (1 + torch.exp(-distance_matrix / torch.mean(torch.abs(distance_matrix))))
+    
+    # Normalize for demand and distance
+    demand_normalized = demand_factor / (torch.max(demand_factor) if torch.max(demand_factor) > 0 else 1)
+    distance_normalized = distance_scaling / (torch.max(distance_scaling) if torch.max(distance_scaling) > 0 else 1)
+    
+    # Combine the factors into the heuristics matrix
+    heuristic_matrix = demand_normalized + local_balance_factor + global_balance_factor + distance_normalized
+    
+    # Normalize the heuristics matrix to ensure non-negative values
+    heuristic_matrix = heuristic_matrix.clamp(min=0)
+    
+    # Adjust the heuristics for the depot to all other nodes with non-linear dampening
+    depot_distance = distance_matrix[:, 0]
+    for i in range(1, n):
+        route_demand = demands[i] + (total_demand - demands[i])
+        dampening_factor = torch.exp(-depot_distance[i] / torch.mean(depot_distance))
+        heuristic_matrix[0, i] = -route_demand * dampening_factor * depot_distance[i]
+        heuristic_matrix[i, 0] = heuristic_matrix[0, i]
+    
+    return heuristic_matrix
+```

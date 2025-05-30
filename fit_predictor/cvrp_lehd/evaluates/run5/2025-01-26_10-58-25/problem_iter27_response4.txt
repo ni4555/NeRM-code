@@ -1,0 +1,46 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Use the triangle inequality principle for distance-based selection
+    triangle_inequality = torch.min(distance_matrix, distance_matrix.t())
+    
+    # Select edges that violate the triangle inequality
+    triangle_violations = (triangle_inequality - distance_matrix) > 0
+    
+    # Apply the same penalty to triangle violations as the distance penalty
+    distance_penalty_matrix[triangle_violations] = -torch.log(distance_penalty_matrix[triangle_violations] + 1e-6)
+    
+    # Combine demand and distance penalties into a single potential matrix
+    potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(potential_matrix))
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = F.softmax(emphasized_matrix, dim=1)
+    
+    # Incorporate the demand-based scaling by modifying the normalization
+    # Scale the demands and re-normalize the matrix to emphasize capacity constraint
+    demand_scaled_matrix = demands * potential_matrix
+    normalized_demand_scaled_matrix = F.softmax(demand_scaled_matrix, dim=1)
+    
+    # Combine the normalized emphasized matrix with the demand scaled matrix
+    combined_matrix = normalized_emphasized_matrix * normalized_demand_scaled_matrix
+    
+    # Adjust the combined matrix to ensure that the values are not too close to zero
+    adjusted_combined_matrix = combined_matrix - torch.min(combined_matrix)
+    
+    # Transform the adjusted combined matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -adjusted_combined_matrix
+    
+    return heuristics_matrix
+```

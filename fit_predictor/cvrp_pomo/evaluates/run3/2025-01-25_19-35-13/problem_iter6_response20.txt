@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Initialize edge potential matrix
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    edge_potential = 1 / (distance_matrix ** 2 + epsilon)
+    
+    # Adjust potential based on demand and distance
+    edge_potential *= (1 - 0.1 * torch.clamp(demands / total_demand, 0, 1))
+    edge_potential *= (1 + 0.1 * (demands < 1.5))
+    edge_potential *= (1 - 0.05 * distance_matrix)
+    edge_potential *= (1 + 0.05 * (distance_matrix < 10))
+    
+    # Ensure the potential is non-negative
+    edge_potential = torch.clamp(edge_potential, min=0.0)
+    
+    return edge_potential
+```

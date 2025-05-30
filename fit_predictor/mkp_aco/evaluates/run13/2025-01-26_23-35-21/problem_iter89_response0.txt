@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the density of each item
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Identify dominated items (where there is another item with equal or higher density but lower weight sum)
+    dominated_items = np.where(np.any((density[:, np.newaxis] >= density) & 
+                                      (np.sum(weight, axis=1) > weight.sum(axis=1)), axis=0))[0]
+    non_dominated_items = np.setdiff1d(range(len(density)), dominated_items)
+    
+    # If dominated items exist, remove them from consideration
+    if len(dominated_items) > 0:
+        prize = np.delete(prize, dominated_items)
+        weight = np.delete(weight, dominated_items, axis=0)
+    
+    # Normalize the density considering the average density to promote diversity
+    average_density = np.mean(density[non_dominated_items])
+    normalized_density = density / (average_density + 1e-8)
+    
+    # Calculate the balance between high density and low sparsity
+    balance_heuristic = (normalized_density - np.sum(weight, axis=1) / np.max(weight, axis=1)) / \
+                         (normalized_density + np.sum(weight, axis=1) / np.max(weight, axis=1) + 1e-8)
+    
+    # Introduce randomness for diversity, ensuring non-zero values
+    randomness = np.random.rand(len(density)) / (np.max(np.random.rand(len(density))) + 1e-8)
+    
+    # Create a final heuristic value by combining the balance heuristic and randomness
+    heuristic = balance_heuristic + randomness
+    
+    return heuristic
+```

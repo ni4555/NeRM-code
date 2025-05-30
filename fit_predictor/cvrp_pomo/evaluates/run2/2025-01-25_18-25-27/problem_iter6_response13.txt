@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+
+    # Penalize infeasibilities by adding the negative of the maximum demand to the edges
+    max_demand = torch.max(torch.abs(normalized_demands))
+    infeasibility_penalty = -max_demand
+
+    # Normalize and scale data by dividing by the average demand per node
+    normalized_edges = distance_matrix / avg_demand
+
+    # Use problem-specific insights by considering demand variations
+    demand_variability = torch.abs(normalized_demands - avg_demand)
+    demand_influence = demand_variability * normalized_edges
+
+    # Vectorized computation of heuristics considering all factors
+    heuristics_matrix = demand_influence - infeasibility_penalty
+    return heuristics_matrix
+```

@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize heuristics matrix with 0
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Define dynamic penalties and scaling for each step
+    for i in range(n):
+        current_demand = cumulative_demand[i]
+        # Dynamic penalty based on remaining capacity
+        dynamic_penalty = torch.log1p(-torch.abs(total_capacity - current_demand))
+        # Enhanced distance penalty
+        distance_penalty = torch.log1p(-torch.abs(distance_matrix[i, :]) - 1e-8)
+        # Balance load penalty
+        load_balance_penalty = torch.log1p(-torch.abs(demands[i:] - total_capacity / (n - i)))
+        
+        # Apply a strong scaling factor
+        scaling_factor = 3.0
+        
+        # Compute the heuristics for the current node
+        current_heuristics = (distance_penalty + dynamic_penalty + load_balance_penalty) * scaling_factor
+        
+        # Update heuristics matrix for the i-th row
+        heuristics[i, :] = current_heuristics
+        heuristics[i, i] = float('-inf')  # Ensure the node is not included twice
+    
+    return heuristics
+```

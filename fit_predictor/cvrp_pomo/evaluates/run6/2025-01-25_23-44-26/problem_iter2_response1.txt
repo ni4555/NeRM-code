@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    
+    # Calculate the negative of the demand for each edge to penalize high demand edges
+    demand_penalty = -torch.matmul(normalized_demands.unsqueeze(1), normalized_demands.unsqueeze(0))
+    
+    # Calculate the inverse of the distance matrix as a heuristic (shorter distances are better)
+    # Note: We add a small constant to avoid division by zero
+    distance_heuristic = 1.0 / (distance_matrix + 1e-6)
+    
+    # Compute the cumulative sum of the normalized demands from the depot to each node
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    
+    # Calculate a heuristic based on the cumulative demand and the inverse distance
+    cumulative_demand_heuristic = torch.matmul(cumulative_demand.unsqueeze(1), cumulative_demand.unsqueeze(0))
+    
+    # Combine the demand penalty, distance heuristic, and cumulative demand heuristic
+    combined_heuristic = demand_penalty + distance_heuristic + cumulative_demand_heuristic
+    
+    # Apply a threshold to emphasize edges with lower combined heuristic values
+    min_combined_heuristic = torch.min(combined_heuristic)
+    threshold = min_combined_heuristic - 1e-6
+    combined_heuristic = torch.clamp(combined_heuristic, min=threshold)
+    
+    return combined_heuristic
+```

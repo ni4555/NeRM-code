@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:]  # Exclude the depot node from capacity calculation
+
+    # Compute the cumulative capacity of the demands
+    capacity_cumsum = torch.cumsum(remaining_capacity, dim=0)
+
+    # Calculate the maximum distance for feasible paths
+    max_distance = torch.min(distance_matrix, torch.clamp(demand_cumsum - capacity_cumsum[:, None], min=0))
+
+    # Set the heuristic values for all feasible paths
+    feasible_paths = (max_distance < distance_matrix).float()
+    heuristics += feasible_paths * max_distance
+
+    # Add return to depot heuristic values
+    heuristics[:, 0] = distance_matrix[:, 0]
+    return heuristics
+```

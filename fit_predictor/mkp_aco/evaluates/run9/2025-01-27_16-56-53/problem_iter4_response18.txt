@@ -1,0 +1,40 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Normalize prize and weight by sum to avoid large numbers dominating heuristic
+    normalized_prize = prize / np.sum(prize)
+    normalized_weight = weight / np.sum(weight, axis=1)[:, np.newaxis]
+    
+    # Calculate a base heuristic based on the prize-to-weight ratio
+    for i in range(n):
+        item_prize_to_weight_ratio = np.sum(normalized_prize[i] * normalized_weight[i])
+        heuristic[i] = item_prize_to_weight_ratio
+    
+    # Incorporate a sparsity factor that rewards items with lower weight
+    sparsity_factor = 1 - np.mean(weight, axis=1)
+    
+    # Adjust heuristic with the sparsity factor
+    heuristic *= sparsity_factor
+    
+    # Calculate the adaptive factor to prioritize high-value items
+    adaptive_factor = np.exp(-np.sum(weight, axis=1))
+    
+    # Adjust heuristics based on the adaptive factor
+    heuristic *= adaptive_factor
+    
+    # Normalize heuristics to keep all factors on a similar scale
+    heuristic /= np.sum(adaptive_factor) + 1
+    
+    # Introduce randomness for diversity
+    random_factor = np.random.rand(n)
+    heuristic *= random_factor
+    
+    # Ensure the heuristics do not favor overly weighted items
+    heuristic[weight.sum(axis=1) > 1.5] *= 0.5
+    
+    return heuristic
+```

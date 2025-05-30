@@ -1,0 +1,53 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_ratio = total_capacity / (n - 1)
+    
+    # Penalty based on the load of each node
+    load_penalty = -torch.log1p(torch.abs(demands - capacity_ratio) - 1e-8)
+    
+    # Penalty for the distance
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Overflow penalty for early return to depot to avoid exceeding capacity
+    overflow_penalty = torch.where(
+        (cumulative_demand + demands[None, :]) > capacity_ratio,
+        -torch.log1p((cumulative_demand + demands[None, :]) - capacity_ratio - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balance penalty to ensure load distribution is as uniform as possible
+    load_balance = torch.abs(cumulative_demand - capacity_ratio)
+    balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Scaling penalties to prioritize capacity and load balance
+    scaling_factors = {
+        'load_penalty': 2.0,
+        'distance_penalty': 1.0,
+        'overflow_penalty': 3.0,
+        'balance_penalty': 1.0
+    }
+    
+    # Vectorized computation of heuristics
+    heuristics = (scaling_factors['load_penalty'] * load_penalty +
+                  scaling_factors['distance_penalty'] * distance_penalty +
+                  scaling_factors['overflow_penalty'] * overflow_penalty +
+                  scaling_factors['balance_penalty'] * balance_penalty)
+    
+    # Random factor to encourage diversity
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Adjust heuristics based on early overflow
+    early_overflow = torch.where(cumulative_demand > capacity_ratio, torch.ones_like(cumulative_demand), torch.zeros_like(cumulative_demand))
+    heuristics *= early_overflow
+    
+    # Apply the diversity factor
+    heuristics += diversity_factor
+    
+    # Normalize heuristics to maintain balance in the heuristic values
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    
+    return heuristics
+```

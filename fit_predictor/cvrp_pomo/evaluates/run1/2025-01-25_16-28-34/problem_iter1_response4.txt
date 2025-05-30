@@ -1,0 +1,58 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Problem-specific Local Search
+    # Calculate the load for each edge considering vehicle capacity
+    edge_loads = (demands[:, None] + demands[None, :]) * distance_matrix
+    # Normalize loads to vehicle capacity
+    normalized_loads = edge_loads / demands.sum()
+    # Create a matrix of valid moves considering load constraints
+    valid_moves = (normalized_loads < 1.0).float()
+    
+    # Adaptive PSO with Adaptive Population Management
+    # Initialize the PSO parameters
+    w = 0.5  # Inertia weight
+    c1, c2 = 1.5, 1.5  # Cognitive and social coefficients
+    velocities = torch.randn(n, n)
+    positions = torch.arange(n).unsqueeze(1).repeat(1, n)
+    
+    # Dynamic Tabu Search with Adaptive Cost Function
+    tabu_list = torch.zeros(n)
+    best_solution = torch.tensor([0])
+    best_cost = float('inf')
+    
+    for iteration in range(100):  # Assuming a fixed number of iterations
+        # Update positions based on PSO
+        r1, r2 = torch.rand(n, n), torch.rand(n, n)
+        velocities = w * velocities + c1 * r1 * (positions[best_solution] - positions) + c2 * r2 * (positions + torch.randn(n, n) * distance_matrix)
+        positions += velocities
+        
+        # Apply tabu search constraints
+        positions[tabu_list] = positions[tabu_list] % distance_matrix.shape[0]
+        
+        # Evaluate cost and update tabu list
+        for i in range(n):
+            for j in range(n):
+                if valid_moves[i, j].item() == 1:
+                    current_cost = (1 - torch.exp(-edge_loads[i, j] / demands.sum()))
+                    if current_cost < best_cost:
+                        best_solution = torch.tensor([i, j])
+                        best_cost = current_cost
+                        tabu_list[i] = 1
+                        tabu_list[j] = 1
+                        if iteration >= 10:  # Start tabu search after some iterations
+                            tabu_list[i] = 0
+                            tabu_list[j] = 0
+                            break
+            if iteration >= 10:  # Start tabu search after some iterations
+                tabu_list[i] = 0
+        
+        # Update heuristics based on best solution
+        heuristics[best_solution] = -best_cost
+    
+    return heuristics
+```

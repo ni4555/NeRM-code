@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_demand = demands.sum()
+    average_demand = total_demand / len(demands)
+    sum_of_distances = torch.sum(distance_matrix, dim=0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Use a masked matrix to exclude the depot node and the diagonal
+    mask = torch.triu(torch.ones_like(distance_matrix), diagonal=1)
+    mask[depot, :] = False
+    
+    # Calculate the heuristic value for each edge
+    for i in range(n):
+        for j in range(i + 1, n):
+            if j == depot:
+                continue
+            # Calculate the distance from the current node to the nearest demand
+            nearest_demand_distance = torch.min(sum_of_distances[i:i + 2])
+            # Calculate the heuristic value based on the local demand and global statistics
+            heuristic_value = (average_demand - demands[j]) * nearest_demand_distance
+            # Apply the mask to the heuristic matrix
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value
+    
+    return heuristic_matrix
+```

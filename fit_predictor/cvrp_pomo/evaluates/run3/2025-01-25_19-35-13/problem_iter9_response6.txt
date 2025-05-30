@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.75
+    distance_weight = 0.25
+    
+    # Apply the savings algorithm to estimate the cost of an optimal route
+    savings = torch.zeros_like(distance_matrix)
+    for i in range(1, len(demands)):
+        for j in range(i):
+            savings[i, j] = demands[i] + demands[j] - (distance_matrix[i, j] / total_demand)
+    
+    # Integrate demand and distance heuristics
+    heuristic = normalized_demands.view(1, -1) * normalized_demands.view(-1, 1) * savings
+    heuristic = heuristic * demand_weight + (1 / (distance_matrix + 1e-8)) * distance_weight
+    
+    # Adjust the heuristic values to balance between promising and undesirable edges
+    edge_potential = heuristic - 0.1 * (demands > 2.0).float() - 0.05 * (distance_matrix < 20).float()
+    
+    # Add positive value to edges that could potentially be included in the solution
+    edge_potential[edge_potential < 0] = 0
+    
+    return edge_potential
+```

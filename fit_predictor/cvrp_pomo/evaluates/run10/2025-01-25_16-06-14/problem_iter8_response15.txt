@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Calculate the ratio of demand to distance from the depot for each customer
+    demand_to_distance_ratio = demands / distance_matrix
+    # Normalize the demand to distance ratio by the total demand
+    normalized_demand_to_distance_ratio = demand_to_distance_ratio / total_demand
+    # Apply a non-linear transformation to the normalized demand to distance ratio
+    non_linear_demand_to_distance = torch.clamp(normalized_demand_to_distance_ratio, min=0.1) * (2 * torch.sin(torch.acos(normalized_demand_to_distance_ratio)))  # Sigmoid-like function
+    # Use the distance matrix itself as the negative heuristic value, to indicate the shortest distance to a customer
+    heuristic_values = -distance_matrix
+    # Multiply the heuristic values by the non-linear transformed ratio to emphasize more promising edges
+    heuristic_values = heuristic_values * non_linear_demand_to_distance
+    return heuristic_values
+```

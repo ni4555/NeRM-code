@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Scale the distance matrix by the total demand to give weight to total distance covered
+    scaled_distance_matrix = distance_matrix / total_demand
+    # Scale demands to the range [0, 1]
+    scaled_demands = demands / demands.max()
+    # Use logarithmic scaling for demand to emphasize lower demands
+    log_scaled_demands = torch.log(1 + scaled_demands)
+    # Combine the scaled distance and log-scaled demand with a negative weight for distance
+    # to penalize longer distances and emphasize lower demands
+    combined_heuristic = -scaled_distance_matrix + log_scaled_demands
+    # Invert the sign to get negative values for undesirable edges
+    return -combined_heuristic
+```

@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Define a large penalty for edges that exceed capacity
+    capacity_penalty = 100
+    
+    # Initialize the heuristics matrix
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate cumulative demands
+    cumulative_demand = torch.cumsum(torch.cat([torch.tensor([0]), demands]), dim=0)
+    
+    # Calculate penalties for exceeding capacity
+    excess_capacity_penalty = capacity_penalty * (cumulative_demand > 1).float()
+    
+    # Combine the original distances and demand-based penalties
+    heuristics_matrix = distance_matrix + excess_capacity_penalty
+    
+    # Apply a non-linear transformation to adjust the penalties
+    heuristics_matrix = torch.exp(heuristics_matrix)
+    
+    # Normalize the heuristics matrix to create a probability distribution
+    normalization_factor = torch.sum(heuristics_matrix, dim=1, keepdim=True)
+    heuristics_matrix = heuristics_matrix / normalization_factor
+    
+    # Subtract from 1 to ensure negative values for undesirable edges
+    heuristics_matrix = 1 - heuristics_matrix
+    
+    return heuristics_matrix
+```

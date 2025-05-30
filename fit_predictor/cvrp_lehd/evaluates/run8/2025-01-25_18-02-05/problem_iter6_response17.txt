@@ -1,0 +1,24 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Calculate the cumulative sums of the demand-to-distance ratio
+    cumulative_sums = torch.cumsum(demand_to_distance_ratio, dim=0)
+    
+    # Normalize the cumulative sums by dividing by the maximum cumulative sum
+    normalized_cumulative_sums = cumulative_sums / torch.max(cumulative_sums)
+    
+    # Apply a non-linear transformation to emphasize longer distances and higher ratios
+    heuristic_matrix = torch.exp(-normalized_cumulative_sums)
+    
+    # Scale the heuristic matrix to be within the range [0, 1]
+    scaled_heuristic_matrix = (heuristic_matrix - torch.min(heuristic_matrix)) / (torch.max(heuristic_matrix) - torch.min(heuristic_matrix))
+    
+    # Convert to [-1, 1] range for a more symmetric representation
+    heuristic_matrix = 2 * scaled_heuristic_matrix - 1
+    
+    return heuristic_matrix
+```

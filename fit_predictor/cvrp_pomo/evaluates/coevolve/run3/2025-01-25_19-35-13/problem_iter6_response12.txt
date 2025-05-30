@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Incentive for close proximity
+    distance_incentive = 1 / (distance_matrix + 1e-8)
+    
+    # Penalty for high demand variance within a cluster
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    demand_variance = max_demand - min_demand
+    high_demand_penalty = demand_variance * (torch.clamp(normalized_demands, min=0.8, max=1.2) - 1)
+    
+    # Balance the penalty to prevent excessive incentive towards low-demand edges
+    low_demand_penalty = -demand_variance * torch.where(normalized_demands < min_demand, 1 - normalized_demands, 0)
+    
+    # Incorporate the penalty for distance beyond a threshold
+    distance_penalty = -distance_incentive * torch.where(distance_matrix > 2, 2 - distance_matrix, 0)
+    
+    # Combine the incentives and penalties
+    edge_potential = distance_incentive - high_demand_penalty - low_demand_penalty - distance_penalty
+    
+    # Ensure potential is within a defined range
+    edge_potential = torch.clamp(edge_potential, min=-10.0, max=10.0)
+    
+    return edge_potential
+```

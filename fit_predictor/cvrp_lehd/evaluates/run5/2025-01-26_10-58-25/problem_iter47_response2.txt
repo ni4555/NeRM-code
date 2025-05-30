@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate demand penalty for each edge
+    demand_penalty = -torch.abs(demands[1:] - vehicle_capacity)
+    demand_penalty[0, :] = 0  # The edge from the depot is not penalized
+    
+    # Calculate distance penalty for each edge
+    distance_penalty = -torch.log(distance_matrix[1:, 1:] + 1e-6)
+    
+    # Combine the demand and distance penalties with a weighted sum
+    combined_penalty = 0.3 * demand_penalty + 0.7 * distance_penalty
+    
+    # Apply a non-linear transformation to emphasize the penalties
+    emphasized_penalty = torch.exp(-combined_penalty)
+    
+    # Normalize the emphasized penalties to ensure they sum to 1
+    normalized_penalty = F.softmax(emphasized_penalty, dim=1)
+    
+    # Apply the normalized penalties to the distance matrix to create a heuristic matrix
+    heuristics_matrix = distance_matrix * normalized_penalty
+    
+    # Adjust the heuristics matrix to have positive values for promising edges
+    heuristics_matrix = heuristics_matrix - torch.min(heuristics_matrix)
+    
+    return heuristics_matrix
+```

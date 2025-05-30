@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand from the depot to each customer
+    total_demand_to_customer = demands.cumsum(dim=0) - demands
+    
+    # Calculate the total demand from each customer to the depot
+    total_demand_from_customer = demands.cumsum(dim=1) - demands
+    
+    # Calculate the combined demand for each edge (both directions)
+    combined_demand = torch.cat((total_demand_to_customer.unsqueeze(1), total_demand_from_customer.unsqueeze(0)), dim=1).min(dim=1)[0]
+    
+    # Calculate the overcapacity as a heuristic penalty
+    overcapacity_penalty = combined_demand - 1.0
+    
+    # Generate a matrix of 1s for edges where the distance is non-zero
+    non_zero_edges = distance_matrix != 0
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # For each non-zero edge, assign a heuristic value based on the overcapacity penalty
+    heuristics_matrix[non_zero_edges] = overcapacity_penalty[non_zero_edges]
+    
+    return heuristics_matrix
+```

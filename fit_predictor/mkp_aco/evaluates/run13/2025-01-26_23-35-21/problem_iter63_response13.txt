@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Prune dominated items by removing items with lower prize but equal or higher total weight
+    sorted_indices = np.argsort(prize)[::-1]
+    pruned_prize = np.copy(prize)
+    pruned_weight = np.copy(weight)
+    while sorted_indices.shape[0] > 0:
+        first_item_index = sorted_indices[0]
+        dominated_indices = np.where((pruned_prize[sorted_indices] < pruned_prize[first_item_index]) & 
+                                    (np.sum(pruned_weight[sorted_indices], axis=1) >= np.sum(pruned_weight[first_item_index])))[0]
+        pruned_prize = np.delete(pruned_prize, sorted_indices[dominated_indices], axis=0)
+        pruned_weight = np.delete(pruned_weight, sorted_indices[dominated_indices], axis=0)
+        sorted_indices = np.argsort(pruned_prize)[::-1]
+
+    # Calculate normalized density
+    density = pruned_prize / (np.sum(pruned_weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(pruned_weight, axis=1) / (np.max(pruned_weight, axis=1) + 1e-8)
+    
+    # Introduce controlled randomness
+    randomness = np.random.rand(pruned_prize.shape[0])
+    
+    # Create a balanced heuristic value by blending metrics
+    heuristic_value = density * (1 - sparsity) - np.sum(pruned_weight, axis=1)
+    
+    # Introduce diversity by mixing heuristic value with randomness
+    heuristic = heuristic_value * (1 - randomness) + randomness
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Return the sparsified heuristics (unpromising elements set to zero)
+    return normalized_heuristic
+```

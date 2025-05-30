@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Create a matrix of demand penalties
+    demand_penalty = (1 - normalized_demands) * (demands / demands.max())
+    # Compute the demand-based penalty vector
+    penalty_vector = demand_penalty.unsqueeze(1) * distance_matrix.sum(axis=1, keepdim=True)
+    # Create a matrix of normalized demand penalties
+    normalized_demand_penalty = normalized_demands.unsqueeze(0).unsqueeze(-1) * distance_matrix
+    # Compute the heuristics matrix using a combination of demand and distance
+    heuristics_matrix = distance_matrix - (normalized_demand_penalty.sum(axis=2) - normalized_demand_penalty)
+    # Add the demand-based penalty to the heuristics
+    heuristics_matrix -= penalty_vector
+    return heuristics_matrix
+```

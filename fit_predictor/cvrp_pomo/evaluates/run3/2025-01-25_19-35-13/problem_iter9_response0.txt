@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.8
+    distance_weight = 0.2
+    
+    # Calculate the demand-based heuristic
+    demand_heuristic = torch.log(normalized_demands + 1)
+    
+    # Calculate the distance-based heuristic
+    distance_heuristic = 1 / (distance_matrix + 1e-8)
+    
+    # Combine heuristics with weighted sum
+    combined_heuristic = demand_weight * demand_heuristic + distance_weight * distance_heuristic
+    
+    # Add penalties for high-demand nodes and short distances
+    combined_heuristic = combined_heuristic - 0.1 * (demands > 1.5)
+    combined_heuristic = combined_heuristic + 0.05 * (distance_matrix < 10)
+    
+    # Cap the heuristics to prevent overflow
+    combined_heuristic = torch.clamp(combined_heuristic, min=-10, max=10)
+    
+    return combined_heuristic
+```

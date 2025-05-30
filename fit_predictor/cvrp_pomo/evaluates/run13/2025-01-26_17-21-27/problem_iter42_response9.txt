@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_vector = torch.linspace(0, total_capacity, steps=n, dtype=torch.float)
+    
+    # Weighted penalty for distance and capacity constraints
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    
+    # Combined penalties
+    combined_penalty = 0.7 * distance_penalty + 0.3 * capacity_penalty
+    
+    # Load balance penalty
+    load_balance_penalty = -torch.log1p(torch.abs(cumulative_demand - capacity_vector))
+    
+    # Dynamic scaling to prioritize capacity constraints
+    scaling_factor = 1.5
+    heuristics = scaling_factor * combined_penalty + (1 - scaling_factor) * load_balance_penalty
+    
+    # Diversity factor by adding random noise
+    diversity_factor = torch.randn_like(heuristics) * 0.1
+    
+    # Redundancy check to ensure edge usage diversity
+    redundancy_check = torch.clamp(1 - torch.abs(demands - demands.mean()), min=0, max=1)
+    heuristics *= redundancy_check
+    
+    return heuristics
+```

@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+    max_demand_excess = torch.max(demands)  # Find the maximum demand
+
+    # Create a penalty matrix where the penalty is high for edges with demand exceeding vehicle capacity
+    penalty_matrix = torch.where(demands <= vehicle_capacity, 0.0, max_demand_excess * (vehicle_capacity - demands))
+
+    # Scale distance by vehicle capacity to balance with demand penalty
+    scaled_distance = distance_matrix * vehicle_capacity
+
+    # Combine demand and distance penalties
+    potential_matrix = penalty_matrix + scaled_distance
+
+    # Normalize the potential matrix using softmax to convert it into a probability matrix
+    probabilities = torch.nn.functional.softmax(potential_matrix, dim=1)
+
+    # Invert the probabilities to make lower values (representing better paths) more likely
+    heuristics_matrix = 1 - probabilities
+
+    # Ensure the matrix contains only non-negative values
+    heuristics_matrix = torch.clamp(heuristics_matrix, min=0.0)
+
+    return heuristics_matrix
+```

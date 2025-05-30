@@ -1,0 +1,40 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Normalize prize by dividing each prize value by the sum of all prizes
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate the diversity factor based on the number of unique weight dimensions
+    diversity_factor = (np.sum(weight == 0, axis=1) > 0).astype(float)
+    
+    # Calculate the robustness factor by incorporating the mean weight
+    robustness_factor = np.mean(weight, axis=1)
+    
+    # Calculate the initial heuristics based on the normalized prize
+    heuristics = normalized_prize
+    
+    # Adjust heuristics using a combination of diversity and robustness factors
+    # Enhance heuristics for items with higher diversity and robustness
+    heuristics *= diversity_factor
+    heuristics += robustness_factor
+    
+    # Apply an adaptive threshold based on the 70th percentile
+    threshold = np.percentile(heuristics, 70)  # 70% threshold
+    heuristics[heuristics > threshold] *= 1.5
+    
+    # Normalize heuristics by scaling to the range [0, 1]
+    max_heuristic = np.max(heuristics)
+    heuristics /= max_heuristic
+    
+    # Introduce variability by perturbing heuristics based on the mean value
+    variability_perturbation = np.random.normal(0, max_heuristic * 0.05, heuristics.shape)
+    heuristics += variability_perturbation
+    
+    # Sparsify heuristics by setting a fraction of the lowest heuristics to zero
+    num_to_zero = int(len(heuristics) * 0.1)  # Zero out 10% of the lowest heuristics
+    heuristics[np.argsort(heuristics)[:num_to_zero]] = 0
+    
+    return heuristics
+```

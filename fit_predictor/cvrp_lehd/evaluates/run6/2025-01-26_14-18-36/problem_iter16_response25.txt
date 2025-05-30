@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_demand
+    
+    # Calculate the average distance from the depot to all other nodes
+    average_distance = distance_matrix[:, 0].mean()
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - torch.cumsum(scaled_demands, dim=0)
+    
+    # Calculate the penalty for edges that lead to a node with demand exceeding the vehicle capacity
+    capacity_excess_penalty = (scaled_demands > 1.0).float() * -1000.0
+    
+    # Calculate the penalty for longer distances compared to the average
+    distance_penalty = (distance_matrix > average_distance).float() * -10.0
+    
+    # Calculate the preference for edges with similar demand, encouraging grouping
+    demand_similarity = (torch.abs(scaled_demands[:, None] - scaled_demands) < 0.2).float() * 10.0
+    
+    # Combine the penalties and preferences
+    combined_heuristics = distance_penalty + capacity_excess_penalty + demand_similarity
+    
+    # Normalize the combined heuristics by the average distance to the depot
+    normalized_combined_heuristics = combined_heuristics / average_distance
+    
+    # Introduce a dampened decay to give preference to edges closer to the depot or with smaller demands
+    decay = torch.exp(-torch.abs(demands) / total_demand)
+    decay[torch.arange(n), 0] = 1.0  # The depot itself has no decay
+    
+    # Apply the decay to the heuristics
+    decayed_heuristics = normalized_combined_heuristics * decay
+    
+    # Scale the heuristics to ensure non-negative values and proper normalization
+    heuristics = torch.clamp(decayed_heuristics, min=0)
+    heuristics /= heuristics.sum()
+    
+    return heuristics
+```

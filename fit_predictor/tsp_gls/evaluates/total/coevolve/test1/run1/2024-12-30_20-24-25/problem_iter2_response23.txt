@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the precision heuristic matrix using the Chebyshev distance
+    precision_matrix = np.max(np.abs(distance_matrix), axis=1)
+    
+    # Normalize the precision matrix to create a non-negative heuristic matrix
+    min_value = np.min(precision_matrix)
+    normalized_precision_matrix = precision_matrix - min_value
+    
+    # Apply a non-linear transformation to the normalized precision matrix
+    transformed_matrix = np.tanh(normalized_precision_matrix)
+    
+    # Introduce diversity by adding a small random perturbation
+    perturbation = np.random.normal(0, 0.01, transformed_matrix.shape)
+    transformed_matrix += perturbation
+    
+    # Normalize the transformed matrix to ensure non-negative values
+    transformed_matrix = np.clip(transformed_matrix, 0, 1)
+    
+    # Adjust the heuristic matrix based on the problem scale (number of cities)
+    num_cities = distance_matrix.shape[0]
+    scale_factor = num_cities * (1 / (num_cities - 1))
+    heuristic_matrix = transformed_matrix * scale_factor
+    
+    return heuristic_matrix
+```

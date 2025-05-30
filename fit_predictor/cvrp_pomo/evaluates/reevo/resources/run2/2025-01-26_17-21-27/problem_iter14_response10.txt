@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    capacity_utilization = (demands / total_capacity).unsqueeze(1)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+
+    # Scale distance penalty based on cumulative demand
+    distance_scaling = distance_penalty * (1 + cumulative_demand)
+
+    # Generate capacity penalty signal for nodes with high utilization
+    high_capacity_penalty = (capacity_utilization > 0.5).float() * capacity_penalty
+
+    # Combine the scaled distance and capacity penalties
+    heuristics = distance_scaling + high_capacity_penalty
+    return heuristics
+```

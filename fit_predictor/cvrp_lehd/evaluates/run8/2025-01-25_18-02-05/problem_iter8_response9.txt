@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    
+    # Calculate the heuristic values based on the ratio of cumulative demand to cumulative distance
+    heuristic_matrix = cumulative_demands / cumulative_distances
+    
+    # Apply a non-linear transformation to emphasize longer distances and negative profits
+    heuristic_matrix = torch.exp(-2 * heuristic_matrix)
+    
+    # Penalize edges with zero demand or zero distance
+    heuristic_matrix = torch.where(
+        (demands == 0) | (distance_matrix == 0),
+        -torch.inf,
+        heuristic_matrix
+    )
+    
+    # Normalize the heuristic matrix to ensure values are within a specific range
+    min_val, max_val = torch.min(heuristic_matrix), torch.max(heuristic_matrix)
+    normalized_heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    # Convert the normalized values back to the original scale
+    normalized_heuristic_matrix *= (max_val - min_val)
+    
+    # Add a small constant to avoid division by zero during normalization
+    normalized_heuristic_matrix += 1e-8
+    
+    return normalized_heuristic_matrix
+```

@@ -1,0 +1,35 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate multiple value-to-weight ratios
+    avg_value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    avg_sparsity = np.array([np.sum(weight[i] < np.mean(weight[i])) for i in range(n)])
+    
+    # Calculate diversity factor
+    diversity_factor = np.array([np.sum(weight[i] < np.max(weight[i])) for i in range(n)])
+    
+    # Combine the factors
+    heuristic = avg_value_to_weight_ratio * avg_sparsity * diversity_factor
+    
+    # Incorporate cumulative performance
+    cumulative_performance = np.cumsum(heuristic)
+    heuristic = heuristic / cumulative_performance
+    
+    # Introduce an adaptive exploration factor based on the variance
+    exploration_factor = 1 / (np.sum(heuristic * np·½²î(heuristic)) + 1e-8)
+    heuristic *= exploration_factor
+    
+    # Introduce a penalty for high total weight items
+    weight_threshold = np.percentile(np.sum(weight, axis=1), 90)
+    heuristic[weight.sum(axis=1) > weight_threshold] *= 0.5
+    
+    # Introduce a random perturbation to prevent getting stuck in local optima
+    random_perturbation = np.random.rand(n) * 0.1
+    heuristic += random_perturbation
+    
+    return heuristic
+```

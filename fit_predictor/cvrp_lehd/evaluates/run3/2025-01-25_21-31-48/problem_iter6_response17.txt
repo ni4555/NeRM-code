@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize demands
+    normalized_demands = demands / total_demand
+
+    # Initialize depot emphasis matrix
+    depot_emphasis = torch.abs(torch.arange(n) - demands[0])
+
+    # Calculate the initial heuristic value as the normalized demand
+    heuristics = normalized_demands
+
+    # Emphasize shorter distances and closer customers to the depot
+    heuristics = (heuristics * (1 / (distance_matrix + 1e-10))) * (1 / (depot_emphasis + 1e-10))
+
+    # Adjust the heuristic values for the depot to customer edges
+    heuristics[0, 1:] = heuristics[1:, 0] = heuristics[1:, 1:] / total_demand
+
+    # Replace negative values with zeros to avoid issues with log-sum-exp
+    heuristics = torch.clamp(heuristics, min=1e-8)
+
+    return heuristics
+```

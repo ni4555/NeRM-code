@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    num_nodes = demands.size(0)
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Non-linear scaling of distances and demands
+    non_linear_distances = torch.pow(distance_matrix, 2)
+    non_linear_demands = torch.pow(demands, 1.5)
+    
+    # Calculate the attractiveness of each edge based on the non-linear scaled demand and distance
+    attractiveness = non_linear_distances * (non_linear_demands / total_demand)
+    
+    # Apply a dampening factor to the attractiveness of longer distances
+    dampen = torch.exp(-distance_matrix / 10)
+    
+    # Combine the attractiveness and dampening factor
+    heuristic_matrix = attractiveness * dampen
+    
+    # Normalize the heuristic values to ensure a consistent scale
+    min_val = heuristic_matrix.min()
+    max_val = heuristic_matrix.max()
+    heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    # Ensure the depot is not included in the heuristic matrix
+    heuristic_matrix[0, :] = 0
+    heuristic_matrix[:, 0] = 0
+    
+    return heuristic_matrix
+```

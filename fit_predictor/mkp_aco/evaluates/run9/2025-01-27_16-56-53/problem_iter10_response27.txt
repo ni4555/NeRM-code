@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    heuristic = np.zeros(n)
+    
+    # Calculate heuristic based on value-to-weight ratio
+    for i in range(n):
+        total_prize = np.sum(prize[i] * weight[i])
+        total_weight = np.sum(weight[i])
+        heuristic[i] = total_prize / total_weight if total_weight > 0 else 0
+    
+    # Incorporate adaptive exploration and exploitation by prioritizing diversity
+    diversity_heuristic = np.zeros(n)
+    for i in range(n):
+        diversity_factor = np.sum(weight[i] == np.max(weight[i]))
+        diversity_heuristic[i] = diversity_factor
+    
+    # Balance the original heuristic with the diversity heuristic using a weighted sum
+    balance_factor = 0.7
+    heuristic = (heuristic + diversity_heuristic) * balance_factor / (1 + diversity_heuristic)
+    
+    # Incorporate sparsity by penalizing items with low weight distribution
+    sparsity_heuristic = np.zeros(n)
+    for i in range(n):
+        sparsity_factor = np.sum(weight[i] / np.sum(weight[i]))
+        sparsity_heuristic[i] = sparsity_factor
+    heuristic = (heuristic * sparsity_heuristic) / np.sum(sparsity_heuristic)
+    
+    # Dynamically adjust the heuristics to favor exploration over exploitation in case of local optima
+    local_optima_threshold = 0.6
+    local_optima_heuristic = np.zeros(n)
+    for i in range(n):
+        local_optima = np.mean(heuristic[heuristic > heuristic[i]])
+        local_optima_heuristic[i] = 1 if local_optima < local_optima_threshold else 0
+    heuristic = (heuristic + local_optima_heuristic) / (1 + local_optima_heuristic)
+    
+    # Ensure that the heuristic is non-negative
+    heuristic = np.clip(heuristic, 0, None)
+    
+    return heuristic
+```

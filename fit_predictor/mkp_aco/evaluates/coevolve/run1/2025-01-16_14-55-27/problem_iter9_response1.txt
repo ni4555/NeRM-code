@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Combine multiple criteria into a single score
+    # - Weighted Prize Ratio: High value per unit of weight
+    # - Sparsity: Number of non-zero elements in the weight vector
+    # - Total Weight: Sum of the weight vector (normalized by item prize to ensure fairness)
+    combined_scores = (prize / weight.sum(axis=1) * -1) - np.count_nonzero(weight, axis=1) - (weight.sum(axis=1) / prize)
+    sorted_indices = np.argsort(combined_scores)[::-1]
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Initialize the dynamic threshold to a default high value
+    threshold = np.inf
+
+    # Iterate over the sorted items and adjust heuristic values
+    for i in sorted_indices:
+        # Update threshold to the minimum value encountered
+        threshold = min(threshold, -combined_scores[i])
+
+        # Normalize combined score to be above zero
+        normalized_score = combined_scores[i] + threshold + 1
+
+        # Normalize sparsity
+        sparsity_normalized = np.count_nonzero(weight[i, :]) / m
+
+        # Adjust the heuristic for the current item
+        heuristic_value = (prize[i] / normalized_score) * (1 / sparsity_normalized)
+
+        heuristics[i] = heuristic_value
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

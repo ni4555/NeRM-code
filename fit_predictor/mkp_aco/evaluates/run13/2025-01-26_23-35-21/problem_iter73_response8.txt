@@ -1,0 +1,38 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Normalize the prize to get a measure of item value
+    normalized_prize = prize / np.max(prize)
+    
+    # Calculate the normalized density
+    density = normalized_prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items by setting their heuristics to zero
+    max_density = np.max(density)
+    dominated_items = density < max_density
+    heuristics = np.where(dominated_items, 0, density)
+    
+    # Introduce randomness to explore less frequent items
+    random_factor = np.random.rand(len(prize))
+    random_factor = random_factor / np.sum(random_factor)
+    
+    # Combine the density heuristic with randomness
+    heuristic = heuristics * random_factor
+    
+    # Balance between exploitation and exploration by incorporating sparsity
+    balance_heuristic = density / (density + sparsity + 1e-8)
+    
+    # Final heuristic is a combination of the previous heuristics
+    final_heuristic = 0.7 * heuristic + 0.3 * balance_heuristic
+    
+    # Ensure non-zero weights contribute to the heuristic
+    final_heuristic[weight_sum < 1e-8] = 0
+    
+    # Normalize the heuristics to ensure they sum to 1
+    normalized_final_heuristic = final_heuristic / np.sum(final_heuristic)
+    
+    return normalized_final_heuristic
+```

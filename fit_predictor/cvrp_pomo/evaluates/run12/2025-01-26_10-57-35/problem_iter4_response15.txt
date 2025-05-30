@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Pre-compute distances from the depot to all other nodes
+    initial_distances = distance_matrix[depot]
+
+    # Iterate over all nodes except the depot
+    for i in range(1, n):
+        # Calculate demand-based heuristic
+        demand_diff = demands[i] - demands[depot]
+        
+        # If the demand difference is negative, set the heuristic to the distance
+        heuristics[depot, i] = torch.where(demand_diff < 0, distance_matrix[depot, i], -demand_diff)
+        heuristics[i, depot] = heuristics[depot, i]
+
+    # Return the combined heuristic matrix
+    return heuristics
+```

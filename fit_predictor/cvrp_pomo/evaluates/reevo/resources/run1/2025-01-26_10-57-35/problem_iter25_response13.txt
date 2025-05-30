@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix = demand_matrix / demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    weighted_distance_matrix = weighted_distance_matrix / weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by using the inverse of demand (addition to heuristic)
+    capacity_factor = (1 / (demands + 1e-8))  # Adding a small epsilon to avoid division by zero
+    
+    # Calculate heuristic by combining normalized weighted distance and demand
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Enhance promising edges by considering both distance and demand, and balance with capacity
+    heuristics = heuristics * (1 + demands)  # Enhance promising edges
+    
+    # Minimize dominance by considering dominance from both sides of the edge
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the dominance from both i to j and j to i
+                dominance_i_to_j = heuristics[i, :] - heuristics[:, j]
+                dominance_j_to_i = heuristics[:, i] - heuristics[j, :]
+                
+                # Select the minimum dominance from both directions
+                min_dominance = torch.min(dominance_i_to_j, dominance_j_to_i)
+                
+                # If dominated, reduce the heuristic value
+                heuristics[i, j] = torch.clamp(heuristics[i, j] - min_dominance, min=0)
+                heuristics[j, i] = torch.clamp(heuristics[j, i] - min_dominance, min=0)
+    
+    return heuristics
+```

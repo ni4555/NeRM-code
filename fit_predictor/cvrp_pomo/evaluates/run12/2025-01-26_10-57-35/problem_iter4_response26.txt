@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+    visited = torch.zeros(n, dtype=torch.bool)
+    
+    # Calculate the initial distances from the depot to all other nodes
+    initial_distances = distance_matrix[depot]
+    
+    # Create a mask to identify edges that lead to nodes with higher demands
+    demand_mask = demands[:, None] > demands[None, :]
+    
+    # Vectorized computation to assign higher heuristic values to promising edges
+    for i in range(1, n):
+        if not visited[i]:
+            nearest_node = torch.argmin(initial_distances)
+            heuristics[depot, nearest_node] = distance_matrix[depot, nearest_node]
+            heuristics[nearest_node, depot] = distance_matrix[nearest_node, depot]
+            initial_distances -= distance_matrix[nearest_node]
+            initial_distances[nearest_node] = float('inf')
+            visited[i] = True
+    
+    # Normalize demand for a heuristic value and ensure not to exceed capacity
+    normalized_demand = demands / demands.sum()
+    
+    # Vectorized computation to add demand-awareness to the heuristics
+    heuristics += torch.sqrt(normalized_demand.unsqueeze(1) * normalized_demand.unsqueeze(0))
+    
+    # Apply the demand_mask to the heuristics matrix to ensure that edges leading to nodes
+    # with higher demand than the current node have higher heuristics values
+    heuristics = heuristics * (1 - demand_mask)
+    
+    return heuristics
+```

@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the load distribution cost for each edge
+    load_distribution_cost = ((demands[:, None] + demands[None, :]) * distance_matrix - 2 * total_capacity * distance_matrix).square()
+    
+    # Calculate the minimum load distribution cost to normalize by
+    min_load_cost = torch.min(load_distribution_cost)
+    
+    # Normalize the load distribution cost to ensure non-zero values for edges
+    load_distribution_cost = load_distribution_cost - min_load_cost
+    
+    # Calculate the heuristics based on load distribution cost and normalize by total capacity
+    heuristics = load_distribution_cost / (total_capacity * distance_matrix)
+    
+    # Apply a penalty for edges that exceed vehicle capacity when added
+    for i in range(n):
+        for j in range(n):
+            if i != j and distance_matrix[i, j] != 0:
+                if heuristics[i, j] + demands[j] > total_capacity:
+                    heuristics[i, j] = -float('inf')
+    
+    # Set edges with zero distance to zero
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

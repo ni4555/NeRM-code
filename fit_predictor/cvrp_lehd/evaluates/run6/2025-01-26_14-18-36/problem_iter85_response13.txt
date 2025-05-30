@@ -1,0 +1,47 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Introduce non-linear scaling for demand differences to encourage diversity
+    demand_diff = torch.pow((scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs(), 1.5)
+
+    # Calculate heuristic value using normalized demand differences and remaining capacity
+    heuristics = demand_diff * remaining_capacity
+
+    # Explore diverse solutions by introducing random noise
+    exploration_noise = torch.randn_like(heuristics) * 0.01
+    heuristics += exploration_noise
+
+    # Introduce penalties to dampen high heuristics and balance the heuristic values
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+
+    # Apply penalties and balance heuristic values
+    heuristics -= capacity_penalty * 0.5
+    heuristics -= depot_penalty * 0.5
+
+    # Apply a dampening function to the heuristic values to avoid extreme values
+    dampening_factor = 0.5
+    heuristics = torch.exp(-dampening_factor * heuristics)
+
+    # Introduce a penalty for edges leading back to the depot and closer nodes
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 10
+    distance_penalty = torch.clamp(distance_penalty, min=0.0)
+    heuristics += distance_penalty * 0.5
+
+    # Normalize the heuristic values to maintain a balance
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

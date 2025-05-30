@@ -1,0 +1,53 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Scaled distance
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic capacity penalty
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Overflow penalty
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance penalty
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Scaling factors for penalties
+    scaling_factors = torch.tensor([1.0, 0.5, 0.2, 0.1])
+    
+    # Combine objectives and penalties with scaling factors
+    heuristics = (
+        scaling_factors[0] * distance_scaling +
+        scaling_factors[1] * dynamic_capacity_penalty +
+        scaling_factors[2] * overflow_penalty +
+        scaling_factors[3] * load_balance_penalty
+    )
+    
+    # Diversity heuristic to avoid similar load distributions
+    diversity_heuristic = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Adaptively adjust weights based on the current state
+    early_overflow = torch.where(cumulative_demand > total_capacity_vector, torch.ones_like(cumulative_demand), torch.zeros_like(cumulative_demand))
+    heuristics *= early_overflow
+    
+    # Apply diversity heuristic
+    heuristics += diversity_heuristic
+    
+    # Cap the heuristics to prevent overflow and underflow
+    heuristics = torch.clamp(heuristics, min=-100, max=100)
+    
+    return heuristics
+```

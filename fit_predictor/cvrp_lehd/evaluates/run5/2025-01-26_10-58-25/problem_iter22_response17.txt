@@ -1,0 +1,33 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Normalize the distance matrix by the sum of the demands
+    normalized_distance_matrix = distance_matrix / demands.sum()
+    
+    # Normalize the demand penalty matrix by the vehicle capacity
+    normalized_penalty_matrix = penalty_matrix / vehicle_capacity
+    
+    # Combine normalized demand and distance penalties into a single potential matrix
+    potential_matrix = normalized_distance_matrix + normalized_penalty_matrix
+    
+    # Apply an exponential transformation to the potential matrix to emphasize promising edges
+    transformed_potential_matrix = torch.exp(potential_matrix)
+    
+    # Aggregate the transformed potential matrix to get a single value per row, which represents the heuristic value for each node
+    row_sums = transformed_potential_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize the aggregated potential matrix to ensure non-negativity and scale balance
+    normalized_aggregated_matrix = transformed_potential_matrix / row_sums
+    
+    # Invert the normalized aggregated matrix to ensure that negative values represent undesirable edges and positive values represent promising ones
+    heuristics_matrix = -normalized_aggregated_matrix
+    
+    return heuristics_matrix
+```

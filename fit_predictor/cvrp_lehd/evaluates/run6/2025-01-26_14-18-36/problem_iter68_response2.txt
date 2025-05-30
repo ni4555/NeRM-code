@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Define the penalty factors
+    max_capacity_penalty = 1000.0
+    distance_penalty_factor = 0.1
+    min_heuristic_value = -1.0
+    max_heuristic_value = 1.0
+
+    # Create heuristic matrix with remaining capacity and scaled demand
+    heuristics = torch.abs(scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)) * remaining_capacity
+
+    # Apply penalty for exceeding maximum capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * max_capacity_penalty, min=0.0)
+    heuristics -= capacity_penalty
+
+    # Add penalty for long distance from depot, while avoiding symmetry
+    distance_penalty = torch.abs(distance_matrix[:, 0] - distance_matrix[:, 0].mean())
+    heuristics -= torch.clamp(distance_penalty * distance_penalty_factor, min=0.0)
+
+    # Add depot exit promotion and normalize heuristics to be in the range [min_heuristic_value, max_heuristic_value]
+    heuristics += (scaled_demands.unsqueeze(1) > scaled_demands.unsqueeze(0)).float() * (min_heuristic_value - 1)
+    heuristics -= torch.clamp((scaled_demands.unsqueeze(1) <= scaled_demands.unsqueeze(0)).float() * 1000.0, min=0.0)
+    heuristics = (max_heuristic_value - min_heuristic_value) * heuristics / heuristics.max() + min_heuristic_value
+
+    # Apply a non-linear transformation to the heuristic values
+    heuristics = torch.relu(heuristics)
+
+    # Adjust penalties adaptively based on remaining capacity differences
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                penalty = torch.where(remaining_capacity[i] < remaining_capacity[j], 0.1, 0.0)
+                heuristics[i, j] -= penalty
+
+    # Clamp the heuristics to ensure they are within the defined range
+    heuristics = torch.clamp(heuristics, min=min_heuristic_value, max=max_heuristic_value)
+
+    return heuristics
+```

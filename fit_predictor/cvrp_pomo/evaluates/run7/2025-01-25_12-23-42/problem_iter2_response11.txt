@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic considering cumulative demand, distance, and edge-specific information."""
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Calculate the cumulative distance matrix
+    cumulative_distance = torch.cumsum(distance_matrix, dim=0)
+    # Calculate the potential reduction in distance for each edge
+    potential_reduction = cumulative_distance - cumulative_demand
+    # Calculate the potential cost of visiting each edge
+    potential_costs = potential_reduction * (cumulative_demand <= total_demand).float()
+    # Normalize the potential costs by the maximum possible reduction in cost
+    max_reduction = torch.max(potential_costs)
+    normalized_costs = potential_costs / max_reduction
+    # Invert the normalized costs to get heuristics (negative values are undesirable)
+    heuristics = -normalized_costs
+    return heuristics
+```

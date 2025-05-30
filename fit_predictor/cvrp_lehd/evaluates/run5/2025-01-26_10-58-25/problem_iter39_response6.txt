@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate the distance to the next closest node with higher demand for a balance factor
+    distance_to_next_higher_demand = torch.clamp(
+        torch.logsumexp(torch.abs(distance_matrix) - (demands - demands[:, None])**2, dim=0),
+        min=None,
+        max=vehicle_capacity
+    )
+    
+    # Create a penalty for exceeding the vehicle capacity
+    capacity_penalty = torch.clamp(-torch.abs(demands - vehicle_capacity), min=0)
+    
+    # Create a distance-based penalty to balance with the demand penalty
+    distance_penalty = -torch.log(distance_matrix + 1e-6)  # Adding a small constant to avoid log(0)
+    
+    # Normalize the capacity penalty by the demand to scale it correctly
+    normalized_capacity_penalty = capacity_penalty / demands
+    
+    # Normalize the distance penalty to be on the same scale as the demand penalty
+    normalized_distance_penalty = distance_penalty / distance_to_next_higher_demand
+    
+    # Combine the demand and distance penalties using a weighted sum to balance their influence
+    combined_penalty = (1 - 0.7) * normalized_capacity_penalty + 0.7 * normalized_distance_penalty
+    
+    # Transform the combined penalty to emphasize higher penalties on undesirable edges
+    emphasized_combined_penalty = torch.exp(combined_penalty)
+    
+    # Create a heuristic matrix using the emphasized combined penalty
+    heuristics_matrix = 1 / (1 + emphasized_combined_penalty)
+    
+    return heuristics_matrix
+```

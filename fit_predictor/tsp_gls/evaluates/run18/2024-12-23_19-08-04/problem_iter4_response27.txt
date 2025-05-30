@@ -1,0 +1,31 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the usage of each edge
+    num_trips = np.sum(distance_matrix, axis=0) + np.sum(distance_matrix, axis=1) - len(distance_matrix) * (len(distance_matrix) - 1)
+    edge_usage = 1 / (num_trips + 1e-5)  # Avoid division by zero
+
+    # Calculate the average edge length
+    average_edge_length = np.mean(distance_matrix)
+
+    # Adjust distances based on usage, node connectivity, and average edge length
+    # The adjustment factor promotes less used and less connected edges
+    adjustment_factor = 1 - (edge_usage + (1 / np.maximum(np.sum(distance_matrix, axis=0), 1e-5)))
+    adjusted_distances = distance_matrix * adjustment_factor
+
+    # Introduce a penalty for edges with high usage to avoid local minima
+    high_usage_penalty = edge_usage * (1 - distance_matrix / average_edge_length)
+    adjusted_distances += high_usage_penalty
+
+    # Ensure that the adjusted distances are non-negative
+    adjusted_distances = np.maximum(adjusted_distances, 0)
+
+    # Introduce a bonus for edges that connect to highly connected nodes
+    # to encourage the exploration of diverse paths
+    node_connectivity = np.sum(distance_matrix, axis=1)
+    bonus = (node_connectivity / np.maximum(node_connectivity, 1e-5)) * (1 - edge_usage)
+    adjusted_distances += bonus
+
+    return adjusted_distances
+```

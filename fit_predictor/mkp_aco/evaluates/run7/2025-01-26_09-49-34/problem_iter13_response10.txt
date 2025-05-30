@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    
+    # Normalize prize values to avoid dominance of high values
+    prize_normalized = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Normalize weights for balance in the heuristic
+    weight_normalized = (weight - np.min(weight, axis=1)) / (np.max(weight, axis=1) - np.min(weight, axis=1))
+    
+    # Calculate sparsity factor based on the number of non-zero weights
+    sparsity_factor = 1 - np.mean(weight_normalized, axis=1)
+    
+    # Calculate variance of weights to account for potential risk
+    weight_variance = np.var(weight, axis=1)
+    
+    # Use a combination of normalized prize, sparsity, and variance for heuristic
+    combined_heuristic = prize_normalized * sparsity_factor * (1 / (1 + weight_variance))
+    
+    # Normalize the combined heuristic to get a scale between 0 and 1
+    max_combined_heuristic = np.max(combined_heuristic)
+    if max_combined_heuristic > 0:
+        combined_heuristic /= max_combined_heuristic
+    
+    # Introduce a penalty for low sparsity items to encourage diversity
+    penalty_for_low_sparsity = np.mean(sparsity_factor)
+    combined_heuristic *= (1 + penalty_for_low_sparsity)
+    
+    # Ensure non-negative heuristics by clamping negative values to zero
+    combined_heuristic = np.clip(combined_heuristic, 0, None)
+    
+    return combined_heuristic
+```

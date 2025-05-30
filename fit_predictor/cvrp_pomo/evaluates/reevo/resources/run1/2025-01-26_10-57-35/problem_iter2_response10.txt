@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the initial distances from the depot to all other nodes
+    initial_distances = distance_matrix[depot, :].reshape(n, 1)
+    
+    # Iterate over all nodes except the depot
+    for i in range(1, n):
+        # Vectorized nearest neighbor search
+        nearest_node = torch.argmin(initial_distances)
+        heuristics[depot, nearest_node] = distance_matrix[depot, nearest_node]
+        heuristics[nearest_node, depot] = distance_matrix[nearest_node, depot]
+        
+        # Update the initial distances to the nearest unvisited node
+        initial_distances = distance_matrix[nearest_node, :].reshape(n, 1)
+    
+    # Calculate the cumulative demand from the depot
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative distance from the depot
+    cumulative_distance = torch.cumsum(distance_matrix[:, depot], dim=0)
+    
+    # Calculate the heuristics value for each edge based on cumulative demand and distance
+    for i in range(1, n):
+        for j in range(i+1, n):
+            if cumulative_demand[j] > 1:
+                heuristics[i, j] = (cumulative_distance[j] - cumulative_distance[i]) * (1 - cumulative_demand[j])
+            else:
+                heuristics[i, j] = (cumulative_distance[j] - cumulative_distance[i]) * cumulative_demand[j]
+    
+    return heuristics
+```

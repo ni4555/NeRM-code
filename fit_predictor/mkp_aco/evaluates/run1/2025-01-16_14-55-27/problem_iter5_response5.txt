@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Stochastic sampling to select a subset of items
+    sampled_indices = np.random.choice(n, size=int(n * 0.1), replace=False)
+
+    # Weighted ratio analysis
+    combined_scores = (prize / weight.sum(axis=1))
+    weighted_indices = np.argsort(combined_scores)[::-1]
+    weighted_indices = weighted_indices[:len(sampled_indices)]
+
+    # Dynamic sparsity based on the logarithmic sparsity of the items
+    sparsity_scores = -np.log2(np.count_nonzero(weight, axis=1))
+    sparsity_indices = np.argsort(sparsity_scores)[::-1]
+    sparsity_indices = sparsity_indices[:len(sampled_indices)]
+
+    # Combine the indices based on a weighted ratio
+    combined_indices = np.array([i for i in weighted_indices if i in sparsity_indices])
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Iterate over the selected items and adjust heuristic values
+    for i in combined_indices:
+        weighted_ratio = prize[i] / weight[i, :].sum()
+        sparsity = np.count_nonzero(weight[i, :])
+        total_weight = weight[i, :].sum()
+
+        # Calculate the heuristic for the current item
+        heuristic_value = weighted_ratio / (sparsity + total_weight)
+
+        # Normalize the heuristics so that they sum to 1
+        heuristics[i] = heuristic_value
+
+    # Apply logarithmic sparsity heuristic
+    heuristics *= (1 / (1 + np.log2(1 + np.count_nonzero(weight, axis=1))))
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

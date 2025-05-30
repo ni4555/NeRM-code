@@ -1,0 +1,33 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize to avoid dominance
+    prize_normalized = (prize - np.min(prize)) / (np.max(prize) - np.min(prize))
+    
+    # Calculate a diversity metric based on the sum of the weights
+    diversity_metric = np.sum(weight, axis=1)
+    
+    # Calculate the average diversity metric
+    average_diversity = np.mean(diversity_metric)
+    
+    # Normalize the diversity metric to ensure it's not too large
+    normalized_diversity = diversity_metric / (average_diversity + 1e-8)
+    
+    # Introduce a penalty for sparsity by using the inverse of the normalized diversity
+    sparsity_penalty = 1 / (normalized_diversity + 1e-8)
+    
+    # Calculate a heuristic based on the balance between high prize normalization and low sparsity penalty
+    heuristic = prize_normalized * (1 - sparsity_penalty)
+    
+    # Introduce randomness to encourage diversity in the solution
+    random_factor = np.random.rand(*heuristic.shape)
+    
+    # Combine the heuristic with the random factor
+    combined_heuristic = heuristic * random_factor
+    
+    # Ensure that all heuristics are positive by adding a small constant
+    combined_heuristic = np.maximum(combined_heuristic, 1e-8)
+    
+    return combined_heuristic
+```

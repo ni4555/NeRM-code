@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    score = np.sum(prize * normalized_weights, axis=1)
+    importance = score / (np.linalg.norm(prize) + 1e-8)  # Avoid division by zero
+    
+    diversity_score = np.mean(normalized_weights, axis=1)
+    
+    combined_score = importance * diversity_score
+    
+    # Dynamic threshold based on the maximum of the combined scores
+    threshold = np.max(combined_score)
+    
+    # Apply thresholding to determine the heuristics
+    heuristics = (combined_score >= threshold).astype(float)
+    
+    # Adjust sparsity by removing elements that do not meet a lower diversity threshold
+    diversity_threshold = np.mean(diversity_score)
+    heuristics[diversity_score < diversity_threshold] = 0
+    
+    return heuristics
+```

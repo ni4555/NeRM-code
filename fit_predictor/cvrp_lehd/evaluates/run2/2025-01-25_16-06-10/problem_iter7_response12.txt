@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    remaining_capacity = demands[1:]
+    remaining_capacity[0] = float('inf')  # The depot has infinite capacity
+    total_demand_cumsum = torch.cumsum(demands, dim=0)
+    sorted_indices = torch.argsort(distance_matrix, dim=1, descending=False)
+
+    for i in range(n_nodes - 1):
+        remaining_demand = demands[i + 1:] - demands[i + 1:].cumsum(0)
+        edge_indices = sorted_indices[i:i+1]  # Single row at a time
+        feasible_indices = edge_indices[remaining_demand[0] <= remaining_capacity[0]]
+
+        for j in feasible_indices:
+            total_demand = total_demand_cumsum[j] - total_demand_cumsum[i]
+            if total_demand <= remaining_capacity[i]:
+                distance = distance_matrix[i, j]
+                heuristics[i, j] = distance
+                remaining_capacity[i] -= total_demand
+                if remaining_capacity[i] <= 0:
+                    heuristics[i, 0] = distance_matrix[i, 0]
+                    break
+
+    return heuristics
+```

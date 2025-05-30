@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    import numpy as np
+
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize demands by total capacity for comparison
+    normalized_demands = demands / total_demand
+
+    # Compute the inverse of demand to weight edges based on demand magnitude
+    demand_weights = 1 / (normalized_demands + 1e-8)  # Adding a small constant to avoid division by zero
+
+    # Iterate over all pairs of nodes
+    for i in range(1, n):
+        for j in range(1, n):
+            if demand_weights[i] > 0 and demand_weights[j] > 0:
+                # Calculate the potential heuristics value for this edge
+                edge_heuristic = (normalized_demands[j] - normalized_demands[i]) * demand_weights[i]
+                # Adjust the heuristic by the distance to promote nearby customers
+                edge_heuristic *= distance_matrix[i][j]
+                # Apply the mask to keep only positive heuristics
+                heuristics[i][j] = torch.clamp(edge_heuristic, min=0)
+                heuristics[j][i] = heuristics[i][j]
+
+    return heuristics
+```

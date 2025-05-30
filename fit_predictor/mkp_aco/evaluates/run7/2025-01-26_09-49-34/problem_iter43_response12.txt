@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    
+    # Normalize prize using min-max scaling
+    min_prize = np.min(prize)
+    max_prize = np.max(prize)
+    normalized_prize = (prize - min_prize) / (max_prize - min_prize)
+    
+    # Introduce a noise floor and normalize weight to balance variance
+    noise_floor = np.random.normal(0, 0.005, size=normalized_prize.shape)
+    normalized_weight = (weight / np.sum(weight, axis=1)).T
+    
+    # Use a simple multiplicative heuristic combining prize, weight, and noise
+    initial_heuristics = normalized_prize * normalized_weight + noise_floor
+    
+    # Non-dominated items heuristic amplification
+    def is_non_dominated(i, heuristics):
+        dominance_count = 0
+        for j in range(n):
+            if (all(initial_heuristics[j] >= initial_heuristics[i]) or
+                    any(initial_heuristics[j] < initial_heuristics[i])):
+                dominance_count += 1
+        return dominance_count == 0
+    
+    non_dominated_indices = [i for i in range(n) if is_non_dominated(i, initial_heuristics)]
+    heuristics_amplified = initial_heuristics.copy()
+    heuristics_amplified[non_dominated_indices] *= 1.2
+    
+    # Sparsify the heuristics
+    sparsity_threshold = np.percentile(heuristics_amplified, 20)
+    heuristics_amplified[initial_heuristics < sparsity_threshold] = 0
+    
+    # Iterate to refine heuristics
+    for _ in range(10):  # Limit iterations to avoid excessive computation
+        for i in range(n):
+            if heuristics_amplified[i] > 0:
+                if is_non_dominated(i, heuristics_amplified):
+                    heuristics_amplified[i] *= 1.1
+                else:
+                    heuristics_amplified[i] *= 0.9
+    
+    # Normalize the heuristics
+    heuristics_v2 = heuristics_amplified / np.sum(heuristics_amplified)
+    
+    return heuristics_v2
+```

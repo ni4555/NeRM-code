@@ -1,0 +1,15 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the sum of demands divided by the total capacity, which represents how full a vehicle would get
+    vehicle_loads = (demands / demands.sum()).unsqueeze(-1) * norm_distances
+    
+    # Calculate the minimum vehicle load at the current location plus the distance to the next node
+    # To encourage exploration, subtract a small constant to ensure the heuristic is negative for long distances
+    # To encourage exploitation, use the vehicle load information
+    small_constant = 1e-4
+    heuristics = (vehicle_loads.sum(-1) - vehicle_loads - small_constant) + norm_distances
+    return heuristics
+```

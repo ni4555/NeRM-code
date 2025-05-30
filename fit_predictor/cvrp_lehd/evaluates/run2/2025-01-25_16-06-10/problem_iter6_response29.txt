@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    total_capacity = demands[0]  # Assuming the capacity of the vehicle is equal to the depot demand
+    feasible_edges_mask = torch.triu(torch.ones_like(distance_matrix), k=1)  # Mask to consider only outgoing edges from the depot
+    
+    # Calculate cumulative demand
+    cumulative_demand = torch.cumsum(demands[1:], dim=0)
+    
+    # Vectorized approach to find the first infeasible edge
+    infeasible_mask = (cumulative_demand > total_capacity).any(dim=1)
+    
+    # If there's no infeasible edge, set the heuristic value to the distance
+    feasible_edges_mask = feasible_edges_mask * (~infeasible_mask).unsqueeze(1)
+    
+    # Calculate heuristic values for feasible edges
+    heuristics = -distance_matrix * feasible_edges_mask.float()
+    
+    # Calculate a balance heuristic for demand distribution
+    demand_balance = torch.mean((demands[1:] - torch.mean(demands[1:])) ** 2)
+    
+    # Adjust heuristics based on balance
+    heuristics += demand_balance * feasible_edges_mask.float()
+    
+    # Mask out edges to infeasible customers
+    infeasible_edges_mask = infeasible_mask.unsqueeze(0) * torch.ones_like(distance_matrix)
+    heuristics = heuristics * (~infeasible_edges_mask).float()
+    
+    return heuristics
+```

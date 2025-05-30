@@ -1,0 +1,32 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize demand vector
+    demand_normalized = demands / total_demand
+
+    # Normalize distance matrix by the inverse of the sum of the distances
+    normalized_distance_matrix = distance_matrix / torch.sum(distance_matrix, dim=1, keepdim=True)
+
+    # Calculate a demand-penalty term that is inversely proportional to the demand
+    demand_penalty = -demand_normalized
+
+    # Calculate a capacity-penalty term that increases with the remaining capacity
+    capacity_penalty = demand_normalized * (1 - demands)
+
+    # Calculate a nearest-neighbor heuristic term
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # Combine the terms into a single heuristic value for each edge
+    combined_heuristic = demand_penalty + capacity_penalty + nearest_neighbor
+
+    # Mask edges that exceed the vehicle capacity
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+
+    return combined_heuristic
+```

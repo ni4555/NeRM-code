@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    
+    # Normalize the distance matrix by the average demand per node
+    normalized_edges = distance_matrix / avg_demand
+    
+    # Incorporate demand variability into the heuristic
+    demand_variability = torch.abs(normalized_demands - avg_demand)
+    demand_influence = demand_variability * normalized_edges
+    
+    # Introduce randomness
+    random_factor = (torch.rand(n) * 2 - 1)  # Scale to range -1 to 1
+    
+    # Introduce a penalty for edges that are not promising
+    penalty = (demand_influence <= 0).float()
+    
+    # Final heuristics computation with randomness and penalties
+    heuristics_matrix = demand_influence + random_factor * (1 - penalty) - penalty * demand_influence
+    
+    # Normalize the heuristics matrix to ensure it is within the desired range
+    heuristics_matrix = (heuristics_matrix - heuristics_matrix.min()) / (heuristics_matrix.max() - heuristics_matrix.min())
+    
+    return heuristics_matrix
+```

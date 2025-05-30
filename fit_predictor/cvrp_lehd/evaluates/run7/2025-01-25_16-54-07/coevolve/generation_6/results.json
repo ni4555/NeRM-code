@@ -1,0 +1,78 @@
+{
+  "generation": 6,
+  "description": "The hybrid Capacitated Vehicle Routing Problem (hCVRP) presents a complex challenge in logistics optimization. To address this, we propose a heuristic-based solution that leverages cumulative demand analysis for efficient route planning. This approach involves the development of a cumulative demand mask, which will dynamically assess the total demand of nodes along potential routes, ensuring that each vehicle's load is balanced and optimized.\n\nOur solution will implement a demand normalization strategy to differentiate between cumulative and normalized demands, providing a precise reflection of each vehicle's load distribution. Capacity-based prioritization will be enforced through an edge feasibility mask, which will rigorously evaluate the impact of adding an edge on a vehicle's capacity constraint before incorporating it into a route.\n\nThe algorithm will prioritize simplicity and clarity in demand and capacity management, avoiding ambiguity and complexity. Key to our strategy will be the direct utilization of cumulative demand for route prioritization, coupled with optimization techniques that emphasize computational efficiency without compromising solution quality. This balanced approach will enable us to navigate the complexities of hCVRP and deliver robust, effective routing plans for fleet operations.",
+  "solutions": [
+    {
+      "code": "import torch\nimport numpy as np\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate cumulative demand\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    \n    # Normalize cumulative demand by total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_cumulative_demand = cumulative_demand / total_capacity\n    \n    # Calculate the heuristic values\n    # Promising edges will have higher normalized cumulative demand\n    # Unpromising edges will have lower or negative normalized cumulative demand\n    heuristics = normalized_cumulative_demand - distance_matrix\n    \n    return heuristics",
+      "fitness": 21.424697875976562,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_0.txt",
+      "code_file": "coevolve\\generation_6\\code_0.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the cumulative demand mask\n    cumulative_demand = demands.cumsum(dim=0)\n\n    # Normalize the cumulative demand by the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demand = cumulative_demand / total_capacity\n\n    # Initialize the heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n\n    # Compute the edge feasibility mask\n    edge_capacity_mask = distance_matrix < normalized_demand\n\n    # Apply capacity-based prioritization\n    heuristics[distance_matrix < normalized_demand] = -1\n    heuristics[distance_matrix == normalized_demand] = 0\n\n    return heuristics",
+      "fitness": 21.432592391967773,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_5.txt",
+      "code_file": "coevolve\\generation_6\\code_5.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize the demand vector by the total vehicle capacity\n    total_capacity = demands.sum()\n    normalized_demands = demands / total_capacity\n\n    # Initialize the heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n\n    # Compute cumulative demand along each edge\n    for i in range(distance_matrix.shape[0]):\n        for j in range(distance_matrix.shape[1]):\n            if i != j:  # Skip the depot node\n                cumulative_demand = normalized_demands[i].sum() + normalized_demands[j]\n                # Assign a heuristic value based on the cumulative demand\n                heuristics[i, j] = -cumulative_demand\n\n    return heuristics",
+      "fitness": 21.465118408203125,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_2.txt",
+      "code_file": "coevolve\\generation_6\\code_2.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Normalize demand for each customer to represent relative contribution to the total load\n    demand_normalized = demands / demands.sum()\n    \n    # Initialize heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # Iterate over all possible edges, except self-loops\n    for i in range(n):\n        for j in range(1, n):\n            # Calculate the potential increase in cumulative demand when including edge (i, j)\n            cumulative_demand_increase = (demand_normalized[i] * distance_matrix[i, j])\n            # Add the potential increase to the corresponding heuristic value\n            heuristics[i, j] = cumulative_demand_increase\n    \n    return heuristics",
+      "fitness": 21.473827362060547,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_1.txt",
+      "code_file": "coevolve\\generation_6\\code_1.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Calculate cumulative demand for each node\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    # Normalize cumulative demand by total vehicle capacity\n    normalized_demand = cumulative_demand / demands.sum()\n    # Calculate the heuristic values based on normalized demand\n    heuristics = normalized_demand * distance_matrix\n    return heuristics",
+      "fitness": 21.47679901123047,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_3.txt",
+      "code_file": "coevolve\\generation_6\\code_3.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Initialize the heuristics matrix with zeros\n    heuristics_matrix = torch.zeros_like(distance_matrix)\n    \n    # Calculate cumulative demand\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    \n    # Calculate the difference between cumulative demand and individual demands\n    demand_diff = cumulative_demand - demands\n    \n    # Normalize the demand difference by the total vehicle capacity\n    normalized_demand_diff = demand_diff / demands.sum()\n    \n    # Calculate the heuristics values\n    heuristics_matrix = distance_matrix * normalized_demand_diff\n    \n    return heuristics_matrix",
+      "fitness": 21.47679901123047,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_11.txt",
+      "code_file": "coevolve\\generation_6\\code_11.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate the cumulative demand for each node\n    cumulative_demand = demands.cumsum(dim=0)\n    \n    # Calculate the normalized demand for each node\n    normalized_demand = cumulative_demand / demands.sum()\n    \n    # Initialize the heuristic matrix with zeros\n    heuristic_matrix = torch.zeros_like(distance_matrix)\n    \n    # Calculate the heuristic values for each edge\n    for i in range(distance_matrix.shape[0]):\n        for j in range(distance_matrix.shape[1]):\n            if i != j:  # Skip the diagonal\n                # Calculate the heuristic value for the edge\n                heuristic_value = normalized_demand[j] - normalized_demand[i]\n                # Assign the heuristic value to the corresponding edge\n                heuristic_matrix[i, j] = heuristic_value\n    \n    return heuristic_matrix",
+      "fitness": 21.582298278808594,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_10.txt",
+      "code_file": "coevolve\\generation_6\\code_10.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize the demands to get the relative demand at each node\n    normalized_demands = demands / demands.sum()\n    \n    # Calculate cumulative demand mask\n    cumulative_demand_mask = torch.cumsum(normalized_demands, dim=0)\n    \n    # Calculate the cumulative cost of each edge, considering the cumulative demand\n    cumulative_cost = cumulative_demand_mask * distance_matrix\n    \n    # Calculate the edge feasibility mask by subtracting the total vehicle capacity\n    # from the cumulative cost to see how much we can increase the load\n    edge_feasibility_mask = cumulative_cost - demands\n    \n    # Prioritize edges by their feasibility and cost, promoting positive values\n    # for edges that can be added without exceeding capacity and are more beneficial\n    # (lower cost in this case)\n    heuristics = edge_feasibility_mask + cumulative_cost\n    \n    return heuristics",
+      "fitness": 22.633075714111328,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_4.txt",
+      "code_file": "coevolve\\generation_6\\code_4.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Calculate cumulative demand mask\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    \n    # Normalize cumulative demand\n    normalized_demand = cumulative_demand / demands.sum()\n    \n    # Calculate the cumulative demand difference from the total capacity\n    capacity_difference = cumulative_demand - demands.sum()\n    \n    # Initialize the heuristics matrix with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # For each edge (i, j), calculate the heuristic value\n    for i in range(distance_matrix.shape[0]):\n        for j in range(distance_matrix.shape[1]):\n            if i != j:  # Skip the depot node\n                # Calculate the edge heuristic based on normalized demand and capacity difference\n                heuristics[i, j] = normalized_demand[j] - capacity_difference[j]\n    \n    return heuristics",
+      "fitness": 94.02369689941406,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_6\\stdout_7.txt",
+      "code_file": "coevolve\\generation_6\\code_7.py"
+    }
+  ]
+}

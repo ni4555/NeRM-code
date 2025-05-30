@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_sum = torch.sum(demands)
+    demand_mean = demand_sum / n
+    demand_balance = (demands - demand_mean).abs()
+    
+    # Normalize the demand balance by the total demand and adapt for higher variability
+    demand_balance = (demand_balance - 1e-8).exp() / (torch.exp(demand_balance - 1e-8).sum())
+    
+    # Invert the balance to favor balanced demands
+    demand_balance = 1 - demand_balance
+    
+    # Incorporate distance into the heuristic and adapt the distance normalization
+    distance_heuristic = distance_matrix / (torch.mean(distance_matrix) + 1e-8)
+    
+    # Combine heuristics and adapt the balance factor to enhance demand consideration
+    combined_heuristic = 0.6 * demand_balance * distance_heuristic + 0.4 * demand_balance
+    
+    # Introduce a new term that rewards low cumulative demand along paths
+    path_demand_reward = demands[:-1].cumsum() - demands.cumsum()
+    combined_heuristic = combined_heuristic * torch.clamp(1 - (path_demand_reward - demand_sum / 2).abs(), 0, 1)
+    
+    # Apply a penalty for edges that would lead to capacity violation
+    penalty_mask = demands > 1
+    penalty = -torch.max(combined_heuristic[penalty_mask]) * penalty_mask
+    
+    # Subtract penalty from promising edges
+    combined_heuristic -= penalty
+    
+    # Cap the heuristics to ensure that they are positive and not too high
+    cap = torch.max(combined_heuristic)
+    combined_heuristic = torch.clamp(combined_heuristic, min=0, max=cap)
+    
+    return combined_heuristic
+```

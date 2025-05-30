@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Core objective: distance scaled by cumulative load
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * (1 + cumulative_demand / total_capacity)
+    
+    # Dynamic penalty for remaining capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - (total_capacity - cumulative_demand)) - 1e-8)
+    
+    # Early return penalty for avoiding unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance penalty to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Diversity heuristic that introduces symmetry breaking by penalizing similar load distributions
+    diversity_penalty = (torch.sum((load_balance[:, None] - load_balance[None, :])**2, dim=1) / n).clamp(min=0.1)
+    
+    # Scale factors for each penalty to make them comparable
+    scaling_factor_distance = 1.5
+    scaling_factor_capacity = 1.0
+    scaling_factor_overflow = 1.5
+    scaling_factor_balance = 1.0
+    scaling_factor_diversity = 0.5
+    
+    # Combine heuristics with consistent scaling and ensure they are in a reasonable range
+    heuristics = (
+        scaling_factor_distance * distance_scaling +
+        scaling_factor_capacity * dynamic_capacity_penalty +
+        scaling_factor_overflow * overflow_penalty +
+        scaling_factor_balance * load_balance_penalty +
+        scaling_factor_diversity * diversity_penalty
+    ).clamp(min=-10, max=10)
+    
+    return heuristics
+```

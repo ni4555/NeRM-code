@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the normalized density considering the dimensionality of the weight
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate the sparsity and normalize
+    sparsity = np.sum(weight, axis=1)
+    normalized_sparsity = sparsity / (np.max(sparsity) + 1e-8)
+    
+    # Integrate additional metrics such as the sum of weights
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Encourage sparsity and randomness by penalizing items with low sparsity
+    heuristic_value = density * (1 - normalized_sparsity) - weight_sum
+    heuristic_value[sparsity < 1e-8] *= 0.5
+    
+    # Introduce diversity based on the density
+    average_density = np.mean(density)
+    diversity_factor = density / (average_density + 1e-8)
+    
+    # Normalize the heuristic to ensure all factors contribute equally
+    normalized_heuristic = heuristic_value * diversity_factor
+    
+    # Balance the heuristic by penalizing high density and low sparsity
+    balance_heuristic = (density - normalized_sparsity) / (density + normalized_sparsity + 1e-8)
+    
+    # Combine the heuristics using a weighted sum to find a good balance
+    combined_heuristic = 0.6 * normalized_heuristic + 0.4 * balance_heuristic
+    
+    # Normalize by the maximum heuristic value to avoid dominance
+    normalized_combined_heuristic = combined_heuristic / (np.max(combined_heuristic) + 1e-8)
+    
+    # Set zero weights to a small value to maintain diversity
+    normalized_combined_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return normalized_combined_heuristic
+```

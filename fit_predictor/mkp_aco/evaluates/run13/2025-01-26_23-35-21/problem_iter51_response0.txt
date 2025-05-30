@@ -1,0 +1,37 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize density and sparsity
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Introduce randomness to avoid local optima
+    randomness = np.random.rand(*weight.shape[0])
+    
+    # Calculate a diversity metric to avoid similar item selections
+    diversity = (1 - np.mean(density))
+    
+    # Calculate a balance metric between high density and low sparsity
+    balance = (density - sparsity) / (density + sparsity + 1e-8)
+    
+    # Combine the metrics using a weighted sum to create a heuristic
+    heuristic = density * 0.5 + randomness * 0.3 + diversity * 0.1 + balance * 0.1
+    
+    # Normalize the heuristic values
+    max_heuristic = np.max(heuristic)
+    if max_heuristic > 0:
+        heuristic = heuristic / max_heuristic
+    else:
+        heuristic = np.ones_like(heuristic)
+    
+    # Prune dominated items
+    sorted_indices = np.argsort(heuristic)[::-1]
+    pruned_heuristic = np.zeros_like(heuristic)
+    dominated = False
+    for i in sorted_indices:
+        if not dominated:
+            pruned_heuristic[i] = heuristic[i]
+        if any(heuristic[i] < heuristic[j] for j in sorted_indices[:i]):
+            dominated = True
+    
+    return pruned_heuristic
+```

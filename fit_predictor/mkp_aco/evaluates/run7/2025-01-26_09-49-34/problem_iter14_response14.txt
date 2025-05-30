@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the ratio of prize to the sum of weights per item
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Incorporate sparsity as a factor by penalizing items with more than half of their weights being zero
+    sparsity_factor = np.sum(weight == 0, axis=1) / weight.shape[1]
+    sparsity_factor[sparsity_factor <= 0.5] = 1  # Only penalize if more than half the weights are zero
+    
+    # Incorporate a dynamic weight based on the standard deviation of the weights, rewarding items with more balanced weights
+    std_dev_factor = 1 / (np.std(weight, axis=1) + 1e-6)  # Adding a small value to avoid division by zero
+    
+    # Normalize the factors by dividing by the maximum value of each
+    max_ratio = np.max(ratio)
+    max_sparsity_factor = np.max(sparsity_factor)
+    max_std_dev_factor = np.max(std_dev_factor)
+    ratio /= max_ratio
+    sparsity_factor /= max_sparsity_factor
+    std_dev_factor /= max_std_dev_factor
+    
+    # Combine the normalized factors into heuristics
+    heuristics = ratio * sparsity_factor * std_dev_factor
+    
+    # Normalize heuristics by dividing by the maximum heuristic value
+    max_heuristic = np.max(heuristics)
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Apply a dynamic threshold to sparsify the heuristics, setting elements below a threshold to zero
+    sparsity_threshold = np.mean(ratio) * (1 - np.mean(sparsity_factor) - np.mean(std_dev_factor))
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    return heuristics
+```

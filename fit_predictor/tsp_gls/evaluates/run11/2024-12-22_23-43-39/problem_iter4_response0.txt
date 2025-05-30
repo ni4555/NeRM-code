@@ -1,0 +1,34 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_cities = distance_matrix.shape[0]
+    heuristics_matrix = np.zeros_like(distance_matrix)
+    
+    # Calculate the distance from each city to the center of the matrix
+    # Assuming a square matrix, the center is simply the average of the row and column indices
+    centers = np.array([sum(range(num_cities)) // 2, sum(range(num_cities)) // 2])
+    
+    # Calculate the distance of each city to the center
+    center_distances = np.sqrt(((np.arange(num_cities) - centers[0])**2 + 
+                               ((np.arange(num_cities) - centers[1])**2)))
+    
+    # Calculate the sum of distances from each city to all other cities
+    total_distances = np.sum(distance_matrix, axis=1)
+    
+    # For each edge, calculate the heuristic value based on the distance to the center and the total distance
+    # The heuristic is a combination of the distance to the center and the total distance
+    # with an additional penalty for edges that are far from the center
+    for i in range(num_cities):
+        for j in range(num_cities):
+            if i != j:
+                # Calculate the penalty based on the distance from the center
+                # Edges further from the center have a higher penalty
+                penalty = 1 + (center_distances[j] / center_distances[i])
+                
+                # Calculate the heuristic value
+                heuristics_matrix[i, j] = distance_matrix[i, j] * penalty
+                heuristics_matrix[j, i] = distance_matrix[j, i] * penalty
+    
+    return heuristics_matrix
+```

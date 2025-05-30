@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    normalized_demands = demands / total_demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+    demand_weighted_distance = normalized_inv_distance_matrix * normalized_demands
+    remaining_capacity = 1 - normalized_demands
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+    combined_heuristic = demand_weighted_distance + capacity_weighted_distance
+    nearest_neighbor_heuristic = -torch.min(distance_matrix[:, 1:], dim=1)[0]
+    combined_heuristic += nearest_neighbor_heuristic
+    insufficient_capacity_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[insufficient_capacity_mask] = -torch.inf
+    return combined_heuristic
+```

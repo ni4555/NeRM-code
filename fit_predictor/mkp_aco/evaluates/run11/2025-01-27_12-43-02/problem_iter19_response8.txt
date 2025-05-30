@@ -1,0 +1,29 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    
+    # Use simple ratio of prize to total weight
+    prize_ratio = prize / np.sum(weight, axis=1)
+    
+    # Use percentile ranking for diversity
+    rank_scores = np.argsort(prize_ratio)[::-1]
+    percentile_rank = np.empty_like(prize_ratio)
+    for i, idx in enumerate(rank_scores):
+        percentile_rank[idx] = i / n
+    
+    # Combine simple ratio with percentile rank to balance exploration and exploitation
+    combined_heuristics = prize_ratio * percentile_rank
+    
+    # Normalize combined heuristics to ensure non-negative and non-zero
+    min_heuristic = np.min(combined_heuristics)
+    combined_heuristics = combined_heuristics - min_heuristic
+    combined_heuristics = np.clip(combined_heuristics, a_min=0, a_max=None)
+    
+    # Refine sparsity by setting lower bound to zero for heuristics that are less important
+    important_threshold = np.percentile(combined_heuristics, 80)  # Adjust as needed
+    combined_heuristics[combined_heuristics < important_threshold] = 0
+    
+    return combined_heuristics
+```

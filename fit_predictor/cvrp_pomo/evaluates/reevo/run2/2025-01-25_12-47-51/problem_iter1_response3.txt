@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand excluding the depot
+    total_demand = demands.sum() - demands[0]
+    # Calculate the average demand per vehicle
+    avg_demand = total_demand / (len(demands) - 1)
+    # Identify edges with a distance less than or equal to the average demand
+    edge_promise = distance_matrix <= avg_demand
+    # Use the distance as a negative heuristic for the remaining edges
+    edge_unpromise = distance_matrix > avg_demand
+    # Create a mask for the depot to exclude it from the heuristic calculation
+    depot_mask = torch.arange(distance_matrix.shape[0]) != 0
+    # Adjust the heuristic values based on the promise
+    heuristic_values = torch.where(edge_promise, -distance_matrix, -edge_unpromise)
+    # Normalize the heuristic values by the maximum value
+    max_value = torch.max(torch.abs(heuristic_values))
+    heuristic_values = heuristic_values / max_value
+    # Add the depot as a special case with a high positive value
+    heuristic_values[0] = 1 / max_value
+    return heuristic_values
+```

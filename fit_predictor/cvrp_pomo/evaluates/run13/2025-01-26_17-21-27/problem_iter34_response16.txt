@@ -1,0 +1,45 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Define the penalties based on distance and cumulative demand
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Apply the cumulative demand as a weight to distance to favor paths with lighter load later
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Balance load heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Diversity by penalizing high similarity of load balances
+    diversity_penalty = torch.mean((load_balance[:, None] == load_balance[None, :])**2, dim=1)
+    
+    # High load balance penalty to avoid overloading any single vehicle
+    high_load_balance_penalty = torch.where(
+        load_balance > total_capacity / (3 * n),
+        -torch.log1p(load_balance - 1e-8),
+        torch.zeros_like(load_balance)
+    )
+    
+    # Scaling factors to emphasize certain penalties
+    scaling_factor = torch.tensor([3.0, 2.0, 1.0, 1.5, 1.0])  # Adjust the importance of each term
+    
+    # Combine penalties and apply the scaling factors
+    heuristics = scaling_factor[0] * distance_scaling \
+                + scaling_factor[1] * dynamic_capacity_penalty \
+                + scaling_factor[2] * overflow_penalty \
+                + scaling_factor[3] * load_balance_penalty \
+                + scaling_factor[4] * diversity_penalty \
+                + high_load_balance_penalty
+    
+    return heuristics
+```

@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Calculate the heuristic value for each edge based on scaled demand and remaining capacity
+    edge_heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    # Introduce a dampened capacity penalty for edges that lead to a node with demand greater than vehicle capacity
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    edge_heuristics -= capacity_penalty
+
+    # Introduce a dampened distance penalty to encourage closer proximity to the depot
+    distance_penalty = torch.clamp((distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 50, min=0.0)
+    edge_heuristics += distance_penalty
+
+    # Introduce a dampened depot penalty for edges leading back to the depot (index 0)
+    depot_penalty = torch.clamp(-1.0 * (torch.arange(n) == 0).float(), min=0.0)
+    edge_heuristics += depot_penalty
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = edge_heuristics.max()
+    min_heuristic = edge_heuristics.min()
+    edge_heuristics = (edge_heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    return edge_heuristics
+```

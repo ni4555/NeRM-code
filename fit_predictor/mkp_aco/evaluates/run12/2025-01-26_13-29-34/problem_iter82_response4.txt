@@ -1,0 +1,89 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Initialize Deep Reinforcement Learning (DRL) with an adaptive reward function
+    model_scores = np.random.rand(n)
+    reward_function = lambda x: -np.sum(x * np.log(1 + x))  # Minimize penalty for over-weighted items
+    model_rewards = [reward_function(model_scores)]
+
+    # Initialize Particle Swarm Optimization (PSO) with adaptive learning rate
+    pso_position = np.random.rand(n)
+    pso_velocity = np.zeros(n)
+    pso_personal_best = np.copy(pso_position)
+    pso_global_best = np.copy(pso_position)
+    pso_personal_best_scores = np.copy(model_scores)
+    pso_global_best_scores = np.copy(model_scores)
+
+    # Ensure initial feasibility
+    feasible_items = np.sum(weight, axis=1) <= 1
+    infeasible_items = ~feasible_items
+    pso_global_best_scores[infeasible_items] = float('-inf')
+    pso_global_best = pso_position[infeasible_items]
+
+    # Initialize adaptive parameters
+    inertia_weight = 0.9
+    cognitive_coefficient = 2
+    social_coefficient = 2
+    learning_rate = 0.01
+    max_iterations = 100
+    sparsity_threshold = np.percentile(model_scores, 50)
+
+    for iteration in range(max_iterations):
+        # PSO Update
+        r1, r2 = np.random.randn(n), np.random.randn(n)
+        for i in range(n):
+            if i in feasible_items:  # Only consider feasible items
+                cognitive_component = cognitive_coefficient * r1[i]
+                social_component = social_coefficient * r2[i] * (pso_personal_best[i] - pso_position[i])
+                pso_velocity[i] = inertia_weight * pso_velocity[i] + cognitive_component + social_component
+                pso_position[i] += pso_velocity[i]
+                pso_position[i] = np.clip(pso_position[i], 0, 1)
+
+                # Update personal best
+                if model_scores[i] > pso_personal_best_scores[i]:
+                    pso_personal_best_scores[i] = model_scores[i]
+                    pso_personal_best[i] = pso_position[i]
+
+                # Update global best
+                if pso_personal_best_scores[i] > pso_global_best_scores[i]:
+                    pso_global_best_scores[i] = pso_personal_best_scores[i]
+                    pso_global_best[i] = pso_personal_best[i]
+
+        # Update global best index
+        global_best_index = np.argmax(pso_global_best_scores)
+
+        # Update RL scores based on the best PSO score
+        model_scores[~feasible_items] = float('-inf')
+        model_scores[global_best_index] = pso_global_best_scores[global_best_index]
+
+        # Update rewards for RL
+        model_rewards.append(reward_function(model_scores))
+
+        # Update heuristics based on the weighted average of RL and PSO scores, considering feasibility
+        avg_reward = np.mean(model_rewards[-max_iterations//10:])  # Use more recent decisions
+        for i in range(n):
+            if i in feasible_items:
+                heuristic[i] = avg_reward * (prize[i] / (prize[global_best_index] + 1e-6))
+
+        # Sparsify heuristics with adaptive thresholds
+        dynamic_threshold = np.percentile(heuristic, 50)
+        heuristic[heuristic < dynamic_threshold] = 0
+
+        # Refine the reward mechanism by incorporating the most promising heuristic scores
+        refined_reward_function = lambda x: np.sum(x * np.log(1 + x)) + np.sum(x * heuristic)
+        refined_model_scores = np.exp(refined_reward_function(model_scores) - np.max(refined_reward_function(model_scores)))
+        refined_model_scores /= np.sum(refined_model_scores)
+
+        # Update heuristics based on the refined RL scores
+        heuristic = refined_model_scores * prize / (prize[global_best_index] + 1e-6)
+
+        # Ignore non-feasible items in the final heuristic
+        heuristic[~feasible_items] = 0
+
+    return heuristic
+```

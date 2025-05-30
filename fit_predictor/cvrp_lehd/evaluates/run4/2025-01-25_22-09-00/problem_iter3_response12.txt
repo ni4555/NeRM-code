@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_factors = demands / demands.sum()
+    distance_scaled = distance_matrix / torch.max(distance_matrix, dim=1)[0].unsqueeze(1)
+    
+    # Incorporate demand factors
+    demand_influence = torch.zeros_like(distance_scaled)
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                demand_influence[i, j] = demand_factors[i] * demand_factors[j]
+    
+    # Balance local and global
+    local_influence = torch.exp(-distance_scaled)
+    global_influence = torch.exp(-torch.sum(distance_scaled, dim=1).unsqueeze(1))
+    balanced_influence = local_influence * global_influence
+    
+    # Refine distance scaling
+    refined_influence = balanced_influence * demand_influence
+    
+    # Optimize computationally
+    return refined_influence - torch.max(refined_influence, dim=1)[0].unsqueeze(1)
+```

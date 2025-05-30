@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    demand_normalized = demands / total_demand
+
+    # Calculate a demand-weighted distance
+    weighted_distance = demand_normalized * (1 / (distance_matrix + 1e-8))
+
+    # Adjust weights based on normalized demands
+    demand_weight = demand_normalized - demand_normalized**2
+    adjusted_weighted_distance = weighted_distance * demand_weight
+
+    # Apply capacity constraint penalty
+    capacity_penalty = demands[:, None] + demands[None, :] > 1
+    adjusted_weighted_distance[capacity_penalty] = -float('inf')
+
+    return adjusted_weighted_distance
+```

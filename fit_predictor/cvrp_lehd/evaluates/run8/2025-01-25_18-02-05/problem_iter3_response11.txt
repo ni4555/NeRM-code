@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the demand-to-distance ratio for each edge
+    demand_to_distance_ratio = demands / distance_matrix
+    
+    # Calculate the cumulative demand-to-distance ratio for each edge
+    cumulative_demand_to_distance_ratio = torch.cumsum(demand_to_distance_ratio, dim=1)
+    
+    # Invert the cumulative ratios to favor lower values (edges with higher cumulative ratios
+    # are more promising as they visit nodes with higher demands earlier)
+    inverted_cumulative_ratio = 1 / cumulative_demand_to_distance_ratio
+    
+    # Normalize the inverted cumulative ratios to ensure they are positive and can be used as a heuristic
+    max_value = torch.max(inverted_cumulative_ratio)
+    heuristic_matrix = inverted_cumulative_ratio / max_value
+    
+    # Apply a threshold to ensure undesirable edges have negative values
+    threshold = torch.min(heuristic_matrix)
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, heuristic_matrix, 0)
+    
+    return heuristic_matrix
+```

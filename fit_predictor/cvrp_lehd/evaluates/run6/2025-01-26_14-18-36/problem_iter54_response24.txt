@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    heuristics = (scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0)).abs() * remaining_capacity
+
+    dampening_factor = 0.5
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * dampening_factor
+
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * dampening_factor
+
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 30
+    heuristics += torch.clamp(distance_penalty, min=0.0) * dampening_factor
+
+    # Balance capacity and distance
+    capacity_weight = 0.7
+    distance_weight = 0.3
+    balanced_heuristics = capacity_weight * heuristics + distance_weight * (distance_matrix[:, 0] - distance_matrix[:, 0].mean())
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = balanced_heuristics.max()
+    min_heuristic = balanced_heuristics.min()
+    heuristics = (balanced_heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Apply a sigmoid function to ensure values are in the range [0, 1]
+    heuristics = torch.sigmoid(heuristics)
+
+    # Ensure the heuristics are within the range [0, 1]
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    return heuristics
+```

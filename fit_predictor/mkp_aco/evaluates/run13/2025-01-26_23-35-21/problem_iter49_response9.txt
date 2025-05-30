@@ -1,0 +1,33 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize random number generator for diversity
+    import numpy as np
+    np.random.seed(42)
+    
+    # Calculate normalized density and sparsity
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate a balance metric
+    balance_metric = (density - sparsity) / (density + sparsity + 1e-8)
+    
+    # Randomly introduce variability for exploration
+    random_factor = np.random.rand(*weight.shape)
+    
+    # Introduce a diversity factor based on the balance metric
+    diversity_factor = balance_metric / (np.mean(balance_metric) + 1e-8)
+    
+    # Create a final heuristic by combining all factors
+    heuristic = density * diversity_factor + random_factor
+    
+    # Normalize the heuristic to ensure positive values and to maintain a scale
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    # Prune dominated items (where an item has a higher density and lower sparsity)
+    for i in range(normalized_heuristic.shape[0]):
+        dominated = np.any((density[i] < density) & (sparsity[i] > sparsity))
+        if dominated:
+            normalized_heuristic[i] = 0
+    
+    return normalized_heuristic
+```

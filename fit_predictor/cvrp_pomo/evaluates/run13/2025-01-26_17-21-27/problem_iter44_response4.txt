@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Core objective: Scaled distance
+    distance_scaled = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic penalty for load balancing
+    load_balance_penalty = torch.where(
+        cumulative_demand > (1.5 * total_capacity / n),
+        -torch.log1p(torch.abs(cumulative_demand - (1.5 * total_capacity / n)) - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Priority given to edges that help in balancing the load evenly
+    even_load_heuristic = torch.where(
+        torch.abs(cumulative_demand - (total_capacity / n)) < (total_capacity / n) * 0.05,
+        -torch.log1p(torch.abs(distance_matrix) - 1e-8),
+        torch.zeros_like(distance_matrix)
+    )
+    
+    # Encourage the inclusion of edges with low demand to prevent early overflow
+    low_demand_heuristic = -torch.log1p(torch.abs(demands - total_capacity / n) - 1e-8)
+    
+    # Introduce diversity by adding a random factor based on the cumulative demand
+    diversity_factor = (torch.rand_like(demands) - 0.5) * 0.1 * (1 + cumulative_demand / total_capacity)
+    
+    # Scale heuristics to ensure they contribute appropriately to the objective function
+    scaling_factor = 2.0
+    heuristics = scaling_factor * (distance_scaled + even_load_heuristic + low_demand_heuristic + load_balance_penalty)
+    heuristics += diversity_factor
+    
+    return heuristics
+```

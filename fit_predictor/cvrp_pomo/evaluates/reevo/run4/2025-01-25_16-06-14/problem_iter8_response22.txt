@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the distance matrix by the sum of demands to scale the distances
+    total_demand = demands.sum()
+    normalized_distance_matrix = distance_matrix / (total_demand + 1e-8)
+    
+    # Subtract the normalized distances from 1 to create a reward for shorter distances
+    distance_reward = 1 - normalized_distance_matrix
+    
+    # Create a demand-aware penalty by scaling the demands inversely to the total demand
+    demand_penalty = (demands / (total_demand + 1e-8)) ** 2
+    
+    # Weight the distance reward by the inverse of the demand to prioritize loading the vehicle
+    weighted_distance_reward = distance_reward * (1 / demands)
+    
+    # Combine the weighted distance reward and demand penalty to create the heuristic
+    heuristic_matrix = weighted_distance_reward - demand_penalty
+    return heuristic_matrix
+```

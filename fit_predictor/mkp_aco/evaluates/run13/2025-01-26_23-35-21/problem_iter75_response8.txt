@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic array with zeros
+    heuristic = np.zeros_like(prize)
+    
+    # Calculate the normalized density for each item
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items by keeping only the ones with the highest normalized density
+    max_density = np.max(density)
+    dominated_indices = np.where(density < max_density)[0]
+    for i in dominated_indices:
+        heuristic[i] = 0
+    
+    # Introduce randomness to explore diverse solutions
+    random_factor = np.random.rand(len(prize))
+    
+    # Integrate additional metrics such as the sum of weights
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Combine the density with the random factor and the sum of weights
+    heuristic = density * random_factor - weight_sum
+    
+    # Normalize the heuristic values
+    max_heuristic = np.max(heuristic)
+    heuristic /= max_heuristic
+    
+    # Ensure that all heuristics are non-negative
+    heuristic = np.clip(heuristic, 0, None)
+    
+    return heuristic
+```

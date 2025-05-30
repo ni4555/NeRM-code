@@ -1,0 +1,45 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate cumulative demand along each path
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate cumulative distance along each path
+    cumulative_distance = torch.cumsum(distance_matrix, dim=0)
+    
+    # Calculate the ratio of cumulative demand to cumulative distance
+    demand_to_distance_ratio = cumulative_demand / cumulative_distance
+    
+    # Normalize the ratio by dividing it by the sum of all ratios
+    normalized_ratio = demand_to_distance_ratio / (cumulative_demand.sum() / cumulative_demand)
+    
+    # Invert the normalized ratio to use as a heuristic
+    heuristic_matrix = -torch.log(1 + normalized_ratio)
+    
+    # Calculate the demand variance
+    demand_variance = torch.var(demands)
+    
+    # Normalize the variance by the sum of demands to scale it by the vehicle capacity
+    normalized_variance = demand_variance / demands.sum()
+    
+    # Combine the heuristic with the demand variance-based heuristic
+    combined_heuristic = heuristic_matrix + normalized_variance
+    
+    # Apply a non-linear transformation to emphasize longer distances
+    heuristic_matrix = torch.exp(-combined_heuristic)
+    
+    # Apply a threshold to filter out undesirable edges
+    threshold = torch.min(heuristic_matrix)
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, heuristic_matrix, 0)
+    
+    # Initialize the result matrix with negative values for all edges
+    result_matrix = -torch.ones_like(distance_matrix)
+    
+    # Set the heuristic values for the matrix
+    result_matrix.scatter_(0, torch.arange(n), heuristic_matrix)
+    
+    return result_matrix
+```

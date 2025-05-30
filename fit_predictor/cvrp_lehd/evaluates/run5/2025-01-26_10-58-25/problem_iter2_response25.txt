@@ -1,0 +1,25 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible sum of demands that can be carried by a single vehicle
+    vehicle_capacity = 1.0
+    
+    # Calculate the cumulative demand and normalize by vehicle capacity
+    cumulative_demand = -torch.cumsum(demands, dim=0) / vehicle_capacity
+    
+    # Softmax over each row to create a probability distribution
+    softmax_matrix = F.softmax(cumulative_demand, dim=1)
+    
+    # Calculate the distance-based potential matrix
+    potential_matrix = distance_matrix + cumulative_demand
+    
+    # Multiply the distance-based potential by the softmax probabilities to get the weighted potential
+    weighted_potential_matrix = potential_matrix * softmax_matrix
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    heuristics_matrix = 1 - weighted_potential_matrix
+    
+    return heuristics_matrix
+```

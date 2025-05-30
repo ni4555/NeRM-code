@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic that incorporates demand, distance, and load balancing."""
+    total_demand = demands.sum()
+    demand_threshold = total_demand / len(demands)
+    load_balance_factor = 1 - (demands / demand_threshold)
+    distance_heuristic = (1 / (1 + distance_matrix))
+    
+    # Calculate load balance heuristic: edges with lower demand relative to threshold are more promising
+    heuristics = load_balance_factor * distance_heuristic
+    
+    # Apply a penalty for revisits to ensure we don't choose the same edge twice
+    is_revisit = demands[:, None] * demands[None, :] > 0
+    revisit_penalty = -1  # High penalty for revisits
+    heuristics = heuristics + is_revisit * revisit_penalty
+    
+    return heuristics
+```

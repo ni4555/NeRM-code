@@ -1,0 +1,27 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the total distance for each point to all other points
+    total_distances = np.sum(distance_matrix, axis=1)[:, None]
+    
+    # Calculate the minimum distance for each point to any other point
+    min_distances = np.min(distance_matrix, axis=1)[:, None]
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Apply the heuristic based on the ratio of the edge distance to the total distance
+    for i in range(len(distance_matrix)):
+        for j in range(len(distance_matrix)):
+            if i != j:
+                # Use a balance between the edge distance and the total distance
+                # Subtract the minimum distance to ensure that no edge is more favored than the shortest one
+                heuristic_value = (distance_matrix[i, j] - min_distances[i]) / (1 + total_distances[i] - distance_matrix[i, j])
+            else:
+                heuristic_value = 0
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value  # Symmetry of the matrix
+    
+    return heuristic_matrix
+```

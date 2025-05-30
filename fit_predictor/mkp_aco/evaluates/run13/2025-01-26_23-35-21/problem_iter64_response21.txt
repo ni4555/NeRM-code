@@ -1,0 +1,45 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Calculate normalized density
+    density = prize / np.sum(weight, axis=1) + 1e-8
+
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1) + 1e-8
+
+    # Calculate the value-to-weight ratio and normalize it
+    value_to_weight_ratio = (prize / np.sum(weight**2, axis=1)) ** 0.5 + 1e-8
+
+    # Define a feature that promotes diversity by considering the spread of weights across dimensions
+    weight_spread = np.std(weight, axis=1) / np.max(weight, axis=1) + 1e-8
+
+    # Define a feature that measures the average prize of items similar to the current item
+    similar_items_prize = np.mean(prize[weight == weight], axis=1) + 1e-8
+
+    # Calculate the dominance score of each item
+    dominance_score = np.sum((density >= np.percentile(density, 95)) & (value_to_weight_ratio >= np.percentile(value_to_weight_ratio, 95)), axis=1) / m
+
+    # Introduce randomness to encourage diversity
+    random_factor = np.random.rand(n) + 1e-8
+
+    # Combine features using a weighted sum, including randomness
+    heuristic = (0.5 * density +
+                 0.3 * (1 - sparsity) +
+                 0.1 * weight_spread +
+                 0.05 * similar_items_prize +
+                 0.05 * dominance_score +
+                 0.05 * random_factor)
+
+    # Normalize the heuristic values
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+
+    # Ensure diversity: if all items are dominated, give a small positive heuristic value
+    if np.all(density == 0):
+        normalized_heuristic = np.ones(n) * 1e-8
+
+    return normalized_heuristic
+```

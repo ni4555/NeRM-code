@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic capacity penalty with early return to avoid unnecessary overflow
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / n) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity / n - cumulative_demand) / (total_capacity / n))
+    
+    # Distance penalty with scaling based on remaining capacity
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity)
+    
+    # Balance load heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Introduce randomness to maintain diversity
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Scale penalties and focus on avoiding overflow
+    scaling_factor = 2.0
+    heuristics = scaling_factor * (distance_scaling + dynamic_capacity_penalty + load_balance_penalty)
+    
+    # Cap heuristics to maintain stability
+    heuristics = torch.clamp(heuristics, min=-10, max=10)
+    
+    # Apply additional random noise for diversity without noise
+    heuristics += diversity_factor
+    
+    return heuristics
+```

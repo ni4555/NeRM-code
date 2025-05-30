@@ -1,0 +1,58 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Adjust the capacity penalty to account for remaining capacity
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - (total_capacity - cumulative_demand))) - 1e-8
+    dynamic_capacity_penalty *= torch.exp(-0.1 * cumulative_demand)
+    
+    # Introduce a new penalty that decreases the heuristic for longer routes
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_penalty *= (1 - 0.5 * cumulative_demand / total_capacity)
+    
+    # Create an overflow penalty with a lower impact as capacity approaches
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    overflow_penalty *= torch.exp(-0.1 * (total_capacity - cumulative_demand))
+    
+    # Incorporate a load balance heuristic that reduces penalties for more balanced routes
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Apply randomness to the heuristics to ensure diversity in solutions
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine the penalties and apply a scaling factor to the distance
+    combined_penalties = (
+        dynamic_capacity_penalty +
+        distance_penalty +
+        overflow_penalty +
+        load_balance_penalty
+    )
+    scaling_factor = 2.5
+    heuristics = (
+        scaling_factor * (combined_penalties + randomness_factor)
+    )
+    
+    # Introduce diversity factor with less impact for routes that are almost complete
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Final adjustments for overflow and load balance
+    overflow_and_load_balance_adjustment = (
+        1.1 * early_overflow +
+        load_balance
+    )
+    heuristics *= (1 + overflow_and_load_balance_adjustment)
+    
+    return heuristics
+```

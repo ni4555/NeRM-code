@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize an array to hold the heuristics
+    heuristics = np.zeros_like(prize)
+
+    # Define a function to determine if an item is dominated
+    def is_dominated(i):
+        return np.all(weight[i] <= weight) and np.any(prize[i] < prize)
+
+    # Prune dominated items
+    for i in range(prize.shape[0]):
+        if is_dominated(i):
+            continue
+        heuristics[i] = prize[i] / np.sum(weight[i])
+
+    # Introduce randomness for diversity
+    random_factor = np.random.rand(prize.shape[0])
+    heuristics = heuristics * (1 - random_factor)
+
+    # Balance exploitation and exploration by giving more weight to higher prizes
+    heuristics = heuristics * (prize / np.max(prize))
+
+    # Normalize heuristics
+    heuristics = (heuristics - np.min(heuristics)) / (np.max(heuristics) - np.min(heuristics))
+
+    # Return the heuristics with non-promising items set to zero
+    return heuristics
+```

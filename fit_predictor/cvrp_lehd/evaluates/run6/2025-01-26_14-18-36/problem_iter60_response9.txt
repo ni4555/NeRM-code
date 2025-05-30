@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    # Calculate cumulative demand from the depot to each node
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+
+    # Calculate remaining capacity at each node
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Initialize penalty functions with dampening factors
+    dampening_factors = {
+        'capacity': 0.9,
+        'distance': 0.8,
+        'feasibility': 0.7,
+        'random_perturbation': 0.1
+    }
+
+    # Initialize heuristic matrix
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Edge-based penalties
+    # Capacity penalty for exceeding the capacity at the end of the visit
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * 1000.0, min=0.0)
+    heuristics -= capacity_penalty * dampening_factors['capacity']
+
+    # Distance penalty for edges that are too far from the depot
+    mean_distance = distance_matrix[:, 0].mean()
+    distance_penalty = (distance_matrix - mean_distance) * 100
+    heuristics += torch.clamp(distance_penalty, min=0.0) * dampening_factors['distance']
+
+    # Feasibility penalty for remaining capacity at each node
+    feasible_penalty = (remaining_capacity <= 0).float() * -1000
+    heuristics += feasible_penalty * dampening_factors['feasibility']
+
+    # Add random perturbation for diversity
+    random_perturbation = torch.randn_like(heuristics) * dampening_factors['random_perturbation']
+    heuristics += random_perturbation
+
+    # Normalize the heuristic values to the range [0, 1]
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    normalized_heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    return normalized_heuristics
+```

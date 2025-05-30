@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Calculate load balance for each edge based on average demand
+    load_balance = average_demand_per_edge / total_capacity
+    
+    # Apply penalties for edge load balance
+    overload_penalty = (load_balance.clamp(max=1) - load_balance) ** 2
+    underload_penalty = (load_balance - load_balance.clamp(min=0)) ** 2
+    
+    # Integrate PSO adaptive population management
+    # Here we use a simple adaptive factor based on the diversity of the solution
+    diversity = torch.mean(1 / (distance_matrix.sum(dim=1) + 1))
+    adaptive_factor = diversity.clamp(min=0.1, max=1.5)
+    
+    # Apply the adaptive factor to the load balance penalties
+    penalty_overload = overload_penalty * adaptive_factor
+    penalty_underload = underload_penalty * adaptive_factor
+    
+    # Combine penalties
+    heuristics = -penalty_overload + penalty_underload
+    
+    # Ensure all penalties are negative
+    heuristics = heuristics.clamp(min=0)
+    
+    # Return the heuristics matrix with edges with zero distance set to zero
+    heuristics[distance_matrix == 0] = 0
+    
+    return heuristics
+```

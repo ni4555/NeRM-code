@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    max_utility = utility.max(axis=1)
+    
+    # Introduce randomness to encourage exploration
+    random_noise = np.random.rand(*max_utility.shape) * 0.1
+    
+    # Introduce time-sensitivity by adding a dynamic factor based on the time taken to evaluate the knapsack
+    # Assuming a function `get_time_elapsed` that returns the time in seconds
+    dynamic_factor = get_time_elapsed() * 0.05
+    
+    # Non-linear factor for balancing the heuristics
+    non_linear_factor = np.sin(max_utility)
+    
+    # Combine all factors
+    heuristics = max_utility + random_noise + dynamic_factor + non_linear_factor
+    
+    # Sparsify the heuristics by setting values below a threshold to zero
+    threshold = heuristics.mean()
+    heuristics[heuristics < threshold] = 0
+    
+    return heuristics
+```

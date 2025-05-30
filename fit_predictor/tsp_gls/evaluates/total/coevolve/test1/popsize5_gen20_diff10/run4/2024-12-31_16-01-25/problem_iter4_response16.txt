@@ -1,0 +1,51 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the number of nodes
+    num_nodes = distance_matrix.shape[0]
+    
+    # Initialize the heuristic matrix with zeros
+    heuristics = np.zeros_like(distance_matrix)
+    
+    # Calculate the average distance for each edge to all other edges
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                average_distance = np.mean(distance_matrix[i] + distance_matrix[j])
+                heuristics[i, j] = average_distance
+    
+    # Adjust the heuristic values based on a penalty for long edges
+    penalty_factor = 10
+    median_distance = np.median(distance_matrix)
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                if heuristics[i, j] > median_distance:
+                    heuristics[i, j] += penalty_factor * (heuristics[i, j] - median_distance)
+    
+    # Consider edge penalties based on the distance to the median distance
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                heuristics[i, j] += np.abs(heuristics[i, j] - median_distance) / 2
+    
+    # Weigh the global properties by considering the distance from each node to the center of the matrix
+    center = num_nodes // 2  # Using an arbitrary method to define the center of the matrix
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                heuristics[i, j] += np.abs(i - center) + np.abs(j - center)
+    
+    # Use domain knowledge by giving higher penalties to edges that would result in visiting nodes out of order
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Assuming a clockwise order of nodes is preferred
+                clockwise_diff = (j - i + num_nodes) % num_nodes
+                counterclockwise_diff = (i - j + num_nodes) % num_nodes
+                if clockwise_diff < counterclockwise_diff:
+                    heuristics[i, j] += 0.5  # Increase penalty for counterclockwise edges
+    
+    return heuristics
+```

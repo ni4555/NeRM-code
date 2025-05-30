@@ -1,0 +1,63 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic matrix with high values
+    heuristic_matrix = np.full(distance_matrix.shape, np.inf)
+    
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=1)
+    
+    # Calculate the usage of each edge
+    edge_usage = np.count_nonzero(distance_matrix, axis=0)
+    
+    # Calculate the mean and standard deviation of the distance matrix
+    mean_distance = np.mean(distance_matrix)
+    std_distance = np.std(distance_matrix)
+    
+    # Normalize node degrees and edge usage
+    degrees_normalized = (degrees - np.min(degrees)) / (np.max(degrees) - np.min(degrees))
+    edge_usage_normalized = (edge_usage - np.min(edge_usage)) / (np.max(edge_usage) - np.min(edge_usage))
+    
+    # Introduce non-linear scaling for distances to avoid local minima
+    non_linear_distances = 1 / (1 + np.exp(-distance_matrix / std_distance))
+    
+    # Introduce noise for exploration
+    noise = np.random.normal(0, 0.1, distance_matrix.shape)
+    
+    # Balance global vs. local adjustments by scaling the parameters
+    global_scale = 0.2
+    local_scale = 0.5
+    
+    # Adjust heuristic values based on the factors
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                # Adjust based on normalized node degree and edge usage
+                degree_adjustment = global_scale * degrees_normalized[i] * degrees_normalized[j]
+                usage_adjustment = global_scale * edge_usage_normalized[i] * edge_usage_normalized[j]
+                
+                # Apply non-linear scaling and noise to the distance
+                distance_adjustment = local_scale * non_linear_distances[i][j] + noise[i][j]
+                
+                # Encourage diversity through interaction
+                interaction = np.sum(1 / np.maximum(1e-6, distance_matrix[i, :])) + np.sum(1 / np.maximum(1e-6, distance_matrix[:, j]))
+                interaction_adjustment = global_scale * (interaction - 2) / 100
+                
+                # Combine adjustments
+                heuristic_matrix[i][j] = distance_matrix[i][j] * (1 + degree_adjustment + usage_adjustment + distance_adjustment + interaction_adjustment)
+    
+    # Prevent overfitting by ensuring that the heuristic is not too precise
+    heuristic_matrix *= 0.8
+    
+    # Adapt heuristics dynamically based on the current solution
+    # Assuming 'current_solution' is the current route, and we adjust the heuristics to penalize the edges used in the current solution
+    current_solution = np.random.permutation(distance_matrix.shape[0])
+    for i in range(len(current_solution) - 1):
+        heuristic_matrix[current_solution[i]][current_solution[(i + 1) % distance_matrix.shape[0]]] *= 1.1
+    
+    # Ensure that no self-loops have a non-zero heuristic
+    np.fill_diagonal(heuristic_matrix, np.inf)
+    
+    return heuristic_matrix
+```

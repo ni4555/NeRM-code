@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+
+    epsilon = 1e-8
+    edge_potential = torch.exp(-distance_matrix / epsilon)
+
+    # Feature encouragement
+    feature_encouragement = (demands < 1.5) * (distance_matrix < 10) * 0.1
+    edge_potential = edge_potential * normalized_demands
+    edge_potential = edge_potential + feature_encouragement
+
+    # Feature penalties
+    high_demand_penalty = (demands > 1.5) * 0.1
+    edge_potential = edge_potential - high_demand_penalty
+
+    return edge_potential
+```

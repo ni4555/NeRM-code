@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+
+    # Scale demands relative to the total demand
+    scaled_demands = demands / total_demand
+
+    # Calculate the remaining capacity for each node as we move away from the depot
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_demand - cumulative_demand
+
+    # Initialize the heuristic matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Apply demand-based heuristics
+    # Edges leading to or originating from infeasible demands are penalized
+    for i in range(1, n):
+        if scaled_demands[i] > 1.0 or scaled_demands[0] > 1.0:
+            heuristics[:, i] -= 1000.0
+            heuristics[i, :] -= 1000.0
+    # Promising edges have scaled demands between 0.2 and 0.8 of the total demand
+    threshold_low = 0.2 * total_demand
+    threshold_high = 0.8 * total_demand
+    heuristics = torch.where(
+        (scaled_demands < threshold_high) & (scaled_demands > threshold_low),
+        heuristics + 10.0,
+        heuristics
+    )
+
+    # Apply distance-based heuristics
+    # Favour edges that are shorter in distance
+    distance_decay = torch.exp(-distance_matrix / distance_matrix.mean())
+    heuristics += (1.0 - distance_decay)
+
+    # Apply a dampening factor to mitigate the impact of high heuristics values
+    dampening_factor = 0.5
+    heuristics = torch.clamp(heuristics * dampening_factor, min=0.0)
+
+    # Normalize heuristics to the range [0, 1]
+    heuristics /= (heuristics.max() + heuristics.min())
+
+    return heuristics
+```

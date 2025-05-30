@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = -torch.ones_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    permutation = torch.randperm(n_nodes)
+    
+    for start_node in permutation:
+        remaining_capacity = demands[start_node]
+        for destination_node in permutation:
+            if start_node != destination_node:
+                total_demand = demand_cumsum[destination_node]
+                if total_demand <= remaining_capacity:
+                    distance = distance_matrix[start_node, destination_node]
+                    heuristics[start_node, destination_node] = 1 - distance
+                    remaining_capacity -= total_demand
+                    if remaining_capacity <= 0:
+                        heuristics[start_node, 0] = 1 - distance_matrix[start_node, 0]
+                        break
+                else:
+                    heuristics[start_node, destination_node] = -distance_matrix[start_node, destination_node]
+    return heuristics
+```

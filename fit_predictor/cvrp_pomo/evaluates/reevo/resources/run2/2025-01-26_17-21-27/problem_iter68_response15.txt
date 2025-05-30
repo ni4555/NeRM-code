@@ -1,0 +1,59 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Define penalties and factors
+    def distance_scaling(distance, cumulative):
+        return -torch.log1p(torch.abs(distance) - 1e-8) * (1 + cumulative / total_capacity)
+
+    def capacity_penalty(demand, capacity_per_node):
+        return -torch.log1p(torch.abs(demand - capacity_per_node) - 1e-8)
+
+    def early_overflow_penalty(cumulative, capacity_per_node):
+        overflow = cumulative > capacity_per_node
+        return (1 + 0.3 * (capacity_per_node - cumulative) / capacity_per_node) * (1 + overflow)
+
+    def overflow_penalty(cumulative_demand, demand):
+        return torch.where(
+            (cumulative_demand[:, None] + demand[None, :]) > total_capacity,
+            -torch.log1p((cumulative_demand[:, None] + demand[None, :]) - total_capacity - 1e-8),
+            torch.zeros_like(cumulative_demand)
+        )
+
+    def load_balance_penalty(cumulative_demand, capacity_per_node):
+        return -torch.log1p(torch.abs(cumulative_demand - capacity_per_node) - 1e-8)
+
+    def randomness_factor(cumulative_demand, total_capacity):
+        randomness = torch.abs(torch.randn_like(demands)) * 0.1
+        return randomness * (1 - cumulative_demand / total_capacity)
+
+    def diversity_factor(cumulative_demand, total_capacity):
+        diversity = torch.abs(torch.randn_like(demands)) * 0.2
+        return diversity / (torch.sum(torch.abs(diversity)) + 1e-8) * (1 - cumulative_demand / total_capacity)
+
+    # Calculate heuristic components
+    distance_scaling_component = distance_scaling(distance_matrix, cumulative_demand)
+    capacity_penalty_component = capacity_penalty(demands, total_capacity_vector)
+    early_overflow_component = early_overflow_penalty(cumulative_demand, total_capacity_vector)
+    overflow_component = overflow_penalty(cumulative_demand, demands)
+    load_balance_component = load_balance_penalty(cumulative_demand, total_capacity_vector)
+    randomness_component = randomness_factor(cumulative_demand, total_capacity)
+    diversity_component = diversity_factor(cumulative_demand, total_capacity)
+
+    # Combine components into a final heuristic
+    base_heuristics = (
+        distance_scaling_component +
+        capacity_penalty_component +
+        early_overflow_component +
+        overflow_component +
+        load_balance_component
+    )
+    final_heuristics = base_heuristics + randomness_component + diversity_component
+
+    return final_heuristics
+```

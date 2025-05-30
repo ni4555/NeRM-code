@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate score as the ratio of prize to the sum of weights in each dimension
+    score = prize / np.sum(weight, axis=1)
+    
+    # Calculate sparsity as the sum of (1 - weight) for each item
+    sparsity = np.sum(1 - weight, axis=1)
+    
+    # Calculate sparsity factor as the ratio of sparsity to the total sparsity
+    sparsity_factor = sparsity / np.sum(sparsity)
+    
+    # Calculate dimension variance as the exponential of the negative standard deviation of weights in each dimension
+    dimension_variance = np.exp(-np.std(weight, axis=1))
+    
+    # Calculate utility considering the score, sparsity, dimension variance, and prize
+    utility = score * (1 + sparsity_factor * dimension_variance)
+    
+    # Apply a non-linear transformation to the utility to highlight important features
+    transformed_utility = np.log1p(utility)
+    
+    # Normalize the transformed utility to focus on balance and relevance
+    normalized_utility = (transformed_utility - np.min(transformed_utility)) / (np.max(transformed_utility) - np.min(transformed_utility))
+    
+    # Calculate variance across dimensions for each item
+    variance_across_dimensions = np.var(weight, axis=1)
+    
+    # Apply a penalty for items with high variance across dimensions
+    variance_penalty = np.exp(-variance_across_dimensions)
+    
+    # Adjust utility with the penalty to enhance diversity and balance features
+    adjusted_utility = normalized_utility * variance_penalty
+    
+    return adjusted_utility
+```

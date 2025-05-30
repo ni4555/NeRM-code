@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    demand_threshold = 0.8 * total_capacity
+
+    # Calculate base penalties
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+
+    # Scale the distance penalty by cumulative demand and balance with demand penalty
+    scaled_distance_penalty = distance_penalty * (1 + cumulative_demand)
+    scaled_demand_penalty = demand_threshold / (1 + cumulative_demand)
+
+    # Create a matrix where higher cumulative demand has lower penalty for distance
+    demand_weighting = 1 - (cumulative_demand / demand_threshold)
+    balanced_penalty = scaled_distance_penalty * demand_weighting + scaled_demand_penalty * (1 - demand_weighting)
+
+    # Apply a dynamic penalty that increases when demand is approaching capacity
+    dynamic_penalty = capacity_penalty * (1 + (total_capacity - cumulative_demand) / demand_threshold)
+
+    # Include a bonus for the depot (node 0)
+    depot_bonus = (torch.arange(n) == 0).float()
+
+    # Combine all penalties and bonuses into the heuristics matrix
+    heuristics = balanced_penalty + dynamic_penalty + depot_bonus.unsqueeze(0)
+    return heuristics
+```

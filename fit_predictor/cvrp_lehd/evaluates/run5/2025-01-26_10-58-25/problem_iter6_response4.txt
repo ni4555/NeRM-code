@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    vehicle_capacity = 1.0
+
+    # Create a matrix with zero for the depot to itself and negative infinity for other edges
+    edge_penalties = torch.where(distance_matrix == 0, torch.zeros_like(distance_matrix), float('-inf'))
+
+    # Calculate cumulative demand from the depot to each customer
+    cumulative_demand = torch.cumsum(demands, dim=0) / vehicle_capacity
+
+    # Penalize edges where the cumulative demand exceeds vehicle capacity
+    edge_penalties += torch.clamp(cumulative_demand - vehicle_capacity, min=0)
+
+    # Calculate the minimum distance from the depot to each customer
+    min_distance_to_customer = torch.min(distance_matrix[0, 1:], dim=0).values
+
+    # Calculate the minimum distance from each customer to the depot
+    min_distance_from_customer = torch.min(distance_matrix[1:, 0], dim=0).values
+
+    # Add the minimum distances to the penalties
+    edge_penalties += min_distance_to_customer
+    edge_penalties[1:, 0] += min_distance_from_customer
+
+    # Add the distance matrix to the penalties to create a potential matrix
+    potential_matrix = distance_matrix + edge_penalties
+
+    # Normalize the potential matrix to ensure the sum of each row is 1
+    norm_factor = torch.sum(potential_matrix, dim=1, keepdim=True)
+    normalized_potential_matrix = potential_matrix / norm_factor
+
+    # Encourage visiting all customers by adding a penalty for not visiting each customer
+    not_visited_penalty = -demands
+    heuristics_matrix = normalized_potential_matrix + not_visited_penalty
+
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    heuristics_matrix = 1 - heuristics_matrix
+
+    return heuristics_matrix
+```

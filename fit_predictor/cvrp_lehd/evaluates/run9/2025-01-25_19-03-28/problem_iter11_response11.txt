@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Normalize demands
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate variance to penalize variability
+    demand_variance = (demands - normalized_demands.mean()).pow(2).mean()
+    variance_penalty = torch.exp(-demand_variance)  # Use exponential to cap penalties
+
+    # Normalize distance matrix
+    distance_matrix_normalized = distance_matrix / distance_matrix.max()
+
+    # Identify potential outliers using Z-score and apply higher penalties
+    z_scores = (demands - normalized_demands.mean()) / normalized_demands.std()
+    outlier_penalty = torch.where(z_scores.abs() > 2, torch.tensor(5.0, dtype=distance_matrix.dtype), torch.tensor(1.0, dtype=distance_matrix.dtype))
+
+    # Combine factors to get heuristics
+    heuristic_matrix = torch.mul(
+        torch.mul(normalized_demands, distance_matrix_normalized),
+        variance_penalty * outlier_penalty
+    )
+
+    # Normalize heuristics to be within the range of 0 to 1 for balance and scale invariance
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=0, max=1)
+
+    return heuristic_matrix
+```

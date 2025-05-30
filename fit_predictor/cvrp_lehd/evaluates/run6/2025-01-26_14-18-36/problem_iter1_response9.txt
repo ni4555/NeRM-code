@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    
+    # Calculate the minimum distance to the depot for each node
+    min_to_depot = torch.min(distance_matrix[:, 0], dim=1).values
+    
+    # Calculate the minimum distance from each node to the depot
+    min_from_depot = torch.min(distance_matrix[0, :], dim=0).values
+    
+    # Calculate the heuristic value based on the demand and distance
+    heuristic_values = (demands * (min_to_depot + min_from_depot)).unsqueeze(1)
+    
+    # Normalize the heuristic values by the total demand
+    normalized_heuristic_values = heuristic_values / total_demand
+    
+    # Create a mask for edges that are within the vehicle's capacity
+    capacity_mask = (demands < demands.sum() / demands.numel()).to(torch.float32)
+    
+    # Combine the normalized heuristic values with the capacity mask
+    heuristics = normalized_heuristic_values * capacity_mask
+    
+    # Fill the diagonal with zeros to avoid considering the depot as a visiting node
+    torch.fill_diagonal_(heuristics, 0)
+    
+    return heuristics
+```

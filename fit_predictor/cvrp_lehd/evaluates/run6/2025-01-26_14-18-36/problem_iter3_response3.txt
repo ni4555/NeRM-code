@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    # Weigh local info (distance) with global demand stats
+    distance_scaled = distance_matrix / total_demand
+    # Minimize computations and use demand scaling
+    demand_scaled = demands / total_demand
+    # Reward edges with lower cost and higher demand relative to capacity
+    reward = -distance_scaled + demand_scaled
+    # Consider capacity constraints by penalizing high demand edges
+    capacity_penalty = demands * (1 - demands / total_demand)
+    # Combine cost and reward with capacity penalty
+    heuristics = reward - capacity_penalty
+    # Optimize locally while considering global objectives by adding a constant
+    heuristics += 1.0  # Assuming 1.0 is a suitable constant
+    return heuristics
+```

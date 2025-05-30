@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+
+    # Calculate cumulative demand and remaining capacity
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    remaining_capacity = total_demand - cumulative_demand
+
+    # Calculate distance penalties
+    distance_penalty = (distance_matrix / total_demand) ** 0.5
+
+    # Calculate demand penalties
+    demand_penalty = torch.abs(demands - average_demand)
+
+    # Calculate demand variability heuristic
+    demand_variable = demands.abs() - average_demand.abs()
+
+    # Combine the heuristics
+    heuristics = distance_penalty * (remaining_capacity + demand_variable)
+
+    # Normalize the heuristics values
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    if max_heuristic != min_heuristic:
+        heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    else:
+        heuristics = torch.ones_like(heuristics)
+
+    # Initialize the full heuristic matrix
+    full_heuristics = torch.zeros_like(distance_matrix)
+
+    # Update the full heuristic matrix with the calculated heuristics
+    full_heuristics[1:, 0] = heuristics  # Edges from depot to customers
+    full_heuristics[0, 1:] = heuristics  # Edges from customers to depot
+    full_heuristics[0, 0] = -demands.sum() / total_demand  # Edge back to depot
+
+    return full_heuristics
+```

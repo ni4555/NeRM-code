@@ -1,0 +1,49 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    heuristics = torch.zeros_like(distance_matrix)
+    visited = torch.zeros(n, dtype=torch.bool)
+    
+    # Calculate the initial distances from the depot to all other nodes
+    initial_distances = distance_matrix[depot]
+    
+    # Initialize a variable to keep track of the total demand
+    total_demand = demands.sum()
+    
+    for i in range(1, n):
+        if not visited[i]:
+            nearest_node = torch.argmin(initial_distances)
+            # Calculate the cost of visiting this node
+            edge_cost = distance_matrix[depot, nearest_node]
+            # Calculate the demand of the node
+            node_demand = demands[nearest_node]
+            # Check if the visit would exceed the capacity
+            if node_demand <= total_demand:
+                heuristics[depot, nearest_node] = edge_cost
+                heuristics[nearest_node, depot] = edge_cost
+                # Update the total demand
+                total_demand -= node_demand
+                # Mark this node as visited
+                visited[i] = True
+                # Update the initial distances for future nodes
+                initial_distances -= distance_matrix[nearest_node]
+                initial_distances[nearest_node] = float('inf')
+    
+    # Normalize demand to account for vehicle capacity
+    normalized_demand = demands / total_demand
+    
+    # Calculate the symmetry of demand and distance
+    demand_symmetry = torch.sqrt(normalized_demand.unsqueeze(1) * normalized_demand.unsqueeze(0))
+    distance_symmetry = 1 / (distance_matrix + 1e-8)
+    
+    # Combine the demand and distance symmetry to adjust heuristics
+    heuristics = demand_symmetry * distance_symmetry
+    
+    # Ensure non-negative heuristics by taking the maximum value of each row and subtracting it
+    heuristics -= heuristics.max(dim=1, keepdim=True)[0]
+    
+    return heuristics
+```

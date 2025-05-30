@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a modified balance heuristic
+    # Adjusting weights dynamically based on proximity to the depot
+    demand_weight = 1.5
+    penalty_threshold = 0.8
+    average_demand = normalized_demands.mean()
+    
+    # Calculate a weight for each node's demand based on its distance to the depot
+    distance_to_depot = torch.sqrt(torch.sum(distance_matrix**2, dim=1))
+    demand_weights = demand_weight * (1 - distance_to_depot / (distance_to_depot.max().item()))
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                normalized_demands - average_demand, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Combine potential values with dynamic demand weights and penalty term
+    potential_values = (normalized_distances + 
+                        demand_weights * normalized_demands - 
+                        penalty_term).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    return potential_values
+```

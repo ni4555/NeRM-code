@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the minimum distance to each customer from the depot
+    min_distances = torch.min(distance_matrix[:, 1:], dim=0)[0]
+    # Calculate the maximum distance to each customer from the depot
+    max_distances = torch.max(distance_matrix[:, 1:], dim=0)[0]
+    # Normalize distances to get a relative measure
+    normalized_distances = (min_distances - distance_matrix[:, 0]) / (max_distances - min_distances)
+    # Adjust for demand; higher demand should increase the heuristics value
+    demand_normalized = demands / torch.max(demands)
+    # Calculate the heuristic values as a combination of normalized distance and demand
+    heuristic_values = normalized_distances * demand_normalized
+    # Add a penalty for edges that are very close to the maximum capacity
+    penalty = torch.clamp(demands - demands.sum() / demands.shape[0], min=0) / demands.sum()
+    heuristic_values = heuristic_values + penalty.unsqueeze(1)
+    return heuristic_values
+```

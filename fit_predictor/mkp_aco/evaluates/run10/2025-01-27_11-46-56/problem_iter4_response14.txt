@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    max_utility = utility.max(axis=1)
+    diversity_score = np.sum((utility - max_utility[:, np.newaxis])**2, axis=1)
+    # Apply a dynamic adaptive weight allocation by incorporating the sum of all
+    # normalized weights as a base heuristic score.
+    base_score = normalized_weight.sum(axis=1)
+    # Use a weighted heuristic that balances utility and diversity while considering
+    # the base score.
+    heuristic = max_utility + diversity_score / (base_score + 1e-5)  # Adding a small epsilon to avoid division by zero
+    heuristic[heuristic < 0] = 0  # Avoid negative heuristics
+    return heuristic
+```

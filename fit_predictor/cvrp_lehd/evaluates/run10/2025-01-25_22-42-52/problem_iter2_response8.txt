@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Find the indices where the cumulative capacity equals or exceeds the demand
+    demand_satisfied_indices = (cumulative_demand >= cumulative_capacity[:, None]).any(dim=1)
+    
+    # If there is no such index for a node, use the nearest one
+    nearest_satisfied_index = torch.where(~demand_satisfied_indices, 
+                                          torch.argmin(torch.abs(cumulative_demand - cumulative_capacity[:, None]), dim=1), 
+                                          torch.arange(demands.size(0)))
+    
+    # Calculate the heuristics as the negative distance to the nearest customer
+    # that can be served without exceeding vehicle capacity
+    heuristics_matrix = -distance_matrix.scatter_(1, nearest_satisfied_index.unsqueeze(1), 
+                                                torch.ones_like(nearest_satisfied_index))
+    
+    return heuristics_matrix
+```

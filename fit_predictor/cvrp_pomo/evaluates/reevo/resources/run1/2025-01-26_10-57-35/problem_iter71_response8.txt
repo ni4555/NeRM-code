@@ -1,0 +1,47 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Define the balance between distance and demand
+    balance_factor = 0.5
+    
+    # Iterate over all edges, excluding the diagonal
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the heuristic value based on distance and demand
+                heuristics[i, j] = balance_factor * (1 / (distance_matrix[i, j] + 1e-8)) + (1 - balance_factor) * demands[j]
+                
+                # Adjust the heuristic based on the capacity constraint
+                if demands[j] > 1:
+                    heuristics[i, j] *= -1
+                elif demands[j] < 1:
+                    heuristics[i, j] *= 2
+                
+                # Normalize the heuristic value
+                max_heuristic = heuristics.max()
+                heuristics[i, j] /= max_heuristic
+    
+    # Adjust the heuristic values for the depot to emphasize its importance
+    depot_cost = demands[0]
+    heuristics[0, :] += depot_cost
+    heuristics[:, 0] += depot_cost
+    
+    # Minimize loops by penalizing the heuristics of edges that form a loop
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics += loop_heuristics
+    
+    # Normalize the heuristics matrix to ensure stability and prevent dominance
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    # Apply a dampening factor to all heuristic values
+    dampening_factor = 0.8
+    heuristics *= dampening_factor
+    
+    return heuristics
+```

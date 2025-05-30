@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand of all nodes
+    total_demand = demands.sum()
+    
+    # Calculate the maximum number of customers that can be visited by a single vehicle
+    max_customers_per_veh = (1 / (1 - demands.min())) * (demands.sum())
+    
+    # Calculate the minimum distance to the nearest customer for each node
+    min_distance_to_customer = torch.min(distance_matrix[:, 1:], dim=1).values
+    
+    # Calculate the potential savings by visiting a customer first before returning to the depot
+    savings = distance_matrix[0, 1:] - min_distance_to_customer
+    
+    # Calculate the heuristics based on the savings and the maximum number of customers
+    heuristics = savings * (max_customers_per_veh / demands)
+    
+    # Normalize the heuristics by the total demand
+    heuristics /= total_demand
+    
+    return heuristics
+```

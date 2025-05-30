@@ -1,0 +1,43 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Use the sum of distances from each customer to the depot as a penalty
+    distance_to_depot_penalty = -torch.sum(distance_matrix, dim=1)
+    
+    # Combine the two penalties to create an initial penalty matrix
+    initial_penalty_matrix = penalty_matrix + distance_to_depot_penalty
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Normalize the distance penalty matrix to ensure non-negativity and scale balance
+    normalized_distance_penalty_matrix = distance_penalty_matrix / distance_penalty_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine the initial penalty and normalized distance penalty matrices
+    combined_matrix = initial_penalty_matrix + normalized_distance_penalty_matrix
+    
+    # Apply an exponential transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(combined_matrix))
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale balance
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Add a diversity metric by incorporating the minimum distance to a customer
+    min_distance_to_customer = torch.min(distance_matrix, dim=1)[0]
+    diversity_metric = 1 / (1 + min_distance_to_customer)
+    
+    # Combine the normalized emphasized matrix with the diversity metric
+    combined_with_diversity = normalized_emphasized_matrix + diversity_metric
+    
+    # Transform the combined matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -combined_with_diversity
+    
+    return heuristics_matrix
+```

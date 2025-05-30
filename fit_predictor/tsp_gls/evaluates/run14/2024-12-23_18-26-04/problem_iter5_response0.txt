@@ -1,0 +1,54 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic matrix with high values
+    heuristic_matrix = np.full(distance_matrix.shape, np.inf)
+    
+    # Calculate the degree of each node
+    degrees = np.sum(distance_matrix, axis=1)
+    
+    # Calculate the usage of each edge
+    edge_usage = np.count_nonzero(distance_matrix, axis=0)
+    
+    # Calculate the mean and standard deviation of the distance matrix
+    mean_distance = np.mean(distance_matrix)
+    std_distance = np.std(distance_matrix)
+    
+    # Normalize degrees to a range between 0 and 1
+    degrees_normalized = (degrees - np.min(degrees)) / (np.max(degrees) - np.min(degrees))
+    
+    # Normalize edge usage to a range between 0 and 1
+    edge_usage_normalized = (edge_usage - np.min(edge_usage)) / (np.max(edge_usage) - np.min(edge_usage))
+    
+    # Adjust distances using a non-linear scaling to avoid local minima
+    distance_adjustment = np.exp(-((distance_matrix - mean_distance) ** 2) / (2 * std_distance ** 2))
+    
+    # Introduce noise to explore different solutions
+    noise_level = np.random.normal(0, 0.1, distance_matrix.shape)
+    
+    # Apply different weights to balance global vs. local adjustments
+    weight_degree = 0.2
+    weight_usage = 0.1
+    weight_distance = 0.6
+    weight_interaction = 0.1
+    
+    # Encourage diversity by considering interactions
+    interaction = np.sum(1 / np.maximum(1e-6, distance_matrix, axis=1)) + np.sum(1 / np.maximum(1e-6, distance_matrix, axis=0))
+    interaction_normalized = (interaction - np.mean(interaction)) / np.std(interaction)
+    
+    # Combine the adjustments with the weights
+    heuristic_matrix = distance_matrix * (1 + 
+                                         weight_degree * (degrees_normalized - 0.5) + 
+                                         weight_usage * (edge_usage_normalized - 0.5) + 
+                                         weight_distance * distance_adjustment + 
+                                         weight_interaction * interaction_normalized)
+    
+    # Prevent overfitting by limiting the heuristic values
+    heuristic_matrix = np.clip(heuristic_matrix, a_min=0, a_max=np.max(distance_matrix))
+    
+    # Ensure that no self-loops have a non-zero heuristic
+    np.fill_diagonal(heuristic_matrix, np.inf)
+    
+    return heuristic_matrix
+```

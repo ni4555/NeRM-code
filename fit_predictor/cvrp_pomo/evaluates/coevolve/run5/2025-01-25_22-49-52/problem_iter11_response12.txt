@@ -1,0 +1,74 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a balance heuristic
+    distance_weight = 0.5
+    demand_weight = 2.0
+    penalty_threshold = 0.8  # Nodes with demand greater than 0.8 times the average demand are penalized
+    average_demand = normalized_demands.mean()
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                normalized_demands - average_demand, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Introduce a node partitioning approach to separate nodes based on their demand
+    partitioning_factor = 0.5
+    partitioning = torch.where(normalized_demands > average_demand, 
+                                normalized_demands, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Adjust potential values based on partitioning
+    potential_values = (normalized_distances * (1 - partitioning) +
+                        distance_weight * normalized_distances +
+                        demand_weight * normalized_demands - 
+                        penalty_term * partitioning).abs()
+    
+    # Introduce a demand relaxation to avoid unnecessary penalties for close nodes
+    for i in range(1, n):
+        for j in range(i+1, n):
+            if torch.isclose(demands[i], demands[j]):
+                # Reduce penalty if the demand of the neighboring node is close
+                if potential_values[i, j] < 0:
+                    potential_values[i, j] *= 0.5
+                    potential_values[j, i] *= 0.5
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Introduce a path decomposition to split the problem and handle parts independently
+    # Split the matrix based on high and low demand
+    high_demand_nodes = normalized_demands > average_demand
+    low_demand_nodes = ~high_demand_nodes
+    
+    # Compute the potential for each subproblem separately
+    subproblem_distances = torch.triu(distance_matrix)
+    subproblem_demands = demands[high_demand_nodes] * high_demand_nodes + demands[low_demand_nodes] * low_demand_nodes
+    
+    subproblem_potentials = heuristics_v1(subproblem_distances, subproblem_demands)
+    
+    # Reconstruct the full potential matrix using the subproblem results
+    full_potentials = torch.zeros_like(potential_values)
+    for i in range(n):
+        for j in range(i+1, n):
+            if high_demand_nodes[i] & high_demand_nodes[j]:
+                full_potentials[i, j] = subproblem_potentials[i, j]
+                full_potentials[j, i] = subproblem_potentials[j, i]
+    
+    # Introduce a sigmoid smoothing to transition between high and low potential values
+    smoothing_factor = 0.1
+    sigmoid_smooth = torch.sigmoid((potential_values - full_potentials) * smoothing_factor)
+    potential_values = potential_values * (1 - sigmoid_smooth) + full_potentials * sigmoid_smooth
+    
+    return potential_values
+```

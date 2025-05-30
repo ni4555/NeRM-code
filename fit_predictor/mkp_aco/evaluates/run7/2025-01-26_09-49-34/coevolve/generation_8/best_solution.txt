@@ -1,0 +1,34 @@
+Fitness: inf
+
+Description:
+The objective is to develop a specialized stochastic heuristic for the Multi-Knapsack Problem (MKP) that maximizes total prize collection while adhering to strict multi-dimensional weight constraints. This heuristic employs adaptive sampling techniques to iteratively generate candidate solutions, incorporating dynamic fitness evaluation and robust perturbation algorithms to strike a balance between exploration and exploitation. The approach aims to iteratively refine solutions using multi-objective optimization, enabling a synergistic effect that enhances both effectiveness and efficiency in solving the MKP under stringent constraints.
+
+Code:
+import numpy as np
+import numpy as np
+from scipy.stats import multivariate_normal
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    capacity = np.ones(m)
+    item_prob = np.zeros(n)
+    mean = np.mean(weight, axis=0)
+    cov = np.cov(weight.T)
+    std_dev = np.linalg.cholesky(cov)
+
+    # Initial dynamic fitness evaluation
+    for _ in range(10):  # Iterations for initial fitness evaluation
+        proposal = multivariate_normal.rvs(mean, std_dev, size=(n, 10))
+        for j in range(n):
+            item_prob[j] += np.sum(np.all(proposal[j, :] <= capacity, axis=1))
+
+    # Refinement phase
+    for _ in range(50):  # More iterations for refinement
+        for j in range(n):
+            # Generate multiple proposals and evaluate them
+            proposals = multivariate_normal.rvs(mean, std_dev, size=(10, 10))
+            for p in proposals:
+                if np.all(p <= capacity):
+                    item_prob[j] += np.sum(prize[j] * np.all(p[j, :] <= capacity, axis=0))
+
+    return item_prob / np.sum(item_prob)

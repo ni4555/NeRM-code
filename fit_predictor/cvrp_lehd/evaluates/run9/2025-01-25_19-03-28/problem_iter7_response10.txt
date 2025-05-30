@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Normalize the demands to account for vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Integrate demand variance by normalizing the distance and scaling with demand
+    distance_matrix = distance_matrix / distance_matrix.mean()
+    demand_diff = demands.abs().mean()  # Average demand difference as a scaling factor
+
+    # Apply dynamic weights to balance load distribution and stabilize the heuristic
+    weight_balance = demands.sum() / distance_matrix.size(0)
+    weight_demand_diff = 1.0 / (demand_diff + 1e-6)  # Avoid division by zero
+
+    # Compute the heuristic matrix using the weighted combination of demand and distance
+    heuristic_matrix = torch.mul(
+        torch.mul(normalized_demands, distance_matrix),
+        weight_balance * weight_demand_diff
+    )
+
+    # Enforce stability by capping the positive values and penalizing excessively high values
+    max_weight = torch.tensor(1.0, dtype=distance_matrix.dtype)
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-max_weight, max=max_weight)
+
+    return heuristic_matrix
+```

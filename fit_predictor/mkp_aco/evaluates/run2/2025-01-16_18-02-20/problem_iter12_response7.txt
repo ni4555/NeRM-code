@@ -1,0 +1,43 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate a diversity score based on the average difference from other items
+    diversity_scores = np.mean(np.abs(normalized_prize - normalized_prize.reshape(-1, 1)), axis=0)
+    
+    # Randomly set a trade-off factor between normalized prize and diversity score
+    trade_off_factor = 0.5 + 0.5 * np.random.rand()
+    total_score = normalized_prize * trade_off_factor + diversity_scores * (1 - trade_off_factor)
+    
+    # Incorporate a sparsity score based on the sum of weights across dimensions
+    sparsity_scores = np.sum(weight, axis=1)
+    
+    # Calculate the variance of weights across dimensions for each item
+    weight_variance = np.var(weight, axis=1)
+    
+    # Combine the sparsity and weight variance with a dynamic factor
+    sparsity_factor = 0.2 + 0.8 * np.random.rand()
+    variance_factor = 0.1 + 0.9 * np.random.rand()
+    total_score += sparsity_scores * sparsity_factor - weight_variance * variance_factor
+    
+    # Normalize the total score to ensure they are on the same scale
+    total_score /= np.max(total_score)
+    
+    # Rank the items based on their normalized total score
+    ranked_indices = np.argsort(total_score)[::-1]
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    # Randomly select a percentage of the most promising elements to set to 1
+    percentage_to_select = 0.3 + 0.2 * np.random.rand()
+    selected_indices = ranked_indices[:int(len(ranked_indices) * percentage_to_select)]
+    heuristics[selected_indices] = 1
+    
+    return heuristics
+```

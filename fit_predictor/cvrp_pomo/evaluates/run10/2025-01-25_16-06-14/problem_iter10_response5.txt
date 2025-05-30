@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Normalize the demands by dividing with the max demand to ensure all demands are considered
+    normalized_demands = demands / demands.max()
+    # Use a sigmoid function to balance the importance of demand
+    sigmoid_demand = 1 / (1 + torch.exp(-normalized_demands))
+    # Use a logarithmic transformation for the distance matrix to reduce the impact of large distances
+    log_distance_matrix = torch.log(normalized_distance_matrix + 1e-10)  # Adding a small constant to avoid log(0)
+    # Combine the transformed distance and demand using a weighted sum
+    # Weights are chosen to give more importance to demand, as we are balancing the demand and distance significance
+    combined_heuristic = 0.8 * log_distance_matrix - 0.2 * sigmoid_demand
+    # Apply a non-linear transformation to emphasize lower demand and shorter distances
+    # Use an exponential transformation to increase the weight of nodes with lower demand and distance
+    combined_heuristic_exp = torch.exp(-combined_heuristic)
+    # Invert the sign to get negative values for undesirable edges
+    return -combined_heuristic_exp
+```

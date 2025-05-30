@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the edge usage
+    edge_usage = np.sum(distance_matrix, axis=0) / len(distance_matrix)
+    
+    # Calculate the average distance from each vertex to all other vertices
+    avg_distances = np.mean(distance_matrix, axis=1)
+    
+    # Calculate the heuristic values based on the average distance minus the current edge distance
+    # and adjust them using the edge usage
+    heuristic_matrix = (avg_distances - distance_matrix) * (1 - edge_usage)
+    
+    # Adjust the heuristic values to be more pronounced for underutilized edges
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                if edge_usage[i] < 0.5 or edge_usage[j] < 0.5:
+                    heuristic_matrix[i, j] *= 1.5
+    
+    # Apply a random perturbation to prevent the algorithm from getting stuck in local minima
+    perturbation = np.random.rand(*distance_matrix.shape) * 0.1 - 0.05
+    heuristic_matrix += perturbation
+    
+    # Cap the minimum heuristic value to avoid overly negative values
+    min_val = np.min(heuristic_matrix[heuristic_matrix < np.inf])
+    if min_val < 0:
+        heuristic_matrix += abs(min_val)
+    
+    return heuristic_matrix
+```

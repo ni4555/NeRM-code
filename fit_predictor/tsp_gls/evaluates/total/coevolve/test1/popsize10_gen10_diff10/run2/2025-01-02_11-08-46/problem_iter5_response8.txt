@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Normalize the distances to ensure all values are between 0 and 1
+    min_distance = np.min(distance_matrix)
+    max_distance = np.max(distance_matrix)
+    normalized_matrix = (distance_matrix - min_distance) / (max_distance - min_distance)
+    
+    # Calculate the heuristic values based on normalized distances
+    for i in range(len(distance_matrix)):
+        for j in range(len(distance_matrix)):
+            if i != j:
+                # Weigh the normalized distance by the sum of the maximum distances
+                # from each node to all other nodes, normalized to the maximum possible sum
+                max_distances = np.max(normalized_matrix, axis=1)[:, None]
+                sum_max_distances = np.sum(max_distances)
+                heuristic_value = normalized_matrix[i, j] * (sum_max_distances - normalized_matrix[i, j])
+            else:
+                heuristic_value = 0
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value  # Exploit symmetry
+    
+    # Blend heuristics by incorporating the inverse of the distance as a second heuristic
+    heuristic_matrix += (1 / (distance_matrix + 1e-8)) * (1 - np.diag(heuristic_matrix))
+    
+    return heuristic_matrix
+```

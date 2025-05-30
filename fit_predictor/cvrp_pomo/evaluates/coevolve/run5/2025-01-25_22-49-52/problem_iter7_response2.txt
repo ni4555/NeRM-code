@@ -1,0 +1,58 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate the potential value for each edge using a balance heuristic
+    # The heuristic now includes a dynamic weight based on the distance and demand
+    # The weight increases with distance but is dampened by high demands
+    distance_weight = 0.5
+    demand_weight = 2.0
+    penalty_threshold = 0.8  # Nodes with demand greater than 0.8 times the average demand are penalized
+    average_demand = normalized_demands.mean()
+    
+    # Create a penalty term for high demand nodes
+    penalty_term = torch.where(normalized_demands > penalty_threshold, 
+                                normalized_demands - average_demand, 
+                                torch.zeros_like(normalized_demands))
+    
+    # Combine potential values with a dampening factor for high demands
+    potential_values = (normalized_distances * (1 - normalized_demands) +
+                        distance_weight * normalized_distances +
+                        demand_weight * normalized_demands - 
+                        penalty_term).abs()
+    
+    # Set the depot to 0 potential value
+    potential_values[0, :] = 0
+    potential_values[:, 0] = 0
+    
+    # Mutate the heuristic by incorporating node partitioning
+    # Here we use a simple clustering approach to create partitions
+    clusters = torch.argsort(torch.argsort(potential_values.sum(dim=1), dim=1))
+    num_clusters = clusters[0].unique().numel()
+    
+    # Assign weights to clusters based on their average potential value
+    cluster_weights = torch.zeros(n)
+    for i in range(num_clusters):
+        cluster_indices = clusters[0][clusters[1] == i]
+        cluster_weight = potential_values[cluster_indices].mean()
+        cluster_weights[cluster_indices] = cluster_weight
+    
+    # Adjust the potential values based on the cluster weights
+    adjusted_potential_values = potential_values * cluster_weights
+    
+    # Set the depot to 0 potential value
+    adjusted_potential_values[0, :] = 0
+    adjusted_potential_values[:, 0] = 0
+    
+    return adjusted_potential_values
+```

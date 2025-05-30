@@ -1,0 +1,32 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize and average weight for each item
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    
+    # Calculate density based on prize and average weight
+    density = prize / average_weight
+    
+    # Calculate constraint balance for each item
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Calculate utility considering both density and constraint balance
+    utility = density * (1 - constraint_balance)
+    
+    # Calculate sparsity based on the ratio of utility to maximum prize
+    sparsity = (utility > max_prize / np.sum(prize)) * 1.0
+    
+    # Adapt dynamically by considering the sparsity of the last iteration
+    previous_sparsity = np.zeros_like(sparsity)
+    # Simulating sparsity from the previous iteration (random sparsity pattern)
+    np.random.seed(0)  # Setting a seed for reproducibility
+    previous_sparsity = np.random.binomial(1, 0.5, size=sparsity.shape)
+    
+    # Combine the current utility with the previous sparsity
+    combined_heuristics = utility * sparsity * previous_sparsity
+    
+    # Normalize the heuristics scores to ensure they sum to 1
+    normalized_heuristics = combined_heuristics / np.sum(combined_heuristics)
+    
+    return normalized_heuristics
+```

@@ -1,0 +1,22 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    # Calculate the sum of distances from the depot to all nodes
+    depot_distances = distance_matrix[depot, :].unsqueeze(1)
+    # Calculate the sum of distances from the depot to all nodes except the depot
+    sum_depot_distances = depot_distances - distance_matrix.sum(axis=1, keepdim=True)
+    # Incorporate a penalty for exceeding demand
+    penalty_exceeding_demand = sum_depot_distances - demands.unsqueeze(0)
+    # Normalize the penalty to ensure non-negative values and smoothness
+    penalty_exceeding_demand = torch.clamp(penalty_exceeding_demand, min=0)
+    # Normalize the penalty by the maximum distance from the depot to any node
+    max_depot_distance = torch.max(depot_distances)
+    penalty_exceeding_demand /= max_depot_distance
+    # Apply a non-linear transformation using a sigmoid function for a smooth transition
+    penalty_exceeding_demand = F.sigmoid(penalty_exceeding_demand)
+    return penalty_exceeding_demand
+```

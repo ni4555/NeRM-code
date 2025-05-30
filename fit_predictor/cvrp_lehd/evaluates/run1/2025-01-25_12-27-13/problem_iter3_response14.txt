@@ -1,0 +1,24 @@
+```python
+import torch
+import numpy as np
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Incorporate non-linear transformations like exponential decay
+    decay_factor = 0.5  # This can be tuned based on the problem context
+    demand_exponential = torch.exp(-decay_factor * torch.abs(demands))
+
+    # Incorporate demand and distance balancing using a sigmoid function
+    sigmoid_coefficient = 1.0  # This can be tuned
+    distance_scaled = distance_matrix * sigmoid_coefficient
+    demand_scaled = demands * sigmoid_coefficient
+
+    # Vectorized operations to combine the heuristics components
+    edge_heuristic = demand_exponential * demand_scaled * distance_scaled
+    edge_heuristic = edge_heuristic.clamp(min=0)  # Keep only positive heuristics
+
+    return edge_heuristic
+```

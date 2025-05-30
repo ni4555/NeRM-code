@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    # Normalize demands
+    demands = demands / torch.sum(demands)
+    # Compute cumulative sum of demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Create an initial matrix of heuristics with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Set the heuristics from the depot to itself
+    heuristics[:, 0] = 0
+    
+    # Iterate over all pairs of nodes
+    for start_node in range(1, n_nodes):
+        for destination_node in range(start_node + 1, n_nodes):
+            # Calculate total demand between the two nodes
+            total_demand = demand_cumsum[destination_node] - demand_cumsum[start_node]
+            # Check if the total demand can be carried in one vehicle
+            if total_demand <= 1.0:
+                # Calculate the cost for this edge
+                distance = distance_matrix[start_node, destination_node]
+                # Assign positive heuristic to this edge
+                heuristics[start_node, destination_node] = distance
+                # Update heuristics to break symmetry
+                heuristics[destination_node, start_node] = distance
+    
+    # Normalize heuristics by total distance to the depot
+    total_distance_to_depot = torch.sum(distance_matrix[:, 0])
+    heuristics = heuristics / total_distance_to_depot
+    return heuristics
+```

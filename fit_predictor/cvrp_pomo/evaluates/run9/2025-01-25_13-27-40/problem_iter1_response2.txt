@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the negative distance to the nearest customer with available capacity
+    # This creates a tensor where the value is the minimum distance to a customer with available capacity
+    neg_distances_to_customers = -torch.min(distance_matrix, dim=1)[0]
+    # Multiply by a factor based on demand to increase the priority for edges that serve a higher demand
+    demand_scaled = (demands - demands.mean()) / demands.std()  # Normalize the demand values
+    neg_distances_to_customers = neg_distances_to_customers * demand_scaled
+
+    # Create a demand matrix to find the nearest customer with available capacity
+    demand_matrix = torch.exp(-demands / demands.mean())  # Scale the demands
+    _, nearest_customer_indices = torch.topk(-demand_matrix, dim=1, k=1)
+
+    # Calculate the positive heuristic for edges from the nearest customer with available capacity
+    nearest_customer_demand = demands[nearest_customer_indices]
+    pos_heuristics = torch.sum(nearest_customer_demand, dim=0)
+
+    # Calculate the negative heuristic based on the shortest path back to the depot
+    _, farthest_customer_index = torch.max(distance_matrix, dim=1)
+    neg_heuristics = -distance_matrix[farthest_customer_index]
+
+    # Combine the heuristics using a weighting factor
+    heuristics = (pos_heuristics + neg_heuristics) / (pos_heuristics + neg_heuristics).abs()
+
+    return heuristics
+```

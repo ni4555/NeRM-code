@@ -1,0 +1,16 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    cum_demands = torch.cumsum(demands, dim=0)
+    capacity_mask = cum_demands < demands[0]
+    decayed_distances = torch.exp(-distance_matrix * 0.1)
+    log_demand_penalty = torch.log1p(demands)
+    distance_potential = decayed_distances / (1 + decayed_distances)
+    demand_emphasis = torch.where(capacity_mask, log_demand_penalty, torch.zeros_like(log_demand_penalty))
+    heuristics = (distance_potential - demand_emphasis)
+    max_val = torch.max(torch.abs(heuristics))
+    heuristics /= max_val
+    heuristics = torch.clamp(heuristics, min=-1, max=1)
+    return heuristics
+```

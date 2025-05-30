@@ -1,0 +1,41 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate cumulative demand to incorporate into the heuristic
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+
+    # Calculate variance in demand to balance diversity and demand variance
+    demand_variance = torch.var(normalized_demands, dim=0)
+
+    # Normalize variance and apply threshold to balance diversity and variance
+    demand_variance_normalized = demand_variance / demand_variance.max()
+    diversity_factor = torch.clamp(demand_variance_normalized, min=0.1, max=1.0)
+
+    # Incorporate cumulative demand into the heuristic using an exponential decay
+    cumulative_demand_factor = torch.exp(-cumulative_demand)
+
+    # Combine all factors to create the heuristic matrix
+    heuristic_matrix = -torch.mul(cumulative_demand_factor, distance_matrix)
+
+    # Adjust heuristic by the demand-based diversity factor
+    heuristic_matrix = torch.add(heuristic_matrix, diversity_factor)
+
+    # Normalize the heuristic matrix to ensure values are within a specific range
+    min_val, max_val = heuristic_matrix.min(), heuristic_matrix.max()
+    heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+
+    # Apply non-linear penalties for high cumulative demand and distances
+    penalty_factor = torch.exp(-cumulative_demand) * distance_matrix
+    penalty_factor = torch.clamp(penalty_factor, max=1.0)
+
+    # Combine the non-linear penalties with the normalized heuristic matrix
+    heuristic_matrix = torch.add(heuristic_matrix, -penalty_factor)
+
+    # Enforce limits for heuristic stability
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1.0, max=1.0)
+
+    return heuristic_matrix
+```

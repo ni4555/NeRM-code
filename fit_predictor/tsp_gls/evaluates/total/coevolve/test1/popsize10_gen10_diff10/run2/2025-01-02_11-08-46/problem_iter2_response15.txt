@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Apply domain-specific insights:
+    # 1. Use negative distance for direct distance influence.
+    # 2. Consider the distance from a city to the farthest city for exploration.
+    # 3. Balance the above with a local feature, like the average distance of the closest neighbors.
+    for i in range(len(distance_matrix)):
+        max_distance = np.max(distance_matrix[i])
+        closest_neighbors = np.argsort(distance_matrix[i])[:5]  # Taking the closest 5 neighbors
+        average_distance = np.mean(distance_matrix[i][closest_neighbors])
+        
+        for j in range(len(distance_matrix)):
+            if i != j:
+                # Incorporate both the farthest and closest features into the heuristic
+                heuristic_value = -distance_matrix[i, j] * (max_distance - distance_matrix[i, j]) / max_distance
+                # Add local influence by using the average distance to the closest neighbors
+                heuristic_value += average_distance * (1 + (1 / len(closest_neighbors)))
+                heuristic_matrix[i, j] = heuristic_value
+                # Since the matrix is symmetric, set the opposite element to the same value
+                heuristic_matrix[j, i] = heuristic_value
+    
+    return heuristic_matrix
+```

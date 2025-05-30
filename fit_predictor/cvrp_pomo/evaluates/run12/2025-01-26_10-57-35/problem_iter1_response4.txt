@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the Euclidean distance between the depot and all customers
+    depot_distance = torch.sum(distance_matrix, dim=1)
+    
+    # Calculate the cumulative demand from the depot to each customer
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the remaining capacity after visiting each customer
+    remaining_capacity = torch.cumsum(torch.max(torch.zeros_like(demands), demands), dim=0)
+    
+    # Calculate the potential utility of visiting each customer (based on distance and remaining capacity)
+    potential_utility = -(depot_distance + torch.triu(distance_matrix, k=1)) + remaining_capacity
+    
+    # Normalize the potential utility to be within the range of the matrix
+    max_potential_utility = torch.max(potential_utility)
+    min_potential_utility = torch.min(potential_utility)
+    normalized_utility = (potential_utility - min_potential_utility) / (max_potential_utility - min_potential_utility)
+    
+    return normalized_utility
+```

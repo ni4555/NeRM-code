@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Calculate the average density
+    average_density = np.mean(prize / np.mean(weight, axis=1))
+    
+    # Calculate the sparsity factor
+    sparsity_factor = np.sum(prize[weight.sum(axis=1) == 0]) / np.sum(prize)
+    
+    # Calculate the constraint balance score
+    constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Combine factors for a heuristic score
+    heuristic_score = (average_density + sparsity_factor + constraint_balance) / 3
+    
+    # Normalize the heuristic scores
+    normalized_heuristic = heuristic_score / np.sum(heuristic_score)
+    
+    # Apply penalties for overrepresentation in any dimension
+    overrepresentation_penalty = np.sum(np.sum(weight, axis=1) > 1)
+    penalized_normalized_heuristic = normalized_heuristic - (overrepresentation_penalty / len(weight))
+    
+    # Ensure the heuristics are not negative due to penalties
+    penalized_normalized_heuristic = np.clip(penalized_normalized_heuristic, 0, None)
+    
+    # Return the heuristics scores
+    return penalized_normalized_heuristic
+```

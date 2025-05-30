@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    demand_matrix = (demands[:, None] * demands - demand_matrix.diag())
+    normalized_demand = torch.nn.functional.softmax(demand_matrix, dim=1) - 1e-8
+    demand_matrix /= normalized_demand.sum(dim=1, keepdim=True)
+    
+    combined_heuristic = (distance_matrix + demand_matrix) / (2 * demand_matrix + 1e-8)
+    
+    capacity_inverse = 1 / (demands + 1e-8)  # Avoid division by zero
+    
+    heuristics = combined_heuristic * capacity_inverse
+    
+    # Scale heuristics to ensure all values are in [0, 1]
+    heuristics = torch.clamp(heuristics, min=0, max=1)
+    
+    return heuristics
+```

@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    
+    # Calculate cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Core objective: Scaled distance with load scaling
+    distance_scaled = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * (cumulative_demand / total_capacity)
+    
+    # Dynamic capacity penalty with scaling based on distance
+    distance_scaled_penalty = distance_scaled * (demands / total_capacity)
+    
+    # Overflow penalty
+    overflow_penalty = torch.where(
+        cumulative_demand[:, None] + demands[None, :] > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance penalty with early warning
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    early_warning_balance = (1 - (cumulative_demand - total_capacity / (n + 1)) / total_capacity) * load_balance
+    load_balance_penalty = -torch.log1p(early_warning_balance - 1e-8)
+    
+    # Diversity heuristic to avoid similar load distributions
+    diversity_heuristic = (2 * torch.arange(n)[None, :] == torch.arange(n, 2*n)) * torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Combine objectives with penalties and diversity heuristic
+    combined_heuristics = distance_scaled + distance_scaled_penalty + overflow_penalty + load_balance_penalty + diversity_heuristic
+    
+    # Normalize the heuristics by the maximum value to maintain balance
+    max_value = combined_heuristics.max()
+    if max_value > 0:
+        combined_heuristics /= max_value
+    
+    # Cap the heuristics to prevent overflow and underflow
+    heuristics = torch.clamp(combined_heuristics, min=-1.0, max=1.0)
+    
+    return heuristics
+```

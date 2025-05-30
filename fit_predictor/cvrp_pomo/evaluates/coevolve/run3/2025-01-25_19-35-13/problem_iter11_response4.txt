@@ -1,0 +1,28 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Dynamic Programming to calculate a lower bound for the route cost
+    dp = torch.zeros((len(demands), len(demands)))
+    for d in range(1, len(demands)):
+        for s in range(d):
+            dp[d, s] = torch.min(dp[s, d-1] + distance_matrix[s, d], dp[s, d])
+    
+    # Calculate a rough estimate of the distance heuristic
+    rough_distance_estimate = 1 / (distance_matrix + 1e-8)
+    
+    # Heuristic value is a balance between demand influence and distance
+    heuristic_value = demand_influence * rough_distance_estimate
+    
+    # Incorporate penalties for infeasible edges based on capacity and distance
+    heuristic_value = torch.clamp(heuristic_value, min=-100)
+    
+    # Apply weights dynamically based on problem characteristics
+    demand_weight = (demands > 1.5).float() * 0.5
+    distance_weight = (distance_matrix < 10).float() * 0.5
+    heuristic_value = demand_weight * (heuristic_value * demand_influence) + distance_weight * (heuristic_value * rough_distance_estimate)
+    
+    return heuristic_value
+```

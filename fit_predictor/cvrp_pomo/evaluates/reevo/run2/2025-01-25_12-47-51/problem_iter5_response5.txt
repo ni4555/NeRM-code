@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Inverse distance matrix, avoiding division by zero
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+
+    # Demand-based heuristic, with normalization
+    demand_normalized = demands / total_demand
+    demand_weighted_distance = inv_distance_matrix * demand_normalized
+
+    # Capacity-based heuristic, considering the remaining capacity
+    remaining_capacity = 1 - demands
+    capacity_weighted_distance = remaining_capacity * inv_distance_matrix
+
+    # Distance to the nearest customer as a heuristic, adding only the distance to the nearest customer for each node
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+
+    # Scale heuristics for balance and integration of domain constraints
+    demand_scale = total_demand / torch.sum(demand_weighted_distance)
+    capacity_scale = torch.sum(remaining_capacity) / torch.sum(capacity_weighted_distance)
+
+    # Combined heuristics, considering greedy, local, and problem-specific heuristics
+    combined_heuristic = demand_weighted_distance * demand_scale + \
+                          capacity_weighted_distance * capacity_scale + nearest_neighbor
+
+    # Infeasibility penalty, avoiding cycles
+    infeasible_mask = demands[:, None] + demands[None, :] > 1
+    combined_heuristic[infeasible_mask] = -torch.inf
+
+    return combined_heuristic
+```

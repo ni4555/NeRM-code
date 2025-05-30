@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    cumulative_distance = torch.cumsum(distance_matrix[:, 0], dim=0)
+
+    # Vectorized computation to calculate potential cost
+    cost_diff = cumulative_distance[:, None] - cumulative_distance[None, :]
+    demand_diff = cumulative_demand[:, None] - cumulative_demand[None, :]
+    
+    # Create a mask where the demand at node j is greater than at node i
+    demand_mask = demand_diff > 0
+
+    # Calculate potential cost and apply negative sign if it's negative
+    potential_cost = cost_diff * demand_mask * (1 - demand_diff)
+    negative_cost_mask = potential_cost < 0
+    potential_cost = torch.where(negative_cost_mask, -potential_cost, potential_cost)
+
+    return potential_cost
+```

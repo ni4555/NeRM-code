@@ -1,0 +1,28 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    
+    # Calculate normalized prize based on total prize to balance relevance
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate normalized weight based on each item's weight dimension
+    normalized_weight = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    
+    # Calculate score by combining normalized prize and weight
+    score = np.sum(normalized_prize * normalized_weight, axis=1)
+    
+    # Calculate diversity by ensuring a minimum weight constraint (1 in this case)
+    diversity = score / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Normalize scores for sparsity and focus on items with lower weight
+    importance_normalized = diversity / np.sum(diversity)
+    
+    # Sparsify the heuristics by setting lower half of the sorted scores to zero
+    sorted_indices = np.argsort(importance_normalized)[::-1]
+    sparsified_indices = sorted_indices[:len(sorted_indices)//2]
+    importance_normalized[sparsified_indices] = 0
+    
+    return importance_normalized
+```

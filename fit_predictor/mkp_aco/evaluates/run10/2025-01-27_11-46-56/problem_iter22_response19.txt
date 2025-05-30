@@ -1,0 +1,26 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = weight.shape
+    normalized_weight = weight / weight.sum(axis=1, keepdims=True)
+    utility = prize / normalized_weight.sum(axis=1, keepdims=True)
+    
+    # Generate random exploration factors for diversity
+    exploration_factor = np.random.normal(0, 0.1, size=utility.shape)
+    
+    # Apply non-linear transformations to the utility values
+    non_linear_utility = np.exp(utility - utility.max(axis=1, keepdims=True))
+    
+    # Apply exploration factor to non-linear utility for diversity
+    adjusted_utility = non_linear_utility * exploration_factor
+    
+    # Apply softmax to the adjusted utility to obtain the heuristic
+    heuristics = np.exp(adjusted_utility - adjusted_utility.max(axis=1, keepdims=True))
+    heuristics /= heuristics.sum(axis=1, keepdims=True)
+    
+    # Normalize the peak values for fairness
+    normalized_heuristics = heuristics / heuristics.sum(axis=1, keepdims=True)
+    
+    return normalized_heuristics.sum(axis=1)
+```

@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Calculate the demand balance for each edge
+    demand_balance = (demands - total_capacity / n) ** 2
+    # Calculate the distance-based heuristic
+    distance_heuristic = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    # Combine demand balance and distance heuristic
+    heuristics = distance_heuristic + demand_balance
+    # Apply a scaling factor based on the vehicle's current load
+    scaling_factor = 1 + (total_capacity - cumulative_demand) / total_capacity
+    heuristics *= scaling_factor
+    return heuristics
+```

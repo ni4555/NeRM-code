@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Calculate potential values using a weighted sum of demand and distance
+    demand_balance_factor = 0.2
+    distance_weight_factor = 0.8
+    potential_values = demand_balance_factor * torch.abs(normalized_demands) + distance_weight_factor * normalized_distances
+    
+    # Apply a non-linear transformation to promote local clustering of nodes with similar demand
+    potential_values = torch.relu(potential_values)
+    
+    # Adjust the potential values to ensure a balance between demand and distance
+    adjusted_potential_values = potential_values / (potential_values.sum(1, keepdim=True) + 1e-6)
+    
+    # Set the depot to 0 potential value
+    adjusted_potential_values[0, :] = 0
+    adjusted_potential_values[:, 0] = 0
+    
+    return adjusted_potential_values
+```

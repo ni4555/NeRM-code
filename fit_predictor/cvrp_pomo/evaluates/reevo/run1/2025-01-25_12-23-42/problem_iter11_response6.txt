@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Calculate the initial heuristics based on the load and distance
+    heuristics = - (node_loads * norm_distances).sum(-1) + torch.log1p(norm_distances)
+    
+    # Adaptively adjust the load factor based on the current load of nodes
+    # Increase penalty for heavily loaded nodes and decrease for less loaded nodes
+    heavily_loaded_nodes = torch.clamp(demands > demands.mean() * 1.5, 0, 1)
+    lightly_loaded_nodes = 1 - heavily_loaded_nodes
+    load_penalty = heavily_loaded_nodes - lightly_loaded_nodes
+    heuristics -= load_penalty * 2.0  # Apply a penalty to heavily loaded nodes
+    
+    # Add noise to encourage exploration but maintain a balance with exploitation
+    noise = torch.randn_like(heuristics) * 0.1
+    noise = torch.clamp(noise, min=-1.0, max=1.0)  # Keep noise within bounds
+    
+    # Adjust heuristics to balance exploitation and exploration
+    exploration_factor = torch.rand_like(heuristics)
+    exploration_factor = (exploration_factor - exploration_factor.mean()) * 2
+    exploration_factor = torch.clamp(exploration_factor, min=-1.0, max=1.0)
+    
+    # Mutate heuristics with exploration and normalization
+    mutated_heuristics = heuristics + exploration_factor * noise
+    
+    # Normalize the heuristics to maintain a consistent heuristic space
+    max_heap_value = torch.max(mutated_heuristics)
+    min_heap_value = torch.min(mutated_heuristics)
+    heuristics_range = max_heap_value - min_heap_value
+    heuristics = (mutated_heuristics - min_heap_value) / heuristics_range
+    
+    return heuristics
+```

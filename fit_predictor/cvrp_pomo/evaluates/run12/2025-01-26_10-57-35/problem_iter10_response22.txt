@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum().item()
+    sum_of_demands = torch.sum(demands[:, None] + demands[None, :], dim=0)
+    inverse_distance = 1 / (distance_matrix + 1e-8)
+    combined_heuristic = sum_of_demands * inverse_distance
+    
+    # Scale demands relative to total capacity
+    demand_weight = (1 - demands / total_capacity)[:, None]
+    
+    # Incorporate distance and demand interactions
+    demand_matrix = demands[:, None] * demands
+    demand_matrix -= demand_matrix.diag()
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Normalize the combined heuristic
+    combined_heuristic /= combined_heuristic.sum(dim=1, keepdim=True)
+    
+    # Combine demand interactions with the scaled combined heuristic
+    heuristics = combined_heuristic * demand_matrix
+    
+    # Integrate capacity constraints by considering the inverse of demand
+    heuristics *= (1 / (demands + 1e-8))
+    
+    # Normalize the heuristics to ensure they are on a consistent scale
+    heuristics /= heuristics.sum(dim=1, keepdim=True)
+    
+    # Clip the negative values to zero, as they are undesirable
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

@@ -1,0 +1,35 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Normalize the demands relative to the vehicle capacity
+    normalized_demands = demands / torch.sum(demands)
+    
+    # Normalize the distance matrix by inverting and scaling
+    normalized_distances = 1 / (distance_matrix + 1e-8) * (1 / torch.sum(1 / (distance_matrix + 1e-8), dim=0))
+    
+    # Calculate the cumulative sum of normalized demands and normalized distances
+    cumulative_normalized_demands = torch.cumsum(normalized_demands, dim=0)
+    cumulative_normalized_distances = torch.cumsum(normalized_distances, dim=0)
+    
+    # Calculate the heuristic values by prioritizing edges with cumulative demand and distance ratios
+    heuristic_matrix = cumulative_normalized_demands / cumulative_normalized_distances
+    
+    # Apply a non-linear transformation to emphasize relative differences
+    heuristic_matrix = torch.pow(heuristic_matrix, 1.5)
+    
+    # Apply thresholds to filter edges and further emphasize promising ones
+    threshold = torch.max(heuristic_matrix)
+    heuristic_matrix = torch.where(heuristic_matrix < threshold, heuristic_matrix, -threshold)
+    
+    # Clip the values to be within the range of [-1, 1]
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=-1, max=1)
+    
+    # Normalize the heuristic matrix to ensure all values are within the range [0, 1]
+    max_value = torch.max(heuristic_matrix)
+    min_value = torch.min(heuristic_matrix)
+    heuristic_matrix = (heuristic_matrix - min_value) / (max_value - min_value)
+    
+    return heuristic_matrix
+```

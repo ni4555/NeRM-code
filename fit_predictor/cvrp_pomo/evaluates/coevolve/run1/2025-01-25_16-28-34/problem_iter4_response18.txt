@@ -1,0 +1,63 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    total_capacity = demands.sum()
+
+    def swap_nodes(i, j):
+        # Swap the nodes to balance the load
+        demands[j] = demands[i]
+        heuristics[i, :] = heuristics[j, :]
+        heuristics[j, :] = heuristics[i, :]
+        heuristics[i, j], heuristics[j, i] = -1, -1
+        heuristics[i, i] = 0
+        heuristics[j, j] = 0
+
+    def refine_neighborhood(heuristics, distance_matrix, demands):
+        # Local search to refine neighborhood exploration
+        for i in range(n):
+            for j in range(i + 1, n):
+                if distance_matrix[i, j] != 0 and demands[i] < total_capacity and demands[j] < total_capacity:
+                    # Check if swapping would not exceed capacity
+                    new_demand = demands[i] + demands[j]
+                    if new_demand <= total_capacity:
+                        swap_nodes(i, j)
+                        break
+        return heuristics
+
+    def update_velocity(heuristics):
+        # Placeholder for PSO-inspired velocity update for exploration
+        # Here we simulate an update by scaling heuristics based on distance
+        return heuristics * torch.exp(-distance_matrix)
+
+    def tabu_search(heuristics, distance_matrix, demands, tabu_list, tabu_tenure):
+        # Tabu search to avoid previously suboptimal solutions
+        for i in range(n):
+            for j in range(i + 1, n):
+                if distance_matrix[i, j] != 0 and (i, j) not in tabu_list:
+                    heuristics[i, j] *= 0.95
+                    heuristics[j, i] *= 0.95
+        return heuristics
+
+    # Initialize tabu list and tenure
+    tabu_list = set()
+    tabu_tenure = 5
+
+    # Refine neighborhood
+    heuristics = refine_neighborhood(heuristics, distance_matrix, demands)
+
+    # Update velocity (PSO)
+    heuristics = update_velocity(heuristics)
+
+    # Tabu search
+    for _ in range(tabu_tenure):
+        heuristics = tabu_search(heuristics, distance_matrix, demands, tabu_list, tabu_tenure)
+
+    # Adjust heuristics to ensure they are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = 0
+
+    return heuristics
+```

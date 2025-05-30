@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    score = prize / np.sum(prize)
+    sparsity_weight = np.prod(1 - weight, axis=1)
+    score_per_dimension = score * sparsity_weight
+    heuristic_score = score + score_per_dimension
+    sparsified_score = heuristic_score * (heuristic_score > np.mean(heuristic_score))
+    
+    # Trim the lower and upper percentiles to adjust for outliers
+    percentiles = np.percentile(sparsified_score, [10, 90])
+    trimmed_score = np.clip(sparsified_score, percentiles[0], percentiles[1])
+    
+    # Incorporate a diversity measure to ensure a diverse set of items
+    diversity = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    adjusted_heuristics = trimmed_score * diversity
+    
+    return adjusted_heuristics
+```

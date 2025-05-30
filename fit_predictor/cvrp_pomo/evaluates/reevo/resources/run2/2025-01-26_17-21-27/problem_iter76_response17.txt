@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    scale_factor = 5
+    max_heuristic_value = 10.0
+    min_heuristic_value = -10.0
+    
+    def time_adaptiveScaling(factor, scale):
+        return factor * torch.exp(-cumulative_demand / (total_capacity * scale))
+    
+    def distancePenalty(dist, scale):
+        return time_adaptiveScaling(-torch.log1p(torch.abs(dist) - 1e-8), scale)
+    
+    def dynamicCapacityPenalty(demand, total_capacity):
+        return time_adaptiveScaling(-torch.log1p(torch.abs(demand - total_capacity) - 1e-8), scale_factor)
+    
+    def overflowPenalty(cumulative_demand, total_capacity):
+        overflow_mask = (cumulative_demand[:, None] + demands[None, :]) > total_capacity
+        return torch.where(overflow_mask, -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8), torch.zeros_like(cumulative_demand))
+    
+    def loadBalancePenalty(cumulative_demand, scale_factor):
+        load_balance = torch.abs(cumulative_demand - (total_capacity / n))
+        return time_adaptiveScaling(-torch.log1p(load_balance - 1e-8), scale_factor)
+    
+    def randomnessFactor():
+        return time_adaptiveScaling(torch.abs(torch.randn_like(demands)) * 0.1, scale_factor)
+    
+    def diversityFactor():
+        diversity = torch.abs(torch.randn_like(demands)) * 0.2
+        diversity /= (torch.sum(torch.abs(diversity)) + 1e-8)
+        return diversity
+    
+    distance_penalty_value = distancePenalty(distance_matrix, scale_factor)
+    dynamic_penalty_value = dynamicCapacityPenalty(demands, total_capacity)
+    overflow_penalty_value = overflowPenalty(cumulative_demand, total_capacity)
+    load_balance_penalty_value = loadBalancePenalty(cumulative_demand, scale_factor)
+    
+    heuristics = distance_penalty_value + dynamic_penalty_value + overflow_penalty_value + load_balance_penalty_value
+    heuristics += randomnessFactor()
+    heuristics += diversityFactor()
+    
+    heuristics = torch.clamp(heuristics, min=min_heuristic_value, max=max_heuristic_value)
+    heuristics[0, 0] = -1e7
+    
+    return heuristics
+```

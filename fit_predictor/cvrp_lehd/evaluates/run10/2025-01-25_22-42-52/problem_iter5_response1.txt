@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the distance penalties for each edge
+    distance_penalty = -distance_matrix
+    
+    # Calculate the overcapacity penalties for each edge
+    overcapacity_penalty = (cumulative_demand[1:] - cumulative_demand[:-1] > demands[1:])
+    
+    # Calculate the demand differences
+    demand_difference = torch.abs(cumulative_demand[1:] - cumulative_demand[:-1])
+    
+    # Combine penalties using weighted sum
+    penalty_matrix = (distance_penalty + overcapacity_penalty.float() * 10 + demand_difference.float() * 5) / 16
+    
+    # Apply nearest customer heuristic
+    nearest_customer = torch.argmin(penalty_matrix, dim=1)
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    heuristics_matrix[torch.arange(n), nearest_customer] = penalty_matrix[torch.arange(n), nearest_customer]
+    
+    return heuristics_matrix
+```

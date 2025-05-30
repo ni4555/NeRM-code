@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate the prize-to-weight ratio
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Normalize the ratio by the maximum prize-to-weight ratio
+    normalized_ratio = ratio / np.max(ratio)
+    
+    # Calculate a sparsity score, penalizing items with higher number of zero weights
+    sparsity_score = 1 - (np.sum(weight == 0, axis=1) / weight.shape[1])
+    
+    # Incorporate a variance-based factor, favoring items with lower variance in weights
+    variance_factor = 1 / (1 + np.std(weight, axis=1)**2)
+    
+    # Combine all factors to get a composite heuristic
+    composite_heuristic = normalized_ratio * sparsity_score * variance_factor
+    
+    # Apply a sparsity heuristic to further refine the heuristic values
+    sparsity_heuristic = 1 if np.any(composite_heuristic > 0.5) else 0
+    
+    # Return the combined heuristics, adjusted by the sparsity heuristic
+    heuristics = composite_heuristic * sparsity_heuristic
+    
+    return heuristics
+```

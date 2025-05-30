@@ -1,0 +1,31 @@
+```python
+import torch
+from torch.nn.functional import softmax
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate penalties for demand constraints
+    excess_demand_penalty = -torch.abs(demands - vehicle_capacity) * demands
+    shortfall_demand_penalty = -torch.abs(demands - vehicle_capacity) * (1 - demands)
+    
+    # Add a distance-based penalty, with a logarithmic scaling to emphasize closer nodes
+    distance_penalty = -torch.log(distance_matrix + 1e-6)
+    
+    # Combine penalties, giving more weight to the demand penalties
+    combined_potential_matrix = 0.8 * excess_demand_penalty + 0.2 * shortfall_demand_penalty + 0.5 * distance_penalty
+    
+    # Exponentiate the combined potential matrix to emphasize desirable edges
+    emphasized_matrix = torch.exp(combined_potential_matrix)
+    
+    # Normalize the emphasized matrix to ensure non-negativity and scale the values
+    normalized_emphasized_matrix = softmax(emphasized_matrix, dim=1)
+    
+    # Ensure that the normalized matrix is not too close to zero
+    normalized_emphasized_matrix -= normalized_emphasized_matrix.min(dim=1, keepdim=True)[0]
+    
+    # Create the heuristics matrix, negative values represent undesirable edges
+    heuristics_matrix = -normalized_emphasized_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Compute the sum of demands up to each node to facilitate vectorized demand comparison
+    demand_sum_up_to = demands.cumsum(0)
+    
+    # Initialize the heuristics matrix with the distance matrix values
+    heuristics = distance_matrix.clone()
+    
+    # Iterate over the rows of the demand_sum_up_to tensor to create heuristics
+    for i in range(1, len(demand_sum_up_to)):
+        # Calculate the negative of the difference between the current sum of demands and the vehicle capacity
+        heuristics[i, 0] = -((demand_sum_up_to[i] - demands[0]) / demands[0])
+        # For each edge to a customer node, increase the heuristic by the negative difference
+        # where the demand of the vehicle would exceed its capacity if visited next
+        heuristics[i, 1:] = -((demand_sum_up_to[i] + distance_matrix[i, 1:] - demands[0]) / demands[0])
+    
+    return heuristics
+```

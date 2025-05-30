@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize a matrix with the same shape as the distance matrix
+    heuristics_matrix = np.copy(distance_matrix)
+    
+    # Incorporate edge traversal state
+    visited_edges = np.zeros_like(distance_matrix, dtype=bool)
+    
+    # Weigh edge length inversely and avoid self-loops
+    for i in range(len(distance_matrix)):
+        for j in range(len(distance_matrix)):
+            if i != j and not visited_edges[i, j]:
+                # Apply a penalty based on the inverse of the edge length
+                heuristics_matrix[i, j] = 1 / (1 + distance_matrix[i, j])
+            else:
+                # Set the heuristic value to a high number for visited edges and self-loops
+                heuristics_matrix[i, j] = float('inf')
+    
+    # Refine penalties by considering the degree of the nodes
+    for i in range(len(distance_matrix)):
+        degree = np.sum(visited_edges[i, :])
+        # Increase the penalty for highly connected nodes
+        heuristics_matrix[i, :] *= (1 + degree)
+    
+    return heuristics_matrix
+```

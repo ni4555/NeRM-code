@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    scaled_demands = demands / total_capacity
+
+    cumulative_demand = torch.cumsum(scaled_demands, dim=0)
+    remaining_capacity = total_capacity - cumulative_demand
+
+    # Normalize demand differences and remaining capacity
+    demand_diff = torch.abs(scaled_demands.unsqueeze(1) - scaled_demands.unsqueeze(0))
+    heuristics = demand_diff * remaining_capacity
+
+    # Dampen high capacity penalties and depot penalties
+    dampening_factor = 0.5
+    max_capacity_penalty = 1000.0
+    capacity_penalty = torch.clamp((scaled_demands > 1.0).float() * max_capacity_penalty, min=0.0)
+    heuristics -= capacity_penalty * dampening_factor
+
+    depot_penalty = torch.zeros_like(distance_matrix)
+    depot_penalty[torch.arange(n), 0] = -1
+    heuristics += depot_penalty * dampening_factor
+
+    # Min-max normalize heuristics to maintain balance
+    max_heuristic = heuristics.max()
+    min_heuristic = heuristics.min()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Add penalty for edges too far from the depot (local preference)
+    distance_penalty = (distance_matrix[:, 0] - distance_matrix[:, 0].mean()) * 30
+    heuristics += torch.clamp(distance_penalty, min=0.0) * dampening_factor
+
+    # Apply non-linear transformation to avoid local optima
+    heuristics = torch.relu(heuristics)
+
+    # Ensure heuristic values are within a balanced range
+    heuristics = torch.clamp(heuristics, min=0.0, max=1.0)
+
+    # Adaptively adjust penalties based on the current node's remaining capacity
+    capacity_diff_penalty = 0.1
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                penalty = torch.where(remaining_capacity[i] < remaining_capacity[j], capacity_diff_penalty, 0.0)
+                heuristics[i, j] -= penalty
+
+    return heuristics
+```

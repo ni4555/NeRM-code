@@ -1,0 +1,56 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic capacity penalty with early overflow detection
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    early_overflow = cumulative_demand > total_capacity_vector
+    dynamic_capacity_penalty *= (1 + early_overflow)
+    
+    # Distance penalty with domain-specific scaling
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (1 + cumulative_demand / total_capacity)
+    
+    # Overflow penalty with immediate return to avoid overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic with improved balance factor
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Randomness factor with reduced impact as the demand is met
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Introduce diversity through a random component with controlled variance
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.15
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Apply scaling factors to balance different objectives
+    capacity_scaling = 2.0
+    distance_scaling = 1.5
+    load_balance_scaling = 1.0
+    
+    # Combine the heuristics with appropriate scaling
+    heuristics = (
+        capacity_scaling * dynamic_capacity_penalty +
+        distance_scaling * distance_scaling +
+        load_balance_scaling * load_balance_penalty +
+        randomness_factor +
+        diversity_factor
+    )
+    
+    # Adjust heuristics to avoid overflow and promote diversity
+    heuristics *= (1 + early_overflow)
+    heuristics += diversity_factor
+    
+    return heuristics
+```

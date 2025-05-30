@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    
+    # Avoid division by zero in cases where cumulative_distances might be zero
+    with torch.no_grad():
+        safe_distances = torch.where(cumulative_distances == 0, torch.tensor(1.0e-8), cumulative_distances)
+    
+    # Calculate the heuristic values based on the ratio of cumulative demand to cumulative distance
+    heuristic_matrix = cumulative_demands / safe_distances
+    
+    # Normalize the heuristic matrix and apply a non-linear transformation (e.g., sigmoid)
+    normalized_matrix = (heuristic_matrix - torch.min(heuristic_matrix)) / (torch.max(heuristic_matrix) - torch.min(heuristic_matrix))
+    heuristic_matrix = torch.sigmoid(normalized_matrix)
+    
+    # Apply thresholds to filter and emphasize relative differences
+    threshold = 0.5
+    emphasized_matrix = torch.where(heuristic_matrix < threshold, -heuristic_matrix, heuristic_matrix)
+    
+    # Apply a non-linear transformation to further emphasize promising edges
+    # such as the exponential of the negative of the heuristic value
+    transformed_matrix = torch.exp(-emphasized_matrix)
+    
+    # Apply a penalty for larger distances to avoid long unnecessary detours
+    # The penalty is inversely proportional to the distance, ensuring that
+    # shorter distances have higher weights
+    distance_penalty = 1 / (cumulative_distances + 1e-8)
+    transformed_matrix *= distance_penalty
+    
+    # Clip the values to be within the desired range to ensure they are within [-1, 1]
+    heuristic_matrix = torch.clamp(transformed_matrix, min=-1, max=1)
+    
+    return heuristic_matrix
+```

@@ -1,0 +1,19 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    # Calculate the total demand
+    total_demand = demands.sum()
+    # Normalize the distance matrix by the total demand
+    normalized_distance_matrix = distance_matrix / total_demand
+    # Scale demands to the range [0, 1]
+    scaled_demands = demands / demands.max()
+    # Use a logarithmic transformation for distances to compress larger distances
+    # and an arctangent transformation for demands to map demands into a range
+    # that emphasizes small values
+    log_distance = torch.log1p(normalized_distance_matrix)  # Logarithmic for non-linearity
+    arctan_demand = torch.atan(scaled_demands)  # Arctangent for non-linearity
+    # Combine the transformed distance and demand terms
+    combined_heuristic = log_distance - arctan_demand
+    # Adjust the sign to get negative values for undesirable edges
+    return -combined_heuristic
+```

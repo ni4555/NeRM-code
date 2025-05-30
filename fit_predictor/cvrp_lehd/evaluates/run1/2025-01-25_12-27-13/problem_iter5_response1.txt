@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum().item()
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize demands by total demand
+    normalized_demands = demands / total_demand
+
+    # Calculate the heuristic value for each edge
+    heuristics = (normalized_demands.unsqueeze(1) - normalized_demands.unsqueeze(0)) * distance_matrix
+
+    # Apply a non-linear transformation to emphasize short distances
+    heuristics = torch.exp(-heuristics)
+
+    # Apply a domain-specific heuristic: favor edges to nodes with high demand
+    high_demand_favor = torch.where(demands > 0.5, torch.ones_like(demands), torch.zeros_like(demands))
+    heuristics *= high_demand_favor.unsqueeze(1) * high_demand_favor.unsqueeze(0)
+
+    # Apply a normalization to keep values within a reasonable range
+    heuristics /= heuristics.max().item()
+
+    return heuristics
+```

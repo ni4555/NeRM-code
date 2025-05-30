@@ -1,0 +1,28 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    vehicle_capacity = 1.0
+    
+    # Create a matrix with a penalty for edges where demand is greater than vehicle capacity
+    penalty_matrix = torch.clamp(-torch.abs(torch.cumsum(demands, dim=0) / vehicle_capacity), min=0)
+    
+    # Normalize the distance matrix by dividing by the vehicle capacity
+    normalized_distance_matrix = distance_matrix / vehicle_capacity
+    
+    # Create a potential matrix by combining the normalized distances and the penalty matrix
+    potential_matrix = normalized_distance_matrix + penalty_matrix
+    
+    # Apply a non-linear transformation to the potential matrix using a sigmoid function
+    sigmoid_matrix = torch.sigmoid(potential_matrix)
+    
+    # Normalize the sigmoid matrix to ensure the sum of each row is 1
+    softmax_matrix = F.softmax(sigmoid_matrix, dim=1)
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix using a modified version of the savings algorithm
+    heuristics_matrix = distance_matrix - (normalized_demands.unsqueeze(1) * distance_matrix.sum(axis=1, keepdim=True))
+    # Penalties for edges to the depot and edges that exceed vehicle capacity
+    depot_penalty = torch.zeros_like(heuristics_matrix[0, :])
+    capacity_penalty = torch.max(distance_matrix) * (demands > 0).float()
+    heuristics_matrix[:, 0] = depot_penalty
+    heuristics_matrix[0, :] = depot_penalty
+    heuristics_matrix = heuristics_matrix + capacity_penalty
+    # Ensure that the heuristics are negative for undesirable edges and positive for promising ones
+    heuristics_matrix = heuristics_matrix - torch.max(heuristics_matrix)
+    return heuristics_matrix
+```

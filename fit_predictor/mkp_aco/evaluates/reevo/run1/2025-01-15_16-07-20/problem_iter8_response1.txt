@@ -1,0 +1,26 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize and average weight for each item
+    max_prize = np.max(prize)
+    average_weight = np.mean(weight, axis=1)
+    
+    # Calculate density based on prize and average weight
+    density = prize / average_weight
+    
+    # Calculate utility considering both density and a non-linear transformation of weight
+    non_linear_weight = np.sum(weight**2, axis=1)
+    utility = density * (1 - (non_linear_weight / max_prize)**1.5)
+    
+    # Calculate sparsity by considering the balance between high utility and low probability
+    # of exceeding the sum of average weights
+    total_average_weight = np.sum(average_weight)
+    sparsity = (utility > max_prize / total_average_weight) * 1.0
+    
+    # Apply a dynamic adjustment based on the item's relative contribution to total utility
+    adjusted_sparsity = utility / np.sum(utility) * sparsity
+    
+    # Return the heuristics scores
+    return adjusted_sparsity
+```

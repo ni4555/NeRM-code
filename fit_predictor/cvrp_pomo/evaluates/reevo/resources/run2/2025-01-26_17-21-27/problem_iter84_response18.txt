@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Core objectives: Dynamic capacity penalty, Enhanced distance penalty, Overflow penalty, Load balance
+    core_objectives = (
+        2.5 * (
+            -torch.log1p(torch.abs(demands - total_capacity) - 1e-8) +
+            -torch.log1p(torch.abs(distance_matrix) - 1e-8) * 
+            torch.exp(-cumulative_demand / (total_capacity * 5)) *
+            (1 + cumulative_demand / total_capacity) +
+            torch.where(
+                (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+                -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+                torch.zeros_like(cumulative_demand)
+            ) +
+            -torch.log1p(torch.abs(cumulative_demand - total_capacity_vector) - 1e-8)
+        )
+    )
+    
+    # Randomness factor and diversity factor
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics with early overflow and imbalance adjustments
+    heuristics = core_objectives + randomness_factor + diversity_factor
+    heuristics *= (1 + (cumulative_demand > total_capacity_vector))
+    
+    # Explicit penalty for the depot to return to itself
+    heuristics[0, 0] = -1e7
+    
+    return heuristics
+```

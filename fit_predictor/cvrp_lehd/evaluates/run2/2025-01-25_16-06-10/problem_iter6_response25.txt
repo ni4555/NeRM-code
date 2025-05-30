@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    demand_diff = demands - demands[0]
+    total_demand = demands.sum()
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the minimum distances from each node to the depot for both directions
+    min_distance_to_depot = torch.min(distance_matrix[:, 0], distance_matrix[0, :])
+    min_distance_from_depot = torch.min(distance_matrix[:, 0], distance_matrix[0, :])
+    
+    # Iterate over each node pair, exploiting symmetry
+    for i in range(n):
+        for j in range(i+1, n):
+            # Calculate the potential total demand of the route if i is included
+            potential_demand = demands[i] + demands[j]
+            
+            # If the potential demand exceeds the vehicle capacity, add the return distance
+            if potential_demand > 1:
+                return_distance = min_distance_to_depot[j]
+            else:
+                return_distance = 0
+            
+            # Calculate the heuristic value based on distance and demand difference
+            heuristic_value = -normalized_distance_matrix[i, j] + return_distance + demand_diff[i] * demand_diff[j]
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value
+    
+    return heuristic_matrix
+```

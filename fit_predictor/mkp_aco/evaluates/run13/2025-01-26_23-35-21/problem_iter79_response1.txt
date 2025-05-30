@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Calculate sum of weights
+    weight_sum = np.sum(weight, axis=1)
+    
+    # Prune dominated items
+    dominated_indices = np.where(weight_sum < 1e-8)[0]
+    density[dominated_indices] = 0
+    sparsity[dominated_indices] = 0
+    prize[dominated_indices] = 0
+    weight_sum[dominated_indices] = 1e-8
+    
+    # Introduce exploration and exploitation by combining multiple metrics
+    heuristic = 0.7 * density * (1 - sparsity) + 0.3 * (1 / weight_sum)
+    
+    # Balance between high density and low sparsity
+    balance_heuristic = (density - sparsity) / (density + sparsity + 1e-8)
+    
+    # Introduce randomness
+    random_factor = np.random.rand(*weight.shape[0:])
+    
+    # Combine heuristics
+    combined_heuristic = (heuristic + balance_heuristic + random_factor) / 3
+    
+    # Set zero weights to a small value to maintain diversity
+    combined_heuristic[weight_sum < 1e-8] = 1e-8
+    
+    return combined_heuristic
+```

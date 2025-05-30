@@ -1,0 +1,54 @@
+{
+  "generation": 4,
+  "description": "The problem description is as follows:\n\nDesign a heuristic to solve a Modified Capacitated Vehicle Routing Problem (MCVRP) where the goal is to find efficient routes for a fleet of vehicles to cover all customer nodes while adhering to their specific capacity limits and demand requirements. Each vehicle must start and end at a fixed depot and must not exceed its capacity when carrying customer demands. The heuristic should be demand-driven, continuously monitoring the cumulative demand along each route to ensure no vehicle is overloaded. The heuristic should incorporate cumulative demand checks and capacity constraints, using simple and effective strategies such as nearest neighbor for initial routing, followed by a route optimization phase that adjusts paths based on real-time demand fluctuations. This approach should balance computational efficiency with solution quality, avoiding the overreliance on complex techniques and providing a clear, scalable solution to the MCVRP.",
+  "solutions": [
+    {
+      "code": "import torch\nimport numpy as np\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Assuming the distance matrix is symmetric and the demands are normalized by total vehicle capacity\n    \n    # Initialize a matrix with zeros to store heuristic values\n    heuristic_matrix = torch.zeros_like(distance_matrix)\n    \n    # Calculate the cumulative demand at each node\n    cumulative_demand = demands.cumsum(0)\n    \n    # Find the nearest neighbor for each node starting from the depot (node 0)\n    nearest_neighbors = torch.argmin(distance_matrix[:, 1:], dim=1) + 1  # +1 to adjust for 0-indexed depot\n    \n    # Calculate the initial heuristic values based on the nearest neighbor\n    for i in range(1, len(nearest_neighbors)):\n        heuristic_matrix[i, nearest_neighbors[i]] = -1  # Unpromising edge back to the depot\n        \n    # Adjust the heuristic values based on cumulative demand\n    for i in range(1, len(cumulative_demand)):\n        for j in range(1, len(nearest_neighbors)):\n            if cumulative_demand[i] > demands[j] and cumulative_demand[i] - demands[j] <= demands[j]:\n                # If the demand at node i can be covered by the demand at node j\n                heuristic_matrix[i, j] = -1  # Unpromising edge if it exceeds capacity\n            else:\n                # Promote edges that are part of a potential feasible route\n                if distance_matrix[i, nearest_neighbors[i]] > distance_matrix[i, j]:\n                    heuristic_matrix[i, j] = 1  # Promising edge to a closer neighbor\n    \n    return heuristic_matrix",
+      "fitness": 21.409997940063477,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_4\\stdout_10.txt",
+      "code_file": "coevolve\\generation_4\\code_10.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Normalize the demands vector with respect to the vehicle capacity (for this example, let's assume capacity is 1)\n    normalized_demands = demands / demands.sum()\n\n    # Initialize a mask with negative values, which will represent undesirable edges\n    edge_mask = -torch.ones_like(distance_matrix)\n\n    # Define the nearest neighbor heuristic: for each node, find the nearest node\n    for i in range(1, distance_matrix.size(0)):\n        min_distance, min_index = torch.min(distance_matrix[i], dim=0)\n        edge_mask[i, min_index] = 1\n\n    # Incorporate demand checks\n    for i in range(1, distance_matrix.size(0)):\n        for j in range(1, distance_matrix.size(0)):\n            cumulative_demand = (distance_matrix[i, j] * (1 - normalized_demands[i]) +\n                                 distance_matrix[i, j] * (normalized_demands[j] - normalized_demands[i]))\n            if cumulative_demand <= 1:  # If the edge does not cause the vehicle to be overloaded\n                edge_mask[i, j] = min(edge_mask[i, j], cumulative_demand)\n\n    # Normalize the heuristics to be within the range (-1, 1)\n    edge_mask = torch.sigmoid(edge_mask)\n    edge_mask = (2 * edge_mask - 1)  # Scaling to range [-1, 1]\n\n    return edge_mask",
+      "fitness": 21.410755157470703,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_4\\stdout_0.txt",
+      "code_file": "coevolve\\generation_4\\code_0.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    depot = 0  # depot is indexed by 0\n    # Initialize a matrix of the same shape as the distance matrix with all positive values\n    heuristic_matrix = torch.full_like(distance_matrix, fill_value=1.0)\n    # Calculate the cumulative demand matrix\n    cumulative_demand = torch.cumsum(demands[1:], dim=0)  # ignore the demand of the depot\n    cumulative_demand = torch.cat((torch.zeros(1), cumulative_demand))  # add the depot demand\n\n    # Nearest neighbor heuristic: calculate the cost of going from each node to the nearest customer\n    for i in range(1, n):\n        distances_to_customer = distance_matrix[i]\n        min_distance = torch.min(distances_to_customer[distances_to_customer > 0])\n        heuristic_matrix[i] = -min_distance\n\n    # Demand-driven route optimization phase: adjust paths based on real-time demand fluctuations\n    for i in range(1, n):\n        for j in range(1, n):\n            if distances_to_customer[j] > 0 and cumulative_demand[i] + demands[j] <= 1:\n                # Check if adding this edge is feasible without overloading the vehicle\n                heuristic_matrix[i, j] = -distances_to_customer[j] + (1 - cumulative_demand[i] - demands[j])\n\n    return heuristic_matrix",
+      "fitness": 21.410755157470703,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_4\\stdout_7.txt",
+      "code_file": "coevolve\\generation_4\\code_7.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Initialize the heuristic matrix with zeros\n    heuristic_matrix = torch.zeros_like(distance_matrix)\n    \n    # Calculate the cumulative demand along each route\n    cumulative_demand = torch.cumsum(demands, dim=0)\n    \n    # Calculate the cumulative distance along each route\n    cumulative_distance = torch.cumsum(distance_matrix, dim=0)\n    \n    # Nearest neighbor heuristic: Assign a negative score to edges that exceed vehicle capacity\n    for i in range(1, n):\n        for j in range(i + 1, n):\n            if cumulative_demand[j] - cumulative_demand[i - 1] > 1.0:  # Exceeds capacity\n                heuristic_matrix[i, j] = -1.0\n                heuristic_matrix[j, i] = -1.0\n    \n    # Adjust the heuristic matrix to ensure that the depot is the best starting point\n    for i in range(1, n):\n        for j in range(1, n):\n            if heuristic_matrix[i, j] == 0 and heuristic_matrix[i, 0] == 0 and heuristic_matrix[0, j] == 0:\n                heuristic_matrix[i, j] = cumulative_distance[j, 0] - cumulative_distance[i, 0]\n    \n    return heuristic_matrix",
+      "fitness": 21.410755157470703,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_4\\stdout_9.txt",
+      "code_file": "coevolve\\generation_4\\code_9.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    n = distance_matrix.shape[0]\n    # Initialize a tensor with the same shape as the distance matrix filled with zeros\n    heuristics = torch.zeros_like(distance_matrix)\n    \n    # Nearest neighbor heuristic: assign each node to its nearest neighbor\n    for i in range(1, n):\n        # Find the index of the nearest neighbor for node i\n        nearest_neighbor = torch.argmin(distance_matrix[i])\n        # Set the heuristic value for the edge from i to its nearest neighbor\n        heuristics[i, nearest_neighbor] = -1  # Mark as undesirable\n    \n    # Demand-driven route optimization: adjust the heuristic values based on demand\n    for i in range(1, n):\n        # Calculate the cumulative demand along the path from the depot to node i\n        cumulative_demand = demands[i]\n        for j in range(1, i):\n            cumulative_demand += demands[j]\n            # If the cumulative demand exceeds the vehicle capacity, mark the edge as undesirable\n            if cumulative_demand > 1.0:\n                heuristics[j, i] = -1\n                break\n    \n    # Mark the edges from the depot to all nodes as promising\n    heuristics[:, 0] = 1.0\n    heuristics[0, :] = 1.0\n    \n    return heuristics",
+      "fitness": 58.26133346557617,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_4\\stdout_3.txt",
+      "code_file": "coevolve\\generation_4\\code_3.py"
+    },
+    {
+      "code": "import torch\nimport torch\n\ndef heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:\n    # Ensure that the demands vector does not include the depot demand\n    demands = demands[1:]\n    \n    # Calculate the cumulative demand along each edge\n    cumulative_demand = demands.cumsum(dim=0)\n    \n    # Initialize the heuristic matrix with high negative values (undesirable edges)\n    heuristic_matrix = -torch.ones_like(distance_matrix)\n    \n    # Set the heuristic values for the depot to customer edges\n    # The heuristic value is the negative of the cumulative demand at the customer\n    heuristic_matrix[:, 1:] = -cumulative_demand\n    \n    # Set the heuristic values for the customer to depot edge\n    # The heuristic value is the negative of the total demand of the customer\n    heuristic_matrix[1:, 0] = -demands\n    \n    return heuristic_matrix",
+      "fitness": 94.02369689941406,
+      "execution_success": true,
+      "error": null,
+      "stdout_file": "coevolve\\generation_4\\stdout_4.txt",
+      "code_file": "coevolve\\generation_4\\code_4.py"
+    }
+  ]
+}

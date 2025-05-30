@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Normalize the prize to account for the multi-dimensional nature
+    normalized_prize = prize / (weight * (m + 1)).sum()
+
+    # Dynamic item sorting based on normalized prize value and inverse weight ratio
+    sorted_indices = np.argsort(normalized_prize)
+
+    # Initialize the heuristic values array
+    heuristics = np.zeros(n)
+
+    # Iterate over the sorted items and assign a heuristic value
+    for i in sorted_indices:
+        # Calculate the inverse weight ratio for the current item
+        inv_weight_ratio = weight[i, :].sum() / (prize[i] + 1e-6)
+        
+        # Calculate the sparsity threshold
+        sparsity_threshold = np.sum(heuristics) / (n + 1)
+        
+        # Calculate the heuristic for the current item based on the normalized prize, inverse weight ratio, and sparsity
+        if heuristics[i] < sparsity_threshold:
+            heuristics[i] = normalized_prize[i] * inv_weight_ratio
+
+    # Normalize the heuristics so that they sum to 1
+    heuristics /= np.sum(heuristics)
+
+    return heuristics
+```

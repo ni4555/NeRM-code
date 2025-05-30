@@ -1,0 +1,43 @@
+import numpy as np
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Feature 1: Edge weight
+    for i in range(num_nodes):
+        for j in range(i + 1, num_nodes):
+            heuristic_matrix[i, j] = distance_matrix[i, j]
+            heuristic_matrix[j, i] = distance_matrix[i, j]
+    
+    # Feature 2: Normalization by the sum of extremities of node influence
+    for i in range(num_nodes):
+        for j in range(i + 1, num_nodes):
+            min_distance_from_i = np.min(distance_matrix[i, :])
+            max_distance_from_i = np.max(distance_matrix[i, :])
+            min_distance_from_j = np.min(distance_matrix[j, :])
+            max_distance_from_j = np.max(distance_matrix[j, :])
+            # Normalize the edge weight by the sum of the minimum and maximum distances
+            # from the edge endpoints to all other nodes
+            extremities_sum = min_distance_from_i + max_distance_from_i + min_distance_from_j + max_distance_from_j
+            if extremities_sum != 0:
+                heuristic_matrix[i, j] /= extremities_sum
+                heuristic_matrix[j, i] /= extremities_sum
+    
+    # Feature 3: Node degree influence
+    degree_matrix = np.sum(distance_matrix, axis=0)
+    for i in range(num_nodes):
+        for j in range(i + 1, num_nodes):
+            degree_sum = degree_matrix[i] + degree_matrix[j]
+            if degree_sum != 0:
+                # Increase the heuristic value for the edge if the degree sum is low
+                heuristic_matrix[i, j] *= degree_sum / (num_nodes - 2)
+                heuristic_matrix[j, i] *= degree_sum / (num_nodes - 2)
+    
+    # Normalize the heuristic matrix to sum to 1 over each row
+    for i in range(num_nodes):
+        row_sum = np.sum(heuristic_matrix[i, :])
+        heuristic_matrix[i, :] /= row_sum
+    
+    return heuristic_matrix

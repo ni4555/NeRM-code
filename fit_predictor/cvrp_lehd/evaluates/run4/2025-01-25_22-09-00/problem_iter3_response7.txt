@@ -1,0 +1,17 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    n = distance_matrix.shape[0]
+    # Calculate the cumulative sum of demands to determine load at each point
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    # Incorporate demand factors into the heuristic
+    demand_factor = -cumulative_demand / (cumulative_demand.max() + 1e-6)
+    # Calculate distance scaling
+    distance_scaling = 1 / (distance_matrix + 1e-6)
+    # Combine demand factors and distance scaling to form the heuristic
+    heuristic = demand_factor * distance_scaling
+    # Balance local and global with a simple exponential decay
+    global_factor = 1 / torch.exp(torch.arange(n) * 0.1)
+    final_heuristic = heuristic * global_factor
+    return final_heuristic
+```

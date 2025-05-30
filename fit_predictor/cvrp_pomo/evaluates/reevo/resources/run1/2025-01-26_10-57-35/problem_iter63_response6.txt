@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize demands and distance matrix
+    normalized_demands = demands / demands.sum()
+    normalized_distance_matrix = distance_matrix / distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine demand and distance in a heuristic value
+    heuristics = normalized_distance_matrix * normalized_demands
+    
+    # Integrate capacity constraint
+    capacity_factor = 1 / (demands + 1e-8)  # Avoid division by zero
+    heuristics *= capacity_factor
+    
+    # Normalize heuristics to avoid dominance
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    # Minimize loops by penalizing the addition of a node to a closed loop
+    loop_penalty = torch.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            loop_penalty[i, j] = 1 if torch.all((heuristics[i, :2] + heuristics[j, 1:] > 0) | (heuristics[i, 1:] + heuristics[j, :2] > 0)) else 0
+    heuristics += loop_penalty * -1
+    
+    # Apply a dampening factor to the heuristic values
+    dampening_factor = 0.9
+    heuristics *= dampening_factor
+    
+    # Emphasize the capacity constraint
+    heuristics += (capacity_factor - 1) * demands
+    
+    # Normalize again to maintain a balance between distance and demand
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    # Return the final heuristics
+    return heuristics
+```

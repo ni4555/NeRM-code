@@ -1,0 +1,47 @@
+```python
+import torch
+
+def sigmoid(x):
+    return 1 / (1 + torch.exp(-x))
+
+def softmax(x, dim):
+    exp_x = torch.exp(x - x.max(dim=dim, keepdim=True)[0])
+    return exp_x / exp_x.sum(dim=dim, keepdim=True)
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Create a penalty matrix for demand constraint violations using linear penalties
+    penalty_matrix = -torch.abs(demands - vehicle_capacity)
+    
+    # Create a distance-based penalty matrix to balance demand and distance penalties
+    distance_penalty_matrix = -torch.log(distance_matrix + 1e-6)
+    
+    # Normalize the penalty matrix and distance penalty matrix to ensure they are on similar scales
+    normalized_penalty_matrix = penalty_matrix / penalty_matrix.mean()
+    normalized_distance_matrix = distance_penalty_matrix / distance_penalty_matrix.mean()
+    
+    # Combine the normalized penalties and distances into a single potential matrix
+    potential_matrix = normalized_penalty_matrix + normalized_distance_matrix
+    
+    # Apply a non-linear transformation to emphasize constraints using sigmoid
+    emphasized_matrix = torch.sigmoid(potential_matrix)
+    
+    # Normalize the emphasized matrix to ensure non-negativity
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Combine the normalized emphasized matrix with the normalized distance penalty matrix
+    combined_matrix = (1 - 0.5) * normalized_emphasized_matrix + 0.5 * normalized_distance_matrix
+    
+    # Apply a soft threshold to enforce that promising edges are emphasized while not overly dominating
+    soft_threshold_matrix = torch.clamp(combined_matrix, min=0.5)
+    
+    # Normalize the soft thresholded matrix to ensure it sums to 1 over each row
+    normalized_combined_matrix = softmax(soft_threshold_matrix, dim=1)
+    
+    # Transform the normalized combined matrix into a heuristics matrix
+    # Negative values represent undesirable edges, positive values represent promising ones
+    heuristics_matrix = -torch.sigmoid(normalized_combined_matrix - 1)
+    
+    return heuristics_matrix
+```

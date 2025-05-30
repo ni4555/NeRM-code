@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+
+    # Penalize edges that do not meet the vehicle capacity requirements
+    heuristics_matrix[torch.abs(normalized_demands) > 1.0] *= -1
+
+    # Vectorized normalization to ensure non-negative values for heuristic
+    heuristics_matrix = heuristics_matrix.clamp(min=0)
+
+    return heuristics_matrix
+```

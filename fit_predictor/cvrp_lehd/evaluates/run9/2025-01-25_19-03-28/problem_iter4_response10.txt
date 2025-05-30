@@ -1,0 +1,24 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic for each edge based on a combination of
+    # the normalized demand, the distance, and their weighted sums.
+    # Here, we use the mean of distances and demands to set the weights.
+    distance_weight = torch.mean(distance_matrix)
+    demand_weight = torch.mean(normalized_demands)
+
+    # We also consider the cumulative demand to prioritize edges that are closer
+    # to the capacity limit when the vehicle is loaded. This helps to prioritize
+    # edges that are more critical to the current load of the vehicle.
+    cumulative_demand_weight = torch.cumsum(normalized_demands)
+
+    # Calculate the heuristic
+    heuristic_matrix = (torch.mul(normalized_demands, distance_matrix) * distance_weight +
+                        torch.mul(normalized_demands, demands) * demand_weight +
+                        cumulative_demand_weight * normalized_demands)
+
+    return heuristic_matrix
+```

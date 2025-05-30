@@ -1,0 +1,28 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the demand penalties
+    demand_penalties = -torch.clamp(demands / (torch.max(demands) + 1e-8), min=0)  # Prevent division by zero
+    
+    # Calculate the distance penalties
+    distance_penalties = -distance_matrix
+    
+    # Combine demand and distance penalties
+    penalties = demand_penalties + distance_penalties
+    
+    # Normalize the penalties to create a probability distribution
+    penalties = (penalties - penalties.min()) / (penalties.max() - penalties.min())
+    
+    # Softmax to ensure the sum of each row is 1 (probability distribution)
+    softmax_matrix = F.softmax(penalties, dim=1)
+    
+    # The heuristics are the non-normalized penalties, which represent the original penalty strength
+    heuristics = penalties
+    
+    return heuristics
+```

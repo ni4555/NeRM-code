@@ -1,0 +1,33 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    
+    # Calculate prize per weight per dimension
+    prize_per_weight_per_dim = prize / np.sum(weight, axis=1)
+    
+    # Calculate diversity based on prize per weight per dimension
+    diversity = prize_per_weight_per_dim / (np.mean(prize_per_weight_per_dim) + 1e-8)
+    
+    # Calculate sparsity of each item
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1)
+    
+    # Calculate balance by considering the difference from the mean prize per weight
+    balance = (prize_per_weight_per_dim - np.mean(prize_per_weight_per_dim)) / (np.std(prize_per_weight_per_dim) + 1e-8)
+    
+    # Introduce adaptability factor based on the ratio of the sum of weights of the item to the total weight capacity
+    adaptability_factor = np.sum(weight, axis=1) / (m * n)
+    
+    # Introduce randomness to avoid getting stuck in local optima
+    randomness = np.random.rand(n)
+    
+    # Combine the factors into a weighted heuristic
+    heuristic = 0.4 * diversity + 0.3 * balance + 0.2 * adaptability_factor + 0.1 * randomness
+    
+    # Normalize the heuristic to ensure all values are between 0 and 1
+    heuristic /= np.sum(heuristic)
+    
+    return heuristic
+```

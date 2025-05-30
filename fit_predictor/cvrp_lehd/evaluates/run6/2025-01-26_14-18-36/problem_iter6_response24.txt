@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot demand
+
+    # Sort the demands in descending order to prioritize high-demand nodes
+    sorted_indices = torch.argsort(-demands)
+
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+
+    # Iterate over the sorted demands
+    for i in range(1, n):
+        demand = demands[sorted_indices[i]]
+        # Calculate the heuristic as the demand of the node if not exceeding capacity, otherwise the average demand
+        demand_heuristic = min(demand, average_demand)
+        # The cost of moving to a customer
+        travel_cost = distance_matrix[sorted_indices[i-1], sorted_indices[i]]
+        # The heuristic value is the benefit minus the cost
+        heuristic_matrix[sorted_indices[i-1], sorted_indices[i]] = demand_heuristic - travel_cost
+        heuristic_matrix[sorted_indices[i], sorted_indices[i-1]] = demand_heuristic - travel_cost
+
+    return heuristic_matrix
+```

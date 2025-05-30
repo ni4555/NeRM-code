@@ -1,0 +1,56 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Dynamic capacity penalty
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 - cumulative_demand / total_capacity)
+    
+    # Enhanced distance penalty
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= (cumulative_demand / total_capacity)
+    
+    # Overflow penalty with early return
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balance load heuristic
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Core objectives scaling factor
+    scaling_factor = 3.0
+    heuristics = scaling_factor * (
+        distance_scaling + 
+        dynamic_capacity_penalty + 
+        overflow_penalty + 
+        load_balance_penalty
+    )
+    
+    # Randomness for diversity with control
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    heuristics += diversity_factor
+    
+    # Adaptively scaling the heuristics
+    early_overflow = torch.where(cumulative_demand > total_capacity_vector, torch.ones_like(cumulative_demand), torch.zeros_like(cumulative_demand))
+    imbalance_factor = torch.where(load_balance > 1e-5, torch.ones_like(load_balance), torch.zeros_like(load_balance))
+    dynamic_scaling_factor = early_overflow + imbalance_factor
+    heuristics *= dynamic_scaling_factor
+    
+    # Normalize the heuristics
+    heuristics /= (heuristics.abs().max() + 1e-8)
+    
+    # Avoid selecting the depot
+    depot_penalty = torch.arange(n) == 0
+    heuristics = heuristics - depot_penalty.float().unsqueeze(0)
+    
+    return heuristics
+```

@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Integrate sparsity and a multiplicative factor to create the heuristic
+    sparsity_factor = np.random.binomial(n=1, p=0.8, size=value_to_weight_ratio.shape)
+    multiplicative_factor = np.random.normal(loc=1.0, scale=0.1, size=value_to_weight_ratio.shape)
+    
+    heuristics = sparsity_factor * (multiplicative_factor * 1 / value_to_weight_ratio)
+    heuristics[heuristics <= 0.5] = 0.0  # Set unpromising elements to zero
+    return heuristics
+```

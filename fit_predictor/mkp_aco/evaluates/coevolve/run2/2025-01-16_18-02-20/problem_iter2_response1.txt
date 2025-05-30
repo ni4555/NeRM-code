@@ -1,0 +1,25 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate the sparsity of an item based on the sum of its weight dimensions
+    sparsity = 1 / (np.sum(weight, axis=1) + 1e-6)
+    
+    # Combine normalized prize value and sparsity to get a combined score
+    combined_score = normalized_prize * sparsity
+    
+    # Set a threshold based on the percentile of the combined score
+    threshold = np.percentile(combined_score, 90)
+    
+    # Create an array that indicates how promising it is to include each item
+    heuristics = np.zeros_like(prize)
+    heuristics[combined_score >= threshold] = np.arange(np.sum(combined_score >= threshold))
+    
+    return heuristics
+```

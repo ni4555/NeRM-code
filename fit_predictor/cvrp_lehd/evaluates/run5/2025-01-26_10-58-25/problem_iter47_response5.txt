@@ -1,0 +1,34 @@
+```python
+import torch
+import torch.nn.functional as F
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Calculate a scaled distance matrix to balance demand and distance
+    scaled_distance_matrix = distance_matrix / vehicle_capacity
+    
+    # Calculate the potential matrix considering demand and scaled distance
+    potential_matrix = -torch.abs(demands - vehicle_capacity) + torch.log(scaled_distance_matrix + 1e-6)
+    
+    # Use a non-linear transformation to emphasize high-potential areas
+    emphasized_matrix = torch.sigmoid(potential_matrix)
+    
+    # Normalize the emphasized matrix to maintain balance between high-potential and low-potential areas
+    normalized_emphasized_matrix = F.softmax(emphasized_matrix, dim=1)
+    
+    # Add a scaled distance penalty to maintain balance with demand constraints
+    distance_penalty_matrix = -scaled_distance_matrix * torch.exp(torch.abs(demands - vehicle_capacity))
+    
+    # Combine the normalized emphasized matrix with the distance penalty matrix
+    combined_matrix = normalized_emphasized_matrix + distance_penalty_matrix
+    
+    # Apply a non-linear transformation to further emphasize high-potential edges
+    heuristics_matrix = torch.tanh(combined_matrix)
+    
+    # Scale the heuristics matrix to ensure it is properly normalized and non-negative
+    heuristics_matrix = (heuristics_matrix - torch.min(heuristics_matrix)) / (torch.max(heuristics_matrix) - torch.min(heuristics_matrix))
+    
+    return heuristics_matrix
+```

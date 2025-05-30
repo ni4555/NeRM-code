@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    heuristics = torch.zeros_like(distance_matrix)
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    remaining_capacity = demands[1:].cumsum() - demands[1:]
+    
+    # Vectorized approach to find valid edges based on remaining capacity
+    valid_edges = (demand_cumsum[:, None] - demand_cumsum[:-1]) <= remaining_capacity
+    heuristics[valid_edges] = distance_matrix[valid_edges]
+    
+    # Return to the depot when the capacity is exceeded
+    capacity_exceeded = remaining_capacity <= 0
+    heuristics[capacity_exceeded] = distance_matrix[capacity_exceeded, 0]
+    
+    return heuristics
+```

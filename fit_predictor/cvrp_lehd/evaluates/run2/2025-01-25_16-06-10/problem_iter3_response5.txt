@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand excluding the depot
+    total_demand = demands.sum() - demands[0]
+    # Normalize the distance matrix to reflect relative distances
+    normalized_distance = distance_matrix / distance_matrix.max()
+    # Integrate demand with the normalized distance matrix
+    demand_influence = demands[:, None] * normalized_distance
+    # Add a bonus for edges to the depot (negative distance from the depot)
+    depot_bonus = -distance_matrix[:, 0][:, None]
+    # Sum the demand influence with the depot bonus and the total demand
+    heuristic_matrix = demand_influence + depot_bonus + (distance_matrix.sum() / distance_matrix.size)
+    # Subtract the total demand to balance the score
+    heuristic_matrix -= total_demand
+    return heuristic_matrix
+```

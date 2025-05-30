@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    m = weight.shape[1]
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    value_score = np.sum(prize * normalized_weights, axis=1)
+    diversity_score = np.mean(normalized_weights)
+    sparsity_score = np.sum(normalized_weights > 0.5)
+    balance_score = np.mean(weight, axis=1) / np.sum(weight, axis=1)
+    
+    # Normalization of scores to a range [0, 1]
+    normalized_scores = (value_score + diversity_score + sparsity_score + balance_score) / (4 * np.max(value_score + diversity_score + sparsity_score + balance_score))
+    
+    # Non-linear threshold based on the 90th percentile of the normalized scores
+    threshold = np.percentile(normalized_scores, 90)
+    
+    # Using the threshold to select the most promising items
+    heuristics = normalized_scores > threshold
+    return heuristics.astype(int)
+```

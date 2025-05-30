@@ -1,0 +1,33 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize prize and weight by their maximum values to reduce scale effects
+    prize_normalized = prize / np.max(prize)
+    weight_normalized = weight / np.max(weight, axis=1)[:, None]
+    
+    # Calculate utility density considering the dimensionality
+    density = prize_normalized / (np.sum(weight_normalized, axis=1) + 1e-8)
+    
+    # Calculate sparsity
+    sparsity = np.sum(weight_normalized, axis=1)
+    
+    # Introduce randomness to encourage exploration
+    randomness = np.random.rand(*weight.shape)
+    
+    # Prune dominated solutions by using dominance criteria
+    dominance_criteria = np.where(density < np.min(density))
+    density[dominance_criteria] = 0
+    
+    # Combine density, sparsity, and randomness into a single heuristic value
+    heuristic_value = density * (1 - sparsity) + randomness
+    
+    # Introduce a balance term to ensure diversity and balance between high utility and low weight
+    balance_term = (np.abs(density - 1 / (np.sum(weight_normalized, axis=1) + 1e-8))) * (1 / heuristic_value)
+    
+    # Normalize the heuristic values
+    heuristic = heuristic_value + balance_term
+    heuristic /= np.sum(heuristic)
+    
+    return heuristic
+```

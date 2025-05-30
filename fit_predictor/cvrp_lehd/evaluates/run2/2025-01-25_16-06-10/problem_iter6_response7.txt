@@ -1,0 +1,50 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    # Initialize the heuristics matrix with negative values
+    heuristics = -torch.ones_like(distance_matrix)
+    # Calculate cumulative sum of demands
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    # Create a binary mask for visited nodes
+    visited_mask = torch.zeros(n_nodes, dtype=torch.bool)
+    # Initialize the remaining capacity of the vehicle
+    remaining_capacity = demands[0]
+    # Initialize the starting node index
+    start_node = 0
+
+    while remaining_capacity > 0:
+        # Mark the current node as visited
+        visited_mask[start_node] = True
+        # Iterate over all other nodes
+        for i in range(1, n_nodes):
+            if not visited_mask[i]:  # If the node has not been visited
+                # Calculate the current total demand if this edge is taken
+                total_demand = demand_cumsum[i]
+                if total_demand <= remaining_capacity:
+                    # Update the heuristic value
+                    distance = distance_matrix[start_node, i]
+                    heuristics[start_node, i] = 1 - distance
+                    # Update the remaining capacity
+                    remaining_capacity -= total_demand
+                    # Mark the node as visited
+                    visited_mask[i] = True
+                    # If capacity is exhausted, return to the depot
+                    if remaining_capacity <= 0:
+                        heuristics[i, 0] = 1 - distance_matrix[i, 0]
+                        # Reset the capacity and visited mask for the next iteration
+                        remaining_capacity = demands[0]
+                        visited_mask.fill_(False)
+                        visited_mask[0] = True
+                        start_node = 0
+                        break
+                else:
+                    # Add a penalty for edges that cannot be included due to capacity constraints
+                    heuristics[start_node, i] = -distance
+        else:
+            # If we finished the loop without breaking, move to the next starting node
+            start_node += 1
+
+    return heuristics
+```

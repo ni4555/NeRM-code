@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the relative demand matrix
+    relative_demand_matrix = demands[:, None] / demands
+    relative_demand_matrix -= relative_demand_matrix.diag()
+    
+    # Calculate the heuristic using a combination of relative demand and distance
+    heuristics = distance_matrix * relative_demand_matrix
+    
+    # Normalize the heuristics by dividing by the sum along the rows
+    heuristics /= heuristics.sum(dim=1, keepdim=True)
+    
+    # Invert demand and apply capacity constraint heuristic
+    demand_inv = (demands + 1e-8) ** -1
+    
+    # Adjust heuristics based on vehicle capacity
+    heuristics *= demand_inv
+    
+    # Ensure non-negative heuristics for undesirable edges
+    heuristics = torch.clamp(heuristics, min=0)
+    
+    return heuristics
+```

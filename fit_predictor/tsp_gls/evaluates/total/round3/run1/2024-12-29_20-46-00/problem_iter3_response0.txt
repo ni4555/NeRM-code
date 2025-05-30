@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    n = distance_matrix.shape[0]
+    longest_path = 2 * (n - 1) * np.amax(distance_matrix)
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Use local information to penalize short edges
+    penalty_factor = 1 / (distance_matrix + 1e-5)
+    
+    # Use global information to avoid edges on the longest path
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                if distance_matrix[i, j] == longest_path - distance_matrix[i, j]:
+                    heuristic_matrix[i, j] = 1  # This is a high penalty for edges on the longest path
+                else:
+                    # Combine local and global heuristics
+                    heuristic_matrix[i, j] = penalty_factor[i, j] + (longest_path - distance_matrix[i, j])
+    
+    # Add node and edge attributes to balance exploitation and exploration
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # If node i is frequently used, reduce the heuristic for edges from i
+                if np.sum(heuristic_matrix[:, i]) > 1:
+                    heuristic_matrix[i, j] *= 0.9
+                # If edge i-j is a part of the local optimal route, lower the heuristic
+                if i < len(local_optimal_route) and j < len(local_optimal_route) and local_optimal_route[i] == j:
+                    heuristic_matrix[i, j] *= 0.8
+    
+    # Adapt penalties based on problem context and shortest paths
+    # For example, if the distance is too far from the average, add a penalty
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                average_distance = np.mean(distance_matrix)
+                if distance_matrix[i, j] > 2 * average_distance:
+                    heuristic_matrix[i, j] += (distance_matrix[i, j] - average_distance) * 0.1
+    
+    return heuristic_matrix
+```

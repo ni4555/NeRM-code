@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    m = weight.shape[1]
+    
+    # Normalize weights based on the sum of weights
+    normalized_weights = np.linalg.norm(weight, axis=1) / np.sum(weight, axis=1)[:, None]
+    
+    # Calculate the score for each item based on the normalized weight
+    score = np.sum(prize * normalized_weights, axis=1)
+    
+    # Calculate the ratio of prize to the sum of weights, avoiding division by zero
+    ratio = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate a combined importance metric using both score and ratio
+    combined_importance = score * ratio
+    
+    # Normalize the importance scores to ensure they can be compared across different items
+    max_importance = np.max(combined_importance)
+    min_importance = np.min(combined_importance)
+    normalized_importance = (combined_importance - min_importance) / (max_importance - min_importance)
+    
+    # Incorporate sparsity by considering the number of non-zero weight dimensions
+    sparsity = np.count_nonzero(weight, axis=1) / m
+    
+    # Combine sparsity with normalized importance
+    combined_score = normalized_importance * (1 - sparsity)
+    
+    # Normalize the combined scores to ensure they can be compared across different items
+    max_combined_score = np.max(combined_score)
+    min_combined_score = np.min(combined_score)
+    normalized_combined_score = (combined_score - min_combined_score) / (max_combined_score - min_combined_score)
+    
+    # Apply thresholds based on statistical measures like percentiles
+    threshold = np.percentile(normalized_combined_score, 90)  # Use the 90th percentile as a threshold
+    
+    # Create heuristics array where high importance items are more likely to be selected
+    heuristics = (normalized_combined_score >= threshold).astype(float)
+    
+    return heuristics
+```

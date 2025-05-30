@@ -1,0 +1,36 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Normalize demand and distance
+    demand_normalized = demands / total_demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)
+
+    # Dynamic weights based on demand and distance
+    demand_weight = demand_normalized[:, None] * inv_distance_matrix
+    distance_weight = inv_distance_matrix
+
+    # Integrate domain-specific knowledge for refinement
+    distance_weight[distance_matrix < 2] *= 2  # Higher weight for shorter distances
+    distance_weight[distance_matrix > 10] *= 0.5  # Lower weight for longer distances
+
+    # Heuristic for diversity: add randomness to avoid local optima
+    random_factor = torch.rand_like(distance_weight) * 0.1
+    distance_weight += random_factor
+
+    # Local and global heuristics: balance between demand and capacity
+    remaining_capacity = 1 - demands
+    capacity_weight = (remaining_capacity + 1) * demand_weight
+
+    # Simplify computations and prevent infeasibilities
+    # Penalize edges that lead to infeasible solutions
+    infeasible_mask = demands[:, None] + demands[None, :] > 1
+    capacity_weight[infeasible_mask] = -torch.inf
+
+    # Combine heuristics with penalties
+    combined_heuristic = demand_weight + capacity_weight
+
+    return combined_heuristic
+```

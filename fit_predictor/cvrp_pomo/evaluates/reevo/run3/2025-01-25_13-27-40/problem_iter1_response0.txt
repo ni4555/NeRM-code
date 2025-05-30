@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """A more sophisticated heuristic approach to the CVRP."""
+    # Calculate the cumulative demand along each row (from depot to all nodes)
+    cumulative_demand = torch.cumsum(demands, dim=1)
+    
+    # Calculate the cumulative demand along each column (from all nodes to depot)
+    cumulative_demand_t = torch.cumsum(demands[::-1], dim=1)[:, ::-1]
+    
+    # Calculate the potential reward for each edge as a function of distance and demand
+    # Promising edges have positive values, whereas undesirable edges have negative values
+    reward = -distance_matrix * (cumulative_demand[:, :-1] + cumulative_demand_t[:, :-1] - demands[:, None])
+    
+    # Normalize the reward to ensure all values are within the range [-1, 1]
+    reward = torch.clamp(reward, min=-1, max=1)
+    
+    return reward
+```

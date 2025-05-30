@@ -1,0 +1,34 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    n = distance_matrix.shape[0]
+    total_demand = torch.sum(demands)
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the inverse distance matrix and normalize by total demand
+    inv_distance_matrix = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    normalized_inv_distance_matrix = inv_distance_matrix / total_demand
+
+    # Calculate the remaining capacity for each customer
+    remaining_capacity = 1 - demands
+
+    # Calculate the penalty for infeasibility when the demand exceeds capacity
+    infeasibility_penalty = (demands[:, None] + demands[None, :] > 1) * -torch.inf
+
+    # Use the following heuristic:
+    # 1. Prioritize edges with higher remaining capacity (penalize lower remaining capacity)
+    # 2. Adjust the heuristic with the inverse distance
+    # 3. Normalize by the total demand
+    heuristics = normalized_inv_distance_matrix * remaining_capacity
+
+    # Apply infeasibility penalty for each edge
+    heuristics = heuristics + infeasibility_penalty
+
+    # Further optimization: add the nearest neighbor heuristic
+    nearest_neighbor = torch.min(distance_matrix, dim=1).values
+    heuristics = heuristics + nearest_neighbor
+
+    return heuristics
+```

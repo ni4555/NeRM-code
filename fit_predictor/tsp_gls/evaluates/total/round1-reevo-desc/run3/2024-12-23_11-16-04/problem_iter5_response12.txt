@@ -1,0 +1,18 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Calculate the minimum distance from each node to any other node
+    min_distances = np.min(distance_matrix, axis=1)
+    # Introduce a diversity factor that discourages consecutive nodes being the same
+    diversity_factor = np.abs(np.arange(len(min_distances)) - np.argsort(min_distances))
+    # Combine the original heuristic with the diversity factor
+    combined_heuristic = distance_matrix - min_distances + 1e-6 + diversity_factor
+    # Apply domain knowledge by reducing the penalty for edges that are part of the largest connected subgraph
+    largest_component_size = np.bincount(np.argsort(min_distances)[:-1]) + 1
+    component_sizes = largest_component_size - np.bincount(np.argsort(min_distances), minlength=len(min_distances))
+    component_size_penalty = component_sizes / largest_component_size * 10  # Tuned constant for penalty strength
+    # Final heuristic by balancing the original heuristic and the diversity factor with the component size penalty
+    final_heuristic = combined_heuristic + component_size_penalty - diversity_factor
+    return final_heuristic
+```

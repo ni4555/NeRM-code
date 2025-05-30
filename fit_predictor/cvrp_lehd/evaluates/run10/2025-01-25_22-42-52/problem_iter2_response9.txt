@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the potential overcapacity as a heuristic penalty
+    potential_overcapacity = (cumulative_demand + cumulative_demand[None, :] - 1.0)
+    
+    # Generate a matrix of 1s for edges where the distance is non-zero
+    non_zero_edges = distance_matrix != 0
+    
+    # Apply the heuristic to non-zero edges by taking the maximum overcapacity value
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    heuristics_matrix[non_zero_edges] = torch.max(potential_overcapacity[non_zero_edges], dim=1)[0]
+    
+    return heuristics_matrix
+```

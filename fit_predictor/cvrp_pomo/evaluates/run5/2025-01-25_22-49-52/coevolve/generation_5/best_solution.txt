@@ -1,0 +1,26 @@
+Fitness: 23.28392219543457
+
+Description:
+Develop an optimized heuristic algorithm for the Dynamic Capacitated Vehicle Routing Problem (DCVRP) with a focus on minimizing route distances while ensuring strict adherence to vehicle capacities. The algorithm should integrate constraint programming with specific techniques such as node partitioning and path decomposition, and utilize dynamic window approaches to effectively manage changes in demand and vehicle capacities during execution. This heuristic must incorporate a clear heuristic for path potential based on distance and demand, normalize for consistent scaling, and demonstrate real-time adaptation to dynamic problem instances. The algorithm should also prioritize load balancing and maintain computational efficiency while ensuring scalability for large problem instances.
+
+Code:
+import torch
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demands_normalized = demands / total_capacity
+
+    # Path potential heuristic: combine distance and demand
+    distance_potential = distance_matrix
+    demand_potential = demands_normalized.unsqueeze(1) * demands_normalized.unsqueeze(0)
+
+    # Normalize the potential to ensure consistent scaling
+    max_potential = torch.max(torch.abs(distance_potential) + torch.abs(demand_potential))
+    normalized_potential = (torch.abs(distance_potential) + torch.abs(demand_potential)) / max_potential
+
+    # Heuristic function that combines distance and demand potential
+    heuristic_values = normalized_potential * (1 - demands_normalized)  # Priority to visit nodes with lower demand first
+
+    return heuristic_values

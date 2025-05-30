@@ -1,0 +1,51 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic: edges with shorter distances are more promising
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic: edges with normalized demand closer to 1 are more promising
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: penalize edges with larger distances
+    mean_distance = distance_matrix.mean()
+    heuristic_range = 1.0 / (distance_matrix + mean_distance + 1e-8)
+
+    # Load balancing strategy: prioritize edges with demand close to capacity
+    load_balance = 1.0 / (1 + torch.abs(torch.linspace(0, total_capacity, steps=n) - normalized_demands))
+
+    # Dynamically adjust weights based on the relative importance of each heuristic
+    weight_inverse_distance = torch.clamp(torch.mean(inverse_distance), min=0.1, max=0.5)
+    weight_demand_weight = torch.clamp(torch.mean(demand_weight), min=0.1, max=0.5)
+    weight_heuristic_range = torch.clamp(torch.mean(heuristic_range), min=0.1, max=0.5)
+    weight_load_balance = torch.clamp(torch.mean(load_balance), min=0.1, max=0.5)
+
+    # Combine heuristics using domain knowledge and weights
+    combined_heuristic = (inverse_distance * weight_inverse_distance +
+                          demand_weight * weight_demand_weight +
+                          heuristic_range * weight_heuristic_range +
+                          load_balance * weight_load_balance)
+
+    # Mutation: Introduce a random factor to explore new solutions
+    random_factor = torch.rand_like(combined_heuristic) * (combined_heuristic.max() - combined_heuristic.min()) + combined_heuristic.min()
+    mutated_heuristic = combined_heuristic + random_factor - combined_heuristic
+
+    # Mutation: Introduce a penalty for large deviations from the mean
+    penalty_factor = torch.clamp(torch.abs(mutated_heuristic - combined_heuristic) * 100, max=10.0)
+    mutated_heuristic -= penalty_factor
+
+    # Mutation: Introduce a bonus for large deviations from the mean if they lead to improvement
+    improvement_bonus = torch.clamp(torch.abs(mutated_heuristic - combined_heuristic) * 10, max=10.0)
+    mutated_heuristic += improvement_bonus
+
+    # Clamp mutated values to a reasonable range to avoid extreme values
+    mutated_heuristic = torch.clamp(mutated_heuristic, min=-10.0, max=10.0)
+
+    return mutated_heuristic
+```

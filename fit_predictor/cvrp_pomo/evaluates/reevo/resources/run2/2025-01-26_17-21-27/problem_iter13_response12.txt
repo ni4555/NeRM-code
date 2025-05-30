@@ -1,0 +1,20 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_penalty = -torch.log(torch.abs(demands - total_capacity))
+    distance_penalty = -torch.log(torch.abs(distance_matrix))
+    # Non-linear transformation for the penalties
+    capacity_penalty = torch.pow(capacity_penalty, 2)
+    distance_penalty = torch.pow(distance_penalty, 0.5)
+    # Dynamic scaling of penalties
+    distance_scaling = distance_penalty * (1 + cumulative_demand)
+    # Combine penalties and scale for clarity
+    heuristics = distance_scaling + capacity_penalty
+    # Normalize by the sum of all heuristics to ensure they sum to 1 (probability normalization)
+    heuristics /= heuristics.sum()
+    return heuristics
+```

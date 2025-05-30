@@ -1,0 +1,49 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    load_balance_factor = torch.abs(cumulative_demand - total_capacity / n)
+    
+    # Simplified dynamic capacity penalty with early overflow detection
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / n) - 1e-8)
+    early_overflow = cumulative_demand > total_capacity / n
+    dynamic_capacity_penalty *= (1 + 0.5 * (total_capacity / n - cumulative_demand) / (total_capacity / n))
+    dynamic_capacity_penalty *= early_overflow
+    
+    # Optimized distance penalty with controlled scaling
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    distance_scaling *= 0.5 * (1 + cumulative_demand / (2 * total_capacity))
+    
+    # Reduced overflow penalty with controlled scaling
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity / n,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity / n - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    overflow_penalty *= 0.5
+    
+    # Balanced load balance heuristic
+    load_balance_penalty = -torch.log1p(load_balance_factor - 1e-8)
+    
+    # Controlled randomness factor
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.05
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Combine heuristics with a balanced scaling factor
+    heuristics = (
+        0.6 * (distance_scaling + dynamic_capacity_penalty + overflow_penalty + load_balance_penalty) +
+        0.4 * randomness_factor
+    )
+    
+    # Introduce time-adaptive diversity factor
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Adjust heuristics for early overflow and load imbalance
+    heuristics *= (1 + early_overflow)
+    heuristics += diversity_factor
+    
+    return heuristics
+```

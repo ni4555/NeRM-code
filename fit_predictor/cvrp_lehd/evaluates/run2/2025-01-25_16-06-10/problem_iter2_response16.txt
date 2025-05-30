@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic that incorporates more effective demand and distance differences."""
+    # Normalize the distance matrix to ensure the scale of distance and demand are comparable
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    
+    # Calculate the difference in demand between each node and the depot
+    demand_diff = demands - demands[0]
+    
+    # Calculate the relative demand difference and absolute distance difference
+    relative_demand_diff = demand_diff / demands[0]
+    absolute_distance_diff = normalized_distance_matrix.abs()
+    
+    # Introduce demand and distance penalties for edges
+    demand_penalty = 0.5 * relative_demand_diff.abs()
+    distance_penalty = 0.5 * absolute_distance_diff
+    
+    # Combine the penalties into a heuristic value
+    heuristic_values = -distance_penalty - demand_penalty
+    
+    # Non-linear transformation of the heuristic value
+    heuristic_values = torch.relu(heuristic_values)
+    
+    return heuristic_values
+```

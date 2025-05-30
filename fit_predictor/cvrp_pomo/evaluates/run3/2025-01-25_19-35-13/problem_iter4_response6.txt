@@ -1,0 +1,52 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Initialize a matrix of zeros with the same shape as the distance matrix
+    edge_potential = torch.zeros_like(distance_matrix)
+    
+    # Calculate the total demand to normalize
+    total_demand = demands.sum()
+    
+    # Normalize the demands to have the sum of all demands equal to the vehicle capacity
+    normalized_demands = demands / total_demand
+    
+    # Calculate the average demand to use in potential calculation
+    average_demand = normalized_demands.sum() / n
+    
+    # Calculate the maximum and minimum demands to use in potential calculation
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    
+    # Use a combination of distance-based and demand-based factors in the heuristic
+    # to encourage both exploration (favoring diversity) and exploitation (favoring
+    # routes with higher demands and shorter distances).
+    
+    # The distance factor is penalized for long distances, while the demand factor
+    # is adjusted to promote routes with a more balanced demand distribution.
+    distance_factor = 1 / (distance_matrix + 1e-8)
+    
+    # Adjust the demand factor to account for the difference between max and min demands
+    # This encourages diversity by promoting the inclusion of edges in routes with
+    # demand values closer to the average demand.
+    demand_factor = normalized_demands * (max_demand - min_demand) / (max_demand + min_demand)
+    
+    # The heuristic value for each edge is a combination of the distance factor and
+    # the adjusted demand factor, with a slight penalty for long distances to ensure
+    # that shorter paths are preferred.
+    edge_potential = distance_factor - demand_factor * (distance_matrix - average_demand)
+    
+    # Add a diversity factor to encourage the inclusion of edges with demand values
+    # closer to the average, thus promoting a more diverse solution.
+    diversity_factor = demand_factor * (max_demand - min_demand) / (max_demand + min_demand)
+    edge_potential += diversity_factor
+    
+    # Apply a soft thresholding to ensure that the heuristics values are within a
+    # certain range, as this will help in preventing the algorithm from exploring
+    # edges that are clearly not promising.
+    edge_potential = torch.clamp(edge_potential, min=-1.0, max=1.0)
+    
+    return edge_potential
+```

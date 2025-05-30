@@ -1,0 +1,18 @@
+import numpy as np
+
+def heuristics_v2(prize, weight):
+    n, m = prize.shape[0], weight.shape[1]
+    # Calculate the ratio of the weighted sum of prizes to the total prize
+    ratio = (prize * weight).sum(axis=1) / prize.sum()
+    # Rank the items based on the ratio
+    sorted_indices = np.argsort(-ratio)
+    # Create a probability distribution based on cumulative weights
+    cumulative_weight = np.cumsum(weight, axis=1)
+    probabilities = cumulative_weight.sum(axis=1) / cumulative_weight
+    # Apply the ratio ranking to adjust the probabilities
+    adjusted_probabilities = probabilities * (ratio[sorted_indices] / ratio)
+    # Normalize the adjusted probabilities
+    adjusted_probabilities /= adjusted_probabilities.sum()
+    # Use the adjusted probabilities to generate the heuristics matrix
+    heuristics_matrix = adjusted_probabilities.reshape(n)
+    return heuristics_matrix

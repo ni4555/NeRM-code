@@ -1,0 +1,27 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Adjust the edge distances based on their usage frequency, route length, and local minima penalties
+    n = distance_matrix.shape[0]
+    usage_count = np.zeros_like(distance_matrix, dtype=int)
+    route = np.arange(n)
+    for i in range(n - 1):
+        usage_count[route[i], route[i+1]] += 1
+        usage_count[route[i+1], route[i]] += 1
+
+    # Calculate the length of the current route
+    route_length = np.sum(distance_matrix[route[:-1], route[1:]])
+
+    # Create a penalty matrix that increases with the length of the route
+    route_length_penalty = np.arange(n * (n - 1) // 2) / (n * (n - 1) // 2)
+    
+    # Combine usage frequency, route length, and penalty to adjust distances
+    adjusted_distances = distance_matrix * usage_count + (1 - usage_count) * distance_matrix
+    adjusted_distances += route_length_penalty
+
+    # Normalize the adjusted distances to ensure they are comparable to the original distances
+    adjusted_distances /= np.sum(adjusted_distances)
+    
+    return adjusted_distances
+```

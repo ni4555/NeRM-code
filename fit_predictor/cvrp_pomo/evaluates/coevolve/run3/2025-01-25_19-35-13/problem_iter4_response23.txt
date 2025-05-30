@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Initialize the edge potential matrix
+    edge_potential = torch.zeros_like(distance_matrix)
+    
+    # Compute the potential for each edge based on distance and demand
+    # The potential is a combination of the normalized demand, the inverse of the distance,
+    # and penalties for high demands and long distances.
+    epsilon = 1e-8  # Small positive constant to avoid division by zero
+    distance_penalty = 1 / (distance_matrix + epsilon)  # Distance-based penalty
+    demand_penalty = demands  # Demand-based penalty (unnormalized)
+    
+    # Combine the penalties with the inverse distances
+    combined_penalty = distance_penalty - demand_penalty
+    
+    # Ensure the combined penalty is non-negative
+    combined_penalty = torch.clamp(combined_penalty, min=0)
+    
+    return combined_penalty
+```

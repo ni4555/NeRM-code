@@ -1,0 +1,44 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the quality-to-weight ratio
+    ratio = prize / np.sum(weight, axis=1)
+    
+    # Calculate a dynamic penalty factor based on the quality-to-weight ratio
+    penalty_factor = 1 / (1 + ratio)
+    
+    # Calculate the sparsity factor based on the number of zero weights
+    sparsity_factor = np.sum(weight == 0, axis=1) / weight.shape[1]
+    
+    # Calculate the average sparsity across all items
+    average_sparsity = np.mean(sparsity_factor)
+    
+    # Calculate a dynamic sparsity penalty based on the average sparsity
+    sparsity_penalty = 1 - average_sparsity
+    
+    # Calculate the minimum average weight across dimensions for each item
+    min_average_weight = np.min(weight, axis=1)
+    
+    # Calculate a dynamic weight penalty based on the minimum average weight
+    weight_penalty = 1 / (1 + min_average_weight)
+    
+    # Combine the penalty factors and sparsity factor
+    combined_penalty = penalty_factor * sparsity_penalty * weight_penalty
+    
+    # Normalize the combined penalty by dividing by the maximum penalty value
+    max_penalty = np.max(combined_penalty)
+    if max_penalty > 0:
+        combined_penalty /= max_penalty
+    
+    # Incorporate item-specific characteristics by penalizing items with high variance in weights
+    weight_variance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)
+    variance_penalty = 1 / (1 + weight_variance)
+    
+    # Combine the combined penalty with variance penalty to get a more informed heuristic value
+    heuristics = combined_penalty * variance_penalty
+    
+    # Apply a dynamic sparsification threshold, setting elements below the threshold to zero
+    sparsity_threshold = np.mean(combined_penalty)
+    heuristics[heuristics < sparsity_threshold] = 0
+    
+    return heuristics
+```

@@ -1,0 +1,23 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic for the Capacitated Vehicle Routing Problem (CVRP)."""
+    # Calculate the total demand
+    total_demand = demands.sum()
+    
+    # Initialize the heuristic matrix with zeros
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Normalize the distance matrix to ensure the scale of distance and demand are comparable
+    normalized_distance_matrix = distance_matrix / torch.max(distance_matrix)
+    
+    # Vectorized approach to calculate potential return distances
+    return_distances = torch.where(demands[:, None] + demands >= total_demand, distance_matrix[:, None, :], torch.zeros_like(demands[:, None]))
+    return_distances = return_distances.sum(dim=2)
+    
+    # Calculate the heuristic values combining distance and demand
+    heuristic_values = -normalized_distance_matrix + return_distances.abs()
+    
+    return heuristic_values
+```

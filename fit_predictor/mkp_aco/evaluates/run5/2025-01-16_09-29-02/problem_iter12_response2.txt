@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_per_weight = prize / np.sum(weight, axis=1)
+    diversity_factor = np.sum(weight, axis=1) / (np.linalg.norm(weight, axis=1) + 1e-8)
+    normalized_prize = prize / np.sum(prize)
+    sparsity = 1 / (np.linalg.norm(weight, axis=1) + 1e-8)
+    
+    # Normalize each factor to the range [0, 1]
+    normalized_factors = np.array([
+        value_per_weight / np.max(value_per_weight),
+        diversity_factor / np.max(diversity_factor),
+        normalized_prize / np.max(normalized_prize),
+        sparsity / np.max(sparsity)
+    ]).T
+    
+    # Combine the normalized factors using a weighted sum
+    heuristic = np.sum(normalized_factors, axis=1)
+    
+    # Filter out insignificant contributions
+    heuristic[heuristic < 0.01] = 0
+    
+    return heuristic
+```

@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Non-linear scaling by taking the exponential of the ratio
+    non_linear_scaled_ratio = np.exp(value_to_weight_ratio)
+    # Apply a threshold to enhance sparsity while allowing for some overlap
+    threshold = np.log(2)
+    thresholded_ratio = np.where(non_linear_scaled_ratio > threshold, non_linear_scaled_ratio, 0)
+    # Calculate diversity metric based on the absolute difference from the mean
+    diversity_metric = np.abs(thresholded_ratio - np.mean(thresholded_ratio))
+    # Normalize the diversity metric to balance it with the value-to-weight ratio
+    normalized_diversity = diversity_metric / np.max(diversity_metric)
+    # Combine value-to-weight and diversity metric using a weighted sum
+    combined_score = thresholded_ratio * (1 - normalized_diversity)
+    # Filter for diversity by excluding items with the same value-to-weight ratio
+    unique_items = np.where(np.unique(combined_score, axis=0) != combined_score, combined_score, 0)
+    return unique_items
+```

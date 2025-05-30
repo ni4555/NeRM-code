@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Initialize a heuristic based on the ratio of the square of the distance and the demand
+    heuristics = torch.log1p(distance_matrix * (demands[:, None] + demands[None, :] / total_capacity))
+    
+    # Incorporate problem constraints explicitly
+    load_penalties = (demands[:, None] + demands[None, :] > total_capacity).float()
+    heuristics = heuristics + load_penalties * -100  # Penalties for overloading
+    
+    # Use domain-specific knowledge for local search
+    for i in range(n):
+        for j in range(i+1, n):
+            if distance_matrix[i, j] > 0:
+                if demands[i] + demands[j] <= total_capacity:
+                    edge_efficiency = 1 - (demands[i] + demands[j]) / total_capacity
+                    heuristics[i, j] += edge_efficiency ** 3
+    
+    # Balance global vs. local exploration
+    diversity_factor = torch.log(torch.abs(demands) + 1)
+    heuristics += diversity_factor / n
+    
+    # Normalize heuristics effectively to promote diversity
+    min_heuristic = heuristics.min()
+    max_heuristic = heuristics.max()
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

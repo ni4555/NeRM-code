@@ -1,0 +1,52 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Scaled distance penalty
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * 0.5
+    
+    # Dynamic capacity penalty with adaptive scaling and early overflow detection
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity / n) - 1e-8)
+    capacity_penalty *= (1 + 0.3 * (1 - cumulative_demand / total_capacity))
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Load balance heuristic with adaptive balance factor
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance *= 0.5
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Randomness factor with controlled impact based on cumulative demand
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    randomness_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Apply a scaling factor to prioritize core objectives
+    scaling_factor = 2.0
+    heuristics = scaling_factor * (
+        distance_penalty +
+        capacity_penalty +
+        overflow_penalty +
+        load_balance_penalty
+    )
+    
+    # Introduce diversity factor to encourage exploration
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    
+    # Adjust heuristics based on early overflow and imbalance
+    heuristics *= (1 + torch.any(cumulative_demand > total_capacity_vector))
+    heuristics += diversity_factor
+    
+    return heuristics
+```

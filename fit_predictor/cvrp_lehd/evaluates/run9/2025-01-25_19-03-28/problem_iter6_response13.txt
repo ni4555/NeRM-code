@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic based on a combination of demand and distance
+    weight_demand = torch.exp(-torch.abs(normalized_demands - 0.5))
+    weight_distance = 1 / (distance_matrix + 1e-5)  # Add a small constant to avoid division by zero
+    heuristic_base = torch.mul(weight_demand, normalized_demands)
+    heuristic_base = torch.mul(heuristic_base, weight_distance)
+
+    # Incorporate diversity through variance
+    demand_variance = torch.var(normalized_demands, dim=0)
+    variance_weight = 1 / (demand_variance + 1e-5)  # Avoid division by zero
+
+    # Incorporate cumulative demand, capacity, and global network stats
+    cumulative_demand = torch.cumsum(normalized_demands, dim=0)
+    capacity_threshold = torch.clamp(cumulative_demand, max=1.0)
+    edge_penalties = (capacity_threshold - cumulative_demand) * 10  # Apply penalties when over capacity
+
+    # Combine the base heuristic with variance and penalties
+    heuristic_matrix = heuristic_base + variance_weight - edge_penalties
+
+    # Normalize the heuristic matrix
+    heuristic_matrix = heuristic_matrix / (heuristic_matrix.abs().max() + 1e-5)  # Add a small constant to avoid division by zero
+
+    # Apply smoothing for stability
+    alpha = 0.5
+    smooth_matrix = alpha * torch.ones_like(heuristic_matrix) - alpha * distance_matrix
+    heuristic_matrix = torch.mul(smooth_matrix, heuristic_matrix)
+
+    # Enforce limits to maintain heuristic coherence
+    max_value = torch.max(heuristic_matrix)
+    min_value = torch.min(heuristic_matrix)
+    range_value = max_value - min_value
+    heuristic_matrix = torch.clamp(heuristic_matrix, min=min_value - range_value / 4, max=max_value + range_value / 4)
+
+    return heuristic_matrix
+```

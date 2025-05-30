@@ -1,0 +1,26 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand sum
+    total_demand = demands.sum()
+    
+    # Create a binary mask where each edge from the depot to a customer is 1, otherwise 0
+    is_customer_edge = torch.eye(distance_matrix.shape[0], dtype=torch.bool)
+    is_customer_edge[0, 1:] = 1
+    is_customer_edge[1:, 0] = 0
+    
+    # Calculate the demand if we start with each customer as the first visit
+    first_visit_demand = (is_customer_edge * demands).sum(axis=1)
+    
+    # Calculate the distance if we start with each customer as the first visit
+    first_visit_distance = (is_customer_edge * distance_matrix[0]).sum(axis=1)
+    
+    # Calculate the heuristic as the negative sum of distances minus the sum of demands for each customer
+    heuristic = -first_visit_distance - first_visit_demand
+    
+    # Ensure the heuristic does not exceed zero (we do not want to promote edges with non-promising heuristics)
+    heuristic = torch.clamp(heuristic, min=0)
+    
+    return heuristic
+```

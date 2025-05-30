@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Dynamic penalty based on remaining capacity
+    dynamic_capacity_penalty = capacity_penalty * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Enhanced distance penalty to account for cumulative load
+    distance_scaling = distance_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Overflow penalty with early return to avoid unnecessary overflow
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Balance load heuristic to encourage uniform load distribution
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    
+    # Introduce a more aggressive load balancing approach
+    aggressive_load_balance = torch.clamp(load_balance / (total_capacity / n), 0, 1)
+    load_balance_penalty = -torch.log1p(aggressive_load_balance - 1e-8)
+    
+    # Apply a scaling factor to prioritize core objectives, but with a more adaptive approach
+    scaling_factor = 3.0
+    core_objectives = dynamic_capacity_penalty + distance_scaling + overflow_penalty
+    adaptive_heuristics = scaling_factor * core_objectives
+    
+    # Apply an adaptive penalty for load imbalance, focusing on the most imbalanced routes
+    imbalance = torch.abs(cumulative_demand - total_capacity / n)
+    most_imbalanced = torch.argsort(imbalance, descending=True)
+    adaptive_penalty = torch.zeros_like(adaptive_heuristics)
+    adaptive_penalty[most_imbalanced[:3]] = -2.0  # Apply stronger penalties to the top 3 imbalanced routes
+    
+    heuristics = adaptive_heuristics + load_balance_penalty + adaptive_penalty
+    return heuristics
+```

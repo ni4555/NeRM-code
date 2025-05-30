@@ -1,0 +1,30 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the total demand of all customers
+    total_demand = demands.sum()
+    
+    # Normalize the demands by the total demand
+    normalized_demands = demands / total_demand
+    
+    # Calculate the total distance to all customers from the depot
+    total_distance = distance_matrix.sum(dim=1)
+    
+    # Normalize the distances by the total distance
+    normalized_distances = distance_matrix / total_distance
+    
+    # Calculate the demand to distance ratio for each edge
+    demand_to_distance_ratio = normalized_demands * total_distance
+    
+    # Calculate the reward for each edge based on the demand to distance ratio
+    rewards = demand_to_distance_ratio / (1 + distance_matrix)
+    
+    # Subtract the reward from the distance to penalize longer distances
+    heuristics = rewards - distance_matrix
+    
+    # Scale the heuristics to ensure they are positive and negative
+    heuristics = (heuristics - heuristics.min()) / (heuristics.max() - heuristics.min())
+    
+    return heuristics
+```

@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    max_demand = demands.max()
+    min_demand = demands.min()
+    
+    # Initialize a matrix with the same shape as distance_matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate penalties for all edges except the one from the depot to itself
+    potential_benefit = demands + demands[:, None]
+    capacity_excess = potential_benefit - 1
+    penalties = torch.clamp(capacity_excess, min=0) * (distance_matrix / distance_matrix[depot, :][:, None])
+    
+    # Calculate heuristic values and assign them to the heuristic_matrix
+    heuristic_matrix -= penalties
+    
+    # For symmetry, ensure that the matrix is symmetric
+    heuristic_matrix = (heuristic_matrix + heuristic_matrix.T) / 2
+    
+    # Ensure that the heuristic values for the edge from the depot to itself are zero
+    heuristic_matrix[depot, depot] = 0
+    
+    return heuristic_matrix
+```

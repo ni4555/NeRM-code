@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Prune dominated items based on normalized density
+    sorted_density = np.argsort(density)[::-1]
+    dominance_flags = np.zeros_like(density)
+    for i in range(len(sorted_density)):
+        for j in range(i):
+            if density[sorted_density[j]] > density[sorted_density[i]]:
+                dominance_flags[sorted_density[j]] = 1
+    
+    # Create heuristic values considering density, sparsity, and dominance
+    heuristic_value = density * (1 - dominance_flags) - sparsity
+    
+    # Introduce randomness to balance exploitation and exploration
+    random_factor = np.random.rand(len(heuristic_value))
+    
+    # Create a final heuristic value
+    heuristic = heuristic_value + random_factor
+    
+    # Normalize by the maximum heuristic value
+    normalized_heuristic = heuristic / (np.max(heuristic) + 1e-8)
+    
+    return normalized_heuristic
+```

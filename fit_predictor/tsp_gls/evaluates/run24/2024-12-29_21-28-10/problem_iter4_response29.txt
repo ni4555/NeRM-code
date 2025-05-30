@@ -1,0 +1,35 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = np.zeros_like(distance_matrix)
+
+    # Use median to avoid outliers
+    median_distance = np.median(distance_matrix)
+
+    # Reinforce short edges and penalize long ones
+    short_edges = distance_matrix < median_distance
+    long_edges = distance_matrix > median_distance
+    heuristic_matrix[short_edges] = 1
+    heuristic_matrix[long_edges] = 2
+
+    # Calculate the number of neighbors for each node
+    connectivity = np.count_nonzero(distance_matrix, axis=1)
+
+    # Maximize connectivity by increasing the heuristic value for nodes with high connectivity
+    heuristic_matrix[connectivity > num_nodes / 2] = 1.5
+
+    # Minimize isolation by decreasing the heuristic value for nodes with low connectivity
+    isolation_penalty = 0.5
+    heuristic_matrix[connectivity < 2] *= (1 - isolation_penalty)
+
+    # Avoid isolating nodes by penalizing their edges
+    isolated_nodes = connectivity < 2
+    heuristic_matrix[isolated_nodes] *= 0.8
+
+    # Balance between exploration and exploitation
+    # For nodes with high connectivity, favor exploration by reducing the heuristic value
+    heuristic_matrix[connectivity > num_nodes / 2] *= (1 - isolation_penalty)
+
+    return heuristic_matrix
+```

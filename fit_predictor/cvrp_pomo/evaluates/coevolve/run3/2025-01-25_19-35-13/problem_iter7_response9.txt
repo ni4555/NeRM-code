@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    
+    # Define weights for demand and distance heuristics
+    demand_weight = 0.7
+    distance_weight = 0.3
+    
+    # Initialize the potential matrix with high values
+    edge_potential = -torch.ones_like(distance_matrix)
+    
+    # Apply a nearest neighbor heuristic to initialize the potential
+    unvisited = torch.arange(1, len(demands))
+    for i in range(len(demands)):
+        # Select the next nearest customer
+        next_customer = unvisited[torch.argmin(distance_matrix[i, unvisited])]
+        edge_potential[i, next_customer] = distance_matrix[i, next_customer] / (normalized_demands[next_customer] ** demand_weight)
+        unvisited = torch.setdiff1d(unvisited, torch.tensor([next_customer]))
+    
+    # Introduce penalties for high demands and long distances
+    edge_potential = edge_potential - (edge_potential * 0.15 * (demands > 1.5).float())
+    edge_potential = edge_potential + (edge_potential * 0.1 * (distance_matrix < 15).float())
+    
+    # Apply a secondary heuristic to refine the potential
+    for i in range(len(demands)):
+        for j in range(len(demands)):
+            if i != j and (i, j) not in distance_matrix[i, unvisited]:
+                # Calculate the potential with a local swap
+                swap_demand = demands[j] / (demands[i] + demands[j])
+                edge_potential[i, j] = edge_potential[i, j] + (swap_demand ** demand_weight)
+                edge_potential[j, i] = edge_potential[j, i] + (swap_demand ** demand_weight)
+    
+    return edge_potential
+```

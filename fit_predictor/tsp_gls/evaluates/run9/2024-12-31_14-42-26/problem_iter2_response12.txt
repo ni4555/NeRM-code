@@ -1,0 +1,30 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Define a function to calculate the local and global heuristic values
+    def calculate_heuristics(i, distance_matrix):
+        cumulative_distance = np.cumsum(distance_matrix[i, :])
+        min_cumulative_index = np.argmin(cumulative_distance)
+        min_cumulative_distance = cumulative_distance[min_cumulative_index]
+        average_distance = np.mean(distance_matrix[i, :])
+        
+        # Calculate weights based on exploration and exploitation balance
+        if i == 0:  # For the first node, prioritize global information
+            weight_local = 0.3
+            weight_global = 0.7
+        else:  # For other nodes, balance between local and global
+            weight_local = 0.5
+            weight_global = 0.5
+        
+        return weight_local * (cumulative_distance - min_cumulative_distance) + weight_global * average_distance
+    
+    # Calculate the heuristics for each node
+    for i in range(distance_matrix.shape[0]):
+        heuristics[i, :] = calculate_heuristics(i, distance_matrix)
+    
+    return heuristics
+```

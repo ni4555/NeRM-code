@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the vehicle capacity
+    vehicle_capacity = 1.0
+    
+    # Create a matrix where each cell contains the ratio of demand to vehicle capacity
+    demand_to_capacity_ratio = demands / vehicle_capacity
+    
+    # Normalize the distance matrix
+    normalized_distance_matrix = distance_matrix / vehicle_capacity
+    
+    # Calculate the cumulative sum of demand-to-capacity ratio along the rows and columns
+    cumulative_demand_matrix = torch.cumsum(demand_to_capacity_ratio, dim=1)
+    cumulative_demand_transposed_matrix = torch.cumsum(demand_to_capacity_ratio.t(), dim=1).t()
+    
+    # Create a matrix with positive values for feasible edges and negative values for infeasible ones
+    feasibility_matrix = (cumulative_demand_matrix <= 1).float() - (cumulative_demand_transposed_matrix <= 1).float()
+    
+    # Normalize the feasibility matrix by the sum of its elements in each row
+    row_sums = feasibility_matrix.sum(dim=1, keepdim=True)
+    feasibility_matrix = feasibility_matrix / (row_sums + 1e-6)  # Adding a small epsilon to avoid division by zero
+    
+    # Combine the normalized distance matrix and the feasibility matrix
+    combined_matrix = normalized_distance_matrix + feasibility_matrix
+    
+    # Softmax over each row to promote the selection of edges with lower potential and higher distances
+    softmax_matrix = torch.nn.functional.softmax(combined_matrix, dim=1)
+    
+    # Subtract from 1 to promote the selection of edges with lower potential and higher distances
+    heuristics_matrix = 1 - softmax_matrix
+    
+    return heuristics_matrix
+```

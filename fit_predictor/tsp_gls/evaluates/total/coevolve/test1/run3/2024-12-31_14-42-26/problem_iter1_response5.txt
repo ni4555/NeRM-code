@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Compute heuristic values using a combination of methods:
+    # 1. The distance between the node and the node with the lowest cumulative distance from it
+    # 2. The average distance from the node to all other nodes
+    # 3. A weighted sum of the above two to balance local and global search
+    n = distance_matrix.shape[0]
+    for i in range(n):
+        # Calculate the cumulative distance to each node
+        cumulative_distance = np.cumsum(distance_matrix[i, :])
+        # Node with the lowest cumulative distance
+        min_cumulative_index = np.argmin(cumulative_distance)
+        min_cumulative_distance = cumulative_distance[min_cumulative_index]
+        
+        # Calculate the average distance to all other nodes
+        average_distance = np.mean(distance_matrix[i, :])
+        
+        # Create a weighted sum of the two
+        # Weights can be adjusted based on the desired balance between exploration and exploitation
+        weight_local = 0.6
+        weight_global = 0.4
+        
+        heuristics[i, :] = (weight_local * (cumulative_distance - min_cumulative_distance) +
+                           weight_global * average_distance)
+        
+    return heuristics
+```

@@ -1,0 +1,22 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = 1.0
+
+    # Introduce demand awareness by considering the cumulative demand
+    demand_matrix = -torch.cumsum(demands, dim=0) / vehicle_capacity
+    demand_matrix = torch.cat([torch.zeros_like(demand_matrix[:1]), demand_matrix])
+    
+    # Add the distance matrix to the demand matrix to create a potential matrix
+    potential_matrix = distance_matrix + demand_matrix
+
+    # Use softmax to balance edge scores, where higher potential and shorter distances are favored
+    softmax_matrix = torch.nn.functional.softmax(potential_matrix, dim=1)
+    
+    # The resulting softmax_matrix represents the relative probabilities of taking each edge
+    # Invert these probabilities to promote edges with lower potential and higher distances
+    heuristics_matrix = 1 - softmax_matrix
+
+    return heuristics_matrix
+```

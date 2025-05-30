@@ -1,0 +1,13 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    non_linear_scaled_ratio = value_to_weight_ratio ** 2  # Apply non-linear scaling
+    normalized_ratio = (non_linear_scaled_ratio - np.mean(non_linear_scaled_ratio)) / np.std(non_linear_scaled_ratio)
+    sparsity_filter = np.abs(normalized_ratio) > 0.1
+    # Sparsify the normalized heuristics by applying the filter
+    sparsified_ratio = np.where(sparsity_filter, normalized_ratio, 0)
+    # Introduce additional diversity by adding some random noise to encourage diversity in selection
+    diversity_factor = np.random.rand(*sparsified_ratio.shape) * (1 - sparsified_ratio)
+    final_heuristics = sparsified_ratio + diversity_factor
+    return final_heuristics
+```

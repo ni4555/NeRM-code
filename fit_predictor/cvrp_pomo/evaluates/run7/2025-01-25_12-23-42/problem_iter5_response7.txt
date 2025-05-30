@@ -1,0 +1,18 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load at each node normalized by the total demand
+    node_loads = demands.unsqueeze(1) / demands.sum()
+    
+    # Calculate the heuristic weights for each node considering the demand
+    heuristic_weights = node_loads * norm_distances
+    
+    # Add a term that encourages paths with more balanced loads
+    load_balance_factor = demands / demands.sum() * torch.arange(demands.size(0)).to(demands.device)
+    
+    # Calculate the heuristics by combining the weights and the load balance factor
+    heuristics = heuristic_weights.sum(-1) - load_balance_factor
+    return heuristics
+```

@@ -1,0 +1,99 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Initialize Deep Reinforcement Learning (DRL) with an adaptive reward function
+    model_scores = np.random.rand(n)
+    reward_function = lambda x: -np.sum(x * np.log(1 + x))  # Minimize penalty for over-weighted items
+    model_rewards = [reward_function(model_scores)]
+
+    # Initialize Particle Swarm Optimization (PSO) with adaptive learning rate
+    pso_position = np.random.rand(n)
+    pso_velocity = np.zeros(n)
+    pso_personal_best = np.copy(pso_position)
+    pso_global_best = np.copy(pso_position)
+    pso_personal_best_scores = np.copy(model_scores)
+    pso_global_best_scores = np.copy(model_scores)
+
+    # Initialize PSO global best with RL scores and ensure feasibility
+    feasible_items = np.sum(weight, axis=1) <= 1
+    pso_global_best_scores[~feasible_items] = float('-inf')
+    pso_global_best = pso_position[feasible_items]
+
+    # Initialize adaptive sparsity and learning rate
+    sparsity_threshold = np.percentile(model_scores, 50)
+    learning_rate = 0.01
+
+    # Run PSO with adaptive learning rate
+    for _ in range(10):  # Using a small number of iterations for demonstration
+        for i in range(n):
+            if i in feasible_items:  # Only consider feasible items
+                # Update velocity and position
+                pso_velocity[i] = learning_rate * pso_velocity[i] + \
+                                  (0.5 * (np.random.rand() - 0.5))
+                pso_position[i] += pso_velocity[i]
+                pso_position[i] = np.clip(pso_position[i], 0, 1)
+
+                # Update personal best
+                if model_scores[i] > pso_personal_best_scores[i]:
+                    pso_personal_best_scores[i] = model_scores[i]
+                    pso_personal_best[i] = pso_position[i]
+
+                # Update global best
+                if pso_personal_best_scores[i] > pso_global_best_scores[i]:
+                    pso_global_best_scores[i] = pso_personal_best_scores[i]
+                    pso_global_best[i] = pso_personal_best[i]
+
+        # Update global best index
+        global_best_index = np.argmax(pso_global_best_scores)
+
+        # Update RL scores based on the best PSO score
+        model_scores[~feasible_items] = float('-inf')
+        model_scores[global_best_index] = pso_global_best_scores[global_best_index]
+
+        # Update rewards for RL
+        model_rewards.append(reward_function(model_scores))
+
+    # Update heuristics based on the weighted average of RL and PSO scores, considering feasibility
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            avg_reward = np.mean(model_rewards)
+            heuristic[i] = avg_reward * (prize[i] / (prize[global_best_index] + 1e-6))
+
+    # Sparsify heuristics by setting unpromising elements to zero
+    sparsity_threshold = np.percentile(heuristic, 50)
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    # Incorporate diversity by considering the variance of the PSO scores
+    diversity_factor = np.var(pso_global_best_scores[feasible_items]) / np.mean(pso_global_best_scores[feasible_items])
+    heuristic *= diversity_factor
+
+    # Refine the reward mechanism by incorporating the most promising heuristic scores
+    new_reward_function = lambda x: np.sum(x * np.log(1 + x)) + np.sum(x * heuristic)
+    new_model_scores = np.exp(new_reward_function(model_scores) - np.max(new_reward_function(model_scores)))
+    new_model_scores /= np.sum(new_model_scores)
+
+    # Update heuristics based on the refined RL scores
+    heuristic = new_model_scores * prize / (prize[global_best_index] + 1e-6)
+
+    # Ignore non-feasible items in the final heuristic
+    heuristic[~feasible_items] = 0
+
+    # Integrate adaptive constraint-driven filtering to maintain multi-dimensional feasibility
+    for i in range(n):
+        if i not in feasible_items:
+            # If item is not feasible, adjust its heuristic score to encourage it to stay out
+            heuristic[i] *= 0.5
+
+    # Balance exploration-exploitation by adjusting the learning rate dynamically
+    learning_rate *= 1.02  # Increment learning rate for exploration
+    heuristic *= (1 - learning_rate)  # Decrement influence of heuristic for exploitation
+
+    return heuristic
+```

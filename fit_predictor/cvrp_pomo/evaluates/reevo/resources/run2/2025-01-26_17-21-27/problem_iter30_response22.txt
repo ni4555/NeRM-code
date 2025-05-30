@@ -1,0 +1,40 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+
+    # Enhanced distance penalty with cumulative load
+    distance_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8) * (1 + cumulative_demand / total_capacity)
+
+    # Capacity penalty with fine-grained approach, considering the current load more directly
+    load_penalty = 0.1
+    load_difference = demands - total_capacity / n
+    capacity_penalty = -torch.log1p(torch.abs(load_difference) - 1e-8) * load_penalty
+
+    # Overflow penalty for edges that would exceed capacity
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+
+    # Load balance heuristic to encourage uniform distribution of demand
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+
+    # Additional penalty for very high load balance to prevent overloading, especially for high deviation
+    high_load_balance_penalty = torch.where(
+        load_balance > total_capacity / (2 * n) + total_capacity / (4 * n) * torch.abs(load_difference),
+        -torch.log1p(load_balance - 1e-8),
+        torch.zeros_like(load_balance)
+    )
+
+    # Scale penalties to balance the impact of each
+    scaling_factor = 2.5
+    heuristics = scaling_factor * (distance_penalty + capacity_penalty + overflow_penalty + load_balance_penalty + high_load_balance_penalty)
+
+    return heuristics
+```

@@ -1,0 +1,27 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the total weight for each item by summing its weights across all dimensions
+    total_weight = np.sum(weight, axis=1)
+    
+    # Normalize the prize by the total weight to get a per-unit-weight prize value
+    normalized_prize = prize / total_weight
+    
+    # Calculate the sum of the normalized weights, which serves as a diversity measure
+    sum_normalized_weights = np.sum(weight, axis=1)
+    
+    # Calculate the maximum normalized prize and the average normalized prize
+    max_normalized_prize = np.max(normalized_prize)
+    avg_normalized_prize = np.mean(normalized_prize)
+    
+    # Combine normalized prize, diversity measure, and balance between high and average prize values
+    composite_heuristic = normalized_prize + sum_normalized_weights + (max_normalized_prize - avg_normalized_prize)
+    
+    # Use a more robust thresholding strategy based on the median of the composite heuristic
+    threshold = np.median(composite_heuristic)
+    
+    # Sparsify the heuristics by setting a threshold and zeroing out lower values
+    heuristics = np.zeros_like(prize)
+    heuristics[composite_heuristic > threshold] = 1.0
+    
+    return heuristics
+```

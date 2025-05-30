@@ -1,0 +1,39 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    longest_path = 2 * (n - 1) * np.amax(distance_matrix)
+    
+    # Logarithmic transformation to give more weight to longer distances and avoid zero distance
+    log_distance_matrix = np.log(distance_matrix + 1e-5)
+    
+    # Normalize the logarithmic distance matrix to avoid the zero distance issue and to ensure all values are within a similar range
+    max_value = np.max(log_distance_matrix)
+    min_value = np.min(log_distance_matrix)
+    normalized_matrix = (log_distance_matrix - min_value) / (max_value - min_value)
+    
+    # Global heuristic: penalize edges that are on the longest path
+    global_heuristic = longest_path - distance_matrix
+    
+    # Apply the global heuristic on top of the normalized matrix
+    heuristic_matrix = normalized_matrix + global_heuristic
+    
+    # Local heuristic: encourage exploration by penalizing short edges with a decreasing rate
+    local_heuristic = 1 / (distance_matrix + 1e-5)
+    
+    # Combine local and global heuristics
+    heuristic_matrix = heuristic_matrix * (1 - local_heuristic) + local_heuristic
+    
+    # Exploration heuristic to encourage diversification
+    exploration_factor = np.random.normal(0, 0.1, (n, n))
+    exploration_factor = np.clip(exploration_factor, 0, 1)  # Ensure values are within [0, 1]
+    
+    # Update heuristic matrix with exploration heuristic
+    heuristic_matrix = heuristic_matrix * (1 - exploration_factor) + exploration_factor
+    
+    # Avoid trivial loops by setting the heuristic of zero distance edges to infinity
+    heuristic_matrix[distance_matrix == 0] = np.inf
+    
+    return heuristic_matrix
+```

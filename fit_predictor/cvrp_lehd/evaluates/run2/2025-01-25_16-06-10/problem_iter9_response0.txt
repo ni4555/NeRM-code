@@ -1,0 +1,33 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n_nodes = distance_matrix.shape[0]
+    # Initialize heuristics with a high cost for all edges, except the ones from the depot
+    heuristics = torch.full_like(distance_matrix, fill_value=float('inf'))
+    heuristics[:, 0] = distance_matrix[:, 0]
+    
+    # Compute cumulative demand sums from the depot
+    demand_cumsum = torch.cumsum(demands, dim=0)
+    
+    # Vectorized capacity checks
+    for start_node in range(1, n_nodes):
+        # Find feasible edges based on remaining capacity and demand
+        feasible_edges = (distance_matrix[start_node, 1:] < demand_cumsum[start_node+1:].unsqueeze(0) - demand_cumsum[start_node].unsqueeze(1))
+        feasible_edges = feasible_edges & (distance_matrix[start_node, 1:] < remaining_capacity[start_node].unsqueeze(1))
+        
+        # Update heuristics for feasible edges
+        feasible_edges_idx = torch.nonzero(feasible_edges, as_tuple=False)
+        if feasible_edges_idx.shape[0] > 0:
+            distances = distance_matrix[start_node, feasible_edges_idx[:, 1]]
+            heuristics[start_node, feasible_edges_idx[:, 1]] = distances
+            remaining_capacity[start_node][feasible_edges_idx[:, 0]] -= demands[feasible_edges_idx[:, 1]]
+            # Update the heuristic for the return to the depot
+            heuristics[start_node, 0] = distance_matrix[start_node, 0]
+    
+    # Vectorized symmetry breaking and balancing
+    total_distance_to_depot = torch.sum(distance_matrix[:, 0])
+    heuristics = (heuristics + heuristics.t()) / (2 * total_distance_to_depot)
+    
+    return heuristics
+```

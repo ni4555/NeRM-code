@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_normalized = demands / total_capacity
+
+    # Incorporate demand factors with normalization to encourage balance
+    demand_factor = (1 + demand_normalized) * (1 - demand_normalized)
+
+    # Scale the distance matrix to reduce the effect of large distances
+    distance_scaled = distance_matrix / distance_matrix.mean()
+
+    # Apply non-linear transformation to scaled distances to avoid scale sensitivity
+    distance_non_linear = torch.exp(-torch.log1p(distance_scaled))
+
+    # Leverage the distance matrix for local balance by using a simple exponential decay
+    local_balance = torch.exp(-distance_matrix)
+
+    # Calculate global balance by summing local balance over rows
+    global_balance = torch.sum(local_balance, dim=1, keepdim=True)
+
+    # Adjust demand factors dynamically based on node importance and encourage balance
+    balance_adjusted_demand = torch.where(demand_normalized < 0.5, demand_factor * 0.5, demand_factor * 1.5)
+
+    # Combine all factors to create the heuristic matrix
+    heuristic_values = balance_adjusted_demand * distance_non_linear * local_balance / global_balance
+
+    return heuristic_values
+```

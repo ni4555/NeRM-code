@@ -1,0 +1,30 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Calculate the attractiveness based on demand
+    attractiveness = 1 / (1 + demands)
+    
+    # Incorporate distance into attractiveness
+    distance_weight = distance_matrix / (distance_matrix.mean() + 1e-6)
+    
+    # Scale by the cumulative demand
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    scaled_demand = (cumulative_demand / total_demand).unsqueeze(1)
+    
+    # Combine the weights
+    combined_weight = attractiveness * distance_weight * scaled_demand
+    
+    # Dampen less promising edges based on distance
+    dampening_factor = torch.exp(-distance_matrix / (2 * distance_matrix.mean() + 1e-6))
+    
+    # Apply dampening to the combined weight
+    final_weight = combined_weight * dampening_factor
+    
+    # Adjust the heuristics to be negative for undesirable edges
+    final_weight = final_weight - (final_weight.max() / 2)
+    
+    return final_weight
+```

@@ -1,0 +1,19 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Ensure that the demands are normalized by the total vehicle capacity
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Calculate the heuristic for each edge as a combination of the normalized demand,
+    # the inverse of the distance (to prioritize closer nodes), and a term that increases
+    # with the demand (to prioritize nodes with higher demands).
+    # Additionally, we introduce a weight for the demand that decreases with the distance,
+    # which encourages starting with high-demand nodes that are also close to the depot.
+    heuristic_matrix = -torch.mul(normalized_demands, distance_matrix)
+    heuristic_matrix += torch.clamp(distance_matrix, min=1e-6) ** -2
+    heuristic_matrix += (normalized_demands / distance_matrix) * 1000
+
+    return heuristic_matrix
+```

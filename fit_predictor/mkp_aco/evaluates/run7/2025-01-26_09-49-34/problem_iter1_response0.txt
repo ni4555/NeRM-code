@@ -1,0 +1,20 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Normalize the prize to be between 0 and 1
+    normalized_prize = prize / np.sum(prize)
+    
+    # Calculate heuristic based on normalized prize
+    prize_heuristic = normalized_prize * np.sum(weight, axis=1)
+    
+    # Calculate heuristic based on the inverse of the sum of weights (sparsity consideration)
+    sparsity_heuristic = np.max(1.0 / np.sum(weight, axis=1) + 1e-10, axis=1)
+    
+    # Combine the two heuristics with a weighted sum
+    combined_heuristic = 0.6 * prize_heuristic + 0.4 * sparsity_heuristic
+    
+    # Sparsify the heuristics by setting values below a threshold to zero
+    threshold = np.percentile(combined_heuristic, 10)
+    heuristics = np.where(combined_heuristic >= threshold, combined_heuristic, 0)
+    
+    return heuristics
+```

@@ -1,0 +1,21 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Calculate the index of the node where the cumulative capacity matches the total demand
+    match_index = torch.argmax(torch.clamp(cumulative_demand - cumulative_capacity[:, None], min=0), dim=1)
+    
+    # Calculate the heuristics based on the distance to the nearest match index that can be served
+    heuristics_matrix = -distance_matrix[:, match_index]
+    
+    # Adjust heuristics for edges that lead to a capacity overflow
+    capacity_penalty = torch.clamp(cumulative_demand - cumulative_capacity[:, None], min=0)
+    heuristics_matrix[capacity_penalty != 0] = -torch.inf
+    
+    return heuristics_matrix
+```

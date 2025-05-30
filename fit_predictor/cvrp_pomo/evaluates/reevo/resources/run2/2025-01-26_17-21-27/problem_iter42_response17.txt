@@ -1,0 +1,44 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    total_capacity_vector = torch.full((n,), total_capacity / n)
+    
+    # Use a scaled dynamic penalty based on load
+    dynamic_capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    dynamic_capacity_penalty *= (1 + (total_capacity - cumulative_demand) / total_capacity) / 2.0
+    
+    # Apply distance scaling without redundant dynamic capacity penalty
+    distance_scaling = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Introduce a single overflow penalty with early return
+    overflow_penalty = torch.where(
+        (cumulative_demand[:, None] + demands[None, :]) > total_capacity,
+        -torch.log1p((cumulative_demand[:, None] + demands[None, :]) - total_capacity - 1e-8),
+        torch.zeros_like(cumulative_demand)
+    )
+    
+    # Introduce a balanced load heuristic with no redundant scaling
+    load_balance = torch.abs(cumulative_demand - total_capacity_vector)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Introduce a simple diversity heuristic
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.1
+    
+    # Integrate the above heuristics into a single weighted sum, without redundancy
+    heuristics = (0.6 * distance_scaling +
+                  0.2 * dynamic_capacity_penalty +
+                  0.1 * overflow_penalty +
+                  0.1 * load_balance_penalty)
+    
+    # Encourage diversity while balancing the core objectives
+    heuristics *= torch.where(heuristics > 0, 1.1, 1.0)
+    heuristics += diversity_factor
+    
+    # Early exit for overflow, ensuring the heuristic values are zero in overflow cases
+    early_overflow = torch.where(cumulative_demand > total_capacity_vector, torch.zeros_like(heuristics), heuristics)
+    return early_overflow
+```

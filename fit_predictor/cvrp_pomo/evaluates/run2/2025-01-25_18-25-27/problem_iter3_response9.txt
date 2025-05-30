@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the normalized demands
+    normalized_demands = demands / demands.sum()
+    # Compute the heuristics matrix
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True))
+    
+    # Introduce a penalty for edges that would lead to overcapacity
+    overcapacity_penalty = (demands > 1.0).float() * 1000.0
+    
+    # Introduce a bonus for edges that connect nodes with similar demands
+    demand_similarity_bonus = torch.cdist(demands.unsqueeze(0), demands.unsqueeze(1)).pow(2)
+    demand_similarity_bonus = (demand_similarity_bonus < 0.1).float() * 100.0
+    
+    # Combine heuristics with penalties and bonuses
+    combined_heuristics = heuristics_matrix - overcapacity_penalty + demand_similarity_bonus
+    return combined_heuristics
+```

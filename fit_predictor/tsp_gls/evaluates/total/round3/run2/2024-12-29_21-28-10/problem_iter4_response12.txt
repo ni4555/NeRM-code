@@ -1,0 +1,35 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_vertices = distance_matrix.shape[0]
+    heuristics_matrix = np.zeros_like(distance_matrix)
+    
+    for i in range(num_vertices):
+        # Set the distance to self-loops to a large value
+        heuristics_matrix[i, i] = np.inf
+        
+        # Find the minimum distance to a neighboring vertex
+        min_distance = np.min(distance_matrix[i, :])
+        
+        # Calculate the degree of the vertex
+        degree = np.sum(distance_matrix[i, :])
+        
+        # Incorporate the second-nearest neighbor to enhance diversity
+        second_min_distance = np.partition(distance_matrix[i, :], 1)[1]
+        
+        # Calculate the average distance to all neighbors
+        average_distance = np.mean(distance_matrix[i, :])
+        
+        # Multi-criteria evaluation: consider the minimum distance, degree, second-nearest neighbor, and average distance
+        # Lower values are better for min_distance and second_min_distance, higher values are better for degree and average_distance
+        criteria = [min_distance, second_min_distance, degree, average_distance]
+        
+        # Normalize the criteria to sum to 1
+        criteria_normalized = criteria / np.sum(criteria)
+        
+        # Assign a heuristic value to the edge based on the normalized criteria
+        heuristics_matrix[i, :] = 1 - criteria_normalized
+    
+    return heuristics_matrix
+```

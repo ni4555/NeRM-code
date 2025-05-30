@@ -1,0 +1,40 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+
+    # Calculate the prize per unit weight for each item
+    prize_per_unit = prize / np.sum(weight, axis=1)
+    
+    # Calculate the average sparsity for each item
+    sparsity = np.sum(weight == 0, axis=1) / weight.shape[1]
+    
+    # Normalize sparsity values
+    normalized_sparsity = (sparsity - np.min(sparsity)) / (np.max(sparsity) - np.min(sparsity))
+    
+    # Calculate the average weight for each dimension for each item
+    average_weight = np.mean(weight, axis=1)
+    
+    # Calculate the weight variance for each item
+    weight_variance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)
+    
+    # Normalize variance values
+    normalized_variance = (weight_variance - np.min(weight_variance)) / (np.max(weight_variance) - np.min(weight_variance))
+    
+    # Combine the factors using a weighted sum to form the heuristics
+    # Assign higher weights to the most relevant factors (e.g., prize per unit)
+    weight_factor = 0.5
+    sparsity_factor = 0.2
+    variance_factor = 0.3
+    
+    heuristics = prize_per_unit * weight_factor + normalized_sparsity * sparsity_factor + normalized_variance * variance_factor
+    
+    # Normalize the heuristics by their maximum value
+    max_heuristic = np.max(heuristics)
+    heuristics /= max_heuristic
+    
+    # Apply sparsification by setting heuristics below a certain threshold to zero
+    # Adjust the threshold dynamically based on the problem's characteristics
+    threshold = np.percentile(heuristics, 20)  # For example, 20th percentile
+    heuristics[heuristics < threshold] = 0
+    
+    return heuristics
+```

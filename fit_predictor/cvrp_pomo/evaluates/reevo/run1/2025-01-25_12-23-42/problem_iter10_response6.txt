@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Calculate normalized distances
+    norm_distances = distance_matrix / distance_matrix.max()
+    
+    # Calculate the load factor for each node
+    load_factors = demands.unsqueeze(1) / total_demand
+    
+    # Initialize heuristics with negative values
+    heuristics = -torch.ones_like(norm_distances)
+    
+    # Iterate over nodes to calculate heuristics
+    for i in range(n):
+        for j in range(i + 1, n):
+            # Calculate the potential load if this edge was taken
+            potential_load = demands[i] + demands[j]
+            
+            # If the potential load exceeds the capacity, set the heuristic for this edge to a penalty
+            if potential_load > total_demand:
+                heuristics[i, j] = heuristics[j, i] = -2.0
+            else:
+                # Calculate the heuristics based on the normalized distance and the load factor
+                edge_heuristic = -load_factors[i] * norm_distances[i, j] - load_factors[j] * norm_distances[j, i]
+                heuristics[i, j] = heuristics[j, i] = edge_heuristic
+    
+    # Introduce exploration-exploitation bias by blending with a random noise
+    noise = torch.randn_like(heuristics) * 0.1
+    heuristics += noise
+    
+    # Normalize the heuristics to ensure the best paths are positive and the worst are negative
+    min_heuristic, _ = heuristics.min(-1, keepdim=True)
+    max_heuristic, _ = heuristics.max(-1, keepdim=True)
+    heuristics = (heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+    
+    return heuristics
+```

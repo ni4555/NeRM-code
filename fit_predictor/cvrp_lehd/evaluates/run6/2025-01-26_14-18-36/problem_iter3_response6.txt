@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the maximum possible demand for any vehicle
+    max_demand = demands.max()
+    
+    # Calculate the total demand
+    total_demand = demands.sum()
+    
+    # Calculate the maximum distance from the depot to any customer
+    max_distance = distance_matrix[0, 1:].max()
+    
+    # Calculate the average distance from the depot to all customers
+    average_distance = distance_matrix[0, 1:].mean()
+    
+    # Create a heuristic based on the following factors:
+    # 1. Shorter distances should have higher heuristics (negative values)
+    # 2. Nodes with high demand should have higher heuristics (positive values)
+    # 3. Balance the rewards with the average distance and total demand
+    heuristics = -distance_matrix + (demands / max_demand) * max_distance - (demands / total_demand) * average_distance
+    
+    # Clamp the heuristics to ensure they are within a reasonable range
+    heuristics = torch.clamp(heuristics, min=-1.0, max=1.0)
+    
+    return heuristics
+```

@@ -1,0 +1,41 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor, history: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    normalized_demands = demands / total_capacity
+
+    # Inverse distance heuristic
+    inverse_distance = 1.0 / (distance_matrix + 1e-8)
+
+    # Demand normalization heuristic
+    demand_diff = torch.abs(normalized_demands - 1.0)
+    demand_weight = 1.0 / (demand_diff + 1e-8)
+
+    # Heuristic range adjustment: prioritize edges that lead to solutions with a lower range
+    max_demand = torch.max(normalized_demands)
+    min_demand = torch.min(normalized_demands)
+    demand_range = max_demand - min_demand
+    range_weight = 1.0 / (demand_range + 1e-8)
+
+    # Genetic algorithm inspired heuristic: use historical data to adjust weights
+    # This is a placeholder for a more sophisticated method of using historical insights
+    genetic_weight = (1.0 / (history.sum(1) + 1e-8)) ** 2
+
+    # Dynamic weight adjustment based on the current performance
+    # This is a placeholder for a more complex dynamic adjustment based on the domain-specific knowledge
+    performance_weight = 1.0 / (torch.mean(torch.abs(demands - total_capacity)) + 1e-8)
+
+    # Combine heuristics with a weighted sum, where we may adjust the weights for each heuristic
+    # For simplicity, we use equal weights here, but in practice, these should be tuned based on the domain knowledge
+    combined_heuristic = (
+        0.25 * inverse_distance +
+        0.25 * demand_weight +
+        0.25 * range_weight +
+        0.25 * genetic_weight +
+        0.1 * performance_weight
+    )
+
+    return combined_heuristic
+```

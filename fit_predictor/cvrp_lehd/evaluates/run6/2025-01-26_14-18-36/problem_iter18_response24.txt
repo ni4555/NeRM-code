@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+
+    # Demand constraint penalty for edges where the demand exceeds a certain threshold
+    demand_penalty = (demands > total_demand / n).float() * -1000.0
+
+    # Capacity constraint penalty for edges that exceed vehicle capacity
+    capacity_excess = (demands > 1.0).float() * -1000.0
+
+    # Distance-based reward for edges closer to the depot
+    distance_reward = -distance_matrix * 0.1
+
+    # Grouping demand pattern: reward for similar demands
+    similar_demand_grouping = (demands < 0.2 * total_demand).float() * 10.0
+
+    # Combine all the components with appropriate weights
+    weights = torch.tensor([0.4, 0.4, 0.1, 0.1])  # Adjust weights as needed
+    combined_heuristics = weights[0] * demand_penalty + \
+                            weights[1] * capacity_excess + \
+                            weights[2] * distance_reward + \
+                            weights[3] * similar_demand_grouping
+
+    # Normalize the combined heuristics to the range [0, 1]
+    max_heuristic = combined_heuristics.max()
+    min_heuristic = combined_heuristics.min()
+    combined_heuristics = (combined_heuristics - min_heuristic) / (max_heuristic - min_heuristic)
+
+    # Ensure all heuristics values are non-negative
+    combined_heuristics = torch.clamp(combined_heuristics, min=0)
+
+    return combined_heuristics
+```

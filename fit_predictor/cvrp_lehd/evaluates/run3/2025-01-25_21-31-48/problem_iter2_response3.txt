@@ -1,0 +1,23 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """Improved heuristic that considers distance, demand, and their interaction."""
+    # Calculate the inverse of the distance matrix to emphasize shorter distances
+    distance_matrix_inv = 1 / (distance_matrix + 1e-10)
+    
+    # Use a demand-based weighting that decreases as demand decreases
+    # Higher demand should lead to higher weights
+    demand_weight = 1 / (demands + 1e-10)
+    
+    # Combine the distance inverse and demand weight to create a weighted distance matrix
+    weighted_distance_matrix = distance_matrix_inv * demand_weight
+    
+    # Add a term that encourages visiting the depot more frequently (e.g., higher demand at the depot)
+    depot_demand = demands[0] * 10  # Assuming higher weight for the depot demand
+    
+    # Normalize the matrix to ensure all values are within a certain range
+    max_demand = demands.max()
+    min_demand = demands.min()
+    normalized_weighted_distance_matrix = (weighted_distance_matrix + depot_demand - min_demand) / (max_demand - min_demand)
+    
+    return normalized_weighted_distance_matrix
+```

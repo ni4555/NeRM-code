@@ -1,0 +1,22 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    n = distance_matrix.shape[0]
+    min_distances = np.zeros((n, n))
+    degrees = np.sum(distance_matrix, axis=0)
+    
+    # Calculate the shortest distance to any node from each node using the first row as a heuristic
+    for i in range(n):
+        min_distances[i, :] = distance_matrix[i, 0] + np.min(distance_matrix[1:, :], axis=0)
+    
+    # Weigh the distance with a penalty factor based on node degree
+    penalty_factor = 1 + 0.5 * (degrees / (n - 1) - 1)
+    # Avoid considering self-loops in the penalty factor
+    np.fill_diagonal(penalty_factor, 1)
+    
+    # Create a heuristic based on the shortest path, node degree, and penalty factor
+    combined_heuristic = (distance_matrix - min_distances) * penalty_factor
+    # Avoid considering self-loops in the heuristic
+    np.fill_diagonal(combined_heuristic, np.inf)
+    
+    return combined_heuristic
+```

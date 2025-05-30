@@ -1,0 +1,34 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the maximum prize
+    max_prize = np.max(prize)
+    
+    # Normalize the prize by dividing by the maximum prize
+    normalized_prize = prize / max_prize
+    
+    # Calculate the normalized constraint balance for each item
+    normalized_constraint_balance = np.sum(weight**2, axis=1) / np.sum(weight, axis=1)**2
+    
+    # Combine normalized prize and constraint balance to get the utility
+    utility = normalized_prize * (1 - normalized_constraint_balance)
+    
+    # Introduce a dynamic penalty for items with high average weight
+    average_weight = np.mean(weight, axis=1)
+    dynamic_penalty = 1 / (1 + average_weight)
+    
+    # Adjust utility with the dynamic penalty
+    adjusted_utility = utility * dynamic_penalty
+    
+    # Define a sparsity factor that penalizes low-density items
+    sparsity_factor = 1 / (1 + normalized_prize)
+    
+    # Combine the adjusted utility with the sparsity factor
+    final_heuristic = adjusted_utility * sparsity_factor
+    
+    # Normalize the final heuristics scores to ensure they are within a reasonable range
+    max_final_heuristic = np.max(final_heuristic)
+    final_heuristic = final_heuristic / max_final_heuristic
+    
+    # Return the normalized heuristics scores
+    return final_heuristic
+```

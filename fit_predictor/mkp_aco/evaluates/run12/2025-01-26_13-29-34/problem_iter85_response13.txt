@@ -1,0 +1,78 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep Reinforcement Learning (DRL) model for initial rewards
+    model_scores = np.random.rand(n)
+    reward_function = lambda x: -np.sum(x * np.log(1 + x))  # Minimize penalty for over-weighted items
+    model_rewards = [reward_function(model_scores)]
+
+    # Particle Swarm Optimization (PSO) initialization
+    pso_position = np.random.rand(n)
+    pso_velocity = np.zeros(n)
+    pso_personal_best = np.copy(pso_position)
+    pso_global_best = np.copy(pso_position)
+    pso_personal_best_scores = np.copy(model_scores)
+    pso_global_best_scores = np.copy(model_scores)
+
+    # PSO global best initialization with DRL scores and feasibility
+    feasible_items = np.sum(weight, axis=1) <= 1
+    pso_global_best_scores[~feasible_items] = float('-inf')
+    pso_global_best = pso_position[feasible_items]
+
+    # Adaptive learning and sparsity
+    learning_rate = 0.01
+    sparsity_threshold = np.percentile(model_scores, 50)
+
+    # Run PSO for adaptive iterations
+    for _ in range(10):  # Using a small number of iterations for demonstration
+        for i in range(n):
+            if i in feasible_items:  # Only consider feasible items
+                # Update PSO velocity and position
+                pso_velocity[i] = learning_rate * pso_velocity[i] + \
+                                  (0.5 * (np.random.rand() - 0.5))
+                pso_position[i] += pso_velocity[i]
+                pso_position[i] = np.clip(pso_position[i], 0, 1)
+
+                # Update personal and global bests
+                if model_scores[i] > pso_personal_best_scores[i]:
+                    pso_personal_best_scores[i] = model_scores[i]
+                    pso_personal_best[i] = pso_position[i]
+                if pso_personal_best_scores[i] > pso_global_best_scores[i]:
+                    pso_global_best_scores[i] = pso_personal_best_scores[i]
+                    pso_global_best[i] = pso_personal_best[i]
+
+        # Update DRL scores based on PSO's global best
+        model_scores[~feasible_items] = float('-inf')
+        model_scores[np.argmax(pso_global_best_scores)] = pso_global_best_scores[np.argmax(pso_global_best_scores)]
+
+        # Update rewards for DRL
+        model_rewards.append(reward_function(model_scores))
+
+    # Sparsify heuristics based on the DRL scores
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            heuristic[i] = np.mean(model_rewards) * (prize[i] / (prize[np.argmax(pso_global_best_scores)] + 1e-6))
+
+    # Incorporate diversity and balance exploration-exploitation
+    diversity_factor = np.mean(pso_global_best_scores) / np.var(pso_global_best_scores)
+    heuristic *= diversity_factor
+
+    # Adjust the reward function dynamically
+    new_reward_function = lambda x: np.sum(x * np.log(1 + x)) + np.sum(x * heuristic)
+    model_scores = np.exp(new_reward_function(model_scores) - np.max(new_reward_function(model_scores)))
+    model_scores /= np.sum(model_scores)
+
+    # Update heuristics based on the refined scores
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            heuristic[i] = model_scores[i] * prize[i] / (prize[np.argmax(pso_global_best_scores)] + 1e-6)
+
+    return heuristic
+```

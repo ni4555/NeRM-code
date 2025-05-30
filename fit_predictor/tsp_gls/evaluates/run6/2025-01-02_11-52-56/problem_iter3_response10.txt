@@ -1,0 +1,32 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristic_matrix = np.zeros_like(distance_matrix)
+    
+    # Calculate the mean distance for each node as a feature
+    node_distances = np.mean(distance_matrix, axis=1)
+    
+    # Calculate the maximum edge weight for each node as a feature
+    max_node_edge_weights = np.max(distance_matrix, axis=1)
+    
+    # Calculate the number of edges as a feature
+    num_edges = 0.5 * np.size(distance_matrix)
+    
+    # Incorporate the distance from the centroid
+    centroid_distance = np.sum(distance_matrix) / (num_nodes * num_edges)
+    
+    # Normalize heuristic values based on these features
+    for i in range(num_nodes):
+        for j in range(i + 1, num_nodes):
+            # Combine the features into a single heuristic value
+            combined_feature = (node_distances[i] + node_distances[j] +
+                               max_node_edge_weights[i] + max_node_edge_weights[j] +
+                               centroid_distance / num_edges)
+            heuristic_value = distance_matrix[i, j] / combined_feature
+            heuristic_matrix[i, j] = heuristic_value
+            heuristic_matrix[j, i] = heuristic_value  # Since the matrix is symmetric
+    
+    return heuristic_matrix
+```

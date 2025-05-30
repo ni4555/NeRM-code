@@ -1,0 +1,29 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Normalize demands and distance matrix
+    normalized_demands = demands / vehicle_capacity
+    normalized_distance_matrix = distance_matrix / distance_matrix.max()
+    
+    # Use soft constraints on demands with a penalty for overcapacity
+    penalty_matrix = -torch.abs(normalized_demands - 1)
+    
+    # Use a simplified distance penalty
+    distance_penalty_matrix = -normalized_distance_matrix
+    
+    # Combine demand and distance penalties using a soft sum to avoid dominance
+    combined_potential_matrix = penalty_matrix + distance_penalty_matrix
+    
+    # Apply a non-linear transformation to emphasize the constraints
+    emphasized_matrix = torch.sigmoid(combined_potential_matrix)
+    
+    # Use a threshold to filter out edges that are too far in the emphasized matrix
+    threshold = 0.5
+    heuristics_matrix = (emphasized_matrix > threshold).float() * (1 - normalized_distance_matrix)
+    
+    # Return a scaled matrix with non-negative values
+    heuristics_matrix = (heuristics_matrix - heuristics_matrix.min()) / (heuristics_matrix.max() - heuristics_matrix.min())
+    
+    return heuristics_matrix
+```

@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    average_demand = total_demand / (n - 1)  # Exclude the depot node
+    distances_from_depot = distance_matrix[0, 1:]  # Distance from depot to customers
+    distances_to_customers = distance_matrix[1:, 0]  # Distance from customers to depot
+    demand_diff = demands[1:] - average_demand  # Demand difference from average demand for customers
+    
+    # Calculate the potential of each edge based on the product of distances and the absolute difference in demand
+    heuristic_values = -torch.abs(demand_diff) * distances_from_depot * distances_to_customers
+    
+    # Incorporate a penalty for edges that are far from the depot and for edges that would lead to high imbalance
+    depot_penalty = (distances_from_depot + distances_to_customers) * -1000
+    imbalance_penalty = torch.abs(demand_diff) * -5000
+    
+    # Use sparsity and leverage precomputed stats by combining the heuristics into a single matrix
+    combined_heuristic_values = heuristic_values + imbalance_penalty + depot_penalty
+    
+    # Apply a diversity heuristic to avoid early loop and redundant computations
+    diversity_heuristic = torch.abs(demand_diff) * -100
+    
+    # Update the heuristic matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    heuristic_matrix[0, 1:] = combined_heuristic_values
+    heuristic_matrix[1:, 0] = combined_heuristic_values
+    # Include depot for the return trip, using the diversity heuristic to balance with other customers
+    heuristic_matrix[0, 0] = diversity_heuristic.sum()
+    
+    return heuristic_matrix
+```

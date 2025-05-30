@@ -1,0 +1,42 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate value-to-weight ratio for each item
+    value_to_weight_ratio = prize / weight.sum(axis=1)
+    
+    # Normalize the value-to-weight ratio to ensure non-negative values
+    min_ratio = np.min(value_to_weight_ratio)
+    if min_ratio <= 0:
+        value_to_weight_ratio = -value_to_weight_ratio + 1
+    
+    # Calculate a penalty factor for outliers based on the percentile of the ratio
+    penalty_factor = np.abs(value_to_weight_ratio - np.percentile(value_to_weight_ratio, 75))
+    
+    # Normalize the penalty factor
+    max_penalty = np.max(penalty_factor)
+    penalty_factor = penalty_factor / max_penalty
+    
+    # Calculate a density factor based on the ratio
+    density_factor = value_to_weight_ratio / np.mean(value_to_weight_ratio)
+    
+    # Combine the normalized ratio with the penalty and density factors
+    combined_heuristics = value_to_weight_ratio * (1 - penalty_factor + density_factor)
+    
+    # Apply a threshold to the heuristics and sparsify
+    threshold = 0.5
+    sparsified_heuristics = np.where(combined_heuristics > threshold, combined_heuristics, 0)
+    
+    # Introduce randomness to maintain heuristic diversity
+    np.random.seed(0)  # Ensure reproducibility
+    random_noise = np.random.normal(0, 0.1, size=sparsified_heuristics.shape)
+    final_heuristics = sparsified_heuristics + random_noise
+    
+    # Mutate the heuristics to further balance exploration and exploitation
+    mutation_rate = 0.1
+    mutation_noise = np.random.normal(0, 0.05, size=final_heuristics.shape)
+    mutated_heuristics = np.where(np.random.rand(*final_heuristics.shape) < mutation_rate, 
+                                  final_heuristics + mutation_noise, final_heuristics)
+    
+    return mutated_heuristics
+```

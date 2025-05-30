@@ -1,0 +1,29 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_threshold = total_demand / n
+
+    # Normalize demands and distances
+    normalized_demands = demands / demand_threshold
+    normalized_distances = distance_matrix / distance_matrix.max()
+
+    # Calculate heuristic values
+    heuristics = normalized_distances * (1 - normalized_demands)
+
+    # Subtract cost of revisiting nodes to encourage non-revisiting paths
+    heuristics = heuristics - (demands[:, None] * demands[None, :])
+
+    # Incentivize load balancing by penalizing paths that exceed the demand threshold
+    heuristics = heuristics * torch.clamp(1 - normalized_demands, min=0)
+
+    # Add bonus for edges leading from the depot to reduce travel distance
+    heuristics[:, 0] += 1
+
+    # Normalize the heuristics to ensure positive values
+    heuristics = torch.clamp(heuristics, min=0)
+
+    return heuristics
+```

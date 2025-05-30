@@ -1,0 +1,38 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    demand_normalized = demands / total_capacity
+
+    # Non-linear demand factor: penalize high demand with a sigmoid function
+    demand_factor = torch.sigmoid(demand_normalized * 10) - 0.5
+
+    # Non-linear distance factor: use exponential to penalize longer distances
+    distance_factor = torch.exp(-torch.log1p(distance_matrix))
+
+    # Local balance: emphasize edges that are neither too short nor too long
+    local_balance = torch.exp(-torch.abs(distance_matrix))
+
+    # Global balance: penalize edges in longer paths
+    global_balance = torch.sum(local_balance, dim=1, keepdim=True)
+
+    # Combine factors into a single heuristic value
+    heuristic_values = demand_factor * distance_factor * local_balance * (1 / (1 + global_balance))
+
+    # Adjust the heuristics for the depot to all other nodes
+    # Promote edges leading from the depot to customers with high demand
+    depot_distance = distance_matrix[:, 0]
+    for i in range(1, n):
+        remaining_capacity = total_capacity - demands[i]
+        feasible = demands[i] <= remaining_capacity
+        heuristic_values[0, i] = torch.where(
+            feasible,
+            -demands[i] * depot_distance[i] * 10,
+            torch.tensor(-1e8, dtype=heuristic_values.dtype)
+        )
+        heuristic_values[i, 0] = heuristic_values[0, i]
+
+    return heuristic_values
+```

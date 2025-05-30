@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Randomly select a fraction of items to ensure diversity
+    fraction_to_sample = 0.2
+    indices_to_sample = np.random.choice(np.arange(len(prize)), int(fraction_to_sample * len(prize)), replace=False)
+    
+    # Calculate normalized prize density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+    
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+    
+    # Introduce randomness by perturbing the heuristic values
+    random»≈∂Ø = np.random.normal(0, 0.1, density.shape)
+    
+    # Combine density and sparsity with randomness
+    base_heuristic = density * (1 - sparsity) + random»≈∂Ø
+    
+    # Only consider the sampled items for the heuristic
+    heuristics_sampled = base_heuristic[indices_to_sample]
+    
+    # Normalize by the maximum heuristic value in the sample
+    normalized_heuristics_sampled = heuristics_sampled / (np.max(heuristics_sampled) + 1e-8)
+    
+    # Interpolate the normalized values to create the full heuristic array
+    full_heuristic = np.zeros_like(prize)
+    full_heuristic[indices_to_sample] = normalized_heuristics_sampled
+    
+    # Introduce a diversity factor to prevent dominance
+    diversity_factor = 1 / (1 + np.exp(-base_heuristic))
+    
+    # Combine the heuristics using a weighted sum with the diversity factor
+    combined_heuristic = normalized_heuristics_sampled * diversity_factor
+    
+    # Ensure no dominance by normalizing combined heuristic
+    normalized_combined_heuristic = combined_heuristic / (np.max(combined_heuristic) + 1e-8)
+    
+    return normalized_combined_heuristic
+```

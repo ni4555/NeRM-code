@@ -1,0 +1,58 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    capacity_per_node = total_capacity / n
+
+    # Define penalty functions for distance, capacity, overflow, and load balance
+    def distance_penalty(d_matrix):
+        return -torch.log1p(torch.abs(d_matrix) - 1e-8)
+
+    def capacity_penalty(demands, cap_per_node):
+        return -torch.log1p(torch.abs(demands - cap_per_node) - 1e-8)
+
+    def overflow_penalty(cumulative_demand, cap_per_node):
+        early_overflow = cumulative_demand > cap_per_node
+        return torch.where(
+            early_overflow,
+            capacity_penalty(demand_per_node, cap_per_node) * (1 + 0.3 * (cap_per_node - cumulative_demand) / cap_per_node),
+            torch.zeros_like(demands)
+        )
+
+    def load_balance_penalty(cumulative_demand, cap_per_node):
+        balance = torch.abs(cumulative_demand - cap_per_node)
+        return -torch.log1p(balance - 1e-8) * (balance > 0.1).float() * 10
+
+    # Apply time-adaptive factors to balance exploration and exploitation
+    time_factor = torch.exp(-torch.cumsum(demands, dim=0) / (cap_per_node * 5))
+
+    # Calculate adjusted penalties with time factors
+    adjusted_distance_penalty = distance_penalty(distance_matrix) * (1 + demands / cap_per_node) * time_factor
+
+    # Integrate early overflow and load balance into penalties
+    overflow_penalty = overflow_penalty(demands, cap_per_node)
+    load_balance_penalty = load_balance_penalty(demands, cap_per_node)
+
+    # Combine all penalties into a single heuristic vector
+    heuristics = adjusted_distance_penalty + capacity_penalty(demands, cap_per_node) + overflow_penalty + load_balance_penalty
+
+    # Introduce randomness with controlled impact
+    randomness_factor = torch.abs(torch.randn_like(demands)) * 0.1 * (1 - cumulative_demand / total_capacity)
+
+    # Combine the randomness factor with the main heuristic
+    heuristics += randomness_factor
+
+    # Apply scaling and capping to prioritize core objectives
+    scaling_factor = 2.5
+    heuristics = torch.clamp(heuristics * scaling_factor, min=-100, max=100)
+
+    # Introduce a time-adaptive diversity factor for exploration
+    diversity_factor = torch.abs(torch.randn_like(demands)) * 0.2
+    diversity_factor /= (torch.sum(torch.abs(diversity_factor)) + 1e-8)
+    diversity_factor *= (1 - cumulative_demand / total_capacity)
+    heuristics += diversity_factor
+
+    return heuristics
+```

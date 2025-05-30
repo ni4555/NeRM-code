@@ -1,0 +1,39 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+
+    vehicle_capacity = demands.sum() / demands.numel()
+    
+    # Normalize demands and distances to emphasize larger demands and distances
+    normalized_demands = (demands / vehicle_capacity - demands.min() / vehicle_capacity) / (demands.max() / vehicle_capacity - demands.min() / vehicle_capacity)
+    normalized_distances = (distance_matrix / distance_matrix.max() - distance_matrix.min() / distance_matrix.max()) / (distance_matrix.max() / distance_matrix.max() - distance_matrix.min() / distance_matrix.max())
+    
+    # Create a penalty matrix for demand constraint violations
+    penalty_matrix = -torch.abs(normalized_demands - 0.5)
+    
+    # Create a distance-based penalty matrix
+    distance_penalty_matrix = -torch.log(normalized_distances + 1e-6)
+    
+    # Use a blend ratio to balance the penalties
+    blend_ratio = 0.8
+    
+    # Combine the demand and distance penalties with a blend ratio
+    combined_penalty_matrix = blend_ratio * penalty_matrix + (1 - blend_ratio) * distance_penalty_matrix
+    
+    # Normalize the combined penalty matrix to ensure non-negativity and scale balance
+    normalized_combined_penalty_matrix = combined_penalty_matrix / combined_penalty_matrix.sum(dim=1, keepdim=True)
+    
+    # Apply a non-linear transformation to emphasize constraints
+    emphasized_matrix = torch.exp(-torch.abs(normalized_combined_penalty_matrix))
+    
+    # Normalize the emphasized matrix to control heuristic diversity
+    normalized_emphasized_matrix = emphasized_matrix / emphasized_matrix.sum(dim=1, keepdim=True)
+    
+    # Transform the normalized emphasized matrix into a heuristics matrix
+    heuristics_matrix = normalized_emphasized_matrix
+    
+    # Convert heuristics to a scale suitable for use as edge weights, flipping sign for proper edge weight interpretation
+    heuristics_matrix = (heuristics_matrix - heuristics_matrix.min()) / (heuristics_matrix.max() - heuristics_matrix.min())
+    heuristics_matrix[torch.isnan(heuristics_matrix)] = 0  # Replace any NaN values
+    
+    return heuristics_matrix
+```

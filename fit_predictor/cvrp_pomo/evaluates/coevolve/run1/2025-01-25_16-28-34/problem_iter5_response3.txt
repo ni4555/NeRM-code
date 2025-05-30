@@ -1,0 +1,73 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Calculate the sum of demands for each edge (i, j)
+    edge_demand_sum = (demands[:, None] + demands[None, :]) * distance_matrix
+    
+    # Calculate the average demand per edge
+    average_demand_per_edge = edge_demand_sum / (distance_matrix ** 2)
+    
+    # Implement a refined neighborhood exploration mechanism
+    # By considering vehicle capacities and demand distributions
+    # Use a simple heuristic that penalizes heavily overloading and underloading
+    heuristics = (average_demand_per_edge - total_capacity) / total_capacity
+    
+    # Calculate penalties for overloading and underloading
+    overload_penalty = torch.abs(heuristics)
+    underload_penalty = torch.abs(1 - heuristics)
+    
+    # Weighted combination of overloading and underloading penalties
+    penalty = 0.5 * (overload_penalty + underload_penalty)
+    
+    # Apply the penalty to the heuristics
+    heuristics -= penalty
+    
+    # Dynamic Tabu Search with Adaptive Cost Function
+    # Introduce a tabu list to avoid revisiting suboptimal solutions
+    tabu_list = torch.zeros(n, dtype=torch.bool)
+    
+    # Update tabu list based on the cost function
+    def update_tabu_list(subtour, tabu_list, tabu_duration):
+        new_subtour = subtour[tabu_list]
+        tabu_list[tabu_list] = False
+        tabu_list[new_subtour] = True
+        return new_subtour, tabu_list
+    
+    # Simulate PSO with Adaptive Population Management
+    # Initialize particles and best positions
+    num_particles = 50
+    best_positions = torch.rand(num_particles, n)
+    velocities = torch.zeros_like(best_positions)
+    inertia_weight = 0.9
+    cognitive_weight = 1.5
+    social_weight = 1.5
+    
+    # PSO iteration
+    for _ in range(100):
+        for i in range(num_particles):
+            velocities[i] = inertia_weight * velocities[i] + cognitive_weight * torch.rand_like(velocities[i]) + social_weight * torch.rand_like(velocities[i])
+            best_positions[i] += velocities[i]
+            subtour, tabu_list = update_tabu_list(best_positions[i], tabu_list, tabu_duration=5)
+            heuristics_subtour = heuristics[torch.triu_indices(n, n, k=1)[0], torch.triu_indices(n, n, k=1)[1]]
+            best_global_position = best_positions[i][heuristics_subtour < 0].argmin()
+            best_positions[i] = torch.cat([subtour, best_global_position])
+        
+        # Update global best position
+        global_best_position = best_positions[heuristics_subtour < 0].argmin()
+        best_positions = torch.cat([subtour, global_best_position])
+    
+    # Use the best position to update heuristics
+    heuristics = torch.zeros_like(distance_matrix)
+    heuristics[torch.triu_indices(n, n, k=1)[0], torch.triu_indices(n, n, k=1)[1]] = heuristics_subtour[best_global_position]
+    
+    # Ensure the heuristics are negative for undesirable edges
+    heuristics[distance_matrix == 0] = 0
+    heuristics[heuristics >= 0] = -torch.abs(heuristics[heuristics >= 0])
+    
+    return heuristics
+```

@@ -1,0 +1,45 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+
+    # Calculate normalized density
+    density = prize / (np.sum(weight, axis=1) + 1e-8)
+
+    # Calculate normalized sparsity
+    sparsity = np.sum(weight, axis=1) / (np.max(weight, axis=1) + 1e-8)
+
+    # Integrate additional metrics
+    weighted_density = density * np.sum(weight, axis=1)
+    diversity = np.std(density)
+
+    # Calculate the balance factor between high density and low sparsity
+    balance_factor = (density - sparsity) / (density + sparsity + 1e-8)
+
+    # Create a heuristic by blending the density, sparsity, and balance
+    heuristic = density * (1 - sparsity) - weighted_density + balance_factor
+
+    # Introduce a diversity factor based on the standard deviation of the density
+    diversity_factor = (density / diversity) + 1e-8
+
+    # Promote diversity by scaling the heuristic based on the diversity factor
+    heuristic *= diversity_factor
+
+    # Introduce a mutation factor to prevent overfitting and introduce randomness
+    mutation_rate = 0.1
+    mutation = np.random.normal(0, 1, size=heuristic.shape)
+    mutation = np.where(heuristic < 0.5, mutation, -mutation)
+    heuristic += mutation * mutation_rate
+
+    # Normalize by the maximum heuristic value to ensure all values are within a certain range
+    max_heuristic = np.max(heuristic)
+    normalized_heuristic = heuristic / (max_heuristic + 1e-8)
+
+    # Set zero weights to a small value to maintain diversity
+    zero_weight_index = np.where(np.sum(weight, axis=1) < 1e-8)
+    normalized_heuristic[zero_weight_index] = 1e-8
+
+    return normalized_heuristic
+```

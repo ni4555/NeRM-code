@@ -1,0 +1,25 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Initialize heuristics with 0
+    heuristic = np.zeros_like(prize)
+    
+    # Sample items based on probability to diversify the solution
+    probabilities = prize / (np.sum(weight, axis=1) + 1e-8)
+    for _ in range(int(0.8 * len(prize))):
+        item = np.random.choice(len(prize), p=probabilities)
+        heuristic[item] = 1  # Include this item in the solution
+    
+    # Prune dominated items based on heuristic
+    non_dominated_mask = np.ones_like(heuristic, dtype=bool)
+    for i in range(len(heuristic)):
+        for j in range(len(heuristic)):
+            if (heuristic[j] > heuristic[i] and np.sum(weight[i] > weight[j])) or \
+               (heuristic[j] > heuristic[i] and np.sum(weight[i] == weight[j]) and prize[j] > prize[i]):
+                non_dominated_mask[j] = False
+    heuristic[non_dominated_mask] = 0
+    
+    # Normalize heuristics
+    heuristic /= np.sum(heuristic)
+    
+    return heuristic
+```

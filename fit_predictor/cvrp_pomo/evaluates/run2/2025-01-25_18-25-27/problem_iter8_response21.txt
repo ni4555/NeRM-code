@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.mean()
+    # Calculate the average of the heuristics to penalize infeasibilities
+    avg_heuristic = (distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))).mean()
+    # Determine penalties dynamically based on deviation from average demand
+    deviations = torch.abs(normalized_demands - avg_demand)
+    penalties = avg_heuristic * (deviations > 0.5).float()
+    # Apply penalties to the edges
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    heuristics_matrix += penalties.unsqueeze(1).expand_as(heuristics_matrix)
+    return heuristics_matrix
+```

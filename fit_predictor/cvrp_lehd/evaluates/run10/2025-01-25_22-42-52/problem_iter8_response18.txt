@@ -1,0 +1,36 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Initialize a matrix for the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Iterate over all edges from the depot to the customers
+    for i in range(1, n):  # Skip the depot itself
+        current_demand = demands[i]
+        
+        # Find the nearest customer that can be served without exceeding the current capacity
+        nearest_customer = torch.argmin(torch.abs(cumulative_demand - current_demand), dim=0)
+        
+        # Assign a heuristic value based on the distance to the nearest customer
+        if nearest_customer != i:
+            heuristics_matrix[i, nearest_customer] = -distance_matrix[i, nearest_customer]
+    
+    # Apply penalties to high demand nodes and high distance edges
+    penalty_factor = 0.1
+    high_demand_penalty = (demands > demands.mean()).float() * penalty_factor
+    high_distance_penalty = (distance_matrix > distance_matrix.mean()).float() * penalty_factor
+    
+    # Add penalties to the heuristic values for high demand nodes
+    heuristics_matrix[torch.arange(n), torch.where(demands > demands.mean())] += high_demand_penalty[torch.arange(n)]
+    
+    # Add penalties to the heuristic values for high distance edges
+    heuristics_matrix[torch.where(distance_matrix > distance_matrix.mean())] += high_distance_penalty[torch.where(distance_matrix > distance_matrix.mean())]
+    
+    return heuristics_matrix
+```

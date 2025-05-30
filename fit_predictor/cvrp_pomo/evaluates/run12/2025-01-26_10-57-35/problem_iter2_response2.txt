@@ -1,0 +1,27 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic for CVRP that balances demand and distance."""
+    n = distance_matrix.shape[0]
+    # Initialize heuristics matrix with zero
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Normalize demands to account for vehicle capacity
+    normalized_demands = demands / torch.max(demands)
+    
+    # Calculate the inverse distance matrix
+    with torch.no_grad():
+        inverse_distance = 1 / (distance_matrix + 1e-8)  # Avoid division by zero
+    
+    # Create a matrix of all node pairs with the product of their normalized demand and inverse distance
+    demand_distance_product = normalized_demands[:, None] * normalized_demands[None, :]
+    
+    # Combine the demand-distance product with the inverse distance
+    heuristics = demand_distance_product * inverse_distance
+    
+    # Ensure non-negative heuristics by taking the maximum value of each row and subtracting it
+    heuristics -= heuristics.max(dim=1, keepdim=True)[0]
+    
+    return heuristics
+```

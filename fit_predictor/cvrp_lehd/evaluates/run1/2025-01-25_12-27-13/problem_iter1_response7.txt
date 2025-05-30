@@ -1,0 +1,42 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    import torch
+    n = distance_matrix.shape[0]
+    depot = 0
+
+    # Calculate the total demand excluding the depot
+    total_demand = demands[1:].sum()
+
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+
+    # Calculate the maximum possible load a single vehicle can carry
+    vehicle_capacity = 1.0 / (1.0 / total_demand + 1.0 / demands[depot])
+
+    # Iterate over each node pair (i, j)
+    for i in range(n):
+        for j in range(n):
+            if i != j:
+                # Calculate the cost of visiting node j from node i
+                cost = distance_matrix[i][j]
+                
+                # If j is a customer node, check if it is profitable to visit j from i
+                if i != depot and demands[j] > 0:
+                    # Calculate the potential load after visiting j
+                    potential_load = vehicle_capacity - (demands[i] / demands[j]) * demands[j]
+                    
+                    # If the load does not exceed capacity, it is a promising edge
+                    if potential_load >= demands[j]:
+                        heuristics[i][j] = cost * (potential_load / demands[j])
+
+                # If j is the depot, check if it is a promising return to the depot
+                elif j == depot:
+                    # Calculate the potential load after visiting j
+                    potential_load = vehicle_capacity + demands[i]
+                    
+                    # If the load does not exceed capacity, it is a promising edge
+                    if potential_load <= vehicle_capacity:
+                        heuristics[i][j] = cost * (vehicle_capacity / potential_load)
+
+    return heuristics
+```

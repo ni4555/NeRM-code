@@ -1,0 +1,26 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    demand_threshold = total_demand / (demands.size(0) - 1)
+    
+    # Normalize distances and demands
+    norm_distances = distance_matrix / distance_matrix.max()
+    node_loads = demands.unsqueeze(1) / demand_threshold
+    
+    # Calculate a non-linear transformation of node loads to emphasize lower loads
+    node_loads_non_linear = (1 - (node_loads ** 0.5))
+    
+    # Combine distance and load factors, emphasizing lower loads
+    combined_factors = norm_distances * node_loads_non_linear
+    
+    # Introduce randomness to explore new solutions, but balance with existing heuristic values
+    temperature = 0.5
+    rand_factor = torch.rand_like(combined_factors) * temperature - temperature / 2
+    
+    # Apply a dampening factor to avoid overly large heuristics values
+    dampening_factor = 0.5
+    heuristics = combined_factors + rand_factor * dampening_factor
+    
+    return heuristics
+```

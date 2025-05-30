@@ -1,0 +1,31 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative sum of demands from the depot to each node
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative sum of distances from the depot to each node
+    cumulative_distances = torch.cumsum(distance_matrix, dim=0)
+    
+    # Avoid division by zero in cases where cumulative_distances might be zero
+    safe_distances = torch.clamp(cumulative_distances, min=1e-8)
+    
+    # Calculate the heuristic values based on the ratio of cumulative demand to cumulative distance
+    heuristic_matrix = cumulative_demands / safe_distances
+    
+    # Apply a non-linear transformation to reduce sparsity and encourage exploration
+    heuristic_matrix = torch.tanh(heuristic_matrix)
+    
+    # Apply a dynamic threshold based on the standard deviation of the heuristic values
+    std_dev = torch.std(heuristic_matrix)
+    dynamic_threshold = torch.mean(heuristic_matrix) + std_dev
+    
+    # Set high heuristic values to negative values by subtracting from the dynamic threshold
+    heuristic_matrix = torch.where(heuristic_matrix < dynamic_threshold, heuristic_matrix, -dynamic_threshold)
+    
+    # Ensure that the heuristic matrix is sparse by zeroing out small values
+    heuristic_matrix = torch.where(heuristic_matrix > 1e-4, heuristic_matrix, 0)
+    
+    return heuristic_matrix
+```

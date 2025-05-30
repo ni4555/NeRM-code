@@ -1,0 +1,33 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    # Calculate the density and sparsity
+    density = prize / np.sum(weight, axis=1)
+    sparsity = np.sum(weight, axis=1) / np.max(weight, axis=1)
+    
+    # Prune dominated items (items with lower density)
+    non_dominated = np.where(density > sparsity)[0]
+    
+    # Randomly sample a subset of non-dominated items
+    num_samples = int(np.floor(0.8 * len(non_dominated)))
+    indices = np.random.choice(non_dominated, size=num_samples, replace=False)
+    
+    # Normalize the remaining heuristics
+    remaining_density = density[non_dominated][indices]
+    remaining_sparsity = sparsity[non_dominated][indices]
+    normalized_density = remaining_density / np.max(remaining_density)
+    normalized_sparsity = remaining_sparsity / np.max(remaining_sparsity)
+    
+    # Balance the random selection with the original density
+    balanced_heuristic = normalized_density * 0.7 + normalized_sparsity * 0.3
+    
+    # Introduce a diversity factor
+    diversity_factor = balanced_heuristic / np.mean(balanced_heuristic)
+    
+    # Create the final heuristics
+    heuristics = np.zeros_like(prize)
+    heuristics[indices] = diversity_factor
+    
+    return heuristics
+```

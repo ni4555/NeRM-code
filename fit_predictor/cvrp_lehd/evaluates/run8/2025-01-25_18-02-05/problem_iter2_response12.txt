@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the cumulative demand and distance from the depot to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    cumulative_distance = torch.cumsum(distance_matrix, dim=0)
+    
+    # Calculate the heuristic values as the ratio of cumulative demand to cumulative distance
+    heuristic_matrix = cumulative_demand / cumulative_distance
+    
+    # Calculate the maximum heuristic value to normalize
+    max_heuristic = torch.max(heuristic_matrix)
+    
+    # Invert the heuristic matrix to differentiate promising and undesirable edges
+    heuristic_matrix = 1 - heuristic_matrix
+    
+    # Normalize the inverted heuristic values to the range [-1, 1]
+    normalized_heuristic = (heuristic_matrix - torch.min(heuristic_matrix)) / (torch.max(heuristic_matrix) - torch.min(heuristic_matrix))
+    
+    # Scale the normalized values to have a range of [-1, 1]
+    scaled_heuristic = 2 * normalized_heuristic - 1
+    
+    return scaled_heuristic
+```

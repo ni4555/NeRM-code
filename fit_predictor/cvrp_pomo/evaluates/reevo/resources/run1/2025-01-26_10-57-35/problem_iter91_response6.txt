@@ -1,0 +1,52 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison and normalization
+    demand_matrix = demands[:, None] * demands
+    demand_matrix = (demand_matrix - torch.diag(demand_matrix)) / demands.sum()
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Incorporate capacity constraint directly into the heuristic
+    capacity_factor = (1 / (demands + 1e-8))
+    heuristics = weighted_distance_matrix + torch.log(demands + 1e-8)
+    heuristics *= capacity_factor
+    
+    # Apply logarithmic scale for balance
+    heuristics = torch.log1p(heuristics)
+    
+    # Adjust for loop minimization by reducing the heuristics of edges that form loops
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics += loop_heuristics
+    
+    # Normalize the heuristics
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    # Penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -15
+    undercapacity_penalty = (demands < 1).float() * 10
+    heuristics += overcapacity_penalty - undercapacity_penalty
+    
+    # Enhance the depot's edge heuristics to ensure it is always chosen
+    heuristics[0, :] += 1
+    heuristics[:, 0] += 1
+    
+    # Apply dampening to stabilize the heuristic values
+    dampening_factor = 0.95
+    heuristics *= dampening_factor
+    
+    # Further adjust for loop minimization
+    loop_minimization_factor = 0.2
+    loop_heuristics = loop_minimization_factor * (heuristics + heuristics.T - torch.diag(heuristics))
+    heuristics += loop_heuristics
+    
+    # Emphasize capacity constraints
+    capacity_emphasis_factor = 1.1
+    heuristics *= capacity_emphasis_factor
+    
+    return heuristics
+```

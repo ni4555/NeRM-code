@@ -1,0 +1,15 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    capacity_penalty = -torch.log(torch.clamp(demands - total_capacity, min=0)) / total_capacity
+    distance_penalty = -torch.log(torch.clamp(distance_matrix, min=1e-8))
+    dynamic_capacity_penalty = capacity_penalty * torch.sigmoid((total_capacity - cumulative_demand) / total_capacity)
+    edge_potential = torch.sigmoid(-distance_penalty + dynamic_capacity_penalty)
+    demand_buffering = torch.where(cumulative_demand >= 1.1, demands, torch.zeros_like(demands))
+    heuristics = edge_potential + demand_buffering * 0.5
+    return heuristics
+```

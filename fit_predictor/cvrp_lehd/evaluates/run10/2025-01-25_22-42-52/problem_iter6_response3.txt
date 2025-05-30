@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Calculate the cumulative demand up to each node
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    
+    # Calculate the cumulative capacity up to each node
+    vehicle_capacity = torch.ones_like(demands) * torch.max(demands)
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Calculate the distance to the nearest customer with a positive demand that can be served
+    nearest_customer = torch.argmin(torch.abs(cumulative_demand[:, None] - cumulative_capacity), dim=1)
+    
+    # Create a matrix to store the heuristics
+    heuristics_matrix = torch.zeros_like(distance_matrix)
+    
+    # Assign a heuristic value for the edge from the depot to each nearest customer
+    heuristics_matrix[0, nearest_customer] = -distance_matrix[0, nearest_customer]
+    
+    # Calculate the additional load for each edge to determine if it is beneficial
+    additional_load = cumulative_demand[nearest_customer] - cumulative_demand[:-1][nearest_customer]
+    
+    # Add incentives for edges that lead to better load balance
+    heuristics_matrix[nearest_customer[:-1], nearest_customer[1:]] += (vehicle_capacity[0] - demands[nearest_customer[:-1]]) / vehicle_capacity[0] * distance_matrix[nearest_customer[:-1], nearest_customer[1:]]
+    
+    # Add penalties for edges that would exceed vehicle capacity
+    heuristics_matrix[nearest_customer[:-1], nearest_customer[1:]] -= torch.clamp(additional_load, 0, vehicle_capacity[0] - demands[nearest_customer[:-1]]) / vehicle_capacity[0] * distance_matrix[nearest_customer[:-1], nearest_customer[1:]]
+    
+    return heuristics_matrix
+```

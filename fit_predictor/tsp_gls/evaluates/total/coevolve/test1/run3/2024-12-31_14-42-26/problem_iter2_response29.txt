@@ -1,0 +1,46 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Initialize the heuristics matrix with zeros
+    heuristics = np.zeros_like(distance_matrix, dtype=np.float64)
+    
+    # Compute pairwise distances using the Euclidean distance
+    pairwise_distances = np.sqrt(np.sum((distance_matrix - np.tile(distance_matrix[:, np.newaxis], (distance_matrix.shape[0], 1)))**2, axis=2))
+    
+    # Incorporate domain knowledge by using a more advanced heuristic that prioritizes edge quality
+    # We use the reciprocal of the distance as the heuristic value, which implies that shorter edges are better
+    heuristics = 1 / (1 + pairwise_distances)
+    
+    # Apply a penalty for very short distances to avoid local optima
+    very_short_distance_penalty = 0.5
+    heuristics[distance_matrix < very_short_distance_penalty] = heuristics[distance_matrix < very_short_distance_penalty] * 0.5
+    
+    # Incorporate adaptive neighborhood strategies by adjusting the heuristic
+    # based on the distance to the nearest non-visited node
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                nearest_non_visited = np.argmin(distance_matrix[i, distance_matrix[:, i] > 0])
+                heuristics[i, j] += distance_matrix[i, nearest_non_visited] - min_distances[nearest_non_visited]
+    
+    # Apply guided local search enhancements by considering the sum of distances
+    # to all unvisited nodes from the starting node
+    all_unvisited = np.where(distance_matrix[:, 0] > 0)[0]
+    starting_node_distance = distance_matrix[0, all_unvisited].sum()
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                heuristics[i, j] += starting_node_distance - distance_matrix[i, all_unvisited].sum()
+    
+    # Adapt the fitness landscape in real-time by considering the diversity of
+    # the nearest neighbors
+    for i in range(distance_matrix.shape[0]):
+        for j in range(distance_matrix.shape[1]):
+            if i != j:
+                nearest_neighbors = np.argsort(distance_matrix[i, distance_matrix[i] > 0])[1:5]  # Get the 4 nearest neighbors
+                diversity = np.std(distance_matrix[nearest_neighbors, j])
+                heuristics[i, j] += diversity
+    
+    return heuristics
+```

@@ -1,0 +1,31 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    depot = 0
+    total_capacity = demands.sum()
+    
+    # Create a matrix with the same shape as distance_matrix
+    heuristic_matrix = torch.zeros_like(distance_matrix)
+    
+    # Calculate the distance to the nearest neighbor for each node
+    nearest_neighbor_distance = torch.min(distance_matrix[1:, 1:], dim=1, keepdim=True)[0] + torch.min(distance_matrix[1:, depot], dim=1, keepdim=True)[0]
+    
+    # Normalize the demand to vehicle capacity ratio
+    demand_to_capacity_ratio = demands / total_capacity
+    
+    # Combine distance to nearest neighbor and demand to capacity ratio
+    combined_scores = nearest_neighbor_distance - demand_to_capacity_ratio
+    
+    # Add a penalty for edges leading to a node with demand greater than vehicle capacity
+    penalty_mask = demands > 1.0
+    penalty = torch.full_like(combined_scores, 1000.0) * penalty_mask
+    
+    # Combine the combined scores with the penalty, ensuring that the penalty dominates for infeasible edges
+    heuristics = torch.where(penalty_mask, penalty, combined_scores)
+    
+    # Introduce a diversification strategy by adding a random perturbation to the heuristic values
+    random_perturbation = torch.randn_like(heuristics) * 0.1
+    heuristics += random_perturbation
+    
+    return heuristics
+```

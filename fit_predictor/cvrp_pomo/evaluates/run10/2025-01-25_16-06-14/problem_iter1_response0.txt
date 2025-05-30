@@ -1,0 +1,28 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    """An improved heuristic function for CVRP."""
+    num_nodes = distance_matrix.shape[0]
+    # Calculate the total distance matrix including the return to the depot
+    return_distance_matrix = distance_matrix.clone()
+    return_distance_matrix = return_distance_matrix + demands[:, None]
+    
+    # Normalize the return distances by the total demand to prioritize larger demands
+    return_distance_matrix = return_distance_matrix / demands[:, None]
+    
+    # Calculate the minimum distance for each node to return to the depot
+    min_return_distance = torch.min(return_distance_matrix, dim=1, keepdim=True)[0]
+    
+    # Calculate the heuristic values based on the normalized return distances
+    heuristic_values = return_distance_matrix - min_return_distance
+    
+    # Introduce a penalty for high demands and large distances
+    demand_penalty = demands * 10
+    distance_penalty = (distance_matrix ** 2) * 5
+    
+    # Combine penalties with the heuristic values
+    heuristic_values = heuristic_values - (demand_penalty + distance_penalty)
+    
+    return heuristic_values
+```

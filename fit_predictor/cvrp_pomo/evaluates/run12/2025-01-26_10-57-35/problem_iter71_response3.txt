@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize demand by total capacity
+    normalized_demands = demands / demands.sum()
+    
+    # Initialize heuristic matrix with negative values
+    heuristics = -distance_matrix
+    
+    # Calculate weighted demand and normalize
+    weighted_demand = distance_matrix * normalized_demands[:, None]
+    weighted_demand = weighted_demand.sum(dim=1)
+    
+    # Integrate demand into heuristic
+    heuristics += weighted_demand
+    
+    # Normalize by the total demand to balance out the effect of high demand nodes
+    heuristics /= weighted_demand.sum()
+    
+    # Apply a dampening factor to prevent dominance
+    dampening_factor = 0.7
+    heuristics *= dampening_factor
+    
+    # Emphasize capacity constraints by adjusting heuristic values
+    capacity_factor = 1 / (demands + 1e-8)
+    heuristics *= capacity_factor
+    
+    # Normalize to ensure stability
+    max_heuristic = heuristics.max()
+    heuristics /= max_heuristic
+    
+    # Minimize loops by reducing the heuristic values of edges that form a loop
+    loop_heuristics = heuristics + heuristics.T - torch.diag(heuristics)
+    loop_heuristics[loop_heuristics > 0] = 0
+    heuristics += loop_heuristics
+    
+    # Apply a penalty for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += normalized_demands * overcapacity_penalty - undercapacity_penalty
+    
+    # Ensure the depot cost is not overly penalized
+    heuristics[0, :] += 1
+    heuristics[:, 0] += 1
+    
+    return heuristics
+```

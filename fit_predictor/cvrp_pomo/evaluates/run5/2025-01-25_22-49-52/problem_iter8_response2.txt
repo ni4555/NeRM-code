@@ -1,0 +1,35 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Normalize distance matrix
+    max_distance = distance_matrix.max().item()
+    normalized_distances = distance_matrix / max_distance
+    
+    # Normalize demands
+    max_demand = demands.max().item()
+    normalized_demands = demands / max_demand
+    
+    # Demand relaxation
+    demand_relaxation = torch.abs(normalized_demands - 0.5)
+    
+    # Distance transformation
+    distance_transformation = 1 - normalized_distances
+    
+    # Combine transformations to enhance signal strength
+    potential_value = distance_transformation * demand_relaxation
+    
+    # Dynamic weighting based on distance and demand relaxation
+    dynamic_weight = 1 - torch.min(normalized_distances, demand_relaxation)
+    
+    # Apply the dynamic weight to the potential value
+    weighted_potential_value = potential_value * dynamic_weight
+    
+    # Set the depot to 0 potential value
+    weighted_potential_value[0, :] = 0
+    weighted_potential_value[:, 0] = 0
+    
+    return weighted_potential_value
+```

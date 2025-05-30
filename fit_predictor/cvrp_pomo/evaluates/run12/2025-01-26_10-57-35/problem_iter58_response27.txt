@@ -1,0 +1,63 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison
+    demand_matrix = demands[:, None] * demands
+    
+    # Subtract diagonal (self-demand), normalize by the total demand for each node
+    demand_matrix = demand_matrix - torch.diag(demand_matrix)
+    demand_matrix /= demand_matrix.sum(dim=1, keepdim=True)
+    
+    # Calculate weighted distance matrix
+    weighted_distance_matrix = distance_matrix * demand_matrix
+    
+    # Normalize the weighted distance matrix
+    weighted_distance_matrix /= weighted_distance_matrix.sum(dim=1, keepdim=True)
+    
+    # Integrate capacity constraint by using the inverse of demand
+    capacity_factor = (1 / (demands + 1e-8))  # Avoid division by zero
+    
+    # Calculate heuristic by combining weighted distance, demand, and capacity factor
+    heuristics = weighted_distance_matrix + demand_matrix * capacity_factor
+    
+    # Apply a logarithmic scale to balance demand and distance
+    heuristics = torch.log1p(heuristics)
+    
+    # Apply dampening factors
+    dampen_depot = torch.log1p(torch.abs(distance_matrix[:, 0]))
+    dampen_loop = 0.1
+    dampen_dominance = 1e-4
+    
+    # Dampen edges connected to the depot and edges that could form a loop
+    heuristics[:, 0] *= dampen_depot
+    heuristics[0, :] *= dampen_depot
+    for i in range(1, n):
+        for j in range(i + 1, n):
+            if distance_matrix[i, j] == 0:
+                heuristics[i, j] -= dampen_loop
+                heuristics[j, i] -= dampen_loop
+    
+    # Normalize heuristics
+    max_heuristic = heuristics.max()
+    if max_heuristic > 0:
+        heuristics /= max_heuristic
+    
+    # Balance distance and demand using a linear function
+    heuristics *= (1 + demands)
+    
+    # Apply penalties for overcapacity and undercapacity
+    heuristics += torch.clamp(-10 * (demands > 1), min=-10, max=0)
+    heuristics -= torch.clamp(5 * (demands < 1), min=-5, max=0)
+    
+    # Ensure that the heuristic for the depot is the highest
+    heuristics[0, :] += demands[0]
+    heuristics[:, 0] += demands[0]
+    
+    # Adjust to avoid dominance
+    heuristics += dampen_dominance
+    
+    return heuristics
+```

@@ -1,0 +1,48 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    # Calculate the inverse of the distance matrix to prioritize short edges
+    distance_matrix_inv = 1 / distance_matrix
+    
+    # Calculate the product of demand and inverse distance for each edge
+    demand_distance_product = demands * distance_matrix_inv
+    
+    # Normalize the product by the sum of demands to get a demand-based heuristic
+    demand_sum = torch.sum(demands)
+    demand_based_heuristic = demand_distance_product / demand_sum
+    
+    # Calculate the diversity of demands
+    demand_diversity = torch.var(demands)
+    
+    # Normalize the diversity by the sum of demands
+    normalized_demand_diversity = demand_diversity / demand_sum
+    
+    # Combine the demand-based heuristic and diversity into a single heuristic value
+    combined_heuristic = demand_based_heuristic * (1 - normalized_demand_diversity) + \
+                          normalized_demand_diversity
+    
+    # Apply a non-linear transformation to emphasize longer distances and diverse demands
+    heuristic_matrix = torch.exp(-combined_heuristic)
+    
+    # Normalize the heuristic matrix to ensure all values are on a comparable scale
+    normalized_heuristic_matrix = heuristic_matrix / torch.max(heuristic_matrix)
+    
+    # Incorporate a penalty for edges that are likely to exceed vehicle capacity
+    cumulative_demands = torch.cumsum(demands, dim=0)
+    penalty_matrix = (cumulative_demands - demands) / distance_matrix
+    penalty_matrix = torch.where(penalty_matrix > 1, -penalty_matrix, torch.zeros_like(penalty_matrix))
+    
+    # Adjust the heuristic matrix by adding the penalty matrix
+    heuristic_matrix = heuristic_matrix + penalty_matrix
+    
+    # Normalize the heuristic matrix to ensure all values are within the range [-1, 1]
+    min_val = torch.min(heuristic_matrix)
+    max_val = torch.max(heuristic_matrix)
+    normalized_heuristic_matrix = (heuristic_matrix - min_val) / (max_val - min_val)
+    
+    # Scale the normalized heuristic matrix to the range [-1, 1]
+    scaled_heuristic_matrix = 2 * normalized_heuristic_matrix - 1
+    
+    return scaled_heuristic_matrix
+```

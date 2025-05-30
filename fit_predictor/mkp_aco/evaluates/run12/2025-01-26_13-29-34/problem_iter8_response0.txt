@@ -1,0 +1,54 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n = prize.shape[0]
+    m = weight.shape[1]
+    heuristic = np.zeros((n,))
+
+    # Deep reinforcement learning component (simplified)
+    model_scores = np.random.rand(n)
+
+    # Initialize adaptive constraint-driven filtering
+    constraints = np.sum(weight, axis=1) <= 1
+    feasible_items = constraints.astype(bool)
+
+    # Initialize particle swarm optimization components
+    global_best_index = np.argmax(model_scores)
+    velocities = np.random.rand(n)
+    positions = np.copy(model_scores)
+    personal_best_positions = np.copy(positions)
+    personal_best_scores = np.copy(model_scores)
+    global_best_score = np.max(model_scores)
+
+    # Refine PSO mechanics and incorporate dynamic constraints
+    for _ in range(100):  # Number of iterations can be tuned
+        new_positions = positions + velocities
+        new_positions[~feasible_items] = positions[~feasible_items]  # Maintain feasibility
+        velocities = 0.8 * velocities + 0.2 * (new_positions - positions)  # Update velocities
+        positions = np.clip(new_positions, 0, 1)  # Clamp positions between 0 and 1
+        current_scores = model_scores * positions * (prize / (prize[global_best_index] + 1e-6))
+
+        # Update personal and global best positions and scores
+        personal_best_scores[positions > personal_best_positions] = current_scores[positions > personal_best_positions]
+        personal_best_positions[positions > personal_best_positions] = positions[positions > personal_best_positions]
+        if np.max(current_scores) > global_best_score:
+            global_best_score = np.max(current_scores)
+            global_best_index = np.argmax(current_scores)
+
+    # Update heuristics based on RL, PSO, and dynamic constraint-driven feasibility
+    for i in range(n):
+        if not feasible_items[i]:
+            heuristic[i] = 0
+        else:
+            # Incorporate domain-specific constraints (weight sparsity)
+            sparsity_score = 1 - np.sum(weight[i])  # Sparsity of item i
+            heuristic[i] = (model_scores[i] * (prize[i] / (prize[global_best_index] + 1e-6))) + \
+                           (current_scores[i] * sparsity_score)
+
+    # Sparsify heuristics by setting less promising items to zero
+    sparsity_threshold = np.percentile(heuristic[feasible_items], 20)
+    heuristic[heuristic < sparsity_threshold] = 0
+
+    return heuristic
+```

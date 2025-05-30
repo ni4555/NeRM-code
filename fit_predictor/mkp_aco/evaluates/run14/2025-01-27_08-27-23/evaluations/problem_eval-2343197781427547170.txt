@@ -1,0 +1,27 @@
+import numpy as np
+from scipy.spatial.distance import pdist, squareform
+from sklearn.linear_model import LinearRegression
+
+def heuristics_v2(prize, weight, history_data):
+    n, m = prize.shape[0], weight.shape[1]
+    heuristics = np.zeros(n)
+    
+    # Prepare historical data matrix
+    history_prize = np.array(history_data['prize'])
+    history_weight = np.array(history_data['weight'])
+    
+    # Fit linear regression to predict future optimal total prize
+    lr = LinearRegression()
+    lr.fit(history_weight, history_prize)
+    
+    # Calculate predicted prize for each item
+    predicted_prize = lr.predict(weight)
+    
+    # Calculate DTW similarity for each item
+    dtw_matrix = squareform(pdist([predicted_prize], 'dtw'))
+    dtw_sim = np.max(dtw_matrix, axis=1)
+    
+    # Normalize DTW similarity
+    heuristics = 1 / (1 + dtw_sim)
+    
+    return heuristics_matrix

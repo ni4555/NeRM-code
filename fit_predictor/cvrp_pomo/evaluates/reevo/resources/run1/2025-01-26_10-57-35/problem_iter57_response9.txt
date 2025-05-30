@@ -1,0 +1,48 @@
+```python
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    
+    # Demand matrix for self-comparison and normalize by total demand
+    demand_matrix = (demands[:, None] * demands) / demands.sum()
+    
+    # Subtract diagonal (self-demand) and calculate the difference
+    difference = distance_matrix - demand_matrix
+    
+    # Apply logarithmic scale to balance the difference between distance and demand
+    logarithmic_diff = torch.log1p(-difference)
+    
+    # Apply decay to depot edges to reduce their impact
+    depot_decay = torch.log1p(torch.abs(distance_matrix[:, 0]))
+    logarithmic_diff[:, 0] *= depot_decay
+    logarithmic_diff[0, :] *= depot_decay
+    
+    # Use the capacity as a factor to adjust the heuristics
+    capacity_factor = (1 / (demands + 1e-8)) * logarithmic_diff
+    
+    # Normalize the capacity factor
+    normalized_capacity_factor = capacity_factor / capacity_factor.sum(dim=1, keepdim=True)
+    
+    # Add the normalized capacity factor to the heuristics
+    heuristics = normalized_capacity_factor
+    
+    # Apply penalties for overcapacity and undercapacity
+    overcapacity_penalty = (demands > 1).float() * -10
+    undercapacity_penalty = (demands < 1).float() * 5
+    heuristics += overcapacity_penalty - undercapacity_penalty
+    
+    # Minimize loops by ensuring the heuristics are lower for self-loops
+    loop_penalty = torch.abs(difference).sum(dim=1)
+    heuristics[loop_penalty == 0] *= 0  # Self-loops
+    heuristics += loop_penalty[:, None]
+    
+    # Avoid dominance by reducing the heuristics of dominated edges
+    dominated_edges = (difference**2) < distance_matrix
+    dominated_edges = dominated_edges.unsqueeze(2)
+    dominated_edges = dominated_edges.unsqueeze(1)
+    dominated_edges = dominated_edges.unsqueeze(3)
+    dominated_edges = dominated_edges.view(n, n, n, n)
+    dominated_edges = dominated_edges.sum(dim=2).view(n, n)
+    heuristics[dominated_edges] = 0
+    
+    return heuristics
+```

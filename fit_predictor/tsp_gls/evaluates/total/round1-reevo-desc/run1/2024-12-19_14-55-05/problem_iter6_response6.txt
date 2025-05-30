@@ -1,0 +1,52 @@
+```python
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    num_nodes = distance_matrix.shape[0]
+    heuristics = np.zeros_like(distance_matrix)
+
+    # Balance factors for different penalties
+    direct_penalty_factor = 1.0
+    loop_penalty_factor = 5.0
+    frequency_penalty_factor = 2.0
+    large_distance_penalty_factor = 1e4
+
+    # Average distance for normalization
+    average_distance = np.mean(distance_matrix[np.isfinite(distance_matrix)])
+
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                # Direct distance penalty
+                direct_distance = distance_matrix[i, np.roll(i, 1)]
+                direct_penalty = direct_penalty_factor * (distance_matrix[i, j] - average_distance)
+
+                # Loop distance penalty
+                loop_distance = distance_matrix[i, j] + distance_matrix[j, np.roll(i, 1)] + distance_matrix[np.roll(i, 1), j]
+                loop_penalty = loop_penalty_factor * (loop_distance - direct_distance)
+
+                # Frequency of using edges
+                frequency = np.sum(distance_matrix, axis=0)[i] * np.sum(distance_matrix, axis=1)[j]
+                frequency_penalty = frequency_penalty_factor * frequency
+
+                # Large distance penalty
+                if distance_matrix[i, j] > 1.5 * average_distance:
+                    large_distance_penalty = large_distance_penalty_factor * (1.5 * average_distance - distance_matrix[i, j])
+                else:
+                    large_distance_penalty = 0
+
+                # Weighted sum of all penalties
+                total_penalty = direct_penalty + loop_penalty + frequency_penalty + large_distance_penalty
+                heuristics[i, j] = total_penalty
+
+    # Incorporate a diversity penalty to avoid common edges
+    for i in range(num_nodes):
+        for j in range(num_nodes):
+            if i != j:
+                diversity_penalty = 0
+                for k in range(num_nodes):
+                    for l in range(num_nodes):
+                        if i != k and j != l and distance_matrix[k, l] == distance_matrix[i, j]:
+                            diversity_penalty += 1
+                heuristics[i, j] += 0.5 * diversity_penalty
+
+    return heuristics
+```

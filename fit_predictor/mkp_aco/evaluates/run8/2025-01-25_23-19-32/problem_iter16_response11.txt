@@ -1,0 +1,36 @@
+```python
+import numpy as np
+
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    n, m = prize.shape[0], weight.shape[1]
+    
+    # Normalize weights by summing across dimensions
+    weight_normalized = np.sum(weight, axis=1)
+    
+    # Calculate importance based on prize and normalized weight
+    importance = prize / weight_normalized
+    
+    # Introduce randomness to the importance calculation
+    noise_factor = np.random.normal(0, 0.01, size=importance.shape)
+    
+    # Emphasize variance by adding a variance factor
+    variance_factor = np.random.normal(0, 0.05, size=importance.shape)
+    
+    # Apply a diversity factor to encourage selection of different items
+    diversity_factor = 1 / (1 + np.exp(-importance))
+    
+    # Calculate sparsity factor for each item
+    sparsity_factor = 1 - (np.sum(weight**2, axis=1) / weight_normalized**2)
+    
+    # Combine all factors with an emphasis on variance to create heuristics
+    heuristics = importance * (1 + noise_factor + variance_factor) * diversity_factor * sparsity_factor
+    
+    # Ensure all heuristics are above a minimum threshold
+    min_heuristic_level = 0.01
+    heuristics = np.maximum(min_heuristic_level, heuristics)
+    
+    # Normalize the heuristics to ensure they sum to 1
+    heuristics /= np.sum(heuristics)
+    
+    return heuristics
+```

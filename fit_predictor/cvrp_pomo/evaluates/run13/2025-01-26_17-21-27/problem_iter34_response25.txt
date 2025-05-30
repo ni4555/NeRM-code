@@ -1,0 +1,42 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_capacity = demands.sum()
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    base_penalty = -torch.log1p(torch.abs(distance_matrix) - 1e-8)
+    
+    # Calculate the penalty based on the cumulative distance
+    distance_penalty = base_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Scale penalties dynamically to balance the demand
+    capacity_penalty = -torch.log1p(torch.abs(demands - total_capacity) - 1e-8)
+    scaled_capacity_penalty = capacity_penalty * (1 + (total_capacity - cumulative_demand) / total_capacity)
+    
+    # Introduce a dynamic capacity penalty that increases as the vehicle gets closer to its capacity
+    dynamic_capacity_penalty = scaled_capacity_penalty * (1 + cumulative_demand / total_capacity)
+    
+    # Introduce a load balancing penalty to encourage uniform distribution of demand
+    load_balance = torch.abs(cumulative_demand - total_capacity / n)
+    load_balance_penalty = -torch.log1p(load_balance - 1e-8)
+    
+    # Apply a high load balance penalty to discourage heavily loaded vehicles
+    high_load_balance_penalty = torch.where(
+        load_balance > total_capacity / (2 * n),
+        -torch.log1p(load_balance - 1e-8),
+        torch.zeros_like(load_balance)
+    )
+    
+    # Combine the penalties into a single heuristic value
+    heuristics = distance_penalty + dynamic_capacity_penalty + load_balance_penalty + high_load_balance_penalty
+    
+    # Normalize the heuristics to sum to 1 for each edge
+    penalties_sum = heuristics.sum(dim=1, keepdim=True)
+    normalized_heuristics = heuristics / (penalties_sum + 1e-8)
+    
+    # Introduce a penalty for the depot to return to itself
+    normalized_heuristics[0] = -1000
+    
+    return normalized_heuristics
+```

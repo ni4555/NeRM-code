@@ -1,0 +1,37 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    
+    # Initialize the heuristics matrix with zeros
+    heuristics = torch.zeros_like(distance_matrix)
+    
+    # Incorporate demand constraints
+    demand_excess = (demands > total_demand / n).float()
+    
+    # Incorporate distance patterns
+    distance_excess = (distance_matrix > distance_matrix.mean()).float()
+    
+    # Use a weighted sum to combine demand and distance patterns
+    combined_pattern = demand_excess * distance_excess
+    
+    # Normalize the combined pattern to sum to 1
+    combined_pattern = combined_pattern / combined_pattern.sum()
+    
+    # Incorporate distance decay to give priority to shorter distances
+    distance_decay = torch.exp(-distance_matrix / distance_matrix.mean())
+    
+    # Incorporate demand decay to prioritize routes that meet demand constraints
+    demand_decay = torch.exp(-combined_pattern)
+    
+    # Combine the decays with the pattern
+    heuristics = combined_pattern * (distance_decay * demand_decay)
+    
+    # Scale heuristics to ensure non-negative values and proper normalization
+    heuristics = torch.clamp(heuristics, min=0)
+    heuristics /= heuristics.sum()
+    
+    return heuristics
+```

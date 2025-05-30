@@ -1,0 +1,16 @@
+```python
+def heuristics_v2(prize: np.ndarray, weight: np.ndarray) -> np.ndarray:
+    value_to_weight_ratio = prize / np.sum(weight, axis=1)
+    # Non-linear scaling by taking the logarithm of the ratio
+    non_linear_scaled_ratio = np.log(value_to_weight_ratio)
+    # Applying thresholds to enhance sparsity
+    thresholded_ratio = np.where(non_linear_scaled_ratio > np.log(2), non_linear_scaled_ratio, 0)
+    # Consider diversity by ensuring that we do not have items with similar heuristic values
+    diversity_metric = np.argsort(thresholded_ratio, axis=0)
+    diversity_metric = diversity_metric[:, ::-1]  # Sort in descending order to prioritize higher values
+    # Normalize diversity_metric to maintain heuristic values' sum to 1
+    diversity_metric = diversity_metric / np.sum(diversity_metric, axis=1, keepdims=True)
+    # Apply diversity_metric to heuristics
+    final_heuristics = thresholded_ratio * diversity_metric
+    return final_heuristics
+```

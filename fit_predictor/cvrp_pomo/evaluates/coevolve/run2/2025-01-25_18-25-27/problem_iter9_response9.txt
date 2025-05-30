@@ -1,0 +1,25 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    total_demand = demands.sum()
+    normalized_demands = demands / total_demand
+    avg_demand = normalized_demands.sum() / n
+    heuristics_matrix = distance_matrix - (normalized_demands * distance_matrix.sum(axis=1, keepdim=True) + avg_demand * distance_matrix.sum(axis=0, keepdim=True))
+    
+    # Introduce randomness and a penalty for infeasibilities
+    penalty = torch.rand(n)
+    feasible_edges = (heuristics_matrix > 0).float()
+    random_factor = (torch.rand(n) * 2 - 1) * feasible_edges
+    infeasibility_penalty = torch.where(heuristics_matrix <= 0, -1.0, 0.0)
+    heuristics_matrix += random_factor + infeasibility_penalty * (1 - feasible_edges)
+    
+    # Mutation step to introduce diversity
+    mutation_rate = 0.1
+    mutation_indices = torch.rand(n) < mutation_rate
+    mutation_amount = (torch.rand(n) * 2 - 1) * (heuristics_matrix > 0).float()
+    heuristics_matrix[mutation_indices] += mutation_amount[mutation_indices]
+    
+    return heuristics_matrix
+```

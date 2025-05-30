@@ -1,0 +1,18 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    n = distance_matrix.shape[0]
+    # Calculate the sum of demands for each edge
+    sum_of_demands = torch.sum(demands[:, None] + demands[None, :], dim=0)
+    # Calculate the inverse of the distance matrix
+    inverse_distance = 1 / (distance_matrix + 1e-8)
+    # Normalize the sum of demands to ensure the sum of each row is 1
+    normalized_demand = sum_of_demands / (sum_of_demands.sum(dim=1, keepdim=True) + 1e-8)
+    # Combine the normalized demand and inverse distance
+    combined_heuristic = normalized_demand * inverse_distance
+    # Scale the combined heuristic to ensure non-negative values
+    max_combined_heuristic = combined_heuristic.max()
+    heuristics = combined_heuristic / (max_combined_heuristic + 1e-8)
+    return heuristics
+```

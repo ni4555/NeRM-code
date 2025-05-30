@@ -1,0 +1,21 @@
+```python
+import torch
+
+def heuristics_v2(distance_matrix: torch.Tensor, demands: torch.Tensor) -> torch.Tensor:
+    cumulative_demand = torch.cumsum(demands, dim=0)
+    vehicle_capacity = torch.full_like(demands, torch.max(demands))
+    cumulative_capacity = torch.cumsum(vehicle_capacity, dim=0)
+    
+    # Calculate the distances to the nearest customer with a positive demand that can be served
+    nearest_customer = torch.argmin(torch.abs(cumulative_demand[:, None] - cumulative_capacity), dim=1)
+    
+    # Vectorized assignment for the heuristics matrix
+    heuristics_matrix = torch.full_like(distance_matrix, -float('inf'))
+    heuristics_matrix[torch.arange(distance_matrix.shape[0]), nearest_customer] = -distance_matrix[torch.arange(distance_matrix.shape[0]), nearest_customer]
+    
+    # Vectorized computation of overcapacity penalties
+    overcapacity_penalty = (cumulative_demand[:, None] > cumulative_capacity).float() * -1000.0
+    heuristics_matrix += overcapacity_penalty
+    
+    return heuristics_matrix
+```

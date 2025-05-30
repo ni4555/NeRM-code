@@ -1,0 +1,35 @@
+```python
+import numpy as np
+
+def heuristics_v2(distance_matrix: np.ndarray) -> np.ndarray:
+    # Create a matrix that will represent how bad it is to include each edge
+    # The idea here is to penalize edges that are part of the shortest cycle
+    n = distance_matrix.shape[0]
+    edge_usage_count = np.zeros((n, n), dtype=int)
+    
+    # Initialize a graph to perform the cycle detection
+    graph = {i: [] for i in range(n)}
+    
+    # Count the usage of each edge
+    for i in range(n):
+        for j in range(i+1, n):
+            edge_usage_count[i, j] += 1
+    
+    # Calculate the minimum cycle distance for each edge
+    min_cycle_distance = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i+1, n):
+            current_cycle_distance = np.sum(distance_matrix[i:j])
+            min_cycle_distance[i, j] = current_cycle_distance
+    
+    # Use edge_usage_count to adjust the distances
+    adjusted_distance_matrix = distance_matrix.copy()
+    for i in range(n):
+        for j in range(i+1, n):
+            if min_cycle_distance[i, j] == distance_matrix[i, j]:
+                adjusted_distance_matrix[i, j] += edge_usage_count[i, j]
+            else:
+                adjusted_distance_matrix[i, j] += (min_cycle_distance[i, j] - distance_matrix[i, j]) * edge_usage_count[i, j]
+    
+    return adjusted_distance_matrix
+```
